@@ -10,6 +10,7 @@ Version: 1.0 – September 25, 2025
 **Key Deliverables:** Fully functional mobile app prototype with mock data, ready for user testing
 
 **Current Status (September 27, 2025):**
+
 - ✅ **Section 1.1 Complete:** Project Foundation & Tooling (4 tasks completed)
 - ✅ **Section 1.2 Partial:** Mapbox Implementation (Tasks 1.2.1-1.2.4 completed, 1.2.5 pending)
 - ⏳ **Next Priority:** Navigation & Drawer Menu (Section 1.3)
@@ -301,7 +302,7 @@ Install @rnmapbox/maps SDK and create a basic map screen that renders properly o
 #### Success Criteria
 
 - ✅ Map renders on Android emulator and physical devices
-- ✅ Environment configuration works correctly  
+- ✅ Environment configuration works correctly
 - ✅ No native linking errors after Mapbox repository authentication
 - ✅ Smooth pan/zoom interactions
 - ✅ Professional map styling with Mexico City default view
@@ -333,22 +334,15 @@ Create comprehensive mock data using a seed generator script, stored in organize
 #### Implementation Notes
 
 - **Data Structure:**
-  ```typescript
-  // /apps/mobile/src/data/mockRestaurants.ts
-  interface Restaurant {
-    id: string;
-    name: string; 
-    cuisine: string;
-    rating: number;
-    priceRange: '$' | '$$' | '$$$' | '$$$$';
-    coordinates: [number, number]; // [longitude, latitude] - GeoJSON format
-    address: string;
-    phone?: string;
-    description: string;
-    imageUrl?: string;
-    isOpen: boolean;
-    openingHours: { open: string; close: string; };
-  }
+  ```
+  /packages/services/mock/
+    /data/
+      restaurants.json
+      dishes.json
+      ingredients.json
+      allergens.json
+    generate-mock-data.js
+    index.ts
   ```
 - **Realistic Data:** 5 Mexico City restaurants (La Casa de Toño, Pujol, Contramar, Rosetta, Quintonil)
 - **Geographic Distribution:** Actual Mexico City coordinates for testing
@@ -387,7 +381,7 @@ Implement restaurant markers with custom styling, clustering for performance, an
 
 #### Implementation Notes
 
-- **Mapbox Components:** Used PointAnnotation for individual restaurant markers  
+- **Mapbox Components:** Used PointAnnotation for individual restaurant markers
 - **Custom Styling:** Circular markers with emoji icons and color coding
 - **Interaction Pattern:** onSelected handlers with Alert.alert for restaurant details
 - **Visual Feedback:** Green markers for open restaurants, red for closed
@@ -398,7 +392,7 @@ Implement restaurant markers with custom styling, clustering for performance, an
 
 - ✅ Markers render quickly with professional styling
 - ✅ Tap interactions are responsive with detailed information
-- ✅ Color coding clearly indicates restaurant status  
+- ✅ Color coding clearly indicates restaurant status
 - ✅ Good performance maintained on Android emulator
 - ✅ Professional visual design with shadows and proper sizing
 

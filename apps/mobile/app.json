@@ -4,10 +4,23 @@
     "slug": "mobile",
     "version": "1.0.0",
     "android": {
-      "package": "com.anonymous.mobile"
+      "package": "com.anonymous.mobile",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.mobile"
-    }
+      "bundleIdentifier": "com.anonymous.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses location to show nearby restaurants and provide personalized recommendations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to show nearby restaurants and provide personalized recommendations."
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow EatMe to use your location to discover nearby restaurants."
+        }
+      ]
+    ]
   }
 }

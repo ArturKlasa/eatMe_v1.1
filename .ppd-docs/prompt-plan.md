@@ -8,24 +8,28 @@ Each phase includes clear validation points.
 **Budget:** Free/low-cost tools during dev; optimize for production costs.
 
 ## Current Strategy Snapshot
+
 - Focus: Mobile app UX validation with mock data before backend spend.
 - Why: Core value is map-first navigation and quick dish discovery.
 - Backend readiness: Supabase planned; integrate only after UX validated.
 
 ## Setup & Getting Started
-1. Initialize monorepo: `npx create-turbo@latest eatme --template` (create basic structure).  
-2. Set up mobile app: In `/apps/mobile`, run `expo init --template bare-minimum` (choose TypeScript).  
-3. Install dependencies: `npm install @rnmapbox/maps native-base zustand @react-navigation/native @react-navigation/drawer react-native-deck-swiper @react-native-async-storage/async-storage`.  
-4. Configure Mapbox: Get free API key from mapbox.com, add to app.json/env.  
-5. Run dev build: `expo run:ios` or `expo run:android` (test Mapbox integration early).  
+
+1. Initialize monorepo: `npx create-turbo@latest eatme --template` (create basic structure).
+2. Set up mobile app: In `/apps/mobile`, run `expo init --template bare-minimum` (choose TypeScript).
+3. Install dependencies: `npm install @rnmapbox/maps native-base zustand @react-navigation/native @react-navigation/drawer react-native-deck-swiper @react-native-async-storage/async-storage`.
+4. Configure Mapbox: Get free API key from mapbox.com, add to app.json/env.
+5. Run dev build: `expo run:ios` or `expo run:android` (test Mapbox integration early).
 6. Cost control: use lightweight markers and avoid heavy images to limit Mapbox tile usage.
 
 ---
 
 ## Phase 1: Mobile UI Prototype (No Backend)
-**Goal:** Build a **clickable mobile app** with mock data. (~30-35 hours)  
+
+**Goal:** Build a **clickable mobile app** with mock data. (~30-35 hours)
 
 ### 1.1 Project Foundation (~4h)
+
 - [ ] Initialize monorepo with Turborepo (~1h)
   - Run `npx create-turbo@latest eatme --template`
   - Configure base tsconfig.json and package.json
@@ -40,6 +44,7 @@ Each phase includes clear validation points.
   - Test basic app startup
 
 ### 1.2 Map Implementation (Priority 1) (~8h)
+
 - [ ] Mapbox setup and configuration (~2h)
   - Create Mapbox account, obtain API key
   - Configure environment variables (app.json/env files)
@@ -63,6 +68,7 @@ Each phase includes clear validation points.
   - Implement user location detection and centering
 
 ### 1.3 Navigation and Drawer Menu (~6h)
+
 - [ ] React Navigation setup (~2h)
   - Configure drawer navigator as main navigation container
   - Set up stack navigators for different screen flows
@@ -80,6 +86,7 @@ Each phase includes clear validation points.
   - Show active filter count badge in drawer header
 
 ### 1.4 Filter System (~8h)
+
 - [ ] Filter UI components (~3h)
   - Price range slider component ($ to $$$$)
   - Cuisine type multi-select with checkboxes (Italian, Chinese, etc.)
@@ -98,6 +105,7 @@ Each phase includes clear validation points.
   - Add quick preset filters (\"Nearby\", \"Cheap Eats\", \"Healthy\")
 
 ### 1.5 Restaurant/Dish Toggle (~4h)
+
 - [ ] Toggle component implementation (~2h)
   - Create segmented control component for Restaurant/Dish modes
   - Position toggle prominently in map header
@@ -110,6 +118,7 @@ Each phase includes clear validation points.
   - Test data filtering logic for both modes
 
 ### 1.6 Swipe Recommendation Flow (~10h)
+
 - [ ] Swipe card components (~4h)
   - Install and configure react-native-deck-swiper
   - Design dish card UI: high-quality food image, dish name, restaurant name, price, brief description
@@ -133,6 +142,7 @@ Each phase includes clear validation points.
   - Test recommendation accuracy with mock data
 
 ### 1.7 Authentication Screens (Stubs) (~2h)
+
 - [ ] Login/signup screen layouts (~1h)
   - Create basic login form with email/password fields
   - Create signup form with name, email, password
@@ -147,6 +157,7 @@ Each phase includes clear validation points.
 **Out of Scope for Phase 1:** Real authentication, Supabase integration, real images/photos, analytics, rewards system, social features, real-time updates.
 
 **Validation Criteria:**
+
 - Users can swipe through 10 cards in <30 seconds without errors
 - Map loads and renders restaurants in <5 seconds
 - Filters apply to map results within 2 seconds
@@ -159,9 +170,11 @@ Each phase includes clear validation points.
 ---
 
 ## Phase 2: Backend Integration (Supabase) (~15-20h)
+
 **Goal:** Replace mock data with real backend and implement core user features.
 
 ### 2.1 Supabase Setup & Configuration (~4h)
+
 - [ ] Supabase project creation (~1h)
   - Create new Supabase project with appropriate region
   - Configure database settings and connection pooling
@@ -175,6 +188,7 @@ Each phase includes clear validation points.
   - Import master data tables (cuisines, allergens, dietary_tags)
 
 ### 2.2 Authentication System (~4h)
+
 - [ ] Supabase Auth integration (~2h)
   - Install @supabase/supabase-js and configure client
   - Set up auth providers (email/password, Google OAuth)
@@ -187,6 +201,7 @@ Each phase includes clear validation points.
   - Handle authentication errors and edge cases
 
 ### 2.3 Data Layer Implementation (~5h)
+
 - [ ] Repository pattern implementation (~2h)
   - Create Supabase-backed repository implementations
   - Replace mock repositories with real data fetching from database
@@ -203,6 +218,7 @@ Each phase includes clear validation points.
   - Optimize image loading and storage access
 
 ### 2.4 Core Features (~4h)
+
 - [ ] Favorites system (~2h)
   - Implement add/remove favorites for dishes and restaurants
   - Sync favorites across devices and sessions
@@ -215,6 +231,7 @@ Each phase includes clear validation points.
   - Calculate and display average ratings for restaurants/dishes
 
 ### 2.5 Advanced Features (~3h)
+
 - [ ] Recommendation engine (~2h)
   - Implement server-side recommendation logic using Edge Functions
   - Create complex queries combining user preferences, location, and ratings
@@ -227,6 +244,7 @@ Each phase includes clear validation points.
   - Set up alerts for system issues and downtime
 
 **Validation Criteria:**
+
 - Users can register, log in, and maintain authenticated sessions
 - Real restaurant data loads on map within 3 seconds
 - Favorites sync properly across app restarts and devices
@@ -235,6 +253,7 @@ Each phase includes clear validation points.
 - Recommendation accuracy improves with user interaction data
 
 **Cost Optimization:**
+
 - Use PostGIS indexes for efficient geospatial queries
 - Implement result pagination to reduce data transfer
 - Cache frequently accessed data locally and server-side
@@ -244,9 +263,11 @@ Each phase includes clear validation points.
 ---
 
 ## Phase 3: UX Iteration & Social Features (~12-15h)
+
 **Goal:** Refine user experience and add core social functionality.
 
 ### 3.1 User Feedback Integration (~4h)
+
 - [ ] Usability testing sessions (~2h)
   - Conduct 8-10 user tests with target demographic
   - Document navigation pain points and user confusion areas
@@ -260,6 +281,7 @@ Each phase includes clear validation points.
   - Enhance information hierarchy and visual flow
 
 ### 3.2 Advanced UI Components (~4h)
+
 - [ ] Bottom sheet integration (~2h)
   - Add draggable recommendations panel below map
   - Implement smooth gesture animations and snap points
@@ -272,6 +294,7 @@ Each phase includes clear validation points.
   - Add voice search capability for hands-free operation
 
 ### 3.3 Social Features Foundation (~4h)
+
 - [ ] Friend system (~2h)
   - Implement friend invite and connection system
   - Add friend discovery through contacts and social networks
@@ -284,6 +307,7 @@ Each phase includes clear validation points.
   - Handle group session management and real-time updates
 
 ### 3.4 Polish and Performance (~3h)
+
 - [ ] Visual refinements (~1h)
   - Apply consistent design system and color palette
   - Add proper loading states, skeleton screens, and transitions
@@ -299,6 +323,7 @@ Each phase includes clear validation points.
   - Add haptic feedback for better tactile experience
 
 **Validation Criteria:**
+
 - 90% of test users complete core tasks without assistance
 - App maintains 60fps during all interactions and transitions
 - Search returns relevant results within 1 second
@@ -307,9 +332,11 @@ Each phase includes clear validation points.
 - No critical UX issues or confusing user flows remaining
 
 ## Phase 4: Web Portal & Admin Tools (~15-20h)
+
 **Goal:** Enable restaurant partners and admins to manage content independently.
 
 ### 4.1 Admin Portal Foundation (~6h)
+
 - [ ] Admin authentication and authorization (~2h)
   - Set up admin role management in Supabase with proper permissions
   - Create secure admin routes with middleware protection
@@ -327,6 +354,7 @@ Each phase includes clear validation points.
   - Create custom report generation with scheduling
 
 ### 4.2 Restaurant Partner Portal (~8h)
+
 - [ ] Restaurant onboarding (~3h)
   - Create restaurant account registration and verification
   - Build restaurant profile management with photos and descriptions
@@ -345,6 +373,7 @@ Each phase includes clear validation points.
   - Add staff management and role assignment
 
 ### 4.3 Integration and Deployment (~6h)
+
 - [ ] API integration and real-time sync (~2h)
   - Connect web portal to Supabase backend with proper authentication
   - Implement real-time updates between mobile app and web portal
@@ -362,29 +391,32 @@ Each phase includes clear validation points.
   - Add monitoring and error tracking for production
 
 **Validation Criteria:**
+
 - Restaurant partners can manage complete menus without developer help
 - Admin can moderate content and access analytics efficiently
 - Changes in web portal reflect in mobile app within 30 seconds
 - Web portal loads completely in <3 seconds on desktop
 - All admin tools work correctly with proper authorization
-- Restaurant verification process is streamlined and secure  
+- Restaurant verification process is streamlined and secure
 
 ---
 
 ## Phase 4: CI/CD & Scale
-**Goal:** Automate and prepare for production.  
 
-- [ ] GitHub Actions for linting, builds, tests  
-- [ ] Expo EAS for iOS/Android builds + OTA updates  
-- [ ] Vercel for web portal deployments  
-- [ ] Optimize Supabase schema, add RLS policies, cost monitoring  
-- [ ] Performance improvements (map clustering, lazy loading)  
+**Goal:** Automate and prepare for production.
+
+- [ ] GitHub Actions for linting, builds, tests
+- [ ] Expo EAS for iOS/Android builds + OTA updates
+- [ ] Vercel for web portal deployments
+- [ ] Optimize Supabase schema, add RLS policies, cost monitoring
+- [ ] Performance improvements (map clustering, lazy loading)
 
 **Validation:** Smooth experience for 100+ test users in beta program.
 
 ---
 
 ## Future Phases (Post-Phase 4)
+
 - **Phase 5: Social Features** - Friend system, group dining, rewards program.
 - **Phase 6: Internationalization** - Multi-language support, traveler features.
 - **Phase 7: Advanced Features** - Daily menus, integrations, optimization.

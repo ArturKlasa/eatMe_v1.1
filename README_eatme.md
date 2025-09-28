@@ -28,23 +28,27 @@ EatMe combines location-based discovery with Tinder-like preference learning to 
 ### Installation
 
 1. **Install Volta** (Node.js version manager):
+
 ```bash
 curl https://get.volta.sh | bash
 source ~/.bashrc
 ```
 
 2. **Install Node.js and npm**:
+
 ```bash
 volta install node@lts
 volta install npm@latest
 ```
 
 3. **Install global development tools**:
+
 ```bash
 npm install -g @expo/cli eas-cli
 ```
 
 4. **Clone and setup project**:
+
 ```bash
 git clone <repository-url>
 cd eatMe_v1
@@ -54,6 +58,7 @@ cd eatMe_v1
 ### Environment Verification
 
 After setup, verify your environment:
+
 ```bash
 node --version    # Should show 22.20.0 or higher
 npm --version     # Should show 11.6.1 or higher
@@ -101,11 +106,12 @@ For detailed implementation tasks and progress, see `.ppd-docs/tasks-new/phase-1
 ## Contributing
 
 This project follows strict TypeScript and includes comprehensive documentation requirements. All code changes must include:
+
 - Proper TypeScript types
 - Inline code comments explaining complex logic
 - Updated documentation when adding new features
 
 ---
 
-*Last Updated: January 2025*
-*Development Environment: Linux, Mexico City timezone*
+_Last Updated: January 2025_
+_Development Environment: Linux, Mexico City timezone_

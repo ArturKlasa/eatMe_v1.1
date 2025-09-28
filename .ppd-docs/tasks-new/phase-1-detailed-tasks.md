@@ -1,13 +1,16 @@
 # Phase 1: Mobile UI Prototype (No Backend) - Detailed Task Breakdown
+
 Version: 1.0 – September 25, 2025
 
 ## Phase Overview
+
 **Duration:** 4-5 weeks (~30-35 hours total)  
 **Priority:** Critical - Foundation for entire project  
 **Dependencies:** None (fresh start)  
 **Key Deliverables:** Fully functional mobile app prototype with mock data, ready for user testing
 
 **Improved Setup Strategy:**
+
 - Node.js version management with Volta or nvm
 - Monorepo-first approach with proper tooling setup
 - Early ESLint/Prettier/TypeScript configuration
@@ -21,23 +24,27 @@ Version: 1.0 – September 25, 2025
 ## Section 1.1: Project Foundation & Tooling
 
 ### Task 1.1.1: Development Environment Setup ✅ COMPLETED
+
 **Priority:** Critical  
 **Estimated Time:** 2 hours  
 **Dependencies:** None  
 **Completed:** September 27, 2025
 
 #### Description
+
 Set up the complete development environment with proper Node.js version management, tooling, and code quality standards from day one to avoid technical debt.
 
 #### Acceptance Criteria
+
 - [x] Node.js LTS version installed and managed via Volta or nvm
 - [x] Git repository initialized with proper .gitignore
 - [x] Development tools installed (VS Code extensions, etc.)
 - [x] EAS CLI installed for future native builds
- - [x] Documentation updated (root README or setup docs reflect environment tooling)
- - [x] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [x] Documentation updated (root README or setup docs reflect environment tooling)
+- [x] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Node.js Management:** Use Volta (preferred) or nvm for consistent Node versions
   ```bash
   # Install Volta
@@ -52,6 +59,7 @@ Set up the complete development environment with proper Node.js version manageme
 - **VS Code Extensions:** React Native Tools, ESLint, Prettier, TypeScript
 
 #### Success Criteria
+
 - Node.js version locked and consistent
 - All required CLI tools accessible
 - VS Code properly configured for React Native development
@@ -59,23 +67,27 @@ Set up the complete development environment with proper Node.js version manageme
 ---
 
 ### Task 1.1.2: Monorepo Initialization with Turborepo ✅ COMPLETED
+
 **Priority:** Critical  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.1.1  
 **Completed:** September 27, 2025
 
 #### Description
+
 Initialize the monorepo structure first, then create the mobile app inside it. This ensures proper workspace configuration from the start.
 
 #### Acceptance Criteria
+
 - [x] Turborepo workspace created with proper structure
 - [x] Root package.json configured with workspace scripts
 - [x] pnpm workspace configuration added
 - [x] Basic turbo.json pipeline configured
- - [x] Documentation updated (monorepo structure + scripts in docs/package-management.md & architecture)
- - [x] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [x] Documentation updated (monorepo structure + scripts in docs/package-management.md & architecture)
+- [x] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Monorepo First Approach:**
   ```bash
   npx create-turbo@latest eatme --template basic
@@ -97,30 +109,36 @@ Initialize the monorepo structure first, then create the mobile app inside it. T
   ```
 
 #### Success Criteria
+
 - Monorepo structure matches architecture.md specification
 - pnpm workspace commands work correctly
 - Turborepo pipeline runs without errors
 
 ---
 
-### Task 1.1.3: Code Quality & Standards Setup  
+### Task 1.1.3: Code Quality & Standards Setup ✅ COMPLETED
+
 **Priority:** High  
 **Estimated Time:** 1 hour  
-**Dependencies:** Task 1.1.2
+**Dependencies:** Task 1.1.2  
+**Completed:** September 27, 2025
 
 #### Description
+
 Configure ESLint, Prettier, and TypeScript strict mode early to maintain code quality and avoid technical debt accumulation.
 
 #### Acceptance Criteria
-- [ ] TypeScript configured with strict mode enabled
-- [ ] ESLint configured with React Native and TypeScript rules
-- [ ] Prettier configured with consistent formatting rules
-- [ ] Husky pre-commit hooks set up
-- [ ] Shared config package created for reuse
- - [ ] Documentation updated (coding standards + lint/format instructions)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+
+- [x] TypeScript configured with strict mode enabled
+- [x] ESLint configured with React Native and TypeScript rules
+- [x] Prettier configured with consistent formatting rules
+- [ ] Husky pre-commit hooks set up (MOVED TO CI/CD PHASE)
+- [x] Shared config package created for reuse
+- [x] Documentation updated (coding standards + lint/format instructions)
+- [x] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **TypeScript Config:** Enable strict mode, proper module resolution
 - **ESLint Rules:** React Native community config + TypeScript
 - **Prettier Config:** Consistent with team preferences
@@ -128,6 +146,7 @@ Configure ESLint, Prettier, and TypeScript strict mode early to maintain code qu
 - **Shared Package:** `/packages/config/` for reusable configurations
 
 #### Success Criteria
+
 - Code automatically formatted on save
 - Lint errors prevent commits
 - TypeScript strict mode catches type errors
@@ -136,23 +155,27 @@ Configure ESLint, Prettier, and TypeScript strict mode early to maintain code qu
 ---
 
 ### Task 1.1.4: Mobile App Initialization (Expo Bare)
+
 **Priority:** Critical  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.1.3
 
 #### Description
+
 Create the React Native app using Expo Bare workflow inside the monorepo structure, configured for TypeScript and native module support.
 
 #### Acceptance Criteria
+
 - [ ] Expo Bare app created in `/apps/mobile`
 - [ ] TypeScript configured and working
 - [ ] Basic folder structure established
 - [ ] Native iOS and Android projects generated
 - [ ] App runs successfully on both platforms
- - [ ] Documentation updated (apps/mobile/README with run & folder structure)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (apps/mobile/README with run & folder structure)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Expo Bare Setup:**
   ```bash
   cd apps
@@ -174,6 +197,7 @@ Create the React Native app using Expo Bare workflow inside the monorepo structu
   ```
 
 #### Success Criteria
+
 - App builds and runs on iOS/Android
 - TypeScript compilation works
 - Hot reload functions properly
@@ -184,25 +208,29 @@ Create the React Native app using Expo Bare workflow inside the monorepo structu
 ## Section 1.2: Mapbox Implementation (Priority 1)
 
 ### Task 1.2.1: Mapbox Account & Token Setup
+
 **Priority:** Critical  
 **Estimated Time:** 1 hour  
 **Dependencies:** Task 1.1.4
 
 #### Description
+
 Set up Mapbox account with both Access Token and Downloads Token, properly configured for both development and native builds.
 
 #### Acceptance Criteria
+
 - [ ] Mapbox account created with appropriate plan
-- [ ] Public Access Token generated (pk.*)
+- [ ] Public Access Token generated (pk.\*)
 - [ ] Downloads Token generated for native builds
 - [ ] Environment variables properly configured
 - [ ] Native platform configurations added
- - [ ] Documentation updated (Mapbox token types & env usage)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (Mapbox token types & env usage)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Token Types:**
-  - Access Token (pk.*): For map rendering, public-safe
+  - Access Token (pk.\*): For map rendering, public-safe
   - Downloads Token: For native SDK downloads, private
 - **Environment Setup:**
   ```bash
@@ -216,6 +244,7 @@ Set up Mapbox account with both Access Token and Downloads Token, properly confi
 - **Cost Monitoring:** Set up usage alerts in Mapbox dashboard
 
 #### Success Criteria
+
 - Both tokens generated and secured
 - Native builds can download Mapbox SDK
 - Environment variables accessible in app
@@ -224,24 +253,28 @@ Set up Mapbox account with both Access Token and Downloads Token, properly confi
 ---
 
 ### Task 1.2.2: Mapbox SDK Integration & Basic Map
+
 **Priority:** Critical  
 **Estimated Time:** 2 hours  
 **Dependencies:** Task 1.2.1
 
 #### Description
+
 Install @rnmapbox/maps SDK and create a basic map screen that renders properly on both iOS and Android devices.
 
 #### Acceptance Criteria
+
 - [ ] @rnmapbox/maps installed and linked
 - [ ] Basic map screen renders without errors
 - [ ] Map displays with proper styling
 - [ ] Location permissions configured
 - [ ] Map works on both iOS and Android
 - [ ] Pod install completed for iOS
- - [ ] Documentation updated (map setup steps & troubleshooting)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (map setup steps & troubleshooting)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Installation:**
   ```bash
   npm install @rnmapbox/maps
@@ -258,6 +291,7 @@ Install @rnmapbox/maps SDK and create a basic map screen that renders properly o
 - **Physical Device Testing:** Essential for location services
 
 #### Success Criteria
+
 - Map renders on physical devices (iOS/Android)
 - Location permissions work correctly
 - No native linking errors
@@ -266,24 +300,28 @@ Install @rnmapbox/maps SDK and create a basic map screen that renders properly o
 ---
 
 ### Task 1.2.3: Mock Data Generation & Structure
+
 **Priority:** High  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.2.2
 
 #### Description
+
 Create comprehensive mock data using a seed generator script, stored in organized JSON files with realistic restaurant and dish information.
 
 #### Acceptance Criteria
+
 - [ ] Node.js seed generator script created
 - [ ] Mock data stored in `/packages/services/mock/data/`
 - [ ] 15-20 realistic restaurants with proper coordinates
 - [ ] 50+ dishes linked to restaurants
 - [ ] Ingredient and allergen data included
 - [ ] Multiple cuisines and price ranges represented
- - [ ] Documentation updated (data schema & mock generation instructions)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (data schema & mock generation instructions)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Data Structure:**
   ```
   /packages/services/mock/
@@ -300,6 +338,7 @@ Create comprehensive mock data using a seed generator script, stored in organize
 - **Realistic Coordinates:** Use actual local coordinates for testing
 
 #### Success Criteria
+
 - Mock data generation script runs successfully
 - Data structure matches architecture specification
 - Realistic variety in restaurants and dishes
@@ -308,24 +347,28 @@ Create comprehensive mock data using a seed generator script, stored in organize
 ---
 
 ### Task 1.2.4: Map Markers & Clustering Implementation
+
 **Priority:** High  
 **Estimated Time:** 2.5 hours  
 **Dependencies:** Task 1.2.3
 
 #### Description
+
 Implement restaurant markers with custom styling, clustering for performance, and proper tap interactions using Mapbox's ShapeSource and SymbolLayer.
 
 #### Acceptance Criteria
+
 - [ ] Custom restaurant markers with proper icons
 - [ ] Marker clustering for zoomed-out views
 - [ ] Tap handlers for marker selection
 - [ ] Different marker styles for restaurant vs dish modes
 - [ ] Performance optimized for 50+ markers
 - [ ] Smooth clustering animations
- - [ ] Documentation updated (map markers & clustering approach)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (map markers & clustering approach)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Mapbox Pattern:** Use ShapeSource + SymbolLayer for scalability
 - **Clustering:** Enable cluster properties for performance
 - **Custom Icons:** Lightweight SVG icons for different restaurant types
@@ -333,6 +376,7 @@ Implement restaurant markers with custom styling, clustering for performance, an
 - **Interaction:** onPress handlers for marker taps
 
 #### Success Criteria
+
 - Markers render quickly with 50+ locations
 - Clustering works smoothly during zoom
 - Tap interactions are responsive
@@ -342,24 +386,28 @@ Implement restaurant markers with custom styling, clustering for performance, an
 ---
 
 ### Task 1.2.5: User Location & Map Interactions
+
 **Priority:** Medium  
 **Estimated Time:** 1 hour  
 **Dependencies:** Task 1.2.4
 
 #### Description
+
 Add user location detection, map centering, and smooth interaction handling with proper loading states and error handling.
 
 #### Acceptance Criteria
+
 - [ ] User location detection with permission handling
 - [ ] Map centers on user location
 - [ ] Smooth pan/zoom interactions
 - [ ] Loading states for map initialization
 - [ ] Error handling for location/map failures
 - [ ] Location caching for performance
- - [ ] Documentation updated (location permissions & UX behavior)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (location permissions & UX behavior)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Location Services:** Request permissions gracefully
 - **User Experience:** Center map on user location if available
 - **Performance:** Cache last known location
@@ -367,6 +415,7 @@ Add user location detection, map centering, and smooth interaction handling with
 - **Loading States:** Show appropriate feedback during initialization
 
 #### Success Criteria
+
 - Location permissions work on both platforms
 - Map centers appropriately on app launch
 - Smooth interactions maintained
@@ -378,24 +427,28 @@ Add user location detection, map centering, and smooth interaction handling with
 ## Section 1.3: Navigation & Drawer Menu
 
 ### Task 1.3.1: React Navigation Setup & Configuration
+
 **Priority:** High  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.1.4
 
 #### Description
+
 Set up React Navigation with drawer and stack navigators, ensuring proper TypeScript typing and navigation flow.
 
 #### Acceptance Criteria
+
 - [ ] React Navigation dependencies installed
 - [ ] Drawer navigator configured as main container
 - [ ] Stack navigators for screen flows
 - [ ] TypeScript navigation types defined
 - [ ] Safe area handling implemented
 - [ ] Navigation between screens working
- - [ ] Documentation updated (navigation structure diagram/notes)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (navigation structure diagram/notes)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Dependencies:**
   ```bash
   npm install @react-navigation/native @react-navigation/drawer @react-navigation/stack
@@ -406,6 +459,7 @@ Set up React Navigation with drawer and stack navigators, ensuring proper TypeSc
 - **Safe Areas:** Handle device notches and status bars
 
 #### Success Criteria
+
 - Navigation works on both platforms
 - TypeScript types prevent navigation errors
 - Smooth transitions between screens
@@ -415,24 +469,28 @@ Set up React Navigation with drawer and stack navigators, ensuring proper TypeSc
 ---
 
 ### Task 1.3.2: Drawer Menu UI & Content
+
 **Priority:** High  
 **Estimated Time:** 2 hours  
 **Dependencies:** Task 1.3.1
 
 #### Description
+
 Create the drawer menu component with user profile section, navigation items, and proper styling according to design system.
 
 #### Acceptance Criteria
+
 - [ ] Custom drawer content component created
 - [ ] User profile section with mock avatar and name
 - [ ] Navigation menu items (Map, Filters, Favorites, Profile, Settings)
 - [ ] Proper styling and spacing
 - [ ] Active state indication for current screen
 - [ ] Smooth open/close animations
- - [ ] Documentation updated (drawer IA & component responsibilities)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (drawer IA & component responsibilities)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Custom Drawer:** Override default drawer content
 - **Profile Section:** Mock user data for Phase 1
 - **Menu Items:** Icons + text, proper touch targets
@@ -440,6 +498,7 @@ Create the drawer menu component with user profile section, navigation items, an
 - **Animations:** Smooth drawer slide animations
 
 #### Success Criteria
+
 - Drawer opens and closes smoothly
 - All navigation items work correctly
 - Visual design matches specifications
@@ -449,24 +508,28 @@ Create the drawer menu component with user profile section, navigation items, an
 ---
 
 ### Task 1.3.3: Filter Integration with Drawer
+
 **Priority:** Medium  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.3.2
 
 #### Description
+
 Connect drawer-based filter controls to global state management with persistence and visual feedback.
 
 #### Acceptance Criteria
+
 - [ ] Filter controls integrated into drawer
 - [ ] Global state management for filters
 - [ ] AsyncStorage persistence for filter preferences
 - [ ] Active filter count badge in drawer
 - [ ] Filter reset functionality
 - [ ] Visual feedback for active filters
- - [ ] Documentation updated (filter persistence & state shape)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (filter persistence & state shape)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **State Management:** Use Zustand for filter state
 - **Persistence:** AsyncStorage for filter preferences
 - **Visual Feedback:** Badge showing active filter count
@@ -474,6 +537,7 @@ Connect drawer-based filter controls to global state management with persistence
 - **Responsive UI:** Filter changes update immediately
 
 #### Success Criteria
+
 - Filter state persists across app restarts
 - Visual feedback shows active filters
 - Filter reset works correctly
@@ -485,14 +549,17 @@ Connect drawer-based filter controls to global state management with persistence
 ## Section 1.4: Filter System Implementation
 
 ### Task 1.4.1: Filter UI Components Development
+
 **Priority:** High  
 **Estimated Time:** 3 hours  
 **Dependencies:** Task 1.3.3
 
 #### Description
+
 Create comprehensive filter UI components including price range, cuisine types, dietary restrictions, and spice preferences with proper accessibility.
 
 #### Acceptance Criteria
+
 - [ ] Price range slider component ($ to $$$$)
 - [ ] Multi-select cuisine type checkboxes
 - [ ] Dietary restriction toggles (Vegan, Vegetarian, etc.)
@@ -500,10 +567,11 @@ Create comprehensive filter UI components including price range, cuisine types, 
 - [ ] Calorie range slider (optional)
 - [ ] Proper accessibility labels
 - [ ] Responsive design for different screen sizes
- - [ ] Documentation updated (filter UI component spec)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (filter UI component spec)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **UI Library:** Use NativeBase components as base
 - **Custom Components:** Extend base components for specific needs
 - **Accessibility:** Proper labels and touch targets
@@ -511,6 +579,7 @@ Create comprehensive filter UI components including price range, cuisine types, 
 - **Responsive:** Work on various device sizes
 
 #### Success Criteria
+
 - All filter components render correctly
 - Touch interactions are smooth and responsive
 - Accessibility requirements met
@@ -520,24 +589,28 @@ Create comprehensive filter UI components including price range, cuisine types, 
 ---
 
 ### Task 1.4.2: Filter Logic & State Management
+
 **Priority:** High  
 **Estimated Time:** 2.5 hours  
 **Dependencies:** Task 1.4.1
 
 #### Description
+
 Implement robust filter logic with Zustand state management, validation, and efficient data filtering algorithms.
 
 #### Acceptance Criteria
+
 - [ ] Zustand store for filter state management
 - [ ] Filter application logic for mock data
 - [ ] Data filtering algorithms for restaurants/dishes
 - [ ] Filter validation and error handling
 - [ ] Performance optimization for large datasets
 - [ ] Filter combination logic (AND/OR operations)
- - [ ] Documentation updated (filter logic & data flow description)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (filter logic & data flow description)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **State Structure:** Well-organized filter state
 - **Algorithms:** Efficient filtering for restaurants and dishes
 - **Validation:** Ensure filter combinations make sense
@@ -545,6 +618,7 @@ Implement robust filter logic with Zustand state management, validation, and eff
 - **Logic:** Proper AND/OR combinations for multiple filters
 
 #### Success Criteria
+
 - Filter state management works reliably
 - Data filtering is fast and accurate
 - Complex filter combinations work correctly
@@ -554,24 +628,28 @@ Implement robust filter logic with Zustand state management, validation, and eff
 ---
 
 ### Task 1.4.3: Quick Filter Bar & Modal Interface
+
 **Priority:** Medium  
 **Estimated Time:** 2 hours  
 **Dependencies:** Task 1.4.2
 
 #### Description
+
 Create floating action button for quick filter access with modal/bottom sheet interface and preset filter options.
 
 #### Acceptance Criteria
+
 - [ ] Floating action button for filter access
 - [ ] Modal or bottom sheet for filter interface
 - [ ] Active filter count badge on FAB
 - [ ] Quick preset filters ("Nearby", "Cheap Eats", "Healthy")
 - [ ] Smooth animations and transitions
 - [ ] Proper modal dismissal handling
- - [ ] Documentation updated (quick filter UX & presets rationale)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (quick filter UX & presets rationale)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **FAB Position:** Accessible but not intrusive
 - **Modal Interface:** Bottom sheet preferred for mobile UX
 - **Presets:** Common filter combinations for quick access
@@ -579,6 +657,7 @@ Create floating action button for quick filter access with modal/bottom sheet in
 - **Dismissal:** Tap outside, swipe down, or explicit close
 
 #### Success Criteria
+
 - FAB is easily accessible and responsive
 - Modal interface is intuitive and smooth
 - Preset filters work correctly
@@ -590,24 +669,28 @@ Create floating action button for quick filter access with modal/bottom sheet in
 ## Section 1.5: Restaurant/Dish Toggle
 
 ### Task 1.5.1: Toggle Component Implementation
+
 **Priority:** Medium  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.2.4
 
 #### Description
+
 Create segmented control component for switching between Restaurant and Dish modes with smooth animations and clear visual feedback.
 
 #### Acceptance Criteria
+
 - [ ] Segmented control component for mode switching
 - [ ] Positioned prominently in map header
 - [ ] Smooth transition animations
 - [ ] Clear visual indication of current mode
 - [ ] Proper touch feedback
 - [ ] Accessibility support
- - [ ] Documentation updated (mode toggle behavior & accessibility notes)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (mode toggle behavior & accessibility notes)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Component Type:** Custom segmented control
 - **Position:** Map header for easy access
 - **Visual Design:** Clear mode indicators
@@ -615,6 +698,7 @@ Create segmented control component for switching between Restaurant and Dish mod
 - **Accessibility:** Screen reader support
 
 #### Success Criteria
+
 - Toggle is easily discoverable and usable
 - Visual feedback is clear and immediate
 - Animations are smooth and not jarring
@@ -624,24 +708,28 @@ Create segmented control component for switching between Restaurant and Dish mod
 ---
 
 ### Task 1.5.2: Mode-Specific Rendering Logic
+
 **Priority:** Medium  
 **Estimated Time:** 2 hours  
 **Dependencies:** Task 1.5.1
 
 #### Description
+
 Implement logic to show restaurants vs individual dishes on map based on toggle state, with appropriate marker styling and information panels.
 
 #### Acceptance Criteria
+
 - [ ] Restaurant mode shows restaurant locations
 - [ ] Dish mode shows individual dish locations
 - [ ] Different marker icons and colors for each mode
 - [ ] Mode-specific info panels and popups
 - [ ] Proper data filtering for each mode
 - [ ] Smooth transitions between modes
- - [ ] Documentation updated (mode rendering logic)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (mode rendering logic)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Data Logic:** Switch between restaurant and dish datasets
 - **Visual Differences:** Different marker styles for each mode
 - **Info Panels:** Show relevant information for each mode
@@ -649,6 +737,7 @@ Implement logic to show restaurants vs individual dishes on map based on toggle 
 - **Performance:** Efficient rendering for mode switches
 
 #### Success Criteria
+
 - Mode switching works correctly and smoothly
 - Visual differences are clear and meaningful
 - Information displayed is appropriate for each mode
@@ -660,24 +749,28 @@ Implement logic to show restaurants vs individual dishes on map based on toggle 
 ## Section 1.6: Swipe Recommendation Flow
 
 ### Task 1.6.1: Swipe Card Components & UI
+
 **Priority:** High  
 **Estimated Time:** 3.5 hours  
 **Dependencies:** Task 1.2.3
 
 #### Description
+
 Install and configure react-native-deck-swiper with custom dish cards featuring high-quality design, clear actions, and smooth animations.
 
 #### Acceptance Criteria
+
 - [ ] react-native-deck-swiper installed and configured
 - [ ] Custom dish card design (image, name, restaurant, price, description)
 - [ ] Like/dislike/neutral action buttons with clear icons
 - [ ] Smooth swipe animations and visual feedback
 - [ ] Card stack management and infinite scroll
 - [ ] Visual feedback for swipe directions
- - [ ] Documentation updated (swipe UI patterns & card data requirements)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (swipe UI patterns & card data requirements)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Library Setup:** Configure react-native-deck-swiper properly
 - **Card Design:** High-quality food images, clear typography
 - **Actions:** Swipe gestures + button alternatives
@@ -685,6 +778,7 @@ Install and configure react-native-deck-swiper with custom dish cards featuring 
 - **Visual Feedback:** Color changes, icons for swipe directions
 
 #### Success Criteria
+
 - Swipe gestures are smooth and responsive
 - Card design is appealing and informative
 - Visual feedback makes actions clear
@@ -694,24 +788,28 @@ Install and configure react-native-deck-swiper with custom dish cards featuring 
 ---
 
 ### Task 1.6.2: Swipe Logic & Data Management
+
 **Priority:** High  
 **Estimated Time:** 2.5 hours  
 **Dependencies:** Task 1.6.1
 
 #### Description
+
 Handle swipe gestures and manage preference data with AsyncStorage persistence and undo functionality.
 
 #### Acceptance Criteria
+
 - [ ] Swipe gesture handling (left=dislike, right=like, up=neutral)
 - [ ] AsyncStorage persistence for swipe preferences
 - [ ] Card deck management with reload capability
 - [ ] Undo last swipe functionality
 - [ ] Preference data structure for learning algorithm
 - [ ] Session management and analytics tracking
- - [ ] Documentation updated (preference storage schema & undo behavior)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (preference storage schema & undo behavior)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Gesture Handling:** Map swipes to preference actions
 - **Data Persistence:** Store preferences with timestamps
 - **Deck Management:** Handle empty deck, reload cards
@@ -719,6 +817,7 @@ Handle swipe gestures and manage preference data with AsyncStorage persistence a
 - **Data Structure:** Prepare for future ML algorithms
 
 #### Success Criteria
+
 - All swipe gestures register correctly
 - Preferences persist across app restarts
 - Undo functionality works reliably
@@ -728,24 +827,28 @@ Handle swipe gestures and manage preference data with AsyncStorage persistence a
 ---
 
 ### Task 1.6.3: Mock Preference Learning Algorithm
+
 **Priority:** Medium  
 **Estimated Time:** 2 hours  
 **Dependencies:** Task 1.6.2
 
 #### Description
+
 Create simulation of preference learning with confidence scoring and user feedback display.
 
 #### Acceptance Criteria
+
 - [ ] Mock preference scoring algorithm
 - [ ] Confidence scoring for food categories
 - [ ] "Learning your preferences" user feedback
 - [ ] Preference insights in user profile
 - [ ] Algorithm refinement based on more data
 - [ ] Visual progress indicators
- - [ ] Documentation updated (scoring model assumptions & limitations)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (scoring model assumptions & limitations)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Algorithm:** Simple scoring based on cuisine, ingredients, price
 - **Confidence Metrics:** Track certainty of preferences
 - **User Feedback:** Show learning progress
@@ -753,6 +856,7 @@ Create simulation of preference learning with confidence scoring and user feedba
 - **Visual Design:** Progress bars, confidence indicators
 
 #### Success Criteria
+
 - Algorithm produces reasonable preference scores
 - Confidence metrics make sense to users
 - User feedback enhances engagement
@@ -762,24 +866,28 @@ Create simulation of preference learning with confidence scoring and user feedba
 ---
 
 ### Task 1.6.4: Integration with Map Recommendations
+
 **Priority:** Medium  
 **Estimated Time:** 1.5 hours  
 **Dependencies:** Task 1.6.3
 
 #### Description
+
 Use accumulated swipe data to influence map recommendations with visual indicators and personalized suggestions.
 
 #### Acceptance Criteria
+
 - [ ] Swipe preferences influence map results
 - [ ] "Recommended for you" badges on markers
 - [ ] Personalized restaurant/dish ranking
 - [ ] Filter suggestions based on preferences
 - [ ] Visual indication of recommendation strength
 - [ ] Testing with mock preference data
- - [ ] Documentation updated (recommendation badge logic & ranking factors)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (recommendation badge logic & ranking factors)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Integration Logic:** Connect swipe data to map display
 - **Visual Indicators:** Badges, colors, ranking
 - **Recommendation Engine:** Simple scoring for Phase 1
@@ -787,6 +895,7 @@ Use accumulated swipe data to influence map recommendations with visual indicato
 - **Testing:** Validate with different preference profiles
 
 #### Success Criteria
+
 - Map recommendations reflect user preferences
 - Visual indicators are clear and helpful
 - Recommendation accuracy improves with more data
@@ -798,24 +907,28 @@ Use accumulated swipe data to influence map recommendations with visual indicato
 ## Section 1.7: Authentication Screens (Stubs)
 
 ### Task 1.7.1: Login/Signup Screen Layouts
+
 **Priority:** Low  
 **Estimated Time:** 1 hour  
 **Dependencies:** Task 1.3.2
 
 #### Description
+
 Create basic authentication screen layouts with forms and social login placeholders for future backend integration.
 
 #### Acceptance Criteria
+
 - [ ] Login form with email/password fields
 - [ ] Signup form with name, email, password validation
 - [ ] "Sign in with Google" placeholder button
 - [ ] Form validation and error states
 - [ ] Consistent styling with app design system
 - [ ] Proper keyboard handling
- - [ ] Documentation updated (auth screen scope & future integration notes)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (auth screen scope & future integration notes)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Form Components:** Use NativeBase form components
 - **Validation:** Client-side validation for UX
 - **Placeholders:** Prepare for OAuth integration
@@ -823,6 +936,7 @@ Create basic authentication screen layouts with forms and social login placehold
 - **UX:** Smooth keyboard interactions
 
 #### Success Criteria
+
 - Forms are visually appealing and functional
 - Validation provides helpful feedback
 - Design matches app specifications
@@ -832,24 +946,28 @@ Create basic authentication screen layouts with forms and social login placehold
 ---
 
 ### Task 1.7.2: Authentication Flow Navigation
+
 **Priority:** Low  
 **Estimated Time:** 1 hour  
 **Dependencies:** Task 1.7.1
 
 #### Description
+
 Integrate authentication screens into navigation stack with mock state management and logout functionality.
 
 #### Acceptance Criteria
+
 - [ ] Auth flow in navigation stack
 - [ ] Mock authentication state management
 - [ ] Logout functionality in drawer menu
 - [ ] Navigation flow between auth screens
 - [ ] State persistence for mock auth
 - [ ] Protected route handling
- - [ ] Documentation updated (auth flow diagram & state transitions)
- - [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
+- [ ] Documentation updated (auth flow diagram & state transitions)
+- [ ] Code comments and JSDoc added/updated for new logic, functions, or configuration
 
 #### Implementation Notes
+
 - **Navigation Integration:** Add auth stack to main navigation
 - **Mock State:** Simple boolean auth state
 - **Logout:** Clear mock auth state
@@ -857,6 +975,7 @@ Integrate authentication screens into navigation stack with mock state managemen
 - **Persistence:** Remember mock login state
 
 #### Success Criteria
+
 - Navigation flow works correctly
 - Mock authentication state works
 - Logout clears state properly
@@ -868,6 +987,7 @@ Integrate authentication screens into navigation stack with mock state managemen
 ## Phase 1 Success Metrics & Validation
 
 ### Technical Validation Criteria
+
 - [ ] Users can complete swipe session (10 cards) in <30 seconds without errors
 - [ ] Map loads and renders restaurants in <5 seconds on mid-range devices
 - [ ] Filter application updates map results within 2 seconds
@@ -876,6 +996,7 @@ Integrate authentication screens into navigation stack with mock state managemen
 - [ ] App works on minimum supported devices (Android 9+, iOS 12+)
 
 ### User Experience Validation
+
 - [ ] Friends/family can navigate core features without instruction
 - [ ] Toggle between restaurant/dish modes works seamlessly
 - [ ] Drawer navigation is intuitive and responsive
@@ -883,6 +1004,7 @@ Integrate authentication screens into navigation stack with mock state managemen
 - [ ] Swipe flow is engaging and clear
 
 ### Performance Requirements
+
 - [ ] Map rendering maintains 60fps during pan/zoom
 - [ ] Filter application doesn't block UI thread
 - [ ] Swipe animations are smooth on all supported devices
@@ -890,30 +1012,34 @@ Integrate authentication screens into navigation stack with mock state managemen
 - [ ] App startup time <3 seconds on mid-range devices
 
 ### Code Quality Standards
+
 - [ ] TypeScript strict mode with no type errors
 - [ ] ESLint passes with zero warnings
 - [ ] Code coverage >80% for utility functions
 - [ ] All components have proper documentation
 - [ ] Architecture follows clean architecture principles
- - [ ] Architecture & setup docs updated after structural or dependency changes
- - [ ] Exported modules & complex functions include JSDoc (purpose, params, return, side-effects)
- - [ ] New architectural decisions recorded as ADRs
- - [ ] Per-task documentation updates completed (no stale references)
+- [ ] Architecture & setup docs updated after structural or dependency changes
+- [ ] Exported modules & complex functions include JSDoc (purpose, params, return, side-effects)
+- [ ] New architectural decisions recorded as ADRs
+- [ ] Per-task documentation updates completed (no stale references)
 
 ---
 
 ## Risk Assessment & Mitigation
 
 ### Technical Risks
+
 - **Mapbox Integration Complexity:** Mitigation - Start with basic map, add features incrementally
 - **Performance on Lower-end Devices:** Mitigation - Test on minimum spec devices early
 - **React Native Version Compatibility:** Mitigation - Lock to specific RN version (0.73.x)
 
 ### Timeline Risks
+
 - **Native Module Issues:** Mitigation - Budget extra time for iOS/Android specific issues
 - **Design Iteration Time:** Mitigation - Focus on functionality first, polish later
 
 ### Quality Risks
+
 - **Technical Debt Accumulation:** Mitigation - ESLint/Prettier from day one, regular code review
 - **Insufficient Testing:** Mitigation - Manual testing on multiple devices throughout development
 
@@ -922,15 +1048,18 @@ Integrate authentication screens into navigation stack with mock state managemen
 ## Dependencies & Blockers
 
 ### External Dependencies
+
 - **Mapbox Account Setup:** Required for map functionality
 - **Device Access:** Need iOS/Android devices for testing
 - **Design Assets:** Figma designs for UI reference
 
 ### Internal Dependencies
+
 - **Mock Data Quality:** Affects all features dependent on data
 - **State Management Architecture:** Affects all features using global state
 
 ### Potential Blockers
+
 - **Native Module Linking Issues:** Common with React Native
 - **Platform-Specific UI Differences:** May require platform-specific code
 - **Performance Bottlenecks:** May require optimization work
@@ -940,24 +1069,28 @@ Integrate authentication screens into navigation stack with mock state managemen
 ## Definition of Done - Phase 1
 
 ### Functional Requirements
+
 - [ ] All major features work as designed
 - [ ] No critical bugs or crashes
 - [ ] Performance meets specified criteria
 - [ ] Works on both iOS and Android
 
 ### Technical Requirements
+
 - [ ] Code follows architecture principles
 - [ ] TypeScript strict mode compliance
 - [ ] ESLint/Prettier standards met
 - [ ] Proper error handling implemented
 
 ### Quality Requirements
+
 - [ ] Manual testing completed on multiple devices
 - [ ] User testing feedback incorporated
 - [ ] Documentation updated
 - [ ] Ready for Phase 2 backend integration
 
 ### Deliverables
+
 - [ ] Functional mobile app prototype
 - [ ] Complete mock data sets
 - [ ] Updated documentation

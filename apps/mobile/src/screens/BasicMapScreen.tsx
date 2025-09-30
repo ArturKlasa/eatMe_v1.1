@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Alert, TouchableOpacity } from 'react-native';
 import Mapbox, { MapView, Camera, PointAnnotation, UserLocation } from '@rnmapbox/maps';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -28,12 +28,41 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   debugLog('Loaded restaurants:', mockRestaurants.length);
 
   const cameraRef = useRef<Camera>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [hasAutocentered, setHasAutocentered] = useState(false);
+
   const {
     location: userLocation,
     isLoading: locationLoading,
     error: locationError,
     getLocationWithPermission,
+    hasPermission,
   } = useUserLocation();
+
+  // Auto-center map on user location when map is ready and location is available
+  useEffect(() => {
+    const autoCenterOnLocation = async () => {
+      if (isMapReady && !hasAutocentered && hasPermission && cameraRef.current) {
+        debugLog('Auto-centering map on user location...');
+
+        const location = await getLocationWithPermission();
+        if (location) {
+          cameraRef.current.setCamera({
+            centerCoordinate: [location.longitude, location.latitude],
+            zoomLevel: 14,
+            animationDuration: 2000,
+          });
+          debugLog(
+            'Map auto-centered on user location:',
+            `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+          );
+          setHasAutocentered(true);
+        }
+      }
+    };
+
+    autoCenterOnLocation();
+  }, [isMapReady, hasPermission, hasAutocentered, getLocationWithPermission]);
 
   const handleMarkerPress = (restaurant: Restaurant) => {
     Alert.alert(
@@ -60,21 +89,39 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       return; // Prevent multiple requests
     }
 
-    const location = await getLocationWithPermission();
+    try {
+      const location = await getLocationWithPermission();
 
-    if (location && cameraRef.current) {
-      // Animate camera to user location
-      cameraRef.current.setCamera({
-        centerCoordinate: [location.longitude, location.latitude],
-        zoomLevel: 15,
-        animationDuration: 1500,
-      });
-      debugLog(
-        'Camera moved to user location:',
-        `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+      if (location && cameraRef.current) {
+        // Animate camera to user location with smooth transition
+        cameraRef.current.setCamera({
+          centerCoordinate: [location.longitude, location.latitude],
+          zoomLevel: 15,
+          animationDuration: 1500,
+        });
+        debugLog(
+          'Camera moved to user location:',
+          `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+        );
+      } else if (locationError) {
+        Alert.alert('Location Unavailable', locationError, [
+          { text: 'Settings', onPress: () => debugLog('Opening location settings...') },
+          { text: 'Cancel', style: 'cancel' },
+        ]);
+      } else {
+        Alert.alert(
+          'Location Access',
+          'Unable to get your current location. Please check your location settings and try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      debugLog('Location button error:', error);
+      Alert.alert(
+        'Location Error',
+        'Something went wrong while getting your location. Please try again.',
+        [{ text: 'OK' }]
       );
-    } else if (locationError) {
-      Alert.alert('Location Error', locationError, [{ text: 'OK' }]);
     }
   };
 
@@ -132,6 +179,15 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         rotateEnabled={true}
         onDidFinishLoadingMap={() => {
           debugLog('Map finished loading successfully');
+          setIsMapReady(true);
+        }}
+        onDidFailLoadingMap={() => {
+          debugLog('Map failed to load');
+          Alert.alert(
+            'Map Loading Error',
+            'Unable to load the map. Please check your internet connection and try again.',
+            [{ text: 'OK' }]
+          );
         }}
       >
         <Camera
@@ -167,7 +223,13 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
       <View style={commonStyles.mapStyles.footer}>
         <Text style={commonStyles.mapStyles.footerText}>
-          {mockRestaurants.length} restaurants found • Tap marker for details
+          {mockRestaurants.length} restaurants found
+          {isMapReady ? '' : ' • Loading map...'}
+          {userLocation && isMapReady
+            ? ` • Location: ${userLocation.latitude.toFixed(3)}, ${userLocation.longitude.toFixed(3)}`
+            : hasPermission
+              ? ' • Getting location...'
+              : ' • Tap 📍 for location'}
         </Text>
       </View>
     </View>

@@ -1,0 +1,6 @@
+// Screen exports for React Navigation
+export { BasicMapScreen as MapScreen } from './BasicMapScreen';
+export { FiltersScreen } from './FiltersScreen';
+export { FavoritesScreen } from './FavoritesScreen';
+export { ProfileScreen } from './ProfileScreen';
+export { SettingsScreen } from './SettingsScreen';

@@ -1,9 +1,11 @@
 import React, { useRef } from 'react';
 import { StyleSheet, View, Text, Alert, TouchableOpacity } from 'react-native';
 import Mapbox, { MapView, Camera, PointAnnotation, UserLocation } from '@rnmapbox/maps';
+import { useNavigation } from '@react-navigation/native';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
 import { useUserLocation } from '../hooks/useUserLocation';
+import type { MapScreenProps } from '@/types/navigation';
 
 // Initialize Mapbox with access token
 Mapbox.setAccessToken(ENV.mapbox.accessToken);
@@ -11,14 +13,16 @@ Mapbox.setAccessToken(ENV.mapbox.accessToken);
 /**
  * BasicMapScreen Component
  *
- * Displays a Mapbox map centered on Mexico City with restaurant markers.
+ * Displays a Mapbox map centered on Mexico City with restaurant markers and user location.
  * Features:
  * - Restaurant/dish markers with tap interactions
  * - Color-coded markers (green = open, red = closed)
+ * - User location detection with "My Location" button
+ * - Drawer navigation integration
  * - Basic restaurant information in alerts
- * - Default Mexico City view with sample restaurants
+ * - Smooth map interactions and camera controls
  */
-export const BasicMapScreen: React.FC = () => {
+export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
   debugLog('Loaded restaurants:', mockRestaurants.length);
 
@@ -98,8 +102,14 @@ export const BasicMapScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>EatMe - Food Discovery Map</Text>
-        <Text style={styles.locationText}>Mexico City</Text>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
+          <Text style={styles.menuIcon}>☰</Text>
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerText}>EatMe - Food Discovery Map</Text>
+          <Text style={styles.locationText}>Mexico City</Text>
+        </View>
+        <View style={styles.headerSpacer} />
       </View>
 
       <MapView
@@ -160,12 +170,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingTop: 50,
     paddingBottom: 10,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  menuIcon: {
+    fontSize: 20,
+    color: '#333',
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerSpacer: {
+    width: 40, // Same width as menu button for balance
   },
   headerText: {
     fontSize: 18,

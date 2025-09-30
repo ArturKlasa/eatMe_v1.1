@@ -1,23 +1,23 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, View, SafeAreaView } from 'react-native';
-import BasicMapScreen from './src/screens/BasicMapScreen';
+import { SafeAreaView, StyleSheet } from 'react-native';
+import { RootNavigator } from './src/navigation';
+import 'react-native-gesture-handler'; // Required for React Navigation
 
 /**
  * Main App component for EatMe mobile application
  *
- * Currently displays the basic map screen for initial Mapbox integration testing.
+ * Updated to use React Navigation with drawer-based navigation structure.
+ * Includes proper gesture handling and safe area management.
  *
- * This will be expanded to include:
- * - Navigation setup (React Navigation)
- * - State management (Zustand)
- * - Authentication flows
- * - Drawer navigation with filters
+ * Navigation Structure:
+ * - Root Navigator (Stack) -> Drawer Navigator -> Individual Screens
+ * - Map, Filters, Favorites, Profile, Settings
  */
 export default function App(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
-      <BasicMapScreen />
+      <RootNavigator />
       <StatusBar style="auto" />
     </SafeAreaView>
   );

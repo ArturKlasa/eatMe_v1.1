@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { commonStyles } from '@/styles';
 import type { FavoritesScreenProps } from '@/types/navigation';
 
 /**
@@ -9,101 +10,45 @@ import type { FavoritesScreenProps } from '@/types/navigation';
  * Will be enhanced with swipe preferences integration in later tasks.
  */
 export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) => {
+  const handleBackPress = () => {
+    navigation.navigate('Map');
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Favorites</Text>
-        <Text style={styles.subText}>Your Liked Restaurants & Dishes</Text>
+    <View style={commonStyles.containers.screen}>
+      <View style={commonStyles.headers.container}>
+        <View style={commonStyles.mapStyles.headerContent}>
+          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleBackPress}>
+            <Text>Back</Text>
+          </TouchableOpacity>
+          <View style={commonStyles.mapStyles.headerText}>
+            <Text style={commonStyles.headers.title}>Favorites</Text>
+            <Text style={commonStyles.headers.subtitle}>Your Saved Places</Text>
+          </View>
+          <View style={commonStyles.buttons.iconButton} />
+        </View>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>❤️</Text>
-          <Text style={styles.emptyTitle}>No Favorites Yet</Text>
-          <Text style={styles.emptyDescription}>
+      <ScrollView style={commonStyles.containers.content}>
+        <View style={commonStyles.emptyState.container}>
+          <Text style={commonStyles.emptyState.icon}>❤️</Text>
+          <Text style={commonStyles.emptyState.title}>No Favorites Yet</Text>
+          <Text style={commonStyles.emptyState.description}>
             Start swiping on dishes and liking restaurants to build your personal collection!
           </Text>
         </View>
 
-        <View style={styles.futureFeatures}>
-          <Text style={styles.featuresTitle}>Coming Soon:</Text>
-          <Text style={styles.featureItem}>• Favorite restaurants list</Text>
-          <Text style={styles.featureItem}>• Liked dishes collection</Text>
-          <Text style={styles.featureItem}>• Personal taste preferences</Text>
-          <Text style={styles.featureItem}>• Quick access from map</Text>
-          <Text style={styles.featureItem}>• Share favorites with friends</Text>
+        <View style={[commonStyles.spacingUtils.paddingHorizontalBase, { paddingBottom: 40 }]}>
+          <Text style={commonStyles.text.h3}>Coming Soon:</Text>
+          <Text style={commonStyles.text.featureItem}>• Favorite restaurants list</Text>
+          <Text style={commonStyles.text.featureItem}>• Liked dishes collection</Text>
+          <Text style={commonStyles.text.featureItem}>• Personal taste preferences</Text>
+          <Text style={commonStyles.text.featureItem}>• Quick access from map</Text>
+          <Text style={commonStyles.text.featureItem}>• Share favorites with friends</Text>
         </View>
       </ScrollView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    backgroundColor: '#f8f9fa',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-  },
-  subText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  content: {
-    flex: 1,
-  },
-  emptyState: {
-    alignItems: 'center',
-    padding: 40,
-    marginTop: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 40,
-  },
-  futureFeatures: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  featureItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    paddingLeft: 10,
-  },
-});
 
 export default FavoritesScreen;

@@ -1,10 +1,11 @@
 import React, { useRef } from 'react';
 import { StyleSheet, View, Text, Alert, TouchableOpacity } from 'react-native';
 import Mapbox, { MapView, Camera, PointAnnotation, UserLocation } from '@rnmapbox/maps';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { commonStyles, theme } from '@/styles';
 import type { MapScreenProps } from '@/types/navigation';
 
 // Initialize Mapbox with access token
@@ -77,6 +78,10 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handleMenuPress = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+  };
+
   const renderRestaurantMarkers = () => {
     return mockRestaurants.map(restaurant => (
       <PointAnnotation
@@ -87,12 +92,16 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       >
         <View
           style={[
-            styles.markerContainer,
-            { backgroundColor: restaurant.isOpen ? '#4CAF50' : '#F44336' },
+            commonStyles.mapStyles.markerContainer,
+            {
+              backgroundColor: restaurant.isOpen
+                ? theme.colors.mapMarkerOpen
+                : theme.colors.mapMarkerClosed,
+            },
           ]}
         >
-          <View style={styles.markerInner}>
-            <Text style={styles.markerText}>🍽️</Text>
+          <View style={commonStyles.mapStyles.markerInner}>
+            <Text style={commonStyles.mapStyles.markerText}>🍽️</Text>
           </View>
         </View>
       </PointAnnotation>
@@ -100,16 +109,18 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()}>
-          <Text style={styles.menuIcon}>☰</Text>
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerText}>EatMe - Food Discovery Map</Text>
-          <Text style={styles.locationText}>Mexico City</Text>
+    <View style={commonStyles.containers.screen}>
+      <View style={commonStyles.mapStyles.header}>
+        <View style={commonStyles.mapStyles.headerContent}>
+          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleMenuPress}>
+            <Text>☰</Text>
+          </TouchableOpacity>
+          <View style={commonStyles.mapStyles.headerText}>
+            <Text style={commonStyles.mapStyles.title}>Food Map</Text>
+            <Text style={commonStyles.mapStyles.subtitle}>Discover nearby restaurants</Text>
+          </View>
+          <View style={commonStyles.buttons.iconButton} />
         </View>
-        <View style={styles.headerSpacer} />
       </View>
 
       <MapView
@@ -145,19 +156,18 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
       {/* My Location Button */}
       <TouchableOpacity
-        style={styles.myLocationButton}
+        style={commonStyles.mapStyles.locationButton}
         onPress={handleMyLocationPress}
         disabled={locationLoading}
       >
-        <Text style={styles.myLocationButtonText}>{locationLoading ? '📍...' : '📍'}</Text>
+        <Text style={commonStyles.mapStyles.locationButtonText}>
+          {locationLoading ? '📍...' : '📍'}
+        </Text>
       </TouchableOpacity>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          📍 {mockRestaurants.length} restaurants •{' '}
-          {userLocation
-            ? `📍 Location: ${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`
-            : 'Tap 📍 for location'}
+      <View style={commonStyles.mapStyles.footer}>
+        <Text style={commonStyles.mapStyles.footerText}>
+          {mockRestaurants.length} restaurants found • Tap marker for details
         </Text>
       </View>
     </View>
@@ -165,111 +175,8 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 10,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  menuIcon: {
-    fontSize: 20,
-    color: '#333',
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerSpacer: {
-    width: 40, // Same width as menu button for balance
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 4,
-  },
   map: {
     flex: 1,
-  },
-  footer: {
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  // Restaurant marker styles
-  markerContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  markerInner: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  markerText: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  // My Location button styles
-  myLocationButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  myLocationButtonText: {
-    fontSize: 20,
-    textAlign: 'center',
   },
 });
 

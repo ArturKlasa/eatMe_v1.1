@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { commonStyles } from '@/styles';
 import type { ProfileScreenProps } from '@/types/navigation';
 
 /**
@@ -9,172 +10,91 @@ import type { ProfileScreenProps } from '@/types/navigation';
  * Will be enhanced with authentication integration in later tasks.
  */
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
+  const handleBackPress = () => {
+    navigation.navigate('Map');
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Profile</Text>
-        <Text style={styles.subText}>Your Food Journey</Text>
+    <View style={commonStyles.containers.screen}>
+      <View style={commonStyles.headers.container}>
+        <View style={commonStyles.mapStyles.headerContent}>
+          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleBackPress}>
+            <Text>Back</Text>
+          </TouchableOpacity>
+          <View style={commonStyles.mapStyles.headerText}>
+            <Text style={commonStyles.headers.title}>Profile</Text>
+            <Text style={commonStyles.headers.subtitle}>Your Food Journey</Text>
+          </View>
+          <View style={commonStyles.buttons.iconButton} />
+        </View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={commonStyles.containers.content}>
         {/* Mock User Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>👤</Text>
+        <View
+          style={[
+            commonStyles.containers.centerHorizontal,
+            commonStyles.spacingUtils.paddingBase,
+            { paddingTop: 30, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+          ]}
+        >
+          <View style={commonStyles.profile.avatar}>
+            <Text style={commonStyles.profile.avatarText}>👤</Text>
           </View>
-          <Text style={styles.userName}>Food Explorer</Text>
-          <Text style={styles.userSubtitle}>Mock User Profile</Text>
+          <Text style={commonStyles.profile.userName}>Food Explorer</Text>
+          <Text style={commonStyles.profile.userSubtitle}>Mock User Profile</Text>
         </View>
 
         {/* Preferences Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Food Preferences</Text>
-          <Text style={styles.preferenceText}>🍕 Italian Cuisine: 85% match</Text>
-          <Text style={styles.preferenceText}>🌮 Mexican Food: 78% match</Text>
-          <Text style={styles.preferenceText}>🍣 Seafood: 72% match</Text>
-          <Text style={styles.preferenceText}>🥗 Healthy Options: 91% match</Text>
+        <View style={commonStyles.containers.section}>
+          <Text style={commonStyles.text.h3}>Food Preferences</Text>
+          <Text style={commonStyles.text.bodySmall}>🍕 Italian Cuisine: 85% match</Text>
+          <Text style={[commonStyles.text.bodySmall, commonStyles.spacingUtils.marginBottomSM]}>
+            🌮 Mexican Food: 78% match
+          </Text>
+          <Text style={[commonStyles.text.bodySmall, commonStyles.spacingUtils.marginBottomSM]}>
+            🍣 Seafood: 72% match
+          </Text>
+          <Text style={[commonStyles.text.bodySmall, { paddingLeft: 8 }]}>
+            🥗 Healthy Options: 91% match
+          </Text>
         </View>
 
         {/* Stats Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Stats</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Restaurants Visited</Text>
+        <View style={commonStyles.containers.section}>
+          <Text style={commonStyles.text.h3}>Your Stats</Text>
+          <View style={commonStyles.profile.statsGrid}>
+            <View style={commonStyles.profile.statItem}>
+              <Text style={commonStyles.profile.statNumber}>0</Text>
+              <Text style={commonStyles.profile.statLabel}>Restaurants Visited</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Dishes Tried</Text>
+            <View style={commonStyles.profile.statItem}>
+              <Text style={commonStyles.profile.statNumber}>0</Text>
+              <Text style={commonStyles.profile.statLabel}>Dishes Tried</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Reviews Written</Text>
+            <View style={commonStyles.profile.statItem}>
+              <Text style={commonStyles.profile.statNumber}>0</Text>
+              <Text style={commonStyles.profile.statLabel}>Reviews Written</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>0</Text>
-              <Text style={styles.statLabel}>Friends Connected</Text>
+            <View style={commonStyles.profile.statItem}>
+              <Text style={commonStyles.profile.statNumber}>0</Text>
+              <Text style={commonStyles.profile.statLabel}>Friends Connected</Text>
             </View>
           </View>
         </View>
 
         {/* Future Features */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Coming Soon</Text>
-          <Text style={styles.featureItem}>• Real user authentication</Text>
-          <Text style={styles.featureItem}>• Personalized recommendations</Text>
-          <Text style={styles.featureItem}>• Dining history tracking</Text>
-          <Text style={styles.featureItem}>• Social features & sharing</Text>
-          <Text style={styles.featureItem}>• Achievement badges</Text>
+        <View style={commonStyles.containers.section}>
+          <Text style={commonStyles.text.h3}>Coming Soon</Text>
+          <Text style={commonStyles.text.featureItem}>• Real user authentication</Text>
+          <Text style={commonStyles.text.featureItem}>• Personalized recommendations</Text>
+          <Text style={commonStyles.text.featureItem}>• Dining history tracking</Text>
+          <Text style={commonStyles.text.featureItem}>• Social features & sharing</Text>
+          <Text style={commonStyles.text.featureItem}>• Achievement badges</Text>
         </View>
       </ScrollView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    backgroundColor: '#f8f9fa',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-  },
-  subText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  content: {
-    flex: 1,
-  },
-  profileSection: {
-    alignItems: 'center',
-    padding: 30,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#e9ecef',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarText: {
-    fontSize: 32,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  userSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  section: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  preferenceText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    paddingLeft: 8,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    width: '48%',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  featureItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    paddingLeft: 10,
-  },
-});
 
 export default ProfileScreen;

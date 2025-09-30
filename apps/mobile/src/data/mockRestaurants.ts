@@ -28,10 +28,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Mexican',
     rating: 4.5,
     priceRange: '$$',
-    coordinates: [-99.1332, 19.4326], // Mexico City center
-    address: 'Centro Histórico, Ciudad de México',
-    phone: '+52 55 1234 5678',
-    description: 'Authentic Mexican cuisine in the heart of Mexico City',
+    coordinates: [-122.082, 37.421], // Near user location
+    address: '123 Main St, Palo Alto, CA',
+    phone: '+1 650 123 4567',
+    description: 'Authentic Mexican cuisine in the heart of Silicon Valley',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
     openingHours: {
@@ -45,9 +45,9 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Contemporary Mexican',
     rating: 4.8,
     priceRange: '$$$$',
-    coordinates: [-99.185, 19.42], // Polanco area
-    address: 'Polanco, Ciudad de México',
-    phone: '+52 55 5545 3507',
+    coordinates: [-122.084, 37.4215], // Near user location
+    address: '456 University Ave, Palo Alto, CA',
+    phone: '+1 650 555 3507',
     description: 'World-renowned contemporary Mexican restaurant',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
@@ -62,9 +62,9 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Seafood',
     rating: 4.6,
     priceRange: '$$$',
-    coordinates: [-99.1623, 19.415], // Roma Norte
-    address: 'Roma Norte, Ciudad de México',
-    phone: '+52 55 5514 9217',
+    coordinates: [-122.08, 37.422], // Near user location
+    address: '789 Forest Ave, Palo Alto, CA',
+    phone: '+1 650 514 9217',
     description: 'Fresh seafood and vibrant atmosphere',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: false,
@@ -79,10 +79,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Italian',
     rating: 4.7,
     priceRange: '$$$',
-    coordinates: [-99.164, 19.418], // Roma Norte
-    address: 'Roma Norte, Ciudad de México',
-    phone: '+52 55 5533 7804',
-    description: 'Elegant Italian dining in a beautiful mansion',
+    coordinates: [-122.086, 37.4205], // Near user location
+    address: '321 California Ave, Palo Alto, CA',
+    phone: '+1 650 533 7804',
+    description: 'Elegant Italian dining in a beautiful setting',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
     openingHours: {
@@ -96,9 +96,9 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Contemporary Mexican',
     rating: 4.9,
     priceRange: '$$$$',
-    coordinates: [-99.195, 19.43], // Polanco
-    address: 'Polanco, Ciudad de México',
-    phone: '+52 55 5280 2680',
+    coordinates: [-122.0785, 37.423], // Near user location
+    address: '654 Middlefield Rd, Palo Alto, CA',
+    phone: '+1 650 280 2680',
     description: 'Innovative Mexican cuisine with local ingredients',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,

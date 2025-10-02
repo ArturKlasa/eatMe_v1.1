@@ -8,7 +8,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { FilterFAB } from '../components/FilterFAB';
 import { useFilterStore } from '../stores/filterStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
-import { commonStyles, theme } from '@/styles';
+import { commonStyles, theme, modals, mapComponentStyles } from '@/styles';
 import type { MapScreenProps } from '@/types/navigation';
 
 // Initialize Mapbox with access token
@@ -224,7 +224,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       </View>
 
       <MapView
-        style={styles.map}
+        style={mapComponentStyles.map}
         styleURL={Mapbox.StyleURL.Street}
         zoomEnabled={true}
         scrollEnabled={true}
@@ -288,14 +288,14 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
       {/* Filter Floating Action Button */}
       <TouchableOpacity
-        style={styles.filterFAB}
+        style={mapComponentStyles.filterFAB}
         onPress={handleDailyFilterPress}
         activeOpacity={0.8}
       >
-        <Text style={styles.filterFABIcon}>🎛️</Text>
+        <Text style={mapComponentStyles.filterFABIcon}>🎛️</Text>
         {filteredResults.appliedFilters.daily + filteredResults.appliedFilters.permanent > 0 && (
-          <View style={styles.filterBadge}>
-            <Text style={styles.filterBadgeText}>
+          <View style={mapComponentStyles.filterBadge}>
+            <Text style={mapComponentStyles.filterBadgeText}>
               {filteredResults.appliedFilters.daily + filteredResults.appliedFilters.permanent}
             </Text>
           </View>
@@ -309,37 +309,33 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         visible={isDailyFilterVisible}
         onRequestClose={closeDailyFilter}
       >
-        <View style={modalStyles.overlay}>
-          <View style={modalStyles.container}>
-            <View style={modalStyles.header}>
-              <Text style={modalStyles.title}>🎯 Daily Filters</Text>
-              <TouchableOpacity onPress={closeDailyFilter} style={modalStyles.closeButton}>
-                <Text style={modalStyles.closeText}>✕</Text>
+        <View style={modals.overlay}>
+          <View style={modals.container}>
+            <View style={modals.header}>
+              <Text style={modals.title}>🎯 Daily Filters</Text>
+              <TouchableOpacity onPress={closeDailyFilter} style={modals.closeButton}>
+                <Text style={modals.closeText}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              style={modalStyles.content}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
+            <ScrollView style={modals.content} showsVerticalScrollIndicator={false} bounces={false}>
               {/* Price Range Section */}
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>💰 Price Range</Text>
-                <View style={modalStyles.optionsRow}>
+              <View style={modals.section}>
+                <Text style={modals.sectionTitle}>💰 Price Range</Text>
+                <View style={modals.optionsRow}>
                   {[1, 2, 3, 4].map(price => (
                     <TouchableOpacity
                       key={price}
                       style={[
-                        modalStyles.priceOption,
-                        daily.priceRange.max === price && modalStyles.selectedOption,
+                        modals.priceOption,
+                        daily.priceRange.max === price && modals.selectedOption,
                       ]}
                       onPress={() => setDailyPriceRange(1, price)}
                     >
                       <Text
                         style={[
-                          modalStyles.priceText,
-                          daily.priceRange.max === price && modalStyles.selectedText,
+                          modals.priceText,
+                          daily.priceRange.max === price && modals.selectedText,
                         ]}
                       >
                         {'$'.repeat(price)}
@@ -350,23 +346,23 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               </View>
 
               {/* Cuisine Types Section */}
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>🍽️ Cuisine Types</Text>
-                <View style={modalStyles.cuisineGrid}>
+              <View style={modals.section}>
+                <Text style={modals.sectionTitle}>🍽️ Cuisine Types</Text>
+                <View style={modals.cuisineGrid}>
                   {['American', 'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean'].map(
                     cuisine => (
                       <TouchableOpacity
                         key={cuisine}
                         style={[
-                          modalStyles.cuisineOption,
-                          daily.cuisineTypes.includes(cuisine) && modalStyles.selectedOption,
+                          modals.cuisineOption,
+                          daily.cuisineTypes.includes(cuisine) && modals.selectedOption,
                         ]}
                         onPress={() => toggleDailyCuisine(cuisine)}
                       >
                         <Text
                           style={[
-                            modalStyles.cuisineText,
-                            daily.cuisineTypes.includes(cuisine) && modalStyles.selectedText,
+                            modals.cuisineText,
+                            daily.cuisineTypes.includes(cuisine) && modals.selectedText,
                           ]}
                         >
                           {cuisine}
@@ -378,11 +374,11 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               </View>
 
               {/* Diet Toggle Section */}
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>🥗 Diet Toggle</Text>
+              <View style={modals.section}>
+                <Text style={modals.sectionTitle}>🥗 Diet Toggle</Text>
 
                 {/* First row - Meat & Fish */}
-                <View style={modalStyles.optionsRow}>
+                <View style={modals.optionsRow}>
                   {[
                     { key: 'meat', label: 'Meat', icon: '🥩' },
                     { key: 'fish', label: 'Fish', icon: '🐟' },
@@ -390,18 +386,18 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                     <TouchableOpacity
                       key={diet.key}
                       style={[
-                        modalStyles.dietOption,
+                        modals.dietOption,
                         daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                          modalStyles.selectedOption,
+                          modals.selectedOption,
                       ]}
                       onPress={() => toggleDietToggle(diet.key as keyof typeof daily.dietToggle)}
                     >
-                      <Text style={modalStyles.dietIcon}>{diet.icon}</Text>
+                      <Text style={modals.dietIcon}>{diet.icon}</Text>
                       <Text
                         style={[
-                          modalStyles.dietText,
+                          modals.dietText,
                           daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                            modalStyles.selectedText,
+                            modals.selectedText,
                         ]}
                       >
                         {diet.label}
@@ -411,7 +407,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                 </View>
 
                 {/* Second row - Vegetarian & Vegan */}
-                <View style={[modalStyles.optionsRow, { marginTop: 8 }]}>
+                <View style={[modals.optionsRow, { marginTop: 8 }]}>
                   {[
                     { key: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
                     { key: 'vegan', label: 'Vegan', icon: '🌱' },
@@ -419,18 +415,18 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                     <TouchableOpacity
                       key={diet.key}
                       style={[
-                        modalStyles.dietOption,
+                        modals.dietOption,
                         daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                          modalStyles.selectedOption,
+                          modals.selectedOption,
                       ]}
                       onPress={() => toggleDietToggle(diet.key as keyof typeof daily.dietToggle)}
                     >
-                      <Text style={modalStyles.dietIcon}>{diet.icon}</Text>
+                      <Text style={modals.dietIcon}>{diet.icon}</Text>
                       <Text
                         style={[
-                          modalStyles.dietText,
+                          modals.dietText,
                           daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                            modalStyles.selectedText,
+                            modals.selectedText,
                         ]}
                       >
                         {diet.label}
@@ -441,18 +437,18 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               </View>
 
               {/* Calorie Range Section */}
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>
+              <View style={modals.section}>
+                <Text style={modals.sectionTitle}>
                   🔥 Calorie Range{' '}
                   {daily.calorieRange.enabled
                     ? `(${daily.calorieRange.min}-${daily.calorieRange.max} kcal)`
                     : '(disabled)'}
                 </Text>
-                <View style={modalStyles.optionsRow}>
+                <View style={modals.optionsRow}>
                   <TouchableOpacity
                     style={[
-                      modalStyles.calorieToggle,
-                      daily.calorieRange.enabled && modalStyles.selectedOption,
+                      modals.calorieToggle,
+                      daily.calorieRange.enabled && modals.selectedOption,
                     ]}
                     onPress={() =>
                       setDailyCalorieRange(
@@ -464,8 +460,8 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                   >
                     <Text
                       style={[
-                        modalStyles.calorieText,
-                        daily.calorieRange.enabled && modalStyles.selectedText,
+                        modals.calorieText,
+                        daily.calorieRange.enabled && modals.selectedText,
                       ]}
                     >
                       {daily.calorieRange.enabled ? 'Enabled' : 'Disabled'}
@@ -478,15 +474,15 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
                         <TouchableOpacity
                           key={calories}
                           style={[
-                            modalStyles.calorieOption,
-                            daily.calorieRange.max === calories && modalStyles.selectedOption,
+                            modals.calorieOption,
+                            daily.calorieRange.max === calories && modals.selectedOption,
                           ]}
                           onPress={() => setDailyCalorieRange(200, calories, true)}
                         >
                           <Text
                             style={[
-                              modalStyles.calorieText,
-                              daily.calorieRange.max === calories && modalStyles.selectedText,
+                              modals.calorieText,
+                              daily.calorieRange.max === calories && modals.selectedText,
                             ]}
                           >
                             {calories}
@@ -499,15 +495,13 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               </View>
 
               {/* Open Now Section */}
-              <View style={modalStyles.section}>
-                <View style={modalStyles.optionsRow}>
+              <View style={modals.section}>
+                <View style={modals.optionsRow}>
                   <TouchableOpacity
-                    style={[modalStyles.cuisineOption, daily.openNow && modalStyles.selectedOption]}
+                    style={[modals.cuisineOption, daily.openNow && modals.selectedOption]}
                     onPress={() => toggleOpenNow()}
                   >
-                    <Text
-                      style={[modalStyles.cuisineText, daily.openNow && modalStyles.selectedText]}
-                    >
+                    <Text style={[modals.cuisineText, daily.openNow && modals.selectedText]}>
                       ⏰ Open Now
                     </Text>
                   </TouchableOpacity>
@@ -515,32 +509,32 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               </View>
 
               {/* Quick Presets */}
-              <View style={modalStyles.section}>
-                <Text style={modalStyles.sectionTitle}>⚡ Quick Filters</Text>
-                <View style={modalStyles.optionsRow}>
+              <View style={modals.section}>
+                <Text style={modals.sectionTitle}>⚡ Quick Filters</Text>
+                <View style={modals.optionsRow}>
                   <TouchableOpacity
-                    style={modalStyles.presetButton}
+                    style={modals.presetButton}
                     onPress={() => applyPreset('nearby')}
                   >
-                    <Text style={modalStyles.presetText}>📍 Nearby</Text>
+                    <Text style={modals.presetText}>📍 Nearby</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={modalStyles.presetButton}
+                    style={modals.presetButton}
                     onPress={() => applyPreset('cheapEats')}
                   >
-                    <Text style={modalStyles.presetText}>💰 Cheap Eats</Text>
+                    <Text style={modals.presetText}>💰 Cheap Eats</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </ScrollView>
 
-            <View style={modalStyles.footer}>
-              <TouchableOpacity style={modalStyles.clearButton} onPress={closeDailyFilter}>
-                <Text style={modalStyles.clearText}>Clear All</Text>
+            <View style={modals.footer}>
+              <TouchableOpacity style={modals.clearButton} onPress={closeDailyFilter}>
+                <Text style={modals.clearText}>Clear All</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={modalStyles.applyButton} onPress={closeDailyFilter}>
-                <Text style={modalStyles.applyText}>Apply Filters</Text>
+              <TouchableOpacity style={modals.applyButton} onPress={closeDailyFilter}>
+                <Text style={modals.applyText}>Apply Filters</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -590,264 +584,6 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 12,
     fontWeight: 'bold',
-  },
-});
-
-// Modal styles for Daily Filter
-const modalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  closeButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: theme.colors.gray200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  cuisineGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  priceOption: {
-    margin: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    minWidth: 50,
-    alignItems: 'center',
-  },
-  priceText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  cuisineOption: {
-    margin: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cuisineText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  selectedOption: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  selectedText: {
-    color: theme.colors.white,
-    fontWeight: '600',
-  },
-  presetButton: {
-    flex: 1,
-    margin: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  presetText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  filterIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  filterText: {
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    fontWeight: '500',
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: 20,
-  },
-  clearButton: {
-    flex: 1,
-    padding: 16,
-    marginRight: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  clearText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  applyButton: {
-    flex: 1,
-    padding: 16,
-    marginLeft: 6,
-    borderRadius: 12,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-  },
-  applyText: {
-    fontSize: 16,
-    color: theme.colors.white,
-    fontWeight: '600',
-  },
-  // Diet Toggle styles
-  dietOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-    minWidth: 100,
-  },
-  dietIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  dietText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Calorie Range styles
-  calorieToggle: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-    marginRight: 8,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  calorieOption: {
-    padding: 10,
-    borderRadius: 6,
-    backgroundColor: '#F0F0F0',
-    marginHorizontal: 4,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  calorieText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Distance styles
-  distanceOption: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-    marginHorizontal: 4,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  distanceText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Toggle option styles
-  toggleOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-  },
-  toggleIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  // Sort options styles
-  subSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
-  sortOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-    minWidth: 100,
-  },
-  sortIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  sortText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
 

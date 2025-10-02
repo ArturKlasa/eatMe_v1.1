@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, Switch, TouchableOpacity } from 'react-native';
-import { commonStyles, switchConfig } from '@/styles';
+import { View, Text } from 'react-native';
+import { commonStyles } from '@/styles';
+import { ScreenLayout, SectionContainer, SettingItem, FeatureList } from '@/components/common';
 import type { SettingsScreenProps } from '@/types/navigation';
 
 /**
@@ -18,101 +19,69 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
     navigation.navigate('Map');
   };
 
+  const comingSoonFeatures = [
+    'Account management',
+    'Dietary preferences setup',
+    'Language selection',
+    'Units (metric/imperial)',
+    'Theme customization',
+    'Backup & sync',
+  ];
+
   return (
-    <View style={commonStyles.containers.screen}>
-      <View style={commonStyles.headers.container}>
-        <View style={commonStyles.mapStyles.headerContent}>
-          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleBackPress}>
-            <Text>Back</Text>
-          </TouchableOpacity>
-          <View style={commonStyles.mapStyles.headerText}>
-            <Text style={commonStyles.headers.title}>Settings</Text>
-            <Text style={commonStyles.headers.subtitle}>Customize Your Experience</Text>
-          </View>
-          <View style={commonStyles.buttons.iconButton} />
+    <ScreenLayout
+      title="Settings"
+      subtitle="Customize Your Experience"
+      onBackPress={handleBackPress}
+      backButtonText="Back"
+    >
+      {/* App Preferences */}
+      <SectionContainer title="App Preferences">
+        <SettingItem
+          label="Push Notifications"
+          description="Get notified about nearby restaurants"
+          value={notificationsEnabled}
+          onValueChange={setNotificationsEnabled}
+        />
+
+        <SettingItem
+          label="Location Services"
+          description="Allow location for better recommendations"
+          value={locationEnabled}
+          onValueChange={setLocationEnabled}
+        />
+
+        <SettingItem
+          label="Dark Mode"
+          description="Switch to dark theme"
+          value={darkModeEnabled}
+          onValueChange={setDarkModeEnabled}
+        />
+      </SectionContainer>
+
+      {/* Data & Privacy */}
+      <SectionContainer title="Data & Privacy">
+        <View style={commonStyles.spacingUtils.paddingVerticalMD}>
+          <Text style={commonStyles.forms.settingLabel}>Clear Search History</Text>
         </View>
-      </View>
-
-      <ScrollView style={commonStyles.containers.content}>
-        {/* App Preferences */}
-        <View style={commonStyles.containers.section}>
-          <Text style={commonStyles.text.h3}>App Preferences</Text>
-
-          <View style={commonStyles.forms.settingItem}>
-            <View style={commonStyles.forms.settingText}>
-              <Text style={commonStyles.forms.settingLabel}>Push Notifications</Text>
-              <Text style={commonStyles.forms.settingDescription}>
-                Get notified about nearby restaurants
-              </Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={switchConfig.trackColors}
-            />
-          </View>
-
-          <View style={commonStyles.forms.settingItem}>
-            <View style={commonStyles.forms.settingText}>
-              <Text style={commonStyles.forms.settingLabel}>Location Services</Text>
-              <Text style={commonStyles.forms.settingDescription}>
-                Allow location for better recommendations
-              </Text>
-            </View>
-            <Switch
-              value={locationEnabled}
-              onValueChange={setLocationEnabled}
-              trackColor={switchConfig.trackColors}
-            />
-          </View>
-
-          <View style={commonStyles.forms.settingItem}>
-            <View style={commonStyles.forms.settingText}>
-              <Text style={commonStyles.forms.settingLabel}>Dark Mode</Text>
-              <Text style={commonStyles.forms.settingDescription}>Switch to dark theme</Text>
-            </View>
-            <Switch
-              value={darkModeEnabled}
-              onValueChange={setDarkModeEnabled}
-              trackColor={switchConfig.trackColors}
-            />
-          </View>
+        <View style={commonStyles.spacingUtils.paddingVerticalMD}>
+          <Text style={commonStyles.forms.settingLabel}>Export My Data</Text>
         </View>
-
-        {/* Data & Privacy */}
-        <View style={commonStyles.containers.section}>
-          <Text style={commonStyles.text.h3}>Data & Privacy</Text>
-          <View style={commonStyles.spacingUtils.paddingVerticalMD}>
-            <Text style={commonStyles.forms.settingLabel}>Clear Search History</Text>
-          </View>
-          <View style={commonStyles.spacingUtils.paddingVerticalMD}>
-            <Text style={commonStyles.forms.settingLabel}>Export My Data</Text>
-          </View>
-          <View style={commonStyles.spacingUtils.paddingVerticalMD}>
-            <Text style={commonStyles.forms.settingLabel}>Privacy Policy</Text>
-          </View>
+        <View style={commonStyles.spacingUtils.paddingVerticalMD}>
+          <Text style={commonStyles.forms.settingLabel}>Privacy Policy</Text>
         </View>
+      </SectionContainer>
 
-        {/* About */}
-        <View style={commonStyles.containers.section}>
-          <Text style={commonStyles.text.h3}>About</Text>
-          <Text style={commonStyles.text.bodySmall}>EatMe - Food Discovery App</Text>
-          <Text style={commonStyles.text.bodySmall}>Version 1.0.0 (Beta)</Text>
-          <Text style={commonStyles.text.bodySmall}>Phase 1 - Mobile UI Prototype</Text>
-        </View>
+      {/* About */}
+      <SectionContainer title="About">
+        <Text style={commonStyles.text.bodySmall}>EatMe - Food Discovery App</Text>
+        <Text style={commonStyles.text.bodySmall}>Version 1.0.0 (Beta)</Text>
+        <Text style={commonStyles.text.bodySmall}>Phase 1 - Mobile UI Prototype</Text>
+      </SectionContainer>
 
-        {/* Coming Soon */}
-        <View style={commonStyles.containers.section}>
-          <Text style={commonStyles.text.h3}>Coming Soon</Text>
-          <Text style={commonStyles.text.featureItem}>• Account management</Text>
-          <Text style={commonStyles.text.featureItem}>• Dietary preferences setup</Text>
-          <Text style={commonStyles.text.featureItem}>• Language selection</Text>
-          <Text style={commonStyles.text.featureItem}>• Units (metric/imperial)</Text>
-          <Text style={commonStyles.text.featureItem}>• Theme customization</Text>
-          <Text style={commonStyles.text.featureItem}>• Backup & sync</Text>
-        </View>
-      </ScrollView>
-    </View>
+      {/* Coming Soon */}
+      <FeatureList title="Coming Soon" features={comingSoonFeatures} />
+    </ScreenLayout>
   );
 };
 

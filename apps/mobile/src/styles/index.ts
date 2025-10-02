@@ -19,5 +19,8 @@ export {
   inputs,
   spacingUtils,
   switchConfig,
+  modals,
+  fabs,
+  mapComponentStyles,
 } from './common';
 export type { Theme, Colors, Typography, Spacing } from './theme';

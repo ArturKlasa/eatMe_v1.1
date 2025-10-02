@@ -404,7 +404,7 @@ export const mapStyles = StyleSheet.create({
 
   locationButton: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 170,
     right: 20,
     width: 50,
     height: 50,
@@ -573,6 +573,342 @@ export const spacingUtils = StyleSheet.create({
   paddingVerticalXL: { paddingVertical: spacing.xl } as ViewStyle,
 });
 
+/**
+ * Modal styles (for filter modals, dialogs, etc.)
+ */
+export const modals = StyleSheet.create({
+  // Modal overlay and container
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  } as ViewStyle,
+
+  container: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '85%',
+  } as ViewStyle,
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  } as ViewStyle,
+
+  title: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+  } as TextStyle,
+
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  } as ViewStyle,
+
+  closeText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  } as TextStyle,
+
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.sm,
+  } as ViewStyle,
+
+  footer: {
+    flexDirection: 'row',
+    padding: spacing.lg,
+  } as ViewStyle,
+
+  // Modal sections
+  section: {
+    marginBottom: spacing.lg,
+  } as ViewStyle,
+
+  sectionTitle: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  } as TextStyle,
+
+  // Filter options layout
+  optionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  } as ViewStyle,
+
+  cuisineGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  } as ViewStyle,
+
+  // Generic option styles
+  option: {
+    margin: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  optionText: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+  } as TextStyle,
+
+  selectedOption: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  selectedText: {
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
+  } as TextStyle,
+
+  // Specific option types
+  priceOption: {
+    margin: 4,
+    paddingHorizontal: 16,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minWidth: 50,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  priceText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.textSecondary,
+  } as TextStyle,
+
+  cuisineOption: {
+    margin: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+  } as ViewStyle,
+
+  cuisineText: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+  } as TextStyle,
+
+  dietOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    marginHorizontal: 4,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    minWidth: 100,
+  } as ViewStyle,
+
+  dietIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  } as TextStyle,
+
+  dietText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  calorieToggle: {
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    marginRight: spacing.sm,
+    minWidth: 80,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  calorieOption: {
+    padding: spacing.sm,
+    borderRadius: 6,
+    backgroundColor: colors.backgroundSecondary,
+    marginHorizontal: 4,
+    minWidth: 60,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  calorieText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  // Preset and action buttons
+  presetButton: {
+    flex: 1,
+    margin: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  presetText: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  clearButton: {
+    flex: 1,
+    padding: spacing.lg,
+    marginRight: 6,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  clearText: {
+    fontSize: typography.size.base,
+    color: colors.textSecondary,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  applyButton: {
+    flex: 1,
+    padding: spacing.lg,
+    marginLeft: 6,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  applyText: {
+    fontSize: typography.size.base,
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
+  } as TextStyle,
+});
+
+/**
+ * Floating Action Button (FAB) styles
+ */
+export const fabs = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    bottom: 100,
+    right: spacing.lg,
+    zIndex: 1000,
+  } as ViewStyle,
+
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.lg,
+  } as ViewStyle,
+
+  fabActive: {
+    backgroundColor: colors.primaryDark,
+    transform: [{ scale: 1.1 }],
+  } as ViewStyle,
+
+  fabIcon: {
+    fontSize: 24,
+  } as TextStyle,
+
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  } as ViewStyle,
+
+  badgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: typography.weight.bold,
+  } as TextStyle,
+});
+
+/**
+ * Map-specific component styles
+ */
+export const mapComponentStyles = StyleSheet.create({
+  // Map container
+  map: {
+    flex: 1,
+  } as ViewStyle,
+
+  // Filter FAB (specific positioning)
+  filterFAB: {
+    position: 'absolute',
+    bottom: 100,
+    right: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.lg,
+  } as ViewStyle,
+
+  filterFABIcon: {
+    fontSize: 24,
+  } as TextStyle,
+
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  } as ViewStyle,
+
+  filterBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: typography.weight.bold,
+  } as TextStyle,
+});
+
 // Export all style collections
 export const commonStyles = {
   containers,
@@ -586,6 +922,9 @@ export const commonStyles = {
   buttons,
   inputs,
   spacingUtils,
+  modals,
+  fabs,
+  mapComponentStyles,
 };
 
 export { switchConfig };

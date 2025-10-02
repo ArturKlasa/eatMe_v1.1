@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { commonStyles } from '@/styles';
+import { ScreenLayout, EmptyState, FeatureList } from '@/components/common';
 import type { FavoritesScreenProps } from '@/types/navigation';
 
 /**
@@ -14,40 +15,31 @@ export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) 
     navigation.navigate('Map');
   };
 
+  const comingSoonFeatures = [
+    'Favorite restaurants list',
+    'Liked dishes collection',
+    'Personal taste preferences',
+    'Quick access from map',
+    'Share favorites with friends',
+  ];
+
   return (
-    <View style={commonStyles.containers.screen}>
-      <View style={commonStyles.headers.container}>
-        <View style={commonStyles.mapStyles.headerContent}>
-          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleBackPress}>
-            <Text>Back</Text>
-          </TouchableOpacity>
-          <View style={commonStyles.mapStyles.headerText}>
-            <Text style={commonStyles.headers.title}>Favorites</Text>
-            <Text style={commonStyles.headers.subtitle}>Your Saved Places</Text>
-          </View>
-          <View style={commonStyles.buttons.iconButton} />
-        </View>
+    <ScreenLayout
+      title="Favorites"
+      subtitle="Your Saved Places"
+      onBackPress={handleBackPress}
+      backButtonText="Back"
+    >
+      <EmptyState
+        icon="❤️"
+        title="No Favorites Yet"
+        description="Start swiping on dishes and liking restaurants to build your personal collection!"
+      />
+
+      <View style={[commonStyles.spacingUtils.paddingHorizontalBase, { paddingBottom: 40 }]}>
+        <FeatureList title="Coming Soon:" features={comingSoonFeatures} />
       </View>
-
-      <ScrollView style={commonStyles.containers.content}>
-        <View style={commonStyles.emptyState.container}>
-          <Text style={commonStyles.emptyState.icon}>❤️</Text>
-          <Text style={commonStyles.emptyState.title}>No Favorites Yet</Text>
-          <Text style={commonStyles.emptyState.description}>
-            Start swiping on dishes and liking restaurants to build your personal collection!
-          </Text>
-        </View>
-
-        <View style={[commonStyles.spacingUtils.paddingHorizontalBase, { paddingBottom: 40 }]}>
-          <Text style={commonStyles.text.h3}>Coming Soon:</Text>
-          <Text style={commonStyles.text.featureItem}>• Favorite restaurants list</Text>
-          <Text style={commonStyles.text.featureItem}>• Liked dishes collection</Text>
-          <Text style={commonStyles.text.featureItem}>• Personal taste preferences</Text>
-          <Text style={commonStyles.text.featureItem}>• Quick access from map</Text>
-          <Text style={commonStyles.text.featureItem}>• Share favorites with friends</Text>
-        </View>
-      </ScrollView>
-    </View>
+    </ScreenLayout>
   );
 };
 

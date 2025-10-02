@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { commonStyles } from '@/styles';
+import { ScreenLayout } from '@/components/common';
 import { useFilterStore } from '../stores/filterStore';
 import { DrawerFilters } from '../components/DrawerFilters';
 import type { FiltersScreenProps } from '@/types/navigation';
@@ -16,24 +15,15 @@ export const FiltersScreen: React.FC<FiltersScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={commonStyles.containers.screen}>
-      <View style={commonStyles.headers.container}>
-        <View style={commonStyles.mapStyles.headerContent}>
-          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleBackPress}>
-            <Text>←</Text>
-          </TouchableOpacity>
-          <View style={commonStyles.mapStyles.headerText}>
-            <Text style={commonStyles.headers.title}>Permanent Filters</Text>
-            <Text style={commonStyles.headers.subtitle}>
-              {getPermanentFilterCount()} permanent filters active
-            </Text>
-          </View>
-          <View style={commonStyles.buttons.iconButton} />
-        </View>
-      </View>
-
+    <ScreenLayout
+      title="Permanent Filters"
+      subtitle={`${getPermanentFilterCount()} permanent filters active`}
+      onBackPress={handleBackPress}
+      backButtonText="←"
+      scrollable={false}
+    >
       <DrawerFilters onClose={() => navigation.navigate('Map')} />
-    </View>
+    </ScreenLayout>
   );
 };
 

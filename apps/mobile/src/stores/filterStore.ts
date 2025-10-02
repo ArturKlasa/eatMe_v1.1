@@ -12,7 +12,7 @@ import { debugLog } from '../config/environment';
 
 // Daily Filters - Quick, session-based choices
 export interface DailyFilters {
-  // Price range filter (1 = $, 2 = $$, 3 = $$$, 4 = $$$$)
+  // Price range filter ($10 - $50 slider)
   priceRange: {
     min: number;
     max: number;
@@ -21,13 +21,19 @@ export interface DailyFilters {
   // Cuisine types selection (multiple choice)
   cuisineTypes: string[];
 
-  // Diet toggle options
-  dietToggle: {
+  // Diet preference (single choice: all, vegetarian, vegan)
+  dietPreference: 'all' | 'vegetarian' | 'vegan';
+
+  // Protein types (multiple choice: meat, fish, seafood, egg)
+  proteinTypes: {
     meat: boolean;
     fish: boolean;
-    vegetarian: boolean;
-    vegan: boolean;
+    seafood: boolean;
+    egg: boolean;
   };
+
+  // Hunger level (single choice: on a diet, normal, starving)
+  hungerLevel: 'diet' | 'normal' | 'starving';
 
   // Calorie range (optional slider)
   calorieRange: {
@@ -48,58 +54,71 @@ export interface DailyFilters {
 
 // Permanent Filters - Profile-level, stored in user settings
 export interface PermanentFilters {
-  // Allergies (hard constraints)
+  // 1. Diet preference (only one can be selected)
+  dietPreference: 'all' | 'vegetarian' | 'vegan';
+
+  // 2. Exclude (multiple selection)
+  exclude: {
+    noMeat: boolean;
+    noFish: boolean;
+    noSeafood: boolean;
+    noEggs: boolean;
+    noDairy: boolean;
+  };
+
+  // 3. Allergies (multiple selection)
   allergies: {
-    nuts: boolean;
-    dairy: boolean;
+    lactose: boolean;
     gluten: boolean;
-    shellfish: boolean;
-    eggs: boolean;
+    peanuts: boolean;
     soy: boolean;
+    sesame: boolean;
+    shellfish: boolean;
+    nuts: boolean;
   };
 
-  // Religious/Cultural requirements (hard constraints)
-  religiousCultural: {
+  // 4. Diet preference types (multiple selection)
+  dietTypes: {
+    diabetic: boolean;
+    keto: boolean;
+    paleo: boolean;
+    lowCarb: boolean;
+    pescatarian: boolean;
+  };
+
+  // 5. Religious restrictions (multiple selection)
+  religiousRestrictions: {
     halal: boolean;
+    hindu: boolean;
     kosher: boolean;
-    jain: boolean;
-    buddhist: boolean;
   };
 
-  // Strict diet type (hard constraint)
-  strictDietType: 'none' | 'vegetarian' | 'vegan' | 'pescatarian';
+  // 6. Restaurant facilities (multiple selection)
+  facilities: {
+    familyFriendly: boolean;
+    wheelchairAccessible: boolean;
+    petFriendly: boolean;
+    lgbtAccessible: boolean;
+    kidsMenu: boolean;
+  };
 
-  // Ingredient exclusions (hard constraints)
-  ingredientExclusions: string[]; // e.g., ["cilantro", "mushrooms"]
+  // 7. Ingredients to avoid (list of ingredients)
+  ingredientsToAvoid: string[];
 
-  // Disliked flavors/ingredients (soft exclusions)
+  // Legacy fields for backward compatibility
+  ingredientExclusions: string[];
   dislikedIngredients: string[];
-
-  // Permanent price sensitivity (default for daily filters)
   defaultPriceRange: {
     min: number;
     max: number;
   };
-
-  // Cuisine preferences (favorite cuisines ranked)
   cuisinePreferences: string[];
-
-  // Accessibility requirements
-  accessibility: {
-    wheelchairAccessible: boolean;
-    hearingImpaired: boolean;
-    visuallyImpaired: boolean;
-  };
-
-  // Default calorie/nutrition preferences
   defaultNutrition: {
     maxCalories: number;
     lowSodium: boolean;
     highProtein: boolean;
     enabled: boolean;
   };
-
-  // Notification preferences
   notifications: {
     dailyMenuAlerts: boolean;
     nearbyPromos: boolean;
@@ -120,23 +139,31 @@ interface FilterActions {
   setDailyPriceRange: (min: number, max: number) => void;
   toggleDailyCuisine: (cuisine: string) => void;
   setDailyCuisines: (cuisines: string[]) => void;
-  toggleDietToggle: (diet: keyof DailyFilters['dietToggle']) => void;
+  setDietPreference: (preference: DailyFilters['dietPreference']) => void;
+  toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => void;
+  setHungerLevel: (level: DailyFilters['hungerLevel']) => void;
   setDailyCalorieRange: (min: number, max: number, enabled?: boolean) => void;
   setDailyMaxDistance: (distance: number) => void;
   toggleOpenNow: () => void;
   setSortBy: (sortBy: DailyFilters['sortBy']) => void;
 
   // Permanent filter actions
+  setPermanentDietPreference: (preference: PermanentFilters['dietPreference']) => void;
+  toggleExclude: (exclusion: keyof PermanentFilters['exclude']) => void;
   toggleAllergy: (allergy: keyof PermanentFilters['allergies']) => void;
-  toggleReligiousCultural: (requirement: keyof PermanentFilters['religiousCultural']) => void;
-  setStrictDietType: (dietType: PermanentFilters['strictDietType']) => void;
+  toggleDietType: (dietType: keyof PermanentFilters['dietTypes']) => void;
+  toggleReligiousRestriction: (
+    restriction: keyof PermanentFilters['religiousRestrictions']
+  ) => void;
+  toggleFacility: (facility: keyof PermanentFilters['facilities']) => void;
+  addIngredientToAvoid: (ingredient: string) => void;
+  removeIngredientToAvoid: (ingredient: string) => void;
   addIngredientExclusion: (ingredient: string) => void;
   removeIngredientExclusion: (ingredient: string) => void;
   addDislikedIngredient: (ingredient: string) => void;
   removeDislikedIngredient: (ingredient: string) => void;
   setPermanentPriceRange: (min: number, max: number) => void;
   setCuisinePreferences: (cuisines: string[]) => void;
-  toggleAccessibility: (requirement: keyof PermanentFilters['accessibility']) => void;
   setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => void;
   toggleNotification: (notification: keyof PermanentFilters['notifications']) => void;
 
@@ -163,16 +190,18 @@ interface FilterActions {
 // Default daily filters
 const defaultDailyFilters: DailyFilters = {
   priceRange: {
-    min: 1,
-    max: 4,
+    min: 10,
+    max: 50,
   },
   cuisineTypes: [],
-  dietToggle: {
-    meat: true,
-    fish: true,
-    vegetarian: true,
-    vegan: true,
+  dietPreference: 'all',
+  proteinTypes: {
+    meat: false,
+    fish: false,
+    seafood: false,
+    egg: false,
   },
+  hungerLevel: 'normal',
   calorieRange: {
     min: 200,
     max: 800,
@@ -185,21 +214,43 @@ const defaultDailyFilters: DailyFilters = {
 
 // Default permanent filters
 const defaultPermanentFilters: PermanentFilters = {
+  dietPreference: 'all',
+  exclude: {
+    noMeat: false,
+    noFish: false,
+    noSeafood: false,
+    noEggs: false,
+    noDairy: false,
+  },
   allergies: {
-    nuts: false,
-    dairy: false,
+    lactose: false,
     gluten: false,
-    shellfish: false,
-    eggs: false,
+    peanuts: false,
     soy: false,
+    sesame: false,
+    shellfish: false,
+    nuts: false,
   },
-  religiousCultural: {
+  dietTypes: {
+    diabetic: false,
+    keto: false,
+    paleo: false,
+    lowCarb: false,
+    pescatarian: false,
+  },
+  religiousRestrictions: {
     halal: false,
+    hindu: false,
     kosher: false,
-    jain: false,
-    buddhist: false,
   },
-  strictDietType: 'none',
+  facilities: {
+    familyFriendly: false,
+    wheelchairAccessible: false,
+    petFriendly: false,
+    lgbtAccessible: false,
+    kidsMenu: false,
+  },
+  ingredientsToAvoid: [],
   ingredientExclusions: [],
   dislikedIngredients: [],
   defaultPriceRange: {
@@ -207,11 +258,6 @@ const defaultPermanentFilters: PermanentFilters = {
     max: 4,
   },
   cuisinePreferences: [],
-  accessibility: {
-    wheelchairAccessible: false,
-    hearingImpaired: false,
-    visuallyImpaired: false,
-  },
   defaultNutrition: {
     maxCalories: 2000,
     lowSodium: false,
@@ -318,14 +364,36 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     get().saveFilters();
   },
 
-  toggleDietToggle: (diet: keyof DailyFilters['dietToggle']) => {
+  setDietPreference: (preference: DailyFilters['dietPreference']) => {
     set(state => ({
       daily: {
         ...state.daily,
-        dietToggle: {
-          ...state.daily.dietToggle,
-          [diet]: !state.daily.dietToggle[diet],
+        dietPreference: preference,
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        proteinTypes: {
+          ...state.daily.proteinTypes,
+          [protein]: !state.daily.proteinTypes[protein],
         },
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  setHungerLevel: (level: DailyFilters['hungerLevel']) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        hungerLevel: level,
       },
       activePreset: null,
     }));
@@ -377,6 +445,29 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
   },
 
   // Permanent filter actions
+  setPermanentDietPreference: (preference: PermanentFilters['dietPreference']) => {
+    set(state => ({
+      permanent: {
+        ...state.permanent,
+        dietPreference: preference,
+      },
+    }));
+    get().saveFilters();
+  },
+
+  toggleExclude: (exclusion: keyof PermanentFilters['exclude']) => {
+    set(state => ({
+      permanent: {
+        ...state.permanent,
+        exclude: {
+          ...state.permanent.exclude,
+          [exclusion]: !state.permanent.exclude[exclusion],
+        },
+      },
+    }));
+    get().saveFilters();
+  },
+
   toggleAllergy: (allergy: keyof PermanentFilters['allergies']) => {
     set(state => ({
       permanent: {
@@ -390,24 +481,60 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     get().saveFilters();
   },
 
-  toggleReligiousCultural: (requirement: keyof PermanentFilters['religiousCultural']) => {
+  toggleDietType: (dietType: keyof PermanentFilters['dietTypes']) => {
     set(state => ({
       permanent: {
         ...state.permanent,
-        religiousCultural: {
-          ...state.permanent.religiousCultural,
-          [requirement]: !state.permanent.religiousCultural[requirement],
+        dietTypes: {
+          ...state.permanent.dietTypes,
+          [dietType]: !state.permanent.dietTypes[dietType],
         },
       },
     }));
     get().saveFilters();
   },
 
-  setStrictDietType: (dietType: PermanentFilters['strictDietType']) => {
+  toggleReligiousRestriction: (restriction: keyof PermanentFilters['religiousRestrictions']) => {
     set(state => ({
       permanent: {
         ...state.permanent,
-        strictDietType: dietType,
+        religiousRestrictions: {
+          ...state.permanent.religiousRestrictions,
+          [restriction]: !state.permanent.religiousRestrictions[restriction],
+        },
+      },
+    }));
+    get().saveFilters();
+  },
+
+  toggleFacility: (facility: keyof PermanentFilters['facilities']) => {
+    set(state => ({
+      permanent: {
+        ...state.permanent,
+        facilities: {
+          ...state.permanent.facilities,
+          [facility]: !state.permanent.facilities[facility],
+        },
+      },
+    }));
+    get().saveFilters();
+  },
+
+  addIngredientToAvoid: (ingredient: string) => {
+    set(state => ({
+      permanent: {
+        ...state.permanent,
+        ingredientsToAvoid: [...state.permanent.ingredientsToAvoid, ingredient],
+      },
+    }));
+    get().saveFilters();
+  },
+
+  removeIngredientToAvoid: (ingredient: string) => {
+    set(state => ({
+      permanent: {
+        ...state.permanent,
+        ingredientsToAvoid: state.permanent.ingredientsToAvoid.filter(i => i !== ingredient),
       },
     }));
     get().saveFilters();
@@ -468,19 +595,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       permanent: {
         ...state.permanent,
         cuisinePreferences: cuisines,
-      },
-    }));
-    get().saveFilters();
-  },
-
-  toggleAccessibility: (requirement: keyof PermanentFilters['accessibility']) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        accessibility: {
-          ...state.permanent.accessibility,
-          [requirement]: !state.permanent.accessibility[requirement],
-        },
       },
     }));
     get().saveFilters();
@@ -615,9 +729,19 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       count++;
     }
 
-    // Check diet toggles (not all enabled)
-    const allDietEnabled = Object.values(state.daily.dietToggle).every(Boolean);
-    if (!allDietEnabled) {
+    // Check diet preference (not 'all')
+    if (state.daily.dietPreference !== 'all') {
+      count++;
+    }
+
+    // Check protein types (any enabled)
+    const hasProteinFilter = Object.values(state.daily.proteinTypes).some(Boolean);
+    if (hasProteinFilter) {
+      count++;
+    }
+
+    // Check hunger level (not 'normal')
+    if (state.daily.hungerLevel !== 'normal') {
       count++;
     }
 
@@ -648,36 +772,53 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     const state = get();
     let count = 0;
 
+    // Check diet preference (not 'all')
+    if (state.permanent.dietPreference !== 'all') {
+      count++;
+    }
+
+    // Check exclusions
+    const activeExclusions = Object.values(state.permanent.exclude).filter(Boolean);
+    if (activeExclusions.length > 0) {
+      count++;
+    }
+
     // Check allergies
     const activeAllergies = Object.values(state.permanent.allergies).filter(Boolean);
     if (activeAllergies.length > 0) {
       count++;
     }
 
-    // Check religious/cultural requirements
-    const activeReligious = Object.values(state.permanent.religiousCultural).filter(Boolean);
+    // Check diet types
+    const activeDietTypes = Object.values(state.permanent.dietTypes).filter(Boolean);
+    if (activeDietTypes.length > 0) {
+      count++;
+    }
+
+    // Check religious restrictions
+    const activeReligious = Object.values(state.permanent.religiousRestrictions).filter(Boolean);
     if (activeReligious.length > 0) {
       count++;
     }
 
-    // Check strict diet type
-    if (state.permanent.strictDietType !== 'none') {
+    // Check facilities
+    const activeFacilities = Object.values(state.permanent.facilities).filter(Boolean);
+    if (activeFacilities.length > 0) {
       count++;
     }
 
-    // Check ingredient exclusions
+    // Check ingredients to avoid
+    if (state.permanent.ingredientsToAvoid.length > 0) {
+      count++;
+    }
+
+    // Check ingredient exclusions (legacy)
     if (state.permanent.ingredientExclusions.length > 0) {
       count++;
     }
 
-    // Check disliked ingredients
+    // Check disliked ingredients (legacy)
     if (state.permanent.dislikedIngredients.length > 0) {
-      count++;
-    }
-
-    // Check accessibility requirements
-    const activeAccessibility = Object.values(state.permanent.accessibility).filter(Boolean);
-    if (activeAccessibility.length > 0) {
       count++;
     }
 

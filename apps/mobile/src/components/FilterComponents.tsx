@@ -160,31 +160,63 @@ export const CuisineTypeFilter: React.FC = () => {
 
 /**
  * Diet Toggle Component (for Daily Filters)
+ * Updated for new diet preference structure
  */
 export const DietToggleFilter: React.FC = () => {
-  const { daily, toggleDietToggle } = useFilterStore();
+  const { daily, setDietPreference, toggleProteinType } = useFilterStore();
 
-  const dietOptions = [
-    { key: 'meat', label: 'Meat', icon: '�' },
+  const dietPreferenceOptions = [
+    { key: 'all', label: 'All' },
+    { key: 'vegetarian', label: 'Vegetarian' },
+    { key: 'vegan', label: 'Vegan' },
+  ];
+
+  const proteinOptions = [
+    { key: 'meat', label: 'Meat', icon: '🥩' },
     { key: 'fish', label: 'Fish', icon: '🐟' },
-    { key: 'vegetarian', label: 'Vegetarian', icon: '�' },
-    { key: 'vegan', label: 'Vegan', icon: '🌱' },
+    { key: 'seafood', label: 'Seafood', icon: '🦐' },
   ];
 
   return (
     <View style={styles.filterSection}>
       <Text style={styles.filterTitle}>🍽️ Diet Options</Text>
 
+      {/* Diet Preference Selection */}
       <View style={styles.toggleList}>
-        {dietOptions.map(option => (
+        <Text style={styles.filterSubtitle}>Diet Preference</Text>
+        {dietPreferenceOptions.map(option => (
+          <TouchableOpacity
+            key={option.key}
+            style={[
+              styles.toggleItem,
+              daily.dietPreference === option.key && { backgroundColor: theme.colors.primary },
+            ]}
+            onPress={() => setDietPreference(option.key as any)}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                daily.dietPreference === option.key && { color: theme.colors.white },
+              ]}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Protein Types */}
+      <View style={styles.toggleList}>
+        <Text style={styles.filterSubtitle}>Protein Types</Text>
+        {proteinOptions.map(option => (
           <View key={option.key} style={styles.toggleItem}>
             <View style={styles.toggleLabel}>
               <Text style={styles.toggleIcon}>{option.icon}</Text>
               <Text style={styles.toggleText}>{option.label}</Text>
             </View>
             <Switch
-              value={daily.dietToggle[option.key as keyof typeof daily.dietToggle]}
-              onValueChange={() => toggleDietToggle(option.key as keyof typeof daily.dietToggle)}
+              value={daily.proteinTypes[option.key as keyof typeof daily.proteinTypes]}
+              onValueChange={() => toggleProteinType(option.key as any)}
               trackColor={{ false: theme.colors.gray200, true: theme.colors.primary }}
               thumbColor={theme.colors.white}
             />
@@ -456,15 +488,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    paddingVertical: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.gray100,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   toggleLabel: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginHorizontal: 6,
   },
   toggleIcon: {
     fontSize: 20,
+    marginRight: 8,
   },
   toggleText: {
     fontSize: 16,
@@ -526,6 +562,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.gray200,
     borderWidth: 1,
     borderColor: theme.colors.gray200,
+    marginRight: 8,
+    marginBottom: 8,
   },
   presetButtonActive: {
     backgroundColor: theme.colors.primary,

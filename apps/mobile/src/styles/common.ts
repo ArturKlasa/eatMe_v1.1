@@ -808,6 +808,77 @@ export const modals = StyleSheet.create({
     color: colors.white,
     fontWeight: typography.weight.semibold,
   } as TextStyle,
+
+  // Price slider styles
+  priceSliderContainer: {
+    marginVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+  } as ViewStyle,
+
+  priceSliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  } as ViewStyle,
+
+  priceSliderLabel: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  priceSliderTrack: {
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    position: 'relative',
+  } as ViewStyle,
+
+  priceSliderThumb: {
+    width: 20,
+    height: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    position: 'absolute',
+    top: -7,
+  } as ViewStyle,
+
+  // Tab container styles
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.md,
+    padding: 2,
+    marginVertical: spacing.sm,
+  } as ViewStyle,
+
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: borderRadius.sm,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  selectedTab: {
+    backgroundColor: colors.primary,
+  } as ViewStyle,
+
+  tabText: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  selectedTabText: {
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
+  } as TextStyle,
+
+  // Multi-option styles
+  multiOptionContainer: {
+    marginTop: spacing.sm,
+  } as ViewStyle,
 });
 
 /**

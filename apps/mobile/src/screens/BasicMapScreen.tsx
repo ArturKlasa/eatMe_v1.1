@@ -1,15 +1,21 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Text, Alert, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import Mapbox, { MapView, Camera, PointAnnotation, UserLocation } from '@rnmapbox/maps';
-import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { StyleSheet, View, Alert } from 'react-native';
+import Mapbox, { MapView, Camera, UserLocation } from '@rnmapbox/maps';
+import { DrawerActions } from '@react-navigation/native';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { FilterFAB } from '../components/FilterFAB';
 import { useFilterStore } from '../stores/filterStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
-import { commonStyles, theme, modals, mapComponentStyles } from '@/styles';
+import { commonStyles, mapComponentStyles } from '@/styles';
 import type { MapScreenProps } from '@/types/navigation';
+
+// Extracted Components
+import { DailyFilterModal } from '../components/map/DailyFilterModal';
+import { MapHeader } from '../components/map/MapHeader';
+import { RestaurantMarkers } from '../components/map/RestaurantMarkers';
+import { MapControls } from '../components/map/MapControls';
+import { MapFooter } from '../components/map/MapFooter';
 
 // Initialize Mapbox with access token
 Mapbox.setAccessToken(ENV.mapbox.accessToken);
@@ -18,13 +24,7 @@ Mapbox.setAccessToken(ENV.mapbox.accessToken);
  * BasicMapScreen Component
  *
  * Displays a Mapbox map centered on Mexico City with restaurant markers and user location.
- * Features:
- * - Restaurant/dish markers with tap interactions
- * - Color-coded markers (green = open, red = closed)
- * - User location detection with "My Location" button
- * - Drawer navigation integration
- * - Basic restaurant information in alerts
- * - Smooth map interactions and camera controls
+ * Now refactored into smaller, focused components for better maintainability.
  */
 export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
@@ -35,16 +35,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const [hasAutocentered, setHasAutocentered] = useState(false);
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
 
-  const {
-    daily,
-    permanent,
-    setDailyPriceRange,
-    toggleDailyCuisine,
-    toggleDietToggle,
-    setDailyCalorieRange,
-    toggleOpenNow,
-    applyPreset,
-  } = useFilterStore();
+  const { daily, permanent } = useFilterStore();
 
   // Apply filters to restaurants with performance optimization
   const filteredResults = useMemo(() => {
@@ -103,6 +94,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     autoCenterOnLocation();
   }, [isMapReady, hasPermission, hasAutocentered, getLocationWithPermission]);
 
+  // Handler functions
   const handleMarkerPress = (restaurant: Restaurant) => {
     Alert.alert(
       `🍽️ ${restaurant.name}`,
@@ -176,52 +168,13 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     setIsDailyFilterVisible(false);
   };
 
-  const renderRestaurantMarkers = () => {
-    return displayedRestaurants.map(restaurant => (
-      <PointAnnotation
-        key={restaurant.id}
-        id={restaurant.id}
-        coordinate={restaurant.coordinates}
-        onSelected={() => handleMarkerPress(restaurant)}
-      >
-        <View
-          style={[
-            commonStyles.mapStyles.markerContainer,
-            {
-              backgroundColor: restaurant.isOpen
-                ? theme.colors.mapMarkerOpen
-                : theme.colors.mapMarkerClosed,
-            },
-          ]}
-        >
-          <View style={commonStyles.mapStyles.markerInner}>
-            <Text style={commonStyles.mapStyles.markerText}>🍽️</Text>
-          </View>
-        </View>
-      </PointAnnotation>
-    ));
-  };
-
   return (
     <View style={commonStyles.containers.screen}>
-      <View style={commonStyles.mapStyles.header}>
-        <View style={commonStyles.mapStyles.headerContent}>
-          <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={handleMenuPress}>
-            <Text>☰</Text>
-          </TouchableOpacity>
-          <View style={commonStyles.mapStyles.headerText}>
-            <Text style={commonStyles.mapStyles.title}>Food Map</Text>
-            <Text style={commonStyles.mapStyles.subtitle}>Discover nearby restaurants</Text>
-          </View>
-          <TouchableOpacity
-            style={commonStyles.buttons.iconButton}
-            onPress={handleMyLocationPress}
-            disabled={locationLoading}
-          >
-            <Text>{locationLoading ? '🎯...' : '🎯'}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <MapHeader
+        onMenuPress={handleMenuPress}
+        onLocationPress={handleMyLocationPress}
+        locationLoading={locationLoading}
+      />
 
       <MapView
         style={mapComponentStyles.map}
@@ -260,331 +213,28 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
           requestsAlwaysUse={false}
         />
 
-        {renderRestaurantMarkers()}
+        <RestaurantMarkers restaurants={displayedRestaurants} onMarkerPress={handleMarkerPress} />
       </MapView>
 
-      {/* My Location Button */}
-      <TouchableOpacity
-        style={commonStyles.mapStyles.locationButton}
-        onPress={handleMyLocationPress}
-        disabled={locationLoading}
-      >
-        <Text style={commonStyles.mapStyles.locationButtonText}>
-          {locationLoading ? '📍...' : '📍'}
-        </Text>
-      </TouchableOpacity>
+      <MapControls
+        onLocationPress={handleMyLocationPress}
+        onFilterPress={handleDailyFilterPress}
+        locationLoading={locationLoading}
+        filterCount={
+          filteredResults.appliedFilters.daily + filteredResults.appliedFilters.permanent
+        }
+      />
 
-      <View style={commonStyles.mapStyles.footer}>
-        <Text style={commonStyles.mapStyles.footerText}>
-          {mockRestaurants.length} restaurants found
-          {isMapReady ? '' : ' • Loading map...'}
-          {userLocation && isMapReady
-            ? ` • Location: ${userLocation.latitude.toFixed(3)}, ${userLocation.longitude.toFixed(3)}`
-            : hasPermission
-              ? ' • Getting location...'
-              : ' • Tap 📍 for location'}
-        </Text>
-      </View>
+      <MapFooter
+        restaurantCount={mockRestaurants.length}
+        isMapReady={isMapReady}
+        userLocation={userLocation}
+        hasPermission={hasPermission}
+      />
 
-      {/* Filter Floating Action Button */}
-      <TouchableOpacity
-        style={mapComponentStyles.filterFAB}
-        onPress={handleDailyFilterPress}
-        activeOpacity={0.8}
-      >
-        <Text style={mapComponentStyles.filterFABIcon}>🎛️</Text>
-        {filteredResults.appliedFilters.daily + filteredResults.appliedFilters.permanent > 0 && (
-          <View style={mapComponentStyles.filterBadge}>
-            <Text style={mapComponentStyles.filterBadgeText}>
-              {filteredResults.appliedFilters.daily + filteredResults.appliedFilters.permanent}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      {/* Daily Filter Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isDailyFilterVisible}
-        onRequestClose={closeDailyFilter}
-      >
-        <View style={modals.overlay}>
-          <View style={modals.container}>
-            <View style={modals.header}>
-              <Text style={modals.title}>🎯 Daily Filters</Text>
-              <TouchableOpacity onPress={closeDailyFilter} style={modals.closeButton}>
-                <Text style={modals.closeText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={modals.content} showsVerticalScrollIndicator={false} bounces={false}>
-              {/* Price Range Section */}
-              <View style={modals.section}>
-                <Text style={modals.sectionTitle}>💰 Price Range</Text>
-                <View style={modals.optionsRow}>
-                  {[1, 2, 3, 4].map(price => (
-                    <TouchableOpacity
-                      key={price}
-                      style={[
-                        modals.priceOption,
-                        daily.priceRange.max === price && modals.selectedOption,
-                      ]}
-                      onPress={() => setDailyPriceRange(1, price)}
-                    >
-                      <Text
-                        style={[
-                          modals.priceText,
-                          daily.priceRange.max === price && modals.selectedText,
-                        ]}
-                      >
-                        {'$'.repeat(price)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Cuisine Types Section */}
-              <View style={modals.section}>
-                <Text style={modals.sectionTitle}>🍽️ Cuisine Types</Text>
-                <View style={modals.cuisineGrid}>
-                  {['American', 'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean'].map(
-                    cuisine => (
-                      <TouchableOpacity
-                        key={cuisine}
-                        style={[
-                          modals.cuisineOption,
-                          daily.cuisineTypes.includes(cuisine) && modals.selectedOption,
-                        ]}
-                        onPress={() => toggleDailyCuisine(cuisine)}
-                      >
-                        <Text
-                          style={[
-                            modals.cuisineText,
-                            daily.cuisineTypes.includes(cuisine) && modals.selectedText,
-                          ]}
-                        >
-                          {cuisine}
-                        </Text>
-                      </TouchableOpacity>
-                    )
-                  )}
-                </View>
-              </View>
-
-              {/* Diet Toggle Section */}
-              <View style={modals.section}>
-                <Text style={modals.sectionTitle}>🥗 Diet Toggle</Text>
-
-                {/* First row - Meat & Fish */}
-                <View style={modals.optionsRow}>
-                  {[
-                    { key: 'meat', label: 'Meat', icon: '🥩' },
-                    { key: 'fish', label: 'Fish', icon: '🐟' },
-                  ].map(diet => (
-                    <TouchableOpacity
-                      key={diet.key}
-                      style={[
-                        modals.dietOption,
-                        daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                          modals.selectedOption,
-                      ]}
-                      onPress={() => toggleDietToggle(diet.key as keyof typeof daily.dietToggle)}
-                    >
-                      <Text style={modals.dietIcon}>{diet.icon}</Text>
-                      <Text
-                        style={[
-                          modals.dietText,
-                          daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                            modals.selectedText,
-                        ]}
-                      >
-                        {diet.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Second row - Vegetarian & Vegan */}
-                <View style={[modals.optionsRow, { marginTop: 8 }]}>
-                  {[
-                    { key: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
-                    { key: 'vegan', label: 'Vegan', icon: '🌱' },
-                  ].map(diet => (
-                    <TouchableOpacity
-                      key={diet.key}
-                      style={[
-                        modals.dietOption,
-                        daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                          modals.selectedOption,
-                      ]}
-                      onPress={() => toggleDietToggle(diet.key as keyof typeof daily.dietToggle)}
-                    >
-                      <Text style={modals.dietIcon}>{diet.icon}</Text>
-                      <Text
-                        style={[
-                          modals.dietText,
-                          daily.dietToggle[diet.key as keyof typeof daily.dietToggle] &&
-                            modals.selectedText,
-                        ]}
-                      >
-                        {diet.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Calorie Range Section */}
-              <View style={modals.section}>
-                <Text style={modals.sectionTitle}>
-                  🔥 Calorie Range{' '}
-                  {daily.calorieRange.enabled
-                    ? `(${daily.calorieRange.min}-${daily.calorieRange.max} kcal)`
-                    : '(disabled)'}
-                </Text>
-                <View style={modals.optionsRow}>
-                  <TouchableOpacity
-                    style={[
-                      modals.calorieToggle,
-                      daily.calorieRange.enabled && modals.selectedOption,
-                    ]}
-                    onPress={() =>
-                      setDailyCalorieRange(
-                        daily.calorieRange.min,
-                        daily.calorieRange.max,
-                        !daily.calorieRange.enabled
-                      )
-                    }
-                  >
-                    <Text
-                      style={[
-                        modals.calorieText,
-                        daily.calorieRange.enabled && modals.selectedText,
-                      ]}
-                    >
-                      {daily.calorieRange.enabled ? 'Enabled' : 'Disabled'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {daily.calorieRange.enabled && (
-                    <>
-                      {[200, 400, 600, 800, 1000].map(calories => (
-                        <TouchableOpacity
-                          key={calories}
-                          style={[
-                            modals.calorieOption,
-                            daily.calorieRange.max === calories && modals.selectedOption,
-                          ]}
-                          onPress={() => setDailyCalorieRange(200, calories, true)}
-                        >
-                          <Text
-                            style={[
-                              modals.calorieText,
-                              daily.calorieRange.max === calories && modals.selectedText,
-                            ]}
-                          >
-                            {calories}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </>
-                  )}
-                </View>
-              </View>
-
-              {/* Open Now Section */}
-              <View style={modals.section}>
-                <View style={modals.optionsRow}>
-                  <TouchableOpacity
-                    style={[modals.cuisineOption, daily.openNow && modals.selectedOption]}
-                    onPress={() => toggleOpenNow()}
-                  >
-                    <Text style={[modals.cuisineText, daily.openNow && modals.selectedText]}>
-                      ⏰ Open Now
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Quick Presets */}
-              <View style={modals.section}>
-                <Text style={modals.sectionTitle}>⚡ Quick Filters</Text>
-                <View style={modals.optionsRow}>
-                  <TouchableOpacity
-                    style={modals.presetButton}
-                    onPress={() => applyPreset('nearby')}
-                  >
-                    <Text style={modals.presetText}>📍 Nearby</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={modals.presetButton}
-                    onPress={() => applyPreset('cheapEats')}
-                  >
-                    <Text style={modals.presetText}>💰 Cheap Eats</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={modals.footer}>
-              <TouchableOpacity style={modals.clearButton} onPress={closeDailyFilter}>
-                <Text style={modals.clearText}>Clear All</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={modals.applyButton} onPress={closeDailyFilter}>
-                <Text style={modals.applyText}>Apply Filters</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  map: {
-    flex: 1,
-  },
-  filterFAB: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  filterFABIcon: {
-    fontSize: 24,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: theme.colors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.white,
-  },
-  filterBadgeText: {
-    color: theme.colors.white,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-});
 
 export default BasicMapScreen;

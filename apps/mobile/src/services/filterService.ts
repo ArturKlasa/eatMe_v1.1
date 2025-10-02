@@ -77,25 +77,24 @@ function applyPermanentFilters(
 ): Restaurant[] {
   let filtered = restaurants;
 
-  // Strict diet type filter
-  if (permanentFilters.strictDietType !== 'none') {
+  // Diet preference filter
+  if (permanentFilters.dietPreference !== 'all') {
     // In a real app, we'd check restaurant menu/capability
     // For mock data, we'll simulate based on cuisine type
     filtered = filtered.filter(restaurant => {
       const isVeganFriendly = ['Contemporary Mexican', 'Italian'].includes(restaurant.cuisine);
       const isVegetarianFriendly = !['Seafood'].includes(restaurant.cuisine);
 
-      switch (permanentFilters.strictDietType) {
+      switch (permanentFilters.dietPreference) {
         case 'vegan':
           return isVeganFriendly;
         case 'vegetarian':
-        case 'pescatarian':
           return isVegetarianFriendly;
         default:
           return true;
       }
     });
-    filterSummary.push(`Diet: ${permanentFilters.strictDietType}`);
+    filterSummary.push(`Diet: ${permanentFilters.dietPreference}`);
   }
 
   // Allergy filters (exclude restaurants that can't accommodate)
@@ -120,8 +119,8 @@ function applyPermanentFilters(
     filterSummary.push(`Allergies: ${activeAllergies.join(', ')}`);
   }
 
-  // Religious/Cultural requirements
-  const activeReligious = Object.entries(permanentFilters.religiousCultural)
+  // Religious restrictions
+  const activeReligious = Object.entries(permanentFilters.religiousRestrictions)
     .filter(([_, active]) => active)
     .map(([requirement, _]) => requirement);
 
@@ -138,21 +137,21 @@ function applyPermanentFilters(
     filterSummary.push(`Religious: ${activeReligious.join(', ')}`);
   }
 
-  // Accessibility requirements
-  const activeAccessibility = Object.entries(permanentFilters.accessibility)
+  // Restaurant facilities
+  const activeFacilities = Object.entries(permanentFilters.facilities)
     .filter(([_, active]) => active)
-    .map(([requirement, _]) => requirement);
+    .map(([facility, _]) => facility);
 
-  if (activeAccessibility.length > 0) {
-    // In a real app, this would check restaurant accessibility features
-    // For mock data, we'll assume newer/higher-rated restaurants are more accessible
+  if (activeFacilities.length > 0) {
+    // In a real app, this would check restaurant facility features
+    // For mock data, we'll assume newer/higher-rated restaurants have better facilities
     filtered = filtered.filter(restaurant => {
-      if (activeAccessibility.includes('wheelchairAccessible')) {
+      if (activeFacilities.includes('wheelchairAccessible')) {
         return restaurant.rating >= 4.5; // Assume highly-rated restaurants are accessible
       }
       return true;
     });
-    filterSummary.push(`Accessibility: ${activeAccessibility.join(', ')}`);
+    filterSummary.push(`Facilities: ${activeFacilities.join(', ')}`);
   }
 
   return filtered;
@@ -188,31 +187,52 @@ function applyDailyFilters(
     filterSummary.push(`Cuisines: ${dailyFilters.cuisineTypes.join(', ')}`);
   }
 
-  // Diet toggle filter (exclude based on disabled toggles)
-  const disabledDiets = Object.entries(dailyFilters.dietToggle)
-    .filter(([_, enabled]) => !enabled)
-    .map(([diet, _]) => diet);
-
-  if (disabledDiets.length > 0) {
+  // Diet preference filter
+  if (dailyFilters.dietPreference !== 'all') {
     filtered = filtered.filter(restaurant => {
-      // Mock logic: exclude restaurants based on disabled diet options
-      if (disabledDiets.includes('meat') && ['Mexican'].includes(restaurant.cuisine)) {
-        return false; // Mexican restaurants typically meat-heavy
+      // Mock logic: filter based on diet preference
+      if (dailyFilters.dietPreference === 'vegetarian') {
+        // Show restaurants with vegetarian options
+        return !['Steakhouse', 'BBQ'].includes(restaurant.cuisine);
       }
-      if (disabledDiets.includes('fish') && restaurant.cuisine === 'Seafood') {
-        return false; // Seafood restaurants obviously fish-heavy
-      }
-      if (disabledDiets.includes('vegetarian') && disabledDiets.includes('vegan')) {
-        // If both vegetarian and vegan are disabled, show all restaurants
-        return true;
+      if (dailyFilters.dietPreference === 'vegan') {
+        // Show restaurants with vegan options
+        return ['Mediterranean', 'Asian', 'Healthy'].includes(restaurant.cuisine);
       }
       return true;
     });
+    filterSummary.push(`Diet: ${dailyFilters.dietPreference}`);
+  }
 
-    const enabledDiets = Object.entries(dailyFilters.dietToggle)
-      .filter(([_, enabled]) => enabled)
-      .map(([diet, _]) => diet);
-    filterSummary.push(`Diet options: ${enabledDiets.join(', ')}`);
+  // Protein type filters
+  const selectedProteins = Object.entries(dailyFilters.proteinTypes)
+    .filter(([_, enabled]) => enabled)
+    .map(([protein, _]) => protein);
+
+  if (selectedProteins.length > 0) {
+    filtered = filtered.filter(restaurant => {
+      // Mock logic: filter based on protein types
+      if (
+        selectedProteins.includes('meat') &&
+        ['Steakhouse', 'BBQ', 'American'].includes(restaurant.cuisine)
+      ) {
+        return true;
+      }
+      if (
+        selectedProteins.includes('fish') &&
+        ['Seafood', 'Sushi', 'Asian'].includes(restaurant.cuisine)
+      ) {
+        return true;
+      }
+      if (
+        selectedProteins.includes('seafood') &&
+        ['Seafood', 'Mediterranean'].includes(restaurant.cuisine)
+      ) {
+        return true;
+      }
+      return selectedProteins.length === 0; // If no proteins selected, show all
+    });
+    filterSummary.push(`Proteins: ${selectedProteins.join(', ')}`);
   }
 
   // Open now filter
@@ -326,8 +346,14 @@ function getDailyFilterCount(dailyFilters: DailyFilters): number {
   }
 
   // Diet toggles (not all enabled)
-  const allDietEnabled = Object.values(dailyFilters.dietToggle).every(Boolean);
-  if (!allDietEnabled) {
+  // Check diet preference
+  if (dailyFilters.dietPreference !== 'all') {
+    count++;
+  }
+
+  // Check protein types
+  const hasProteinFilter = Object.values(dailyFilters.proteinTypes).some(Boolean);
+  if (hasProteinFilter) {
     count++;
   }
 
@@ -356,14 +382,14 @@ function getPermanentFilterCount(permanentFilters: PermanentFilters): number {
     count++;
   }
 
-  // Religious/cultural requirements
-  const activeReligious = Object.values(permanentFilters.religiousCultural).filter(Boolean);
+  // Religious restrictions
+  const activeReligious = Object.values(permanentFilters.religiousRestrictions).filter(Boolean);
   if (activeReligious.length > 0) {
     count++;
   }
 
-  // Strict diet type
-  if (permanentFilters.strictDietType !== 'none') {
+  // Diet preference
+  if (permanentFilters.dietPreference !== 'all') {
     count++;
   }
 
@@ -372,9 +398,9 @@ function getPermanentFilterCount(permanentFilters: PermanentFilters): number {
     count++;
   }
 
-  // Accessibility requirements
-  const activeAccessibility = Object.values(permanentFilters.accessibility).filter(Boolean);
-  if (activeAccessibility.length > 0) {
+  // Restaurant facilities
+  const activeFacilities = Object.values(permanentFilters.facilities).filter(Boolean);
+  if (activeFacilities.length > 0) {
     count++;
   }
 
@@ -395,12 +421,13 @@ export function validateFilters(
   const errors: string[] = [];
 
   // Check for conflicting diet settings
-  if (permanentFilters.strictDietType === 'vegan' && dailyFilters.dietToggle.meat) {
-    errors.push('Vegan diet type conflicts with meat option enabled');
+  // Check diet conflicts
+  if (permanentFilters.dietPreference === 'vegan' && dailyFilters.proteinTypes.meat) {
+    errors.push('Vegan diet conflicts with meat protein selection');
   }
 
-  if (permanentFilters.strictDietType === 'vegetarian' && dailyFilters.dietToggle.meat) {
-    errors.push('Vegetarian diet type conflicts with meat option enabled');
+  if (permanentFilters.dietPreference === 'vegetarian' && dailyFilters.proteinTypes.meat) {
+    errors.push('Vegetarian diet conflicts with meat protein selection');
   }
 
   // Check price range validity
@@ -416,11 +443,7 @@ export function validateFilters(
     errors.push('Minimum calories cannot be higher than maximum calories');
   }
 
-  // Check if any diet options are enabled
-  const anyDietEnabled = Object.values(dailyFilters.dietToggle).some(Boolean);
-  if (!anyDietEnabled) {
-    errors.push('At least one diet option must be enabled');
-  }
+  // Check if diet preferences are valid\n  const hasDietSetting = dailyFilters.dietPreference !== 'all' || \n                         Object.values(dailyFilters.proteinTypes).some(Boolean);\n  // Note: Diet settings are optional, so no validation error needed
 
   return {
     isValid: errors.length === 0,

@@ -31,7 +31,7 @@ export const ViewModeToggle: React.FC<{ style?: any }> = ({ style }) => {
 const styles = {
   container: {
     flexDirection: 'row' as const,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#2A2A2A',
     borderRadius: 8,
     padding: 2,
     alignSelf: 'center' as const,
@@ -40,13 +40,14 @@ const styles = {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
+    backgroundColor: '#4A4A4A',
   },
   activeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF9800',
   },
   text: {
     fontSize: 14,
-    color: '#666',
+    color: '#E0E0E0',
   },
   activeText: {
     color: '#FFF',

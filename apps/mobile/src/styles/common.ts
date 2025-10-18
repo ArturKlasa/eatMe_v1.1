@@ -661,9 +661,9 @@ export const modals = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#4A4A4A',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#666666',
     alignItems: 'center',
   } as ViewStyle,
 
@@ -673,8 +673,8 @@ export const modals = StyleSheet.create({
   } as TextStyle,
 
   selectedOption: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#FF9800',
+    borderColor: '#FF9800',
   } as ViewStyle,
 
   selectedText: {
@@ -706,9 +706,9 @@ export const modals = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#4A4A4A',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#666666',
   } as ViewStyle,
 
   cuisineText: {
@@ -846,7 +846,7 @@ export const modals = StyleSheet.create({
   // Tab container styles
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#2A2A2A',
     borderRadius: borderRadius.md,
     padding: 2,
     marginVertical: spacing.sm,
@@ -858,10 +858,11 @@ export const modals = StyleSheet.create({
     paddingHorizontal: spacing.xs,
     borderRadius: borderRadius.sm,
     alignItems: 'center',
+    backgroundColor: '#4A4A4A',
   } as ViewStyle,
 
   selectedTab: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#FF9800',
   } as ViewStyle,
 
   tabText: {

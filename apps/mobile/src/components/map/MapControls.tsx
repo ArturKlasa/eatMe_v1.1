@@ -30,6 +30,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
             right: 20, // Same right alignment as location FAB
             zIndex: 1000,
             elevation: 10,
+            backgroundColor: '#E0E0E0', // Even less bright (darker light gray)
           },
         ]}
         onPress={onMenuPress}
@@ -45,13 +46,23 @@ export const MapControls: React.FC<MapControlsProps> = ({
             bottom: 330, // Moved back up (was 300, now 330)
             zIndex: 1000, // Ensure it's above everything
             elevation: 10, // Android shadow/elevation
+            backgroundColor: '#E0E0E0', // Even less bright (darker light gray)
           },
         ]}
         onPress={onLocationPress}
         disabled={locationLoading}
       >
-        <Text style={commonStyles.mapStyles.locationButtonText}>
-          {locationLoading ? '🎯...' : '🎯'}
+        <Text
+          style={[
+            commonStyles.mapStyles.locationButtonText,
+            {
+              fontSize: 45,
+              textAlign: 'center',
+              lineHeight: 45,
+            },
+          ]}
+        >
+          {locationLoading ? '⌖...' : '⌖'}
         </Text>
       </TouchableOpacity>
     </>

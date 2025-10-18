@@ -57,12 +57,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={modals.overlay}>
-        <View style={modals.container}>
+        <View style={[modals.container, { backgroundColor: '#1A1A1A' }]}>
           <View style={modals.header}>
-            <Text style={modals.title}>🎯 Daily Filters</Text>
-            <TouchableOpacity onPress={onClose} style={modals.closeButton}>
-              <Text style={modals.closeText}>✕</Text>
-            </TouchableOpacity>
+            <Text style={[modals.title, { color: '#E0E0E0' }]}>🎯 Daily Filters</Text>
           </View>
 
           {/* View Mode Toggle */}
@@ -71,11 +68,17 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
           <ScrollView style={modals.content} showsVerticalScrollIndicator={false} bounces={false}>
             {/* 1. Price Range Section - Slider */}
             <View style={modals.section}>
-              <Text style={modals.sectionTitle}>💰 How much would you like to spend?</Text>
+              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>
+                💰 How much would you like to spend?
+              </Text>
               <View style={modals.priceSliderContainer}>
                 <View style={modals.priceSliderLabels}>
-                  <Text style={modals.priceSliderLabel}>${daily.priceRange.min}</Text>
-                  <Text style={modals.priceSliderLabel}>${daily.priceRange.max}</Text>
+                  <Text style={[modals.priceSliderLabel, { color: '#CCCCCC' }]}>
+                    ${daily.priceRange.min}
+                  </Text>
+                  <Text style={[modals.priceSliderLabel, { color: '#CCCCCC' }]}>
+                    ${daily.priceRange.max}
+                  </Text>
                 </View>
                 <TouchableOpacity
                   style={modals.priceSliderTrack}
@@ -100,7 +103,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
             {/* 2. Diet Preference Section */}
             <View style={modals.section}>
-              <Text style={modals.sectionTitle}>🥗 Meat, fish, veggies?</Text>
+              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>
+                🥗 Meat, fish, veggies?
+              </Text>
 
               {/* Diet Type Tabs */}
               <View style={modals.tabContainer}>
@@ -117,6 +122,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     <Text
                       style={[
                         modals.tabText,
+                        { color: '#E0E0E0' },
                         daily.dietPreference === option.key && modals.selectedTabText,
                       ]}
                     >
@@ -156,10 +162,11 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                         <Text
                           style={[
                             modals.optionText,
+                            { color: '#E0E0E0' },
                             daily.proteinTypes[protein.key as keyof typeof daily.proteinTypes] &&
                               !disabled &&
                               modals.selectedText,
-                            disabled && { color: '#999' },
+                            disabled && { color: '#666' },
                           ]}
                         >
                           {protein.label}
@@ -173,7 +180,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
             {/* 3. Cuisine Section */}
             <View style={modals.section}>
-              <Text style={modals.sectionTitle}>🍽️ Cuisine</Text>
+              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>🍽️ Cuisine</Text>
               <View style={modals.cuisineGrid}>
                 {[
                   'Italian',
@@ -195,6 +202,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     <Text
                       style={[
                         modals.cuisineText,
+                        { color: '#E0E0E0' },
                         daily.cuisineTypes.includes(cuisine) && modals.selectedText,
                       ]}
                     >
@@ -209,14 +217,14 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     Alert.alert('More Cuisines', 'Feature coming soon!');
                   }}
                 >
-                  <Text style={modals.cuisineText}>Other</Text>
+                  <Text style={[modals.cuisineText, { color: '#E0E0E0' }]}>Other</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* 4. Hunger Level Section */}
             <View style={modals.section}>
-              <Text style={modals.sectionTitle}>😋 Hungry, huh?</Text>
+              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>😋 Hungry, huh?</Text>
               <View style={modals.tabContainer}>
                 {[
                   { key: 'diet', label: 'On a diet' },
@@ -231,6 +239,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     <Text
                       style={[
                         modals.tabText,
+                        { color: '#E0E0E0' },
                         daily.hungerLevel === option.key && modals.selectedTabText,
                       ]}
                     >
@@ -244,10 +253,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
           <View style={modals.footer}>
             <TouchableOpacity style={modals.clearButton} onPress={handleClearFilters}>
-              <Text style={modals.clearText}>Clear All</Text>
+              <Text style={[modals.clearText, { color: '#E0E0E0' }]}>Clear All</Text>
             </TouchableOpacity>
             <TouchableOpacity style={modals.applyButton} onPress={onClose}>
-              <Text style={modals.applyText}>Apply Filters</Text>
+              <Text style={[modals.applyText, { color: '#FFFFFF' }]}>Apply Filters</Text>
             </TouchableOpacity>
           </View>
         </View>

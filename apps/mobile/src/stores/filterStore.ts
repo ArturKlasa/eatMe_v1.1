@@ -190,8 +190,8 @@ interface FilterActions {
 // Default daily filters
 const defaultDailyFilters: DailyFilters = {
   priceRange: {
-    min: 10,
-    max: 50,
+    min: 1,
+    max: 4,
   },
   cuisineTypes: [],
   dietPreference: 'all',

@@ -19,6 +19,12 @@ export const RestaurantMarkers: React.FC<RestaurantMarkersProps> = ({
   restaurants,
   onMarkerPress,
 }) => {
+  // Add debugging
+  console.log('RestaurantMarkers received:', restaurants.length, 'restaurants');
+  restaurants.forEach((restaurant, index) => {
+    console.log(`Restaurant ${index + 1}:`, restaurant.name, 'at', restaurant.coordinates);
+  });
+
   return (
     <>
       {restaurants.map(restaurant => (
@@ -35,11 +41,37 @@ export const RestaurantMarkers: React.FC<RestaurantMarkersProps> = ({
                 backgroundColor: restaurant.isOpen
                   ? theme.colors.mapMarkerOpen
                   : theme.colors.mapMarkerClosed,
+                width: 26,
+                height: 26,
+                borderRadius: 13,
+                borderWidth: 2,
+                borderColor: '#FFFFFF',
+                justifyContent: 'center',
+                alignItems: 'center',
               },
             ]}
           >
-            <View style={commonStyles.mapStyles.markerInner}>
-              <Text style={commonStyles.mapStyles.markerText}>🍽️</Text>
+            <View
+              style={[
+                commonStyles.mapStyles.markerInner,
+                {
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  commonStyles.mapStyles.markerText,
+                  {
+                    fontSize: 12,
+                    textAlign: 'center',
+                    lineHeight: 12,
+                  },
+                ]}
+              >
+                🍽️
+              </Text>
             </View>
           </View>
         </PointAnnotation>

@@ -28,7 +28,7 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Mexican',
     rating: 4.5,
     priceRange: '$$',
-    coordinates: [-122.082, 37.421], // Near user location
+    coordinates: [-122.081, 37.424], // North of center
     address: '123 Main St, Palo Alto, CA',
     phone: '+1 650 123 4567',
     description: 'Authentic Mexican cuisine in the heart of Silicon Valley',
@@ -45,7 +45,7 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Contemporary Mexican',
     rating: 4.8,
     priceRange: '$$$$',
-    coordinates: [-122.084, 37.4215], // Near user location
+    coordinates: [-122.087, 37.42], // West of center
     address: '456 University Ave, Palo Alto, CA',
     phone: '+1 650 555 3507',
     description: 'World-renowned contemporary Mexican restaurant',
@@ -62,7 +62,7 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Seafood',
     rating: 4.6,
     priceRange: '$$$',
-    coordinates: [-122.08, 37.422], // Near user location
+    coordinates: [-122.079, 37.42], // East of center
     address: '789 Forest Ave, Palo Alto, CA',
     phone: '+1 650 514 9217',
     description: 'Fresh seafood and vibrant atmosphere',
@@ -79,7 +79,7 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Italian',
     rating: 4.7,
     priceRange: '$$$',
-    coordinates: [-122.086, 37.4205], // Near user location
+    coordinates: [-122.083, 37.418], // South of center
     address: '321 California Ave, Palo Alto, CA',
     phone: '+1 650 533 7804',
     description: 'Elegant Italian dining in a beautiful setting',
@@ -96,7 +96,7 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Contemporary Mexican',
     rating: 4.9,
     priceRange: '$$$$',
-    coordinates: [-122.0785, 37.423], // Near user location
+    coordinates: [-122.084, 37.422], // Center (near user location)
     address: '654 Middlefield Rd, Palo Alto, CA',
     phone: '+1 650 280 2680',
     description: 'Innovative Mexican cuisine with local ingredients',

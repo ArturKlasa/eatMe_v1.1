@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
-import Mapbox, { MapView, Camera, UserLocation } from '@rnmapbox/maps';
+import { StyleSheet, View, Alert, Text } from 'react-native';
+import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
 import { DrawerActions } from '@react-navigation/native';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
@@ -60,6 +60,16 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
+
+  // Add debugging
+  console.log('=== RESTAURANT DEBUG ===');
+  console.log('Total mock restaurants loaded:', mockRestaurants.length);
+  console.log('Restaurants after filtering:', displayedRestaurants.length);
+  console.log('Filter state - daily:', daily);
+  console.log('Filter state - permanent:', permanent);
+  console.log('First restaurant coordinates:', displayedRestaurants[0]?.coordinates);
+  console.log('Map center:', ENV.mapbox.defaultLocation);
+  console.log('========================');
 
   const {
     location: userLocation,
@@ -212,6 +222,24 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
           androidRenderMode="gps"
           requestsAlwaysUse={false}
         />
+
+        {/* Test marker to verify PointAnnotation works */}
+        <PointAnnotation key="test-marker" id="test-marker" coordinate={[-122.084, 37.422]}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              backgroundColor: '#FF0000',
+              borderRadius: 20,
+              borderWidth: 2,
+              borderColor: '#FFFFFF',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>🔴</Text>
+          </View>
+        </PointAnnotation>
 
         <RestaurantMarkers restaurants={displayedRestaurants} onMarkerPress={handleMarkerPress} />
       </MapView>

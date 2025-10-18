@@ -18,7 +18,11 @@ export const MapControls: React.FC<MapControlsProps> = ({ onLocationPress, locat
     <TouchableOpacity
       style={[
         commonStyles.mapStyles.locationButton,
-        { bottom: 257 }, // Raised by ~17px (1/3 of 50px icon size)
+        {
+          bottom: 400, // Much higher position to clear expanded footer
+          zIndex: 1000, // Ensure it's above everything
+          elevation: 10, // Android shadow/elevation
+        },
       ]}
       onPress={onLocationPress}
       disabled={locationLoading}

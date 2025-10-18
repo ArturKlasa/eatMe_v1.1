@@ -13,9 +13,14 @@ import { Dish } from '@/data/mockDishes';
 interface MapFooterProps {
   recommendedDishes: Dish[];
   onDishPress: (dish: Dish) => void;
+  onFilterPress: () => void;
 }
 
-export const MapFooter: React.FC<MapFooterProps> = ({ recommendedDishes, onDishPress }) => {
+export const MapFooter: React.FC<MapFooterProps> = ({
+  recommendedDishes,
+  onDishPress,
+  onFilterPress,
+}) => {
   const getEmoji = (cuisine: string) => {
     if (cuisine.includes('Mexican')) return '🌮';
     if (cuisine.includes('Italian')) return '🍝';
@@ -95,6 +100,13 @@ export const MapFooter: React.FC<MapFooterProps> = ({ recommendedDishes, onDishP
           <Text style={styles.showMoreText}>View all{'\n'}dishes</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Filter Button */}
+      <View style={styles.filterSection}>
+        <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
+          <Text style={styles.filterButtonText}>🥢 Filter Dishes & Restaurants</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -226,5 +238,32 @@ const styles = {
     color: '#FF9800',
     textAlign: 'center' as const,
     fontWeight: '500' as const,
+  },
+  filterSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
+  },
+  filterButton: {
+    backgroundColor: '#FF9800',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  filterButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 };

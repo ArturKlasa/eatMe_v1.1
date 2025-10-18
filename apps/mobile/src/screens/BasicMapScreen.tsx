@@ -210,7 +210,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   return (
     <View style={commonStyles.containers.screen}>
-      <MapHeader onMenuPress={handleMenuPress} onFilterPress={handleDailyFilterPress} />
+      <MapHeader onMenuPress={handleMenuPress} />
 
       <MapView
         style={mapComponentStyles.map}
@@ -259,7 +259,11 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
       <MapControls onLocationPress={handleMyLocationPress} locationLoading={locationLoading} />
 
-      <MapFooter recommendedDishes={recommendedDishes} onDishPress={handleDishPress} />
+      <MapFooter
+        recommendedDishes={recommendedDishes}
+        onDishPress={handleDishPress}
+        onFilterPress={handleDailyFilterPress}
+      />
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
     </View>

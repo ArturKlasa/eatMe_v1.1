@@ -10,10 +10,9 @@ import { commonStyles } from '@/styles';
 
 interface MapHeaderProps {
   onMenuPress: () => void;
-  onFilterPress: () => void;
 }
 
-export const MapHeader: React.FC<MapHeaderProps> = ({ onMenuPress, onFilterPress }) => {
+export const MapHeader: React.FC<MapHeaderProps> = ({ onMenuPress }) => {
   return (
     <View style={[commonStyles.mapStyles.header, { paddingTop: 35, paddingBottom: 10 }]}>
       <View style={commonStyles.mapStyles.headerContent}>
@@ -24,13 +23,6 @@ export const MapHeader: React.FC<MapHeaderProps> = ({ onMenuPress, onFilterPress
         <View style={commonStyles.mapStyles.headerText}>
           {/* No title or subtitle - clean header */}
         </View>
-
-        <TouchableOpacity
-          style={[commonStyles.buttons.iconButton, { minWidth: 80, paddingHorizontal: 12 }]}
-          onPress={onFilterPress}
-        >
-          <Text>🥢 Filter</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );

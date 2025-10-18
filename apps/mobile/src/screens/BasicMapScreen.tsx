@@ -65,6 +65,17 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
 
+  // Get recommended dishes (mock algorithm - will be replaced with ML/database in future)
+  const getRecommendedDishes = () => {
+    // For now, return top-rated available dishes, limited to 8
+    return mockDishes
+      .filter(dish => dish.isAvailable)
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 8);
+  };
+
+  const recommendedDishes = getRecommendedDishes();
+
   // Add debugging
   console.log('=== RESTAURANT DEBUG ===');
   console.log('Total mock restaurants loaded:', mockRestaurants.length);
@@ -248,12 +259,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
       <MapControls onLocationPress={handleMyLocationPress} locationLoading={locationLoading} />
 
-      <MapFooter
-        restaurantCount={mockRestaurants.length}
-        isMapReady={isMapReady}
-        userLocation={userLocation}
-        hasPermission={hasPermission}
-      />
+      <MapFooter recommendedDishes={recommendedDishes} onDishPress={handleDishPress} />
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
     </View>

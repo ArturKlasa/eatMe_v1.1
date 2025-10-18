@@ -16,7 +16,10 @@ interface MapControlsProps {
 export const MapControls: React.FC<MapControlsProps> = ({ onLocationPress, locationLoading }) => {
   return (
     <TouchableOpacity
-      style={commonStyles.mapStyles.locationButton}
+      style={[
+        commonStyles.mapStyles.locationButton,
+        { bottom: 257 }, // Raised by ~17px (1/3 of 50px icon size)
+      ]}
       onPress={onLocationPress}
       disabled={locationLoading}
     >

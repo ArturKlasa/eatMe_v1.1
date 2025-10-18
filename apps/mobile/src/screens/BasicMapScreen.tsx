@@ -203,7 +203,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
       <MapView
         style={mapComponentStyles.map}
-        styleURL={Mapbox.StyleURL.Street}
+        styleURL={Mapbox.StyleURL.Dark}
         zoomEnabled={true}
         scrollEnabled={true}
         pitchEnabled={true}

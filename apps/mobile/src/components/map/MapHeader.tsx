@@ -1,7 +1,7 @@
 /**
  * Map Header Component
- * 
- * Header bar for map screen with navigation menu, title, and location controls
+ *
+ * Header bar for map screen with navigation menu and location controls
  */
 
 import React from 'react';
@@ -10,33 +10,26 @@ import { commonStyles } from '@/styles';
 
 interface MapHeaderProps {
   onMenuPress: () => void;
-  onLocationPress: () => void;
-  locationLoading: boolean;
+  onFilterPress: () => void;
 }
 
-export const MapHeader: React.FC<MapHeaderProps> = ({
-  onMenuPress,
-  onLocationPress,
-  locationLoading,
-}) => {
+export const MapHeader: React.FC<MapHeaderProps> = ({ onMenuPress, onFilterPress }) => {
   return (
-    <View style={commonStyles.mapStyles.header}>
+    <View style={[commonStyles.mapStyles.header, { paddingTop: 35, paddingBottom: 10 }]}>
       <View style={commonStyles.mapStyles.headerContent}>
         <TouchableOpacity style={commonStyles.buttons.iconButton} onPress={onMenuPress}>
           <Text>☰</Text>
         </TouchableOpacity>
-        
+
         <View style={commonStyles.mapStyles.headerText}>
-          <Text style={commonStyles.mapStyles.title}>Food Map</Text>
-          <Text style={commonStyles.mapStyles.subtitle}>Discover nearby restaurants</Text>
+          {/* No title or subtitle - clean header */}
         </View>
-        
+
         <TouchableOpacity
-          style={commonStyles.buttons.iconButton}
-          onPress={onLocationPress}
-          disabled={locationLoading}
+          style={[commonStyles.buttons.iconButton, { minWidth: 80, paddingHorizontal: 12 }]}
+          onPress={onFilterPress}
         >
-          <Text>{locationLoading ? '🎯...' : '🎯'}</Text>
+          <Text>🥢 Filter</Text>
         </TouchableOpacity>
       </View>
     </View>

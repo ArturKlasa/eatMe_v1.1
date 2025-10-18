@@ -1,7 +1,7 @@
 /**
  * Map Footer Component
- * 
- * Footer showing restaurant count and location status
+ *
+ * Footer showing count and location status, mode-aware for restaurants vs dishes
  */
 
 import React from 'react';
@@ -10,6 +10,8 @@ import { commonStyles } from '@/styles';
 
 interface MapFooterProps {
   restaurantCount: number;
+  dishCount?: number;
+  viewMode?: 'restaurant' | 'dish';
   isMapReady: boolean;
   userLocation?: {
     latitude: number;
@@ -20,6 +22,8 @@ interface MapFooterProps {
 
 export const MapFooter: React.FC<MapFooterProps> = ({
   restaurantCount,
+  dishCount = 0,
+  viewMode,
   isMapReady,
   userLocation,
   hasPermission,
@@ -34,10 +38,20 @@ export const MapFooter: React.FC<MapFooterProps> = ({
     return ' • Tap 📍 for location';
   };
 
+  const getCountText = () => {
+    if (viewMode === 'restaurant') {
+      return `${restaurantCount} restaurants found`;
+    } else if (viewMode === 'dish') {
+      return `${dishCount} dishes found`;
+    } else {
+      return `${restaurantCount} restaurants found`; // Default fallback
+    }
+  };
+
   return (
     <View style={commonStyles.mapStyles.footer}>
       <Text style={commonStyles.mapStyles.footerText}>
-        {restaurantCount} restaurants found
+        {getCountText()}
         {isMapReady ? '' : ' • Loading map...'}
         {getLocationText()}
       </Text>

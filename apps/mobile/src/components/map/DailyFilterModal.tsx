@@ -13,6 +13,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import { useFilterStore } from '../../stores/filterStore';
+import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
 
 interface DailyFilterModalProps {
@@ -63,6 +64,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               <Text style={modals.closeText}>✕</Text>
             </TouchableOpacity>
           </View>
+
+          {/* View Mode Toggle */}
+          <ViewModeToggle style={{ marginVertical: 16 }} />
 
           <ScrollView style={modals.content} showsVerticalScrollIndicator={false} bounces={false}>
             {/* 1. Price Range Section - Slider */}

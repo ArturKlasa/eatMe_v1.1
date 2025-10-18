@@ -4,8 +4,10 @@ import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbo
 import { DrawerActions } from '@react-navigation/native';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
+import { mockDishes, Dish } from '../data/mockDishes';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useFilterStore } from '../stores/filterStore';
+import { useViewModeStore } from '../stores/viewModeStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
 import { commonStyles, mapComponentStyles } from '@/styles';
 import type { MapScreenProps } from '@/types/navigation';
@@ -14,6 +16,7 @@ import type { MapScreenProps } from '@/types/navigation';
 import { DailyFilterModal } from '../components/map/DailyFilterModal';
 import { MapHeader } from '../components/map/MapHeader';
 import { RestaurantMarkers } from '../components/map/RestaurantMarkers';
+import { DishMarkers } from '../components/map/DishMarkers';
 import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
 
@@ -36,6 +39,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
 
   const { daily, permanent } = useFilterStore();
+  const { mode } = useViewModeStore();
 
   // Apply filters to restaurants with performance optimization
   const filteredResults = useMemo(() => {
@@ -123,6 +127,21 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     );
   };
 
+  const handleDishPress = (dish: Dish) => {
+    Alert.alert(
+      `🍽️ ${dish.name}`,
+      [
+        `🏪 ${dish.restaurantName}`,
+        `🍴 ${dish.cuisine} • $${dish.price}`,
+        `⭐ ${dish.rating}/5`,
+        `📄 ${dish.description}`,
+        ``,
+        `${dish.isAvailable ? '✅ Available' : '❌ Currently unavailable'}`,
+      ].join('\n'),
+      [{ text: 'Close', style: 'cancel' }]
+    );
+  };
+
   const handleMyLocationPress = async () => {
     debugLog('My Location button pressed');
 
@@ -180,11 +199,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   return (
     <View style={commonStyles.containers.screen}>
-      <MapHeader
-        onMenuPress={handleMenuPress}
-        onLocationPress={handleMyLocationPress}
-        locationLoading={locationLoading}
-      />
+      <MapHeader onMenuPress={handleMenuPress} onFilterPress={handleDailyFilterPress} />
 
       <MapView
         style={mapComponentStyles.map}
@@ -223,35 +238,15 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
           requestsAlwaysUse={false}
         />
 
-        {/* Test marker to verify PointAnnotation works */}
-        <PointAnnotation key="test-marker" id="test-marker" coordinate={[-122.084, 37.422]}>
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              backgroundColor: '#FF0000',
-              borderRadius: 20,
-              borderWidth: 2,
-              borderColor: '#FFFFFF',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ fontSize: 16 }}>🔴</Text>
-          </View>
-        </PointAnnotation>
-
-        <RestaurantMarkers restaurants={displayedRestaurants} onMarkerPress={handleMarkerPress} />
+        {/* Conditional markers based on view mode */}
+        {mode === 'restaurant' ? (
+          <RestaurantMarkers restaurants={displayedRestaurants} onMarkerPress={handleMarkerPress} />
+        ) : (
+          <DishMarkers dishes={mockDishes} onMarkerPress={handleDishPress} />
+        )}
       </MapView>
 
-      <MapControls
-        onLocationPress={handleMyLocationPress}
-        onFilterPress={handleDailyFilterPress}
-        locationLoading={locationLoading}
-        filterCount={
-          filteredResults.appliedFilters.daily + filteredResults.appliedFilters.permanent
-        }
-      />
+      <MapControls onLocationPress={handleMyLocationPress} locationLoading={locationLoading} />
 
       <MapFooter
         restaurantCount={mockRestaurants.length}

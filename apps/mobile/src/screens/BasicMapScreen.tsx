@@ -14,7 +14,6 @@ import type { MapScreenProps } from '@/types/navigation';
 
 // Extracted Components
 import { DailyFilterModal } from '../components/map/DailyFilterModal';
-import { MapHeader } from '../components/map/MapHeader';
 import { RestaurantMarkers } from '../components/map/RestaurantMarkers';
 import { DishMarkers } from '../components/map/DishMarkers';
 import { MapControls } from '../components/map/MapControls';
@@ -210,8 +209,6 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   return (
     <View style={commonStyles.containers.screen}>
-      <MapHeader onMenuPress={handleMenuPress} />
-
       <MapView
         style={mapComponentStyles.map}
         styleURL={Mapbox.StyleURL.Dark}
@@ -219,6 +216,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         scrollEnabled={true}
         pitchEnabled={true}
         rotateEnabled={true}
+        scaleBarEnabled={false}
         onDidFinishLoadingMap={() => {
           debugLog('Map finished loading successfully');
           setIsMapReady(true);
@@ -257,7 +255,11 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         )}
       </MapView>
 
-      <MapControls onLocationPress={handleMyLocationPress} locationLoading={locationLoading} />
+      <MapControls
+        onLocationPress={handleMyLocationPress}
+        onMenuPress={handleMenuPress}
+        locationLoading={locationLoading}
+      />
 
       <MapFooter
         recommendedDishes={recommendedDishes}

@@ -41,15 +41,14 @@ export const DrawerNavigator: React.FC = () => {
         name="Map"
         component={MapScreen}
         options={{
-          drawerLabel: 'Food Map',
-          drawerIcon: ({ color }) => <Text>🗺️</Text>,
+          drawerItemStyle: { display: 'none' },
         }}
       />
       <Drawer.Screen
         name="Filters"
         component={FiltersScreen}
         options={{
-          drawerLabel: 'Filters',
+          drawerLabel: 'Personal filters',
           drawerIcon: ({ color }) => <Text>🎛️</Text>,
         }}
       />

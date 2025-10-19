@@ -1,7 +1,13 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { DrawerNavigator } from './DrawerNavigator';
+import {
+  MapScreen,
+  FiltersScreen,
+  FavoritesScreen,
+  ProfileScreen,
+  SettingsScreen,
+} from '@/screens';
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
 import type { RootStackParamList } from '@/types/navigation';
 
@@ -10,18 +16,30 @@ const RootStack = createStackNavigator<RootStackParamList>();
 /**
  * Root Navigation Component
  *
- * Main navigation container that wraps the entire app navigation structure.
- * Contains the drawer navigator and will include auth screens in later tasks.
+ * Main navigation container using Stack Navigator for all screens.
+ * Drawer navigation replaced with floating menu component.
  */
 export const RootNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       <RootStack.Navigator
+        initialRouteName="Map"
         screenOptions={{
-          headerShown: false, // Hide stack headers, drawer handles its own
+          headerShown: false,
         }}
       >
-        <RootStack.Screen name="Main" component={DrawerNavigator} />
+        <RootStack.Screen name="Map" component={MapScreen} />
+        <RootStack.Screen
+          name="Filters"
+          component={FiltersScreen}
+          options={{
+            presentation: 'transparentModal',
+            cardStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <RootStack.Screen name="Favorites" component={FavoritesScreen} />
+        <RootStack.Screen name="Profile" component={ProfileScreen} />
+        <RootStack.Screen name="Settings" component={SettingsScreen} />
         <RootStack.Screen
           name="RestaurantDetail"
           component={RestaurantDetailScreen}

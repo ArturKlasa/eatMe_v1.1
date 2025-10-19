@@ -10,3 +10,4 @@ export * from './common';
 // Export specific components
 export { DrawerFilters } from './DrawerFilters';
 export { FilterFAB } from './FilterFAB';
+export { FloatingMenu } from './FloatingMenu';

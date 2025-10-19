@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { StyleSheet, View, Alert, Text } from 'react-native';
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
@@ -20,6 +20,7 @@ import { RestaurantMarkers } from '../components/map/RestaurantMarkers';
 import { DishMarkers } from '../components/map/DishMarkers';
 import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
+import { FloatingMenu } from '../components/FloatingMenu';
 
 /**
  * BasicMapScreen Component
@@ -38,6 +39,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const [isMapReady, setIsMapReady] = useState(false);
   const [hasAutocentered, setHasAutocentered] = useState(false);
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   const { daily, permanent } = useFilterStore();
   const { mode } = useViewModeStore();
@@ -175,7 +177,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   };
 
   const handleMenuPress = () => {
-    navigation.dispatch(DrawerActions.openDrawer());
+    setIsMenuVisible(!isMenuVisible);
   };
 
   const handleDailyFilterPress = () => {
@@ -184,6 +186,10 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   const closeDailyFilter = () => {
     setIsDailyFilterVisible(false);
+  };
+
+  const closeMenu = () => {
+    setIsMenuVisible(false);
   };
 
   return (
@@ -247,6 +253,7 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       />
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
+      <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
     </View>
   );
 };

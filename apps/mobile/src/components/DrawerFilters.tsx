@@ -5,10 +5,10 @@
  * 1. Diet Preference: All/Vegetarian/Vegan (single selection)
  * 2. Exclude: No meat, No fish, No seafood, No eggs, No dairy (multiple selection)
  * 3. Allergies: Lactose, Gluten, Peanuts, Soy, Sesame, Shellfish, Nuts (multiple selection)
- * 4. Diet Preferences: Diabetic, Keto, Paleo, Low-carb, Pescatarian (multiple selection)
- * 5. Religious Restrictions: Halal, Hindu, Kosher (multiple selection)
- * 6. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
- * 7. Ingredients to Avoid: Expandable list with 20 mock ingredients (multiple selection)
+ * 4. Ingredients to Avoid: Expandable list with 20 mock ingredients (multiple selection)
+ * 5. Diet Preferences: Diabetic, Keto, Paleo, Low-carb, Pescatarian (multiple selection)
+ * 6. Religious Restrictions: Halal, Hindu, Kosher (multiple selection)
+ * 7. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
  */
 
 import React, { useState } from 'react';
@@ -17,6 +17,7 @@ import { useFilterStore } from '../stores/filterStore';
 
 interface DrawerFiltersProps {
   onClose?: () => void;
+  onScroll?: (event: any) => void;
 }
 
 // Mock ingredients list (20 items)
@@ -43,7 +44,7 @@ const MOCK_INGREDIENTS = [
   'Paprika',
 ];
 
-export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose }) => {
+export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll }) => {
   const {
     permanent,
     setPermanentDietPreference,
@@ -81,8 +82,21 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose }) => {
     }
   };
 
+  // Helper function to check if exclude options should be disabled
+  const isExcludeDisabled = (exclusionKey: string) => {
+    if (permanent.dietPreference === 'vegan') {
+      // All exclude options are disabled for vegan
+      return true;
+    }
+    if (permanent.dietPreference === 'vegetarian') {
+      // Meat, fish, and seafood are disabled for vegetarian
+      return exclusionKey === 'noMeat' || exclusionKey === 'noFish' || exclusionKey === 'noSeafood';
+    }
+    return false;
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} onScroll={onScroll} scrollEventThrottle={16}>
       <View style={styles.header}>
         <Text style={styles.title}>Permanent Filters</Text>
         <TouchableOpacity onPress={resetPermanentFilters} style={styles.clearButton}>
@@ -117,19 +131,35 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🚫 Exclude</Text>
         <View style={styles.optionsContainer}>
-          {(Object.keys(permanent.exclude) as (keyof typeof permanent.exclude)[]).map(exclusion => (
-            <TouchableOpacity
-              key={exclusion}
-              style={[styles.option, permanent.exclude[exclusion] && styles.selectedOption]}
-              onPress={() => toggleExclude(exclusion)}
-            >
-              <Text
-                style={[styles.optionText, permanent.exclude[exclusion] && styles.selectedText]}
+          {(Object.keys(permanent.exclude) as (keyof typeof permanent.exclude)[]).map(exclusion => {
+            const disabled = isExcludeDisabled(exclusion);
+            return (
+              <TouchableOpacity
+                key={exclusion}
+                style={[
+                  styles.option,
+                  permanent.exclude[exclusion] && !disabled && styles.selectedOption,
+                  disabled && styles.disabledOption,
+                ]}
+                onPress={() => {
+                  if (!disabled) {
+                    toggleExclude(exclusion);
+                  }
+                }}
+                disabled={disabled}
               >
-                {formatCamelCase(exclusion)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.optionText,
+                    permanent.exclude[exclusion] && !disabled && styles.selectedText,
+                    disabled && styles.disabledText,
+                  ]}
+                >
+                  {formatCamelCase(exclusion)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -155,89 +185,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose }) => {
         </View>
       </View>
 
-      {/* 4. Diet Preferences - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🍃 Diet Preferences</Text>
-        <View style={styles.optionsContainer}>
-          {(Object.keys(permanent.dietTypes) as (keyof typeof permanent.dietTypes)[]).map(
-            dietType => (
-              <TouchableOpacity
-                key={dietType}
-                style={[styles.option, permanent.dietTypes[dietType] && styles.selectedOption]}
-                onPress={() => toggleDietType(dietType)}
-              >
-                <Text
-                  style={[styles.optionText, permanent.dietTypes[dietType] && styles.selectedText]}
-                >
-                  {dietType === 'diabetic'
-                    ? 'Suitable for Diabetics'
-                    : dietType === 'keto'
-                      ? 'Keto Diet'
-                      : dietType === 'paleo'
-                        ? 'Paleo Diet'
-                        : dietType === 'lowCarb'
-                          ? 'Low-carb Diet'
-                          : 'Pescatarian'}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
-        </View>
-      </View>
-
-      {/* 5. Religious Restrictions - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🕌 Religious Restrictions</Text>
-        <View style={styles.optionsContainer}>
-          {(
-            Object.keys(
-              permanent.religiousRestrictions
-            ) as (keyof typeof permanent.religiousRestrictions)[]
-          ).map(restriction => (
-            <TouchableOpacity
-              key={restriction}
-              style={[
-                styles.option,
-                permanent.religiousRestrictions[restriction] && styles.selectedOption,
-              ]}
-              onPress={() => toggleReligiousRestriction(restriction)}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  permanent.religiousRestrictions[restriction] && styles.selectedText,
-                ]}
-              >
-                {formatLabel(restriction)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* 6. Restaurant Facilities - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏪 Restaurant Facilities</Text>
-        <View style={styles.optionsContainer}>
-          {(Object.keys(permanent.facilities) as (keyof typeof permanent.facilities)[]).map(
-            facility => (
-              <TouchableOpacity
-                key={facility}
-                style={[styles.option, permanent.facilities[facility] && styles.selectedOption]}
-                onPress={() => toggleFacility(facility)}
-              >
-                <Text
-                  style={[styles.optionText, permanent.facilities[facility] && styles.selectedText]}
-                >
-                  {formatCamelCase(facility)}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
-        </View>
-      </View>
-
-      {/* 7. Ingredients to Avoid - Expandable List */}
+      {/* 4. Ingredients to Avoid - Expandable List */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🥄 Ingredients You Would Like to Avoid</Text>
         <TouchableOpacity
@@ -268,6 +216,88 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose }) => {
             </View>
           </View>
         )}
+      </View>
+
+      {/* 5. Diet Preferences - Multiple Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🍃 Diet Preferences</Text>
+        <View style={styles.optionsContainer}>
+          {(Object.keys(permanent.dietTypes) as (keyof typeof permanent.dietTypes)[]).map(
+            dietType => (
+              <TouchableOpacity
+                key={dietType}
+                style={[styles.option, permanent.dietTypes[dietType] && styles.selectedOption]}
+                onPress={() => toggleDietType(dietType)}
+              >
+                <Text
+                  style={[styles.optionText, permanent.dietTypes[dietType] && styles.selectedText]}
+                >
+                  {dietType === 'diabetic'
+                    ? 'Suitable for Diabetics'
+                    : dietType === 'keto'
+                      ? 'Keto Diet'
+                      : dietType === 'paleo'
+                        ? 'Paleo Diet'
+                        : dietType === 'lowCarb'
+                          ? 'Low-carb Diet'
+                          : 'Pescatarian'}
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
+        </View>
+      </View>
+
+      {/* 6. Religious Restrictions - Multiple Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🕌 Religious Restrictions</Text>
+        <View style={styles.optionsContainer}>
+          {(
+            Object.keys(
+              permanent.religiousRestrictions
+            ) as (keyof typeof permanent.religiousRestrictions)[]
+          ).map(restriction => (
+            <TouchableOpacity
+              key={restriction}
+              style={[
+                styles.option,
+                permanent.religiousRestrictions[restriction] && styles.selectedOption,
+              ]}
+              onPress={() => toggleReligiousRestriction(restriction)}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  permanent.religiousRestrictions[restriction] && styles.selectedText,
+                ]}
+              >
+                {formatLabel(restriction)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* 7. Restaurant Facilities - Multiple Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🏪 Restaurant Facilities</Text>
+        <View style={styles.optionsContainer}>
+          {(Object.keys(permanent.facilities) as (keyof typeof permanent.facilities)[]).map(
+            facility => (
+              <TouchableOpacity
+                key={facility}
+                style={[styles.option, permanent.facilities[facility] && styles.selectedOption]}
+                onPress={() => toggleFacility(facility)}
+              >
+                <Text
+                  style={[styles.optionText, permanent.facilities[facility] && styles.selectedText]}
+                >
+                  {formatCamelCase(facility)}
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
+        </View>
       </View>
 
       {/* Ingredients Selection Modal */}
@@ -336,7 +366,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 16,
   },
   header: {
@@ -345,18 +375,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#333',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#E0E0E0',
   },
   clearButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#ff4444',
+    backgroundColor: '#FF9800',
   },
   clearButtonText: {
     color: '#fff',
@@ -366,12 +396,12 @@ const styles = StyleSheet.create({
   section: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#2A2A2A',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#E0E0E0',
     marginBottom: 12,
   },
 
@@ -379,7 +409,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#2A2A2A',
     padding: 2,
   },
   tab: {
@@ -388,14 +418,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 6,
     alignItems: 'center',
+    backgroundColor: '#4A4A4A',
   },
   selectedTab: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#FF9800',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: '#E0E0E0',
   },
   selectedTabText: {
     color: '#fff',
@@ -413,21 +444,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#4A4A4A',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#666666',
   },
   selectedOption: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#FF9800',
+    borderColor: '#FF9800',
   },
   optionText: {
     fontSize: 14,
-    color: '#666',
+    color: '#E0E0E0',
   },
   selectedText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  disabledOption: {
+    opacity: 0.3,
+    backgroundColor: '#333',
+    borderColor: '#555',
+  },
+  disabledText: {
+    color: '#666',
   },
 
   // Expandable button for ingredients
@@ -436,19 +475,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#2A2A2A',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#444',
   },
   expandableButtonText: {
     fontSize: 14,
-    color: '#333',
+    color: '#E0E0E0',
     fontWeight: '500',
   },
   expandableArrow: {
     fontSize: 16,
-    color: '#666',
+    color: '#E0E0E0',
   },
 
   // Selected ingredients display
@@ -457,7 +496,7 @@ const styles = StyleSheet.create({
   },
   selectedIngredientsTitle: {
     fontSize: 12,
-    color: '#666',
+    color: '#CCCCCC',
     marginBottom: 8,
   },
   selectedIngredientsRow: {
@@ -472,7 +511,7 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: 4,
     paddingVertical: 6,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#FF9800',
     borderRadius: 12,
   },
   selectedIngredientText: {
@@ -501,7 +540,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '95%',
     maxHeight: '90%',
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -511,35 +550,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#333',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#E0E0E0',
   },
   modalCloseButton: {
     padding: 4,
   },
   modalCloseText: {
     fontSize: 18,
-    color: '#666',
+    color: '#E0E0E0',
   },
   modalContent: {
     height: 400,
     paddingHorizontal: 16,
     paddingTop: 8,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#1A1A1A',
   },
   ingredientsList: {
     paddingVertical: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1A1A',
   },
   ingredientListItem: {
     paddingVertical: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
+    borderBottomColor: '#2A2A2A',
+    backgroundColor: '#1A1A1A',
     minHeight: 50,
   },
   ingredientListContent: {
@@ -551,7 +590,7 @@ const styles = StyleSheet.create({
   },
   ingredientListText: {
     fontSize: 16,
-    color: '#333',
+    color: '#E0E0E0',
     flex: 1,
   },
   ingredientCheckbox: {
@@ -559,14 +598,14 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+    borderColor: '#666',
+    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
   },
   ingredientCheckboxSelected: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#FF9800',
+    borderColor: '#FF9800',
   },
   ingredientCheckboxCheck: {
     color: '#fff',
@@ -583,17 +622,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#4A4A4A',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#666666',
   },
   modalFooter: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: '#333',
   },
   modalDoneButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#FF9800',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

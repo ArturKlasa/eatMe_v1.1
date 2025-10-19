@@ -880,6 +880,51 @@ export const modals = StyleSheet.create({
   multiOptionContainer: {
     marginTop: spacing.sm,
   } as ViewStyle,
+
+  // Dark theme overrides
+  darkContainer: {
+    backgroundColor: '#1A1A1A',
+  } as ViewStyle,
+
+  darkTitle: {
+    color: '#E0E0E0',
+  } as TextStyle,
+
+  darkSectionTitle: {
+    color: '#E0E0E0',
+  } as TextStyle,
+
+  darkTabText: {
+    color: '#E0E0E0',
+  } as TextStyle,
+
+  darkOptionText: {
+    color: '#E0E0E0',
+  } as TextStyle,
+
+  darkCuisineText: {
+    color: '#E0E0E0',
+  } as TextStyle,
+
+  darkClearText: {
+    color: '#E0E0E0',
+  } as TextStyle,
+
+  darkApplyText: {
+    color: '#FFFFFF',
+  } as TextStyle,
+
+  darkPriceLabel: {
+    color: '#CCCCCC',
+  } as TextStyle,
+
+  disabledOptionText: {
+    color: '#666',
+  } as TextStyle,
+
+  viewModeToggleContainer: {
+    marginVertical: 16,
+  } as ViewStyle,
 });
 
 /**

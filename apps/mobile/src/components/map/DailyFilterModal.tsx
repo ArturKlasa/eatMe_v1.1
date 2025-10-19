@@ -47,36 +47,59 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
     return false;
   };
 
-  const handleClearFilters = () => {
-    // Reset filters to default values
-    setDailyPriceRange(1, 4);
-    setHungerLevel('normal');
-    setDietPreference('all');
-  };
-
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <View style={modals.overlay}>
-        <View style={[modals.container, { backgroundColor: '#1A1A1A' }]}>
-          <View style={modals.header}>
-            <Text style={[modals.title, { color: '#E0E0E0' }]}>🎯 Daily Filters</Text>
+      <TouchableOpacity style={modals.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity
+          style={[modals.container, modals.darkContainer]}
+          activeOpacity={1}
+          onPress={e => e.stopPropagation()}
+        >
+          <View
+            style={[
+              modals.header,
+              { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+            ]}
+          >
+            <Text style={[modals.title, modals.darkTitle]}>🎯 Daily Filters</Text>
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: '#FF9800',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={onClose}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#FFFFFF',
+                  fontWeight: '600',
+                }}
+              >
+                Apply
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* View Mode Toggle */}
-          <ViewModeToggle style={{ marginVertical: 16 }} />
+          <ViewModeToggle style={modals.viewModeToggleContainer} />
 
           <ScrollView style={modals.content} showsVerticalScrollIndicator={false} bounces={false}>
             {/* 1. Price Range Section - Slider */}
-            <View style={modals.section}>
-              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>
+            <View style={[modals.section, { marginTop: -20 }]}>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
                 💰 How much would you like to spend?
               </Text>
               <View style={modals.priceSliderContainer}>
                 <View style={modals.priceSliderLabels}>
-                  <Text style={[modals.priceSliderLabel, { color: '#CCCCCC' }]}>
+                  <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
                     ${daily.priceRange.min}
                   </Text>
-                  <Text style={[modals.priceSliderLabel, { color: '#CCCCCC' }]}>
+                  <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
                     ${daily.priceRange.max}
                   </Text>
                 </View>
@@ -103,7 +126,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
             {/* 2. Diet Preference Section */}
             <View style={modals.section}>
-              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
                 🥗 Meat, fish, veggies?
               </Text>
 
@@ -122,7 +145,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     <Text
                       style={[
                         modals.tabText,
-                        { color: '#E0E0E0' },
+                        modals.darkTabText,
                         daily.dietPreference === option.key && modals.selectedTabText,
                       ]}
                     >
@@ -162,11 +185,11 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                         <Text
                           style={[
                             modals.optionText,
-                            { color: '#E0E0E0' },
+                            modals.darkOptionText,
                             daily.proteinTypes[protein.key as keyof typeof daily.proteinTypes] &&
                               !disabled &&
                               modals.selectedText,
-                            disabled && { color: '#666' },
+                            disabled && modals.disabledOptionText,
                           ]}
                         >
                           {protein.label}
@@ -180,7 +203,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
             {/* 3. Cuisine Section */}
             <View style={modals.section}>
-              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>🍽️ Cuisine</Text>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>🍽️ Cuisine</Text>
               <View style={modals.cuisineGrid}>
                 {[
                   'Italian',
@@ -202,7 +225,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     <Text
                       style={[
                         modals.cuisineText,
-                        { color: '#E0E0E0' },
+                        modals.darkCuisineText,
                         daily.cuisineTypes.includes(cuisine) && modals.selectedText,
                       ]}
                     >
@@ -217,14 +240,14 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     Alert.alert('More Cuisines', 'Feature coming soon!');
                   }}
                 >
-                  <Text style={[modals.cuisineText, { color: '#E0E0E0' }]}>Other</Text>
+                  <Text style={[modals.cuisineText, modals.darkCuisineText]}>Other</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* 4. Hunger Level Section */}
             <View style={modals.section}>
-              <Text style={[modals.sectionTitle, { color: '#E0E0E0' }]}>😋 Hungry, huh?</Text>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>😋 Hungry, huh?</Text>
               <View style={modals.tabContainer}>
                 {[
                   { key: 'diet', label: 'On a diet' },
@@ -239,7 +262,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     <Text
                       style={[
                         modals.tabText,
-                        { color: '#E0E0E0' },
+                        modals.darkTabText,
                         daily.hungerLevel === option.key && modals.selectedTabText,
                       ]}
                     >
@@ -250,17 +273,8 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               </View>
             </View>
           </ScrollView>
-
-          <View style={modals.footer}>
-            <TouchableOpacity style={modals.clearButton} onPress={handleClearFilters}>
-              <Text style={[modals.clearText, { color: '#E0E0E0' }]}>Clear All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={modals.applyButton} onPress={onClose}>
-              <Text style={[modals.applyText, { color: '#FFFFFF' }]}>Apply Filters</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };

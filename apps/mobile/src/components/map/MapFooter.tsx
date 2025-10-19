@@ -47,8 +47,7 @@ export const MapFooter: React.FC<MapFooterProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎯 Recommended for you</Text>
-        <Text style={styles.headerSubtitle}>Based on your preferences</Text>
+        <Text style={styles.headerTitle}>🎯 Based on your preferences</Text>
       </View>
 
       <ScrollView
@@ -75,16 +74,14 @@ export const MapFooter: React.FC<MapFooterProps> = ({
               {dish.name}
             </Text>
 
-            <Text style={styles.restaurantName} numberOfLines={1}>
-              {dish.restaurantName}
-            </Text>
-
-            <View style={styles.dishFooter}>
-              <Text style={[styles.priceRange, { color: getPriceColor(dish.priceRange) }]}>
-                {dish.priceRange}
+            <View style={styles.restaurantRow}>
+              <Text style={styles.restaurantName} numberOfLines={1}>
+                {dish.restaurantName}
               </Text>
               <Text style={styles.price}>${dish.price}</Text>
             </View>
+
+            <View style={styles.dishFooter}></View>
 
             {!dish.isAvailable && (
               <View style={styles.unavailableBadge}>
@@ -186,6 +183,12 @@ const styles = {
   restaurantName: {
     fontSize: 12,
     color: '#B0B0B0',
+    flex: 1,
+  },
+  restaurantRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     marginBottom: 8,
   },
   dishFooter: {

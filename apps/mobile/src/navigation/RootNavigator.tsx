@@ -37,9 +37,30 @@ export const RootNavigator: React.FC = () => {
             cardStyle: { backgroundColor: 'transparent' },
           }}
         />
-        <RootStack.Screen name="Favorites" component={FavoritesScreen} />
-        <RootStack.Screen name="Profile" component={ProfileScreen} />
-        <RootStack.Screen name="Settings" component={SettingsScreen} />
+        <RootStack.Screen
+          name="Favorites"
+          component={FavoritesScreen}
+          options={{
+            presentation: 'transparentModal',
+            cardStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <RootStack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            presentation: 'transparentModal',
+            cardStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <RootStack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            presentation: 'transparentModal',
+            cardStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <RootStack.Screen
           name="RestaurantDetail"
           component={RestaurantDetailScreen}

@@ -28,6 +28,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
     toggleDailyCuisine,
     setDietPreference,
     toggleProteinType,
+    setSpiceLevel,
     setHungerLevel,
   } = useFilterStore();
 
@@ -245,7 +246,35 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               </View>
             </View>
 
-            {/* 4. Hunger Level Section */}
+            {/* 4. Spice Level Section */}
+            <View style={modals.section}>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>🌶️ Spicy?</Text>
+              <View style={modals.tabContainer}>
+                {[
+                  { key: 'noSpicy', label: 'No spicy' },
+                  { key: 'eitherWay', label: 'Either way' },
+                  { key: 'iLikeSpicy', label: 'Spicy' },
+                ].map(option => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[modals.tab, daily.spiceLevel === option.key && modals.selectedTab]}
+                    onPress={() => setSpiceLevel(option.key as any)}
+                  >
+                    <Text
+                      style={[
+                        modals.tabText,
+                        modals.darkTabText,
+                        daily.spiceLevel === option.key && modals.selectedTabText,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* 5. Hunger Level Section */}
             <View style={modals.section}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>😋 Hungry, huh?</Text>
               <View style={modals.tabContainer}>

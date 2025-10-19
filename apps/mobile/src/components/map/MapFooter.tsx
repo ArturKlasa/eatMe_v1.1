@@ -79,7 +79,7 @@ export const MapFooter: React.FC<MapFooterProps> = ({
         {/* Show more button */}
         <TouchableOpacity style={styles.showMoreCard}>
           <Text style={styles.showMoreIcon}>+</Text>
-          <Text style={styles.showMoreText}>View all{'\n'}dishes</Text>
+          <Text style={styles.showMoreText}>View more{'\n'}dishes</Text>
         </TouchableOpacity>
       </ScrollView>
 

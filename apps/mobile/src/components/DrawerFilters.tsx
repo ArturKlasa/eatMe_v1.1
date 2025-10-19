@@ -98,9 +98,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
   return (
     <ScrollView style={styles.container} onScroll={onScroll} scrollEventThrottle={16}>
       <View style={styles.header}>
-        <Text style={styles.title}>Permanent Filters</Text>
-        <TouchableOpacity onPress={resetPermanentFilters} style={styles.clearButton}>
-          <Text style={styles.clearButtonText}>Reset All</Text>
+        <Text style={styles.title}>Personal preference filters</Text>
+        <TouchableOpacity onPress={onClose} style={styles.clearButton}>
+          <Text style={styles.clearButtonText}>Apply</Text>
         </TouchableOpacity>
       </View>
 

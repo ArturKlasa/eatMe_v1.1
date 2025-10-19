@@ -26,7 +26,7 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'filters', label: 'Personal filters', icon: '🎛️', screen: 'Filters' },
+  { id: 'filters', label: 'Personal filters', icon: '🥢', screen: 'Filters' },
   { id: 'favorites', label: 'Favorites', icon: '❤️', screen: 'Favorites' },
   { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
   { id: 'settings', label: 'Settings', icon: '⚙️', screen: 'Settings' },

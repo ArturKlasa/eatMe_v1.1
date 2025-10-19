@@ -32,6 +32,9 @@ export interface DailyFilters {
     egg: boolean;
   };
 
+  // Spice level (single choice: no spicy, either way, i like spicy)
+  spiceLevel: 'noSpicy' | 'eitherWay' | 'iLikeSpicy';
+
   // Hunger level (single choice: on a diet, normal, starving)
   hungerLevel: 'diet' | 'normal' | 'starving';
 
@@ -64,6 +67,7 @@ export interface PermanentFilters {
     noSeafood: boolean;
     noEggs: boolean;
     noDairy: boolean;
+    noSpicy: boolean;
   };
 
   // 3. Allergies (multiple selection)
@@ -91,6 +95,8 @@ export interface PermanentFilters {
     halal: boolean;
     hindu: boolean;
     kosher: boolean;
+    jain: boolean;
+    buddhist: boolean;
   };
 
   // 6. Restaurant facilities (multiple selection)
@@ -141,6 +147,7 @@ interface FilterActions {
   setDailyCuisines: (cuisines: string[]) => void;
   setDietPreference: (preference: DailyFilters['dietPreference']) => void;
   toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => void;
+  setSpiceLevel: (level: DailyFilters['spiceLevel']) => void;
   setHungerLevel: (level: DailyFilters['hungerLevel']) => void;
   setDailyCalorieRange: (min: number, max: number, enabled?: boolean) => void;
   setDailyMaxDistance: (distance: number) => void;
@@ -201,6 +208,7 @@ const defaultDailyFilters: DailyFilters = {
     seafood: false,
     egg: false,
   },
+  spiceLevel: 'eitherWay',
   hungerLevel: 'normal',
   calorieRange: {
     min: 200,
@@ -221,6 +229,7 @@ const defaultPermanentFilters: PermanentFilters = {
     noSeafood: false,
     noEggs: false,
     noDairy: false,
+    noSpicy: false,
   },
   allergies: {
     lactose: false,
@@ -242,6 +251,8 @@ const defaultPermanentFilters: PermanentFilters = {
     halal: false,
     hindu: false,
     kosher: false,
+    jain: false,
+    buddhist: false,
   },
   facilities: {
     familyFriendly: false,
@@ -383,6 +394,17 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
           ...state.daily.proteinTypes,
           [protein]: !state.daily.proteinTypes[protein],
         },
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  setSpiceLevel: (level: DailyFilters['spiceLevel']) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        spiceLevel: level,
       },
       activePreset: null,
     }));
@@ -737,6 +759,11 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     // Check protein types (any enabled)
     const hasProteinFilter = Object.values(state.daily.proteinTypes).some(Boolean);
     if (hasProteinFilter) {
+      count++;
+    }
+
+    // Check spice level (not 'eitherWay')
+    if (state.daily.spiceLevel !== 'eitherWay') {
       count++;
     }
 

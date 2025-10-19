@@ -29,21 +29,6 @@ export const MapFooter: React.FC<MapFooterProps> = ({
     return '🍽️';
   };
 
-  const getPriceColor = (priceRange: string) => {
-    switch (priceRange) {
-      case '$':
-        return '#4CAF50';
-      case '$$':
-        return '#FF9800';
-      case '$$$':
-        return '#FF5722';
-      case '$$$$':
-        return '#9C27B0';
-      default:
-        return '#757575';
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>

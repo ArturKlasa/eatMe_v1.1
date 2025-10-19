@@ -12,6 +12,7 @@ import type { DrawerScreenProps as RNDrawerScreenProps } from '@react-navigation
 // Root Stack Navigator - Contains the main drawer
 export type RootStackParamList = {
   Main: NavigatorScreenParams<DrawerParamList>;
+  RestaurantDetail: { restaurantId: string };
   // Auth screens will be added here later
   Login?: undefined;
   SignUp?: undefined;

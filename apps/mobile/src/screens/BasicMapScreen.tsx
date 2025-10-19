@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { StyleSheet, View, Alert, Text } from 'react-native';
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
-import { DrawerActions } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
 import { mockDishes, Dish } from '../data/mockDishes';
@@ -11,6 +12,7 @@ import { useViewModeStore } from '../stores/viewModeStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
 import { commonStyles, mapComponentStyles } from '@/styles';
 import type { MapScreenProps } from '@/types/navigation';
+import type { RootStackParamList } from '@/types/navigation';
 
 // Extracted Components
 import { DailyFilterModal } from '../components/map/DailyFilterModal';
@@ -18,9 +20,6 @@ import { RestaurantMarkers } from '../components/map/RestaurantMarkers';
 import { DishMarkers } from '../components/map/DishMarkers';
 import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
-
-// Initialize Mapbox with access token
-Mapbox.setAccessToken(ENV.mapbox.accessToken);
 
 /**
  * BasicMapScreen Component
@@ -31,6 +30,9 @@ Mapbox.setAccessToken(ENV.mapbox.accessToken);
 export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
   debugLog('Loaded restaurants:', mockRestaurants.length);
+
+  // Get the root stack navigation for navigating to RestaurantDetail
+  const rootNavigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const cameraRef = useRef<Camera>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -120,36 +122,13 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   // Handler functions
   const handleMarkerPress = (restaurant: Restaurant) => {
-    Alert.alert(
-      `🍽️ ${restaurant.name}`,
-      [
-        `📍 ${restaurant.address}`,
-        `🍴 ${restaurant.cuisine} • ${restaurant.priceRange}`,
-        `⭐ ${restaurant.rating}/5`,
-        `📄 ${restaurant.description}`,
-        ``,
-        `🕒 ${restaurant.isOpen ? 'Open' : 'Closed'} (${restaurant.openingHours.open} - ${restaurant.openingHours.close})`,
-      ].join('\n'),
-      [
-        { text: 'Call', onPress: () => restaurant.phone && debugLog('Calling:', restaurant.phone) },
-        { text: 'Close', style: 'cancel' },
-      ]
-    );
+    // Navigate to restaurant detail screen
+    rootNavigation.navigate('RestaurantDetail', { restaurantId: restaurant.id });
   };
 
   const handleDishPress = (dish: Dish) => {
-    Alert.alert(
-      `🍽️ ${dish.name}`,
-      [
-        `🏪 ${dish.restaurantName}`,
-        `🍴 ${dish.cuisine} • $${dish.price}`,
-        `⭐ ${dish.rating}/5`,
-        `📄 ${dish.description}`,
-        ``,
-        `${dish.isAvailable ? '✅ Available' : '❌ Currently unavailable'}`,
-      ].join('\n'),
-      [{ text: 'Close', style: 'cancel' }]
-    );
+    // Navigate to restaurant detail screen
+    rootNavigation.navigate('RestaurantDetail', { restaurantId: dish.restaurantId });
   };
 
   const handleMyLocationPress = async () => {

@@ -4,3 +4,4 @@ export { FiltersScreen } from './FiltersScreen';
 export { FavoritesScreen } from './FavoritesScreen';
 export { ProfileScreen } from './ProfileScreen';
 export { SettingsScreen } from './SettingsScreen';
+export { RestaurantDetailScreen } from './RestaurantDetailScreen';

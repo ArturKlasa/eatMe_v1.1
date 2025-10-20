@@ -52,6 +52,29 @@ export const colors = {
   // Map Colors
   mapMarkerOpen: '#4CAF50',
   mapMarkerClosed: '#F44336',
+
+  // Dark Theme Colors (for modals, overlays, and dark mode components)
+  dark: '#1A1A1A', // Main dark background
+  darkSecondary: '#2A2A2A', // Secondary dark background
+  darkTertiary: '#333333', // Tertiary dark background
+  darkQuaternary: '#4A4A4A', // Light dark background (for buttons, options)
+  darkBorder: '#333333', // Dark border color
+  darkBorderLight: '#444444', // Lighter dark border
+  darkBorderDark: '#2A2A2A', // Darker border
+  darkText: '#E0E0E0', // Primary text on dark
+  darkTextSecondary: '#B0B0B0', // Secondary text on dark
+  darkTextMuted: '#999999', // Muted text on dark
+  darkTextLight: '#CCCCCC', // Light text on dark
+  darkDragHandle: '#666666', // Drag handle color
+  darkDisabled: '#555555', // Disabled elements border
+  darkDisabledBg: '#333333', // Disabled elements background
+  darkDisabledText: '#666666', // Disabled text color
+
+  // Accent Colors (used across light and dark themes)
+  accent: '#FF9800', // Orange accent (primary CTA)
+  accentDark: '#F57C00', // Darker orange
+  accentLight: '#FFB74D', // Lighter orange
+  danger: '#FF5722', // Red for dangerous/unavailable items
 } as const;
 
 export const typography = {

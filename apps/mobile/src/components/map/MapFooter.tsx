@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { commonStyles } from '@/styles';
+import { mapFooterStyles } from '@/styles';
 import { Dish } from '@/data/mockDishes';
 
 interface MapFooterProps {
@@ -30,228 +30,65 @@ export const MapFooter: React.FC<MapFooterProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎯 Based on your preferences</Text>
+    <View style={mapFooterStyles.container}>
+      <View style={mapFooterStyles.header}>
+        <Text style={mapFooterStyles.headerTitle}>🎯 Based on your preferences</Text>
       </View>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={mapFooterStyles.scrollView}
+        contentContainerStyle={mapFooterStyles.scrollContent}
       >
         {recommendedDishes.map(dish => (
           <TouchableOpacity
             key={dish.id}
-            style={styles.dishCard}
+            style={mapFooterStyles.dishCard}
             onPress={() => onDishPress(dish)}
             activeOpacity={0.8}
           >
-            <View style={styles.dishHeader}>
-              <Text style={styles.dishEmoji}>{getEmoji(dish.cuisine)}</Text>
-              <View style={styles.dishRating}>
-                <Text style={styles.ratingText}>⭐ {dish.rating}</Text>
+            <View style={mapFooterStyles.dishHeader}>
+              <Text style={mapFooterStyles.dishEmoji}>{getEmoji(dish.cuisine)}</Text>
+              <View style={mapFooterStyles.dishRating}>
+                <Text style={mapFooterStyles.ratingText}>⭐ {dish.rating}</Text>
               </View>
             </View>
 
-            <Text style={styles.dishName} numberOfLines={2}>
+            <Text style={mapFooterStyles.dishName} numberOfLines={2}>
               {dish.name}
             </Text>
 
-            <View style={styles.restaurantRow}>
-              <Text style={styles.restaurantName} numberOfLines={1}>
+            <View style={mapFooterStyles.restaurantRow}>
+              <Text style={mapFooterStyles.restaurantName} numberOfLines={1}>
                 {dish.restaurantName}
               </Text>
-              <Text style={styles.price}>${dish.price}</Text>
+              <Text style={mapFooterStyles.price}>${dish.price}</Text>
             </View>
 
-            <View style={styles.dishFooter}></View>
+            <View style={mapFooterStyles.dishFooter}></View>
 
             {!dish.isAvailable && (
-              <View style={styles.unavailableBadge}>
-                <Text style={styles.unavailableText}>Unavailable</Text>
+              <View style={mapFooterStyles.unavailableBadge}>
+                <Text style={mapFooterStyles.unavailableText}>Unavailable</Text>
               </View>
             )}
           </TouchableOpacity>
         ))}
 
         {/* Show more button */}
-        <TouchableOpacity style={styles.showMoreCard}>
-          <Text style={styles.showMoreIcon}>+</Text>
-          <Text style={styles.showMoreText}>View more{'\n'}dishes</Text>
+        <TouchableOpacity style={mapFooterStyles.showMoreCard}>
+          <Text style={mapFooterStyles.showMoreIcon}>+</Text>
+          <Text style={mapFooterStyles.showMoreText}>View more{'\n'}dishes</Text>
         </TouchableOpacity>
       </ScrollView>
 
       {/* Filter Button */}
-      <View style={styles.filterSection}>
-        <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
-          <Text style={styles.filterButtonText}>🥢 Filter Dishes & Restaurants</Text>
+      <View style={mapFooterStyles.filterSection}>
+        <TouchableOpacity style={mapFooterStyles.filterButton} onPress={onFilterPress}>
+          <Text style={mapFooterStyles.filterButtonText}>🥢 Filter Dishes & Restaurants</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-};
-
-const styles = {
-  container: {
-    backgroundColor: '#1A1A1A',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#B0B0B0',
-  },
-  scrollView: {
-    paddingLeft: 20,
-  },
-  scrollContent: {
-    paddingRight: 20,
-  },
-  dishCard: {
-    width: 160,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
-    padding: 12,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
-  },
-  dishHeader: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginBottom: 8,
-  },
-  dishEmoji: {
-    fontSize: 24,
-  },
-  dishRating: {
-    backgroundColor: '#333333',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  ratingText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '600' as const,
-  },
-  dishName: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-    marginBottom: 4,
-    minHeight: 34,
-  },
-  restaurantName: {
-    fontSize: 12,
-    color: '#B0B0B0',
-    flex: 1,
-  },
-  restaurantRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginBottom: 8,
-  },
-  dishFooter: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-  },
-  priceRange: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-  },
-  price: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
-  unavailableBadge: {
-    position: 'absolute' as const,
-    top: 8,
-    right: 8,
-    backgroundColor: '#FF5722',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  unavailableText: {
-    fontSize: 9,
-    color: '#FFFFFF',
-    fontWeight: '600' as const,
-  },
-  showMoreCard: {
-    width: 100,
-    backgroundColor: '#333333',
-    borderRadius: 12,
-    padding: 12,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    borderWidth: 2,
-    borderColor: '#FF9800',
-    borderStyle: 'dashed' as const,
-  },
-  showMoreIcon: {
-    fontSize: 24,
-    color: '#FF9800',
-    fontWeight: '300' as const,
-    marginBottom: 4,
-  },
-  showMoreText: {
-    fontSize: 12,
-    color: '#FF9800',
-    textAlign: 'center' as const,
-    fontWeight: '500' as const,
-  },
-  filterSection: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#333333',
-  },
-  filterButton: {
-    backgroundColor: '#FF9800',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  filterButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
 };

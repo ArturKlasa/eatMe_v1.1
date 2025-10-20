@@ -6,10 +6,11 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '@/types/navigation';
+import { floatingMenuStyles } from '@/styles';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -43,25 +44,25 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({ visible, onClose }) 
   if (!visible) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={floatingMenuStyles.container}>
       {/* Backdrop */}
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={floatingMenuStyles.backdrop} activeOpacity={1} onPress={onClose} />
 
       {/* Menu Items */}
-      <View style={styles.menuContainer}>
+      <View style={floatingMenuStyles.menuContainer}>
         {menuItems.map((item, index) => (
           <TouchableOpacity
             key={item.id}
             style={[
-              styles.menuItem,
+              floatingMenuStyles.menuItem,
               { top: index * 60 }, // Stack items vertically
             ]}
             onPress={() => handleMenuItemPress(item.screen)}
             activeOpacity={0.8}
           >
-            <View style={styles.menuItemContent}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
-              <Text style={styles.menuLabel}>{item.label}</Text>
+            <View style={floatingMenuStyles.menuItemContent}>
+              <Text style={floatingMenuStyles.menuIcon}>{item.icon}</Text>
+              <Text style={floatingMenuStyles.menuLabel}>{item.label}</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -69,56 +70,3 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({ visible, onClose }) 
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 9999,
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  menuContainer: {
-    position: 'absolute',
-    right: 92, // Position to the left of the FAB (FAB is at right: 20, width ~56, so 20 + 56 + 16 = 92)
-    bottom: 560, // Move up a bit more
-  },
-  menuItem: {
-    position: 'absolute',
-    right: 0,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    elevation: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    minWidth: 180,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  menuItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  menuIcon: {
-    fontSize: 20,
-  },
-  menuLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E0E0E0',
-  },
-});

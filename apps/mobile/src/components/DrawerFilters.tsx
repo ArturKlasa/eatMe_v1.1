@@ -12,8 +12,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { useFilterStore } from '../stores/filterStore';
+import { drawerFiltersStyles } from '@/styles';
 
 interface DrawerFiltersProps {
   onClose?: () => void;
@@ -96,28 +97,31 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
   };
 
   return (
-    <ScrollView style={styles.container} onScroll={onScroll} scrollEventThrottle={16}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Personal preference filters</Text>
-        <TouchableOpacity onPress={onClose} style={styles.clearButton}>
-          <Text style={styles.clearButtonText}>Apply</Text>
+    <ScrollView style={drawerFiltersStyles.container} onScroll={onScroll} scrollEventThrottle={16}>
+      <View style={drawerFiltersStyles.header}>
+        <Text style={drawerFiltersStyles.title}>Personal preference filters</Text>
+        <TouchableOpacity onPress={onClose} style={drawerFiltersStyles.clearButton}>
+          <Text style={drawerFiltersStyles.clearButtonText}>Apply</Text>
         </TouchableOpacity>
       </View>
 
       {/* 1. Diet Preference - Single Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🥗 Diet Preference</Text>
-        <View style={styles.tabContainer}>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>🥗 Diet Preference</Text>
+        <View style={drawerFiltersStyles.tabContainer}>
           {(['all', 'vegetarian', 'vegan'] as const).map(option => (
             <TouchableOpacity
               key={option}
-              style={[styles.tab, permanent.dietPreference === option && styles.selectedTab]}
+              style={[
+                drawerFiltersStyles.tab,
+                permanent.dietPreference === option && drawerFiltersStyles.selectedTab,
+              ]}
               onPress={() => setPermanentDietPreference(option)}
             >
               <Text
                 style={[
-                  styles.tabText,
-                  permanent.dietPreference === option && styles.selectedTabText,
+                  drawerFiltersStyles.tabText,
+                  permanent.dietPreference === option && drawerFiltersStyles.selectedTabText,
                 ]}
               >
                 {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -128,18 +132,18 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       </View>
 
       {/* 2. Exclude - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🚫 Exclude</Text>
-        <View style={styles.optionsContainer}>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>🚫 Exclude</Text>
+        <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.exclude) as (keyof typeof permanent.exclude)[]).map(exclusion => {
             const disabled = isExcludeDisabled(exclusion);
             return (
               <TouchableOpacity
                 key={exclusion}
                 style={[
-                  styles.option,
-                  permanent.exclude[exclusion] && !disabled && styles.selectedOption,
-                  disabled && styles.disabledOption,
+                  drawerFiltersStyles.option,
+                  permanent.exclude[exclusion] && !disabled && drawerFiltersStyles.selectedOption,
+                  disabled && drawerFiltersStyles.disabledOption,
                 ]}
                 onPress={() => {
                   if (!disabled) {
@@ -150,9 +154,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
               >
                 <Text
                   style={[
-                    styles.optionText,
-                    permanent.exclude[exclusion] && !disabled && styles.selectedText,
-                    disabled && styles.disabledText,
+                    drawerFiltersStyles.optionText,
+                    permanent.exclude[exclusion] && !disabled && drawerFiltersStyles.selectedText,
+                    disabled && drawerFiltersStyles.disabledText,
                   ]}
                 >
                   {formatCamelCase(exclusion)}
@@ -164,18 +168,24 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       </View>
 
       {/* 3. Allergies - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⚠️ Allergies</Text>
-        <View style={styles.optionsContainer}>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>⚠️ Allergies</Text>
+        <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.allergies) as (keyof typeof permanent.allergies)[]).map(
             allergy => (
               <TouchableOpacity
                 key={allergy}
-                style={[styles.option, permanent.allergies[allergy] && styles.selectedOption]}
+                style={[
+                  drawerFiltersStyles.option,
+                  permanent.allergies[allergy] && drawerFiltersStyles.selectedOption,
+                ]}
                 onPress={() => toggleAllergy(allergy)}
               >
                 <Text
-                  style={[styles.optionText, permanent.allergies[allergy] && styles.selectedText]}
+                  style={[
+                    drawerFiltersStyles.optionText,
+                    permanent.allergies[allergy] && drawerFiltersStyles.selectedText,
+                  ]}
                 >
                   {formatLabel(allergy)}
                 </Text>
@@ -186,30 +196,30 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       </View>
 
       {/* 4. Ingredients to Avoid - Expandable List */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🥄 Ingredients You Would Like to Avoid</Text>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>🥄 Ingredients You Would Like to Avoid</Text>
         <TouchableOpacity
-          style={styles.expandableButton}
+          style={drawerFiltersStyles.expandableButton}
           onPress={() => setShowIngredientsModal(true)}
         >
-          <Text style={styles.expandableButtonText}>
+          <Text style={drawerFiltersStyles.expandableButtonText}>
             Select Ingredients ({permanent.ingredientsToAvoid.length} selected)
           </Text>
-          <Text style={styles.expandableArrow}>→</Text>
+          <Text style={drawerFiltersStyles.expandableArrow}>→</Text>
         </TouchableOpacity>
 
         {permanent.ingredientsToAvoid.length > 0 && (
-          <View style={styles.selectedIngredientsContainer}>
-            <Text style={styles.selectedIngredientsTitle}>Selected:</Text>
-            <View style={styles.selectedIngredientsRow}>
+          <View style={drawerFiltersStyles.selectedIngredientsContainer}>
+            <Text style={drawerFiltersStyles.selectedIngredientsTitle}>Selected:</Text>
+            <View style={drawerFiltersStyles.selectedIngredientsRow}>
               {permanent.ingredientsToAvoid.map(ingredient => (
-                <View key={ingredient} style={styles.selectedIngredientTag}>
-                  <Text style={styles.selectedIngredientText}>{ingredient}</Text>
+                <View key={ingredient} style={drawerFiltersStyles.selectedIngredientTag}>
+                  <Text style={drawerFiltersStyles.selectedIngredientText}>{ingredient}</Text>
                   <TouchableOpacity
                     onPress={() => removeIngredientToAvoid(ingredient)}
-                    style={styles.removeIngredientButton}
+                    style={drawerFiltersStyles.removeIngredientButton}
                   >
-                    <Text style={styles.removeIngredientText}>×</Text>
+                    <Text style={drawerFiltersStyles.removeIngredientText}>×</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -219,18 +229,24 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       </View>
 
       {/* 5. Diet Preferences - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🍃 Diet Preferences</Text>
-        <View style={styles.optionsContainer}>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>🍃 Diet Preferences</Text>
+        <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.dietTypes) as (keyof typeof permanent.dietTypes)[]).map(
             dietType => (
               <TouchableOpacity
                 key={dietType}
-                style={[styles.option, permanent.dietTypes[dietType] && styles.selectedOption]}
+                style={[
+                  drawerFiltersStyles.option,
+                  permanent.dietTypes[dietType] && drawerFiltersStyles.selectedOption,
+                ]}
                 onPress={() => toggleDietType(dietType)}
               >
                 <Text
-                  style={[styles.optionText, permanent.dietTypes[dietType] && styles.selectedText]}
+                  style={[
+                    drawerFiltersStyles.optionText,
+                    permanent.dietTypes[dietType] && drawerFiltersStyles.selectedText,
+                  ]}
                 >
                   {dietType === 'diabetic'
                     ? 'Suitable for Diabetics'
@@ -249,9 +265,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       </View>
 
       {/* 6. Religious Restrictions - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🕌 Religious Restrictions</Text>
-        <View style={styles.optionsContainer}>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>🕌 Religious Restrictions</Text>
+        <View style={drawerFiltersStyles.optionsContainer}>
           {(
             Object.keys(
               permanent.religiousRestrictions
@@ -260,15 +276,15 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
             <TouchableOpacity
               key={restriction}
               style={[
-                styles.option,
-                permanent.religiousRestrictions[restriction] && styles.selectedOption,
+                drawerFiltersStyles.option,
+                permanent.religiousRestrictions[restriction] && drawerFiltersStyles.selectedOption,
               ]}
               onPress={() => toggleReligiousRestriction(restriction)}
             >
               <Text
                 style={[
-                  styles.optionText,
-                  permanent.religiousRestrictions[restriction] && styles.selectedText,
+                  drawerFiltersStyles.optionText,
+                  permanent.religiousRestrictions[restriction] && drawerFiltersStyles.selectedText,
                 ]}
               >
                 {formatLabel(restriction)}
@@ -279,18 +295,24 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       </View>
 
       {/* 7. Restaurant Facilities - Multiple Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏪 Restaurant Facilities</Text>
-        <View style={styles.optionsContainer}>
+      <View style={drawerFiltersStyles.section}>
+        <Text style={drawerFiltersStyles.sectionTitle}>🏪 Restaurant Facilities</Text>
+        <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.facilities) as (keyof typeof permanent.facilities)[]).map(
             facility => (
               <TouchableOpacity
                 key={facility}
-                style={[styles.option, permanent.facilities[facility] && styles.selectedOption]}
+                style={[
+                  drawerFiltersStyles.option,
+                  permanent.facilities[facility] && drawerFiltersStyles.selectedOption,
+                ]}
                 onPress={() => toggleFacility(facility)}
               >
                 <Text
-                  style={[styles.optionText, permanent.facilities[facility] && styles.selectedText]}
+                  style={[
+                    drawerFiltersStyles.optionText,
+                    permanent.facilities[facility] && drawerFiltersStyles.selectedText,
+                  ]}
                 >
                   {formatCamelCase(facility)}
                 </Text>
@@ -307,38 +329,38 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         visible={showIngredientsModal}
         onRequestClose={() => setShowIngredientsModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Ingredients to Avoid</Text>
+        <View style={drawerFiltersStyles.modalOverlay}>
+          <View style={drawerFiltersStyles.modalContainer}>
+            <View style={drawerFiltersStyles.modalHeader}>
+              <Text style={drawerFiltersStyles.modalTitle}>Select Ingredients to Avoid</Text>
               <TouchableOpacity
                 onPress={() => setShowIngredientsModal(false)}
-                style={styles.modalCloseButton}
+                style={drawerFiltersStyles.modalCloseButton}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Text style={drawerFiltersStyles.modalCloseText}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalContent}>
+            <View style={drawerFiltersStyles.modalContent}>
               <ScrollView showsVerticalScrollIndicator={true}>
-                <View style={styles.ingredientsList}>
+                <View style={drawerFiltersStyles.ingredientsList}>
                   {MOCK_INGREDIENTS.map(ingredient => (
                     <TouchableOpacity
                       key={ingredient}
-                      style={styles.ingredientListItem}
+                      style={drawerFiltersStyles.ingredientListItem}
                       onPress={() => handleIngredientToggle(ingredient)}
                     >
-                      <View style={styles.ingredientListContent}>
-                        <Text style={styles.ingredientListText}>{ingredient}</Text>
+                      <View style={drawerFiltersStyles.ingredientListContent}>
+                        <Text style={drawerFiltersStyles.ingredientListText}>{ingredient}</Text>
                         <View
                           style={[
-                            styles.ingredientCheckbox,
+                            drawerFiltersStyles.ingredientCheckbox,
                             permanent.ingredientsToAvoid.includes(ingredient) &&
-                              styles.ingredientCheckboxSelected,
+                              drawerFiltersStyles.ingredientCheckboxSelected,
                           ]}
                         >
                           {permanent.ingredientsToAvoid.includes(ingredient) && (
-                            <Text style={styles.ingredientCheckboxCheck}>✓</Text>
+                            <Text style={drawerFiltersStyles.ingredientCheckboxCheck}>✓</Text>
                           )}
                         </View>
                       </View>
@@ -348,12 +370,12 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
               </ScrollView>
             </View>
 
-            <View style={styles.modalFooter}>
+            <View style={drawerFiltersStyles.modalFooter}>
               <TouchableOpacity
-                style={styles.modalDoneButton}
+                style={drawerFiltersStyles.modalDoneButton}
                 onPress={() => setShowIngredientsModal(false)}
               >
-                <Text style={styles.modalDoneText}>Done</Text>
+                <Text style={drawerFiltersStyles.modalDoneText}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -362,284 +384,3 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A1A1A',
-    paddingHorizontal: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#E0E0E0',
-  },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#FF9800',
-  },
-  clearButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  section: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E0E0E0',
-    marginBottom: 12,
-  },
-
-  // Tab container (for single selection like diet preference)
-  tabContainer: {
-    flexDirection: 'row',
-    borderRadius: 8,
-    backgroundColor: '#2A2A2A',
-    padding: 2,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignItems: 'center',
-    backgroundColor: '#4A4A4A',
-  },
-  selectedTab: {
-    backgroundColor: '#FF9800',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#E0E0E0',
-  },
-  selectedTabText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-
-  // Options container (for multiple selection)
-  optionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  option: {
-    margin: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#4A4A4A',
-    borderWidth: 1,
-    borderColor: '#666666',
-  },
-  selectedOption: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  },
-  optionText: {
-    fontSize: 14,
-    color: '#E0E0E0',
-  },
-  selectedText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  disabledOption: {
-    opacity: 0.3,
-    backgroundColor: '#333',
-    borderColor: '#555',
-  },
-  disabledText: {
-    color: '#666',
-  },
-
-  // Expandable button for ingredients
-  expandableButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  expandableButtonText: {
-    fontSize: 14,
-    color: '#E0E0E0',
-    fontWeight: '500',
-  },
-  expandableArrow: {
-    fontSize: 16,
-    color: '#E0E0E0',
-  },
-
-  // Selected ingredients display
-  selectedIngredientsContainer: {
-    marginTop: 12,
-  },
-  selectedIngredientsTitle: {
-    fontSize: 12,
-    color: '#CCCCCC',
-    marginBottom: 8,
-  },
-  selectedIngredientsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  selectedIngredientTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    margin: 4,
-    paddingLeft: 12,
-    paddingRight: 4,
-    paddingVertical: 6,
-    backgroundColor: '#FF9800',
-    borderRadius: 12,
-  },
-  selectedIngredientText: {
-    fontSize: 12,
-    color: '#fff',
-    fontWeight: '500',
-  },
-  removeIngredientButton: {
-    marginLeft: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  removeIngredientText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '95%',
-    maxHeight: '90%',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E0E0E0',
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalCloseText: {
-    fontSize: 18,
-    color: '#E0E0E0',
-  },
-  modalContent: {
-    height: 400,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    backgroundColor: '#1A1A1A',
-  },
-  ingredientsList: {
-    paddingVertical: 8,
-    backgroundColor: '#1A1A1A',
-  },
-  ingredientListItem: {
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
-    backgroundColor: '#1A1A1A',
-    minHeight: 50,
-  },
-  ingredientListContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  ingredientListText: {
-    fontSize: 16,
-    color: '#E0E0E0',
-    flex: 1,
-  },
-  ingredientCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#666',
-    backgroundColor: '#2A2A2A',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ingredientCheckboxSelected: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  },
-  ingredientCheckboxCheck: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  ingredientsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  ingredientOption: {
-    margin: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#4A4A4A',
-    borderWidth: 1,
-    borderColor: '#666666',
-  },
-  modalFooter: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-  },
-  modalDoneButton: {
-    backgroundColor: '#FF9800',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalDoneText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

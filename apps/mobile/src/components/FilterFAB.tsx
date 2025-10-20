@@ -6,10 +6,10 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useFilterStore } from '../stores/filterStore';
-import { theme } from '@/styles';
+import { theme, filterFABStyles } from '@/styles';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import type { DrawerParamList } from '@/types/navigation';
 
@@ -29,18 +29,18 @@ export const FilterFAB: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={filterFABStyles.container}>
       <TouchableOpacity
-        style={[styles.fab, hasDailyFilters() && styles.fabActive]}
+        style={[filterFABStyles.fab, hasDailyFilters() && filterFABStyles.fabActive]}
         onPress={handlePress}
         activeOpacity={0.8}
       >
-        <Text style={styles.fabIcon}>🎛️</Text>
+        <Text style={filterFABStyles.fabIcon}>🎛️</Text>
 
         {/* Active filter count badge */}
         {activeCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{activeCount}</Text>
+          <View style={filterFABStyles.badge}>
+            <Text style={filterFABStyles.badgeText}>{activeCount}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -59,51 +59,3 @@ export const QuickFilterModal: React.FC<{
   // Placeholder for modal implementation
   return null;
 };
-
-// Styles for the FAB component
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute' as const,
-    bottom: 100,
-    right: 20,
-    zIndex: 1000,
-  },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    elevation: 8,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  fabActive: {
-    backgroundColor: theme.colors.primaryDark,
-    transform: [{ scale: 1.1 }],
-  },
-  fabIcon: {
-    fontSize: 24,
-  },
-  badge: {
-    position: 'absolute' as const,
-    top: -2,
-    right: -2,
-    backgroundColor: theme.colors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    borderWidth: 2,
-    borderColor: theme.colors.white,
-  },
-  badgeText: {
-    color: theme.colors.white,
-    fontSize: 12,
-    fontWeight: 'bold' as const,
-  },
-});

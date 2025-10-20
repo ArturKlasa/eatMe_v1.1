@@ -37,7 +37,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
           </Text>
         )}
       </View>
-      <Switch value={value} onValueChange={onValueChange} trackColor={switchConfig.trackColors} />
+      <Switch value={value} onValueChange={onValueChange} trackColor={switchConfig.trackColor} />
     </View>
   );
 };

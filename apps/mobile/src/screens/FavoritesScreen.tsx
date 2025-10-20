@@ -1,15 +1,8 @@
 import React, { useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  PanResponder,
-  Animated,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, PanResponder, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { FavoritesScreenProps } from '@/types/navigation';
+import { modalScreenStyles } from '@/styles';
 
 /**
  * FavoritesScreen Component
@@ -82,41 +75,45 @@ export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) 
   ];
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose} />
+    <View style={modalScreenStyles.container}>
+      <TouchableOpacity style={modalScreenStyles.overlay} activeOpacity={1} onPress={handleClose} />
       <Animated.View
         style={[
-          styles.modalContainer,
+          modalScreenStyles.modalContainer,
           {
             transform: [{ translateY }],
           },
         ]}
         {...panResponder.panHandlers}
       >
-        <View style={styles.dragHandle} />
+        <View style={modalScreenStyles.dragHandle} />
 
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Favorites</Text>
-          <Text style={styles.subtitle}>Your Saved Places</Text>
+        <View style={modalScreenStyles.header}>
+          <Text style={modalScreenStyles.title}>Favorites</Text>
+          <Text style={modalScreenStyles.subtitle}>Your Saved Places</Text>
         </View>
 
         {/* Content */}
-        <ScrollView style={styles.scrollView} onScroll={handleScroll} scrollEventThrottle={16}>
+        <ScrollView
+          style={modalScreenStyles.scrollView}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
           {/* Empty State */}
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>❤️</Text>
-            <Text style={styles.emptyTitle}>No Favorites Yet</Text>
-            <Text style={styles.emptyDescription}>
+          <View style={modalScreenStyles.emptyState}>
+            <Text style={modalScreenStyles.emptyIcon}>❤️</Text>
+            <Text style={modalScreenStyles.emptyTitle}>No Favorites Yet</Text>
+            <Text style={modalScreenStyles.emptyDescription}>
               Start swiping on dishes and liking restaurants to build your personal collection!
             </Text>
           </View>
 
           {/* Coming Soon Features */}
-          <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>Coming Soon:</Text>
+          <View style={modalScreenStyles.featuresContainer}>
+            <Text style={modalScreenStyles.featuresTitle}>Coming Soon:</Text>
             {comingSoonFeatures.map((feature, index) => (
-              <Text key={index} style={styles.featureItem}>
+              <Text key={index} style={modalScreenStyles.featureItem}>
                 • {feature}
               </Text>
             ))}
@@ -126,91 +123,5 @@ export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) 
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  overlay: {
-    flex: 1,
-  },
-  modalContainer: {
-    height: '100%',
-    backgroundColor: '#1A1A1A',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  dragHandle: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#666',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  header: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#E0E0E0',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#999',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 72,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#E0E0E0',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 48,
-  },
-  featuresContainer: {
-    paddingHorizontal: 32,
-    paddingBottom: 40,
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#E0E0E0',
-    marginBottom: 16,
-  },
-  featureItem: {
-    fontSize: 16,
-    color: '#CCCCCC',
-    marginBottom: 12,
-    lineHeight: 22,
-  },
-});
 
 export default FavoritesScreen;

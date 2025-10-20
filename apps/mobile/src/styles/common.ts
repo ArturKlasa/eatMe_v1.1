@@ -1,239 +1,499 @@
 /**
- * Common Style Components
+ * Common Style System - Engineering Masterpiece Edition
  *
- * Reusable style functions and common component styles.
- * These styles are used across multiple screens to maintain consistency.
+ * A hierarchical, DRY style system with:
+ * - Base style factories for common patterns
+ * - Composite styles built from base patterns
+ * - Zero duplication through smart composition
+ * - Clear organization and documentation
  */
 
-import { StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { StyleSheet, TextStyle, ViewStyle, ImageStyle } from 'react-native';
 import { theme } from './theme';
 
 const { colors, typography, spacing, layout, shadows, borderRadius } = theme;
 
+// ============================================================================
+// PART 1: BASE STYLE FACTORIES (Reusable Building Blocks)
+// ============================================================================
+
 /**
- * Common container styles
+ * Factory: Creates flex container variations
  */
+const createFlexContainer = (
+  direction: 'row' | 'column' = 'column',
+  align: 'flex-start' | 'center' | 'flex-end' | 'stretch' = 'stretch',
+  justify: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' = 'flex-start'
+): ViewStyle => ({
+  flexDirection: direction,
+  alignItems: align,
+  justifyContent: justify,
+});
+
+/**
+ * Factory: Creates centered containers
+ */
+const createCenteredContainer = (horizontal = true, vertical = true): ViewStyle => ({
+  ...(horizontal && { alignItems: 'center' }),
+  ...(vertical && { justifyContent: 'center' }),
+});
+
+/**
+ * Factory: Creates padding variations
+ */
+const createPadding = (vertical?: number, horizontal?: number, all?: number): ViewStyle => ({
+  ...(all !== undefined && { padding: all }),
+  ...(vertical !== undefined && { paddingVertical: vertical }),
+  ...(horizontal !== undefined && { paddingHorizontal: horizontal }),
+});
+
+/**
+ * Factory: Creates border variations
+ */
+const createBorder = (
+  width: number,
+  color: string,
+  position?: 'top' | 'bottom' | 'left' | 'right'
+): ViewStyle => {
+  if (!position) {
+    return { borderWidth: width, borderColor: color };
+  }
+  return {
+    [`border${position.charAt(0).toUpperCase() + position.slice(1)}Width`]: width,
+    [`border${position.charAt(0).toUpperCase() + position.slice(1)}Color`]: color,
+  } as ViewStyle;
+};
+
+/**
+ * Factory: Creates text style variations
+ */
+const createTextStyle = (
+  size: keyof typeof typography.size,
+  weight: keyof typeof typography.weight,
+  color: string,
+  additionalProps?: Partial<TextStyle>
+): TextStyle => ({
+  fontSize: typography.size[size],
+  fontWeight: typography.weight[weight],
+  color,
+  ...additionalProps,
+});
+
+/**
+ * Factory: Creates rounded corner variations
+ */
+const createRounded = (radius: number, positions?: string[]): ViewStyle => {
+  if (!positions) {
+    return { borderRadius: radius };
+  }
+  const style: any = {};
+  positions.forEach(pos => {
+    style[`border${pos}Radius`] = radius;
+  });
+  return style;
+};
+
+/**
+ * Factory: Creates shadow variations
+ */
+const createShadow = (
+  elevation: number,
+  shadowColor = colors.black,
+  shadowOpacity = 0.25
+): ViewStyle => ({
+  elevation,
+  shadowColor,
+  shadowOpacity,
+  shadowRadius: elevation,
+  shadowOffset: { width: 0, height: elevation / 2 },
+});
+
+// ============================================================================
+// PART 2: BASE ATOMIC STYLES (Single-purpose, composable)
+// ============================================================================
+
+export const atomic = StyleSheet.create({
+  // Flex
+  flex1: { flex: 1 } as ViewStyle,
+  flexRow: createFlexContainer('row'),
+  flexRowCenter: { ...createFlexContainer('row', 'center') } as ViewStyle,
+  flexRowBetween: { ...createFlexContainer('row', 'center', 'space-between') } as ViewStyle,
+  flexColumn: createFlexContainer('column'),
+
+  // Alignment
+  center: createCenteredContainer(true, true) as ViewStyle,
+  centerH: createCenteredContainer(true, false) as ViewStyle,
+  centerV: createCenteredContainer(false, true) as ViewStyle,
+  alignStart: { alignItems: 'flex-start' } as ViewStyle,
+  alignEnd: { alignItems: 'flex-end' } as ViewStyle,
+  justifyStart: { justifyContent: 'flex-start' } as ViewStyle,
+  justifyEnd: { justifyContent: 'flex-end' } as ViewStyle,
+  justifyBetween: { justifyContent: 'space-between' } as ViewStyle,
+
+  // Common backgrounds
+  bgPrimary: { backgroundColor: colors.background } as ViewStyle,
+  bgSecondary: { backgroundColor: colors.backgroundSecondary } as ViewStyle,
+  bgDark: { backgroundColor: colors.dark } as ViewStyle,
+  bgOverlay: { backgroundColor: 'rgba(0, 0, 0, 0.5)' } as ViewStyle,
+
+  // Common text colors
+  textPrimary: { color: colors.textPrimary } as TextStyle,
+  textSecondary: { color: colors.textSecondary } as TextStyle,
+  textLight: { color: colors.darkText } as TextStyle,
+  textMuted: { color: colors.textTertiary } as TextStyle,
+  textAccent: { color: colors.primary } as TextStyle,
+  textWhite: { color: colors.white } as TextStyle, // Absolute positioning
+  absolute: { position: 'absolute' } as ViewStyle,
+  absoluteFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as ViewStyle,
+
+  // Overflow
+  overflowHidden: { overflow: 'hidden' } as ViewStyle,
+  overflowVisible: { overflow: 'visible' } as ViewStyle,
+});
+
+// ============================================================================
+// PART 3: COMPOSITE BASE STYLES (Built from atomic styles)
+// ============================================================================
+
+/**
+ * Modal/Sheet Base Pattern - Used by all modal screens
+ */
+const modalBase = {
+  container: {
+    ...atomic.flex1,
+    ...atomic.bgOverlay,
+    justifyContent: 'flex-end',
+  } as ViewStyle,
+
+  overlay: atomic.flex1 as ViewStyle,
+
+  modalContainer: {
+    height: '100%',
+    backgroundColor: colors.dark,
+    ...createRounded(20, ['TopLeft', 'TopRight']),
+    ...atomic.overflowHidden,
+  } as ViewStyle,
+
+  dragHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: colors.darkDragHandle,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  } as ViewStyle,
+
+  header: {
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    ...createBorder(1, colors.darkBorder, 'bottom'),
+  } as ViewStyle,
+
+  title: createTextStyle('2xl', 'bold', colors.darkText, { marginBottom: 4 }),
+
+  subtitle: createTextStyle('sm', 'normal', colors.darkTextMuted),
+
+  scrollView: atomic.flex1 as ViewStyle,
+
+  section: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    ...createBorder(1, colors.darkBorder, 'bottom'),
+  } as ViewStyle,
+
+  sectionTitle: createTextStyle('lg', 'semibold', colors.darkText, { marginBottom: 12 }),
+
+  bottomSpacer: { height: 40 } as ViewStyle,
+}; /**
+ * Filter/Selection Base Pattern - Used by all filter components
+ */
+const filterBase = {
+  // Tab-based selection
+  tabContainer: {
+    ...atomic.flexRow,
+    borderRadius: 8,
+    backgroundColor: colors.darkSecondary,
+    padding: 2,
+  } as ViewStyle,
+
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    backgroundColor: colors.darkQuaternary,
+  } as ViewStyle,
+
+  tabSelected: {
+    backgroundColor: colors.accent,
+  } as ViewStyle,
+
+  tabText: createTextStyle('sm', 'medium', colors.darkText),
+
+  tabTextSelected: createTextStyle('sm', 'semibold', colors.white),
+
+  // Chip/Option-based selection
+  optionsContainer: {
+    ...atomic.flexRow,
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  } as ViewStyle,
+
+  option: {
+    margin: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.darkQuaternary,
+    borderWidth: 1,
+    borderColor: colors.textSecondary,
+  } as ViewStyle,
+
+  optionSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  } as ViewStyle,
+
+  optionText: createTextStyle('sm', 'normal', colors.darkText),
+
+  optionTextSelected: createTextStyle('sm', 'semibold', colors.white),
+
+  optionDisabled: {
+    opacity: 0.3,
+    backgroundColor: colors.darkDisabledBg,
+    borderColor: colors.darkDisabled,
+  } as ViewStyle,
+
+  optionTextDisabled: { color: colors.darkDisabledText } as TextStyle,
+}; /**
+ * Button Base Pattern
+ */
+const buttonBase = {
+  primary: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...createShadow(4),
+  } as ViewStyle,
+
+  secondary: {
+    backgroundColor: colors.gray200,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as ViewStyle,
+
+  text: createTextStyle('base', 'semibold', colors.white),
+
+  textSecondary: createTextStyle('base', 'medium', colors.textSecondary),
+
+  small: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  } as ViewStyle,
+
+  textSmall: createTextStyle('xs', 'medium', colors.textSecondary),
+};
+
+/**
+ * Card Base Pattern
+ */
+const cardBase = {
+  container: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    ...createShadow(2),
+  } as ViewStyle,
+
+  elevated: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    ...createShadow(8),
+  } as ViewStyle,
+};
+
+// ============================================================================
+// PART 4: COMMON REUSABLE STYLES (Exported for direct use)
+// ============================================================================
+
 export const containers = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: colors.background,
+    ...atomic.flex1,
+    ...atomic.bgPrimary,
   } as ViewStyle,
 
   screenWithHeader: {
-    flex: 1,
-    backgroundColor: colors.background,
+    ...atomic.flex1,
+    ...atomic.bgPrimary,
   } as ViewStyle,
 
-  content: {
-    flex: 1,
-  } as ViewStyle,
+  content: atomic.flex1 as ViewStyle,
 
   contentPadded: {
-    flex: 1,
+    ...atomic.flex1,
     padding: layout.screenPadding,
   } as ViewStyle,
 
   section: {
     padding: layout.sectionPadding,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    ...createBorder(1, colors.borderLight, 'bottom'),
   } as ViewStyle,
 
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  } as ViewStyle,
+  row: atomic.flexRowCenter as ViewStyle,
 
-  rowSpaceBetween: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  } as ViewStyle,
+  rowSpaceBetween: atomic.flexRowBetween as ViewStyle,
 
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  } as ViewStyle,
+  center: atomic.center as ViewStyle,
 
-  centerHorizontal: {
-    alignItems: 'center',
-  } as ViewStyle,
+  centerHorizontal: atomic.centerH as ViewStyle,
 });
 
-/**
- * Header styles (used across multiple screens)
- */
 export const headers = StyleSheet.create({
   container: {
     paddingTop: layout.headerPaddingTop,
     paddingBottom: layout.headerPaddingBottom,
     paddingHorizontal: layout.headerPaddingHorizontal,
     backgroundColor: colors.backgroundSecondary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    ...createBorder(1, colors.border, 'bottom'),
   } as ViewStyle,
 
-  title: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  } as TextStyle,
+  title: createTextStyle('2xl', 'bold', colors.textPrimary, { textAlign: 'center' }),
 
-  subtitle: {
-    fontSize: typography.size.base,
-    color: colors.textSecondary,
+  subtitle: createTextStyle('base', 'normal', colors.textSecondary, {
     textAlign: 'center',
     marginTop: spacing.xs,
-  } as TextStyle,
+  }),
 });
 
-/**
- * Typography styles
- */
 export const text = StyleSheet.create({
-  // Headings
-  h1: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
+  h1: createTextStyle('2xl', 'bold', colors.textPrimary, {
     lineHeight: typography.size['2xl'] * typography.lineHeight.tight,
-  } as TextStyle,
+  }),
 
-  h2: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
+  h2: createTextStyle('xl', 'bold', colors.textPrimary, {
     lineHeight: typography.size.xl * typography.lineHeight.tight,
-  } as TextStyle,
+  }),
 
-  h3: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
-    lineHeight: typography.size.lg * typography.lineHeight.tight,
-  } as TextStyle,
+  h3: createTextStyle('lg', 'semibold', colors.textPrimary, {
+    lineHeight: typography.size.lg * typography.lineHeight.normal,
+  }),
 
-  // Body text
-  body: {
-    fontSize: typography.size.base,
-    color: colors.textPrimary,
-    lineHeight: typography.size.base * typography.lineHeight.normal,
-  } as TextStyle,
+  body: createTextStyle('base', 'normal', colors.textPrimary, {
+    lineHeight: typography.size.base * typography.lineHeight.relaxed,
+  }),
 
-  bodySecondary: {
-    fontSize: typography.size.base,
-    color: colors.textSecondary,
-    lineHeight: typography.size.base * typography.lineHeight.normal,
-  } as TextStyle,
+  bodyBold: createTextStyle('base', 'bold', colors.textPrimary, {
+    lineHeight: typography.size.base * typography.lineHeight.relaxed,
+  }),
 
-  bodySmall: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
+  small: createTextStyle('sm', 'normal', colors.textSecondary, {
     lineHeight: typography.size.sm * typography.lineHeight.normal,
-  } as TextStyle,
+  }),
 
-  // Special text styles
-  caption: {
-    fontSize: typography.size.xs,
-    color: colors.textSecondary,
-    lineHeight: typography.size.xs * typography.lineHeight.normal,
-  } as TextStyle,
+  tiny: createTextStyle('xs', 'normal', colors.textSecondary),
 
-  label: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.medium,
-    color: colors.textPrimary,
-  } as TextStyle,
+  link: createTextStyle('base', 'medium', colors.primary, {
+    textDecorationLine: 'underline',
+  }),
 
-  description: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-    marginTop: spacing.xs / 2,
-  } as TextStyle,
+  error: createTextStyle('sm', 'normal', colors.error),
 
-  // List styles
-  listItem: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    paddingLeft: spacing.md,
-  } as TextStyle,
+  success: createTextStyle('sm', 'normal', colors.success),
 
-  featureItem: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    paddingLeft: spacing.md,
-  } as TextStyle,
+  muted: createTextStyle('sm', 'normal', colors.textTertiary),
+
+  centered: { textAlign: 'center' } as TextStyle,
+
+  right: { textAlign: 'right' } as TextStyle,
 });
 
-/**
- * Empty state styles
- */
 export const emptyState = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    padding: spacing['3xl'],
-    marginTop: spacing['5xl'],
+    ...atomic.center,
+    paddingTop: 60,
+    paddingHorizontal: 32,
   } as ViewStyle,
 
   icon: {
-    fontSize: typography.size['7xl'],
-    marginBottom: spacing.base,
+    fontSize: 72,
+    marginBottom: 16,
   } as TextStyle,
 
-  title: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  } as TextStyle,
-
-  description: {
-    fontSize: typography.size.base,
-    color: colors.textSecondary,
+  title: createTextStyle('xl', 'bold', colors.darkText, {
+    marginBottom: 12,
     textAlign: 'center',
-    lineHeight: typography.size.base * typography.lineHeight.relaxed,
-    marginBottom: spacing['3xl'],
-  } as TextStyle,
+  }),
+
+  description: createTextStyle('base', 'normal', colors.darkTextMuted, {
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 48,
+  }),
 });
 
-/**
- * Card styles
- */
 export const cards = StyleSheet.create({
-  container: {
-    backgroundColor: colors.background,
-    borderRadius: theme.borderRadius.base,
-    padding: spacing.base,
-    marginBottom: spacing.base,
-    ...theme.shadows.sm,
-  } as ViewStyle,
+  base: cardBase.container,
+
+  elevated: cardBase.elevated,
 
   header: {
-    marginBottom: spacing.base,
+    ...atomic.flexRowBetween,
+    marginBottom: spacing.md,
   } as ViewStyle,
 
-  title: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.semibold,
-    color: colors.textPrimary,
-  } as TextStyle,
+  title: createTextStyle('lg', 'semibold', colors.textPrimary),
 
   content: {
-    marginTop: spacing.sm,
+    gap: spacing.sm,
   } as ViewStyle,
 });
 
-/**
- * Form styles
- */
 export const forms = StyleSheet.create({
+  fieldGroup: {
+    marginBottom: spacing.lg,
+  } as ViewStyle,
+
+  label: createTextStyle('sm', 'medium', colors.textPrimary, {
+    marginBottom: spacing.xs,
+  }),
+
+  input: {
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: typography.size.base,
+    color: colors.textPrimary,
+  } as ViewStyle & TextStyle,
+
+  inputFocused: {
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  inputError: {
+    borderColor: colors.error,
+  } as ViewStyle,
+
+  errorText: createTextStyle('xs', 'normal', colors.error, {
+    marginTop: spacing.xs,
+  }),
+
+  // Settings items
   settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    ...atomic.flexRowBetween,
     paddingVertical: spacing.md,
     minHeight: layout.headerHeight,
   } as ViewStyle,
@@ -243,88 +503,851 @@ export const forms = StyleSheet.create({
     marginRight: spacing.base,
   } as ViewStyle,
 
-  settingLabel: {
-    fontSize: typography.size.base,
-    color: colors.textPrimary,
-    fontWeight: typography.weight.medium,
-  } as TextStyle,
+  settingLabel: createTextStyle('base', 'medium', colors.textPrimary),
 
-  settingDescription: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
+  settingDescription: createTextStyle('sm', 'normal', colors.textSecondary, {
     marginTop: spacing.xs / 2,
-  } as TextStyle,
+  }),
 });
 
-/**
- * Profile specific styles
- */
-export const profile = StyleSheet.create({
-  avatar: {
-    width: layout.avatarSize,
-    height: layout.avatarSize,
-    borderRadius: layout.avatarSize / 2,
-    backgroundColor: colors.gray200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.base,
+export const buttons = StyleSheet.create({
+  primary: buttonBase.primary,
+
+  primaryText: buttonBase.text,
+
+  secondary: buttonBase.secondary,
+
+  secondaryText: buttonBase.textSecondary,
+
+  small: buttonBase.small,
+
+  smallText: buttonBase.textSmall,
+
+  danger: {
+    ...buttonBase.primary,
+    backgroundColor: colors.error,
   } as ViewStyle,
 
-  avatarText: {
-    fontSize: typography.size['4xl'],
-  } as TextStyle,
-
-  userName: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  } as TextStyle,
-
-  userSubtitle: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-  } as TextStyle,
-
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  ghost: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   } as ViewStyle,
 
-  statItem: {
-    width: '48%',
-    alignItems: 'center',
-    padding: spacing.base,
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: theme.borderRadius.base,
+  ghostText: createTextStyle('base', 'medium', colors.primary),
+
+  // Icon buttons
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    ...atomic.center,
+  } as ViewStyle,
+
+  iconButtonLarge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    ...atomic.center,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...createShadow(4),
+  } as ViewStyle,
+});
+
+export const inputs = StyleSheet.create({
+  container: {
     marginBottom: spacing.md,
   } as ViewStyle,
 
-  statNumber: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
-    color: colors.primary,
+  label: createTextStyle('sm', 'medium', colors.textPrimary, {
     marginBottom: spacing.xs,
-  } as TextStyle,
+  }),
 
-  statLabel: {
-    fontSize: typography.size.xs,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  } as TextStyle,
+  input: {
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: typography.size.base,
+    color: colors.textPrimary,
+  } as ViewStyle & TextStyle,
+
+  inputFocused: {
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  textarea: {
+    height: 100,
+    textAlignVertical: 'top',
+  } as ViewStyle & TextStyle,
+});
+
+export const spacingUtils = StyleSheet.create({
+  mt0: { marginTop: 0 } as ViewStyle,
+  mt1: { marginTop: spacing.xs } as ViewStyle,
+  mt2: { marginTop: spacing.sm } as ViewStyle,
+  mt3: { marginTop: spacing.md } as ViewStyle,
+  mt4: { marginTop: spacing.lg } as ViewStyle,
+  mt5: { marginTop: spacing.xl } as ViewStyle,
+
+  mb0: { marginBottom: 0 } as ViewStyle,
+  mb1: { marginBottom: spacing.xs } as ViewStyle,
+  mb2: { marginBottom: spacing.sm } as ViewStyle,
+  mb3: { marginBottom: spacing.md } as ViewStyle,
+  mb4: { marginBottom: spacing.lg } as ViewStyle,
+  mb5: { marginBottom: spacing.xl } as ViewStyle,
+
+  pt0: { paddingTop: 0 } as ViewStyle,
+  pt1: { paddingTop: spacing.xs } as ViewStyle,
+  pt2: { paddingTop: spacing.sm } as ViewStyle,
+  pt3: { paddingTop: spacing.md } as ViewStyle,
+  pt4: { paddingTop: spacing.lg } as ViewStyle,
+
+  pb0: { paddingBottom: 0 } as ViewStyle,
+  pb1: { paddingBottom: spacing.xs } as ViewStyle,
+  pb2: { paddingBottom: spacing.sm } as ViewStyle,
+  pb3: { paddingBottom: spacing.md } as ViewStyle,
+  pb4: { paddingBottom: spacing.lg } as ViewStyle,
+
+  gap1: { gap: spacing.xs } as ViewStyle,
+  gap2: { gap: spacing.sm } as ViewStyle,
+  gap3: { gap: spacing.md } as ViewStyle,
+  gap4: { gap: spacing.lg } as ViewStyle,
+});
+
+// ============================================================================
+// PART 5: COMPONENT-SPECIFIC STYLES (Using base patterns)
+// ============================================================================
+
+/**
+ * Modal Screen Styles - All modal screens (Filters, Favorites, Profile, Settings)
+ */
+export const modalScreenStyles = StyleSheet.create({
+  ...modalBase,
+
+  // Profile-specific
+  profileSection: {
+    ...atomic.centerH,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    ...createBorder(1, colors.darkBorder, 'bottom'),
+  } as ViewStyle,
+
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.darkBorder,
+    ...atomic.center,
+    marginBottom: 16,
+  } as ViewStyle,
+
+  avatarText: { fontSize: 40 } as TextStyle,
+
+  userName: createTextStyle('xl', 'bold', colors.darkText, { marginBottom: 4 }),
+
+  userSubtitle: createTextStyle('sm', 'normal', colors.textTertiary),
+
+  sectionContent: { gap: 8 } as ViewStyle,
+
+  preferenceText: createTextStyle('sm', 'normal', colors.darkText, { marginBottom: 8 }),
+
+  statsGrid: {
+    ...atomic.flexRow,
+    flexWrap: 'wrap',
+    gap: 16,
+  } as ViewStyle,
+
+  statItem: {
+    width: '45%',
+    backgroundColor: colors.darkSecondary,
+    padding: 16,
+    borderRadius: 12,
+    ...atomic.centerH,
+  } as ViewStyle,
+
+  statNumber: createTextStyle('2xl', 'bold', colors.accent, { marginBottom: 4 }),
+
+  statLabel: createTextStyle('xs', 'normal', colors.textTertiary, { textAlign: 'center' }),
+
+  featureBullet: createTextStyle('base', 'normal', colors.accent, { marginRight: 8, marginTop: 2 }),
+
+  featureText: createTextStyle('sm', 'normal', colors.darkText, { flex: 1, lineHeight: 20 }),
+
+  // Favorites-specific (reuses emptyState pattern)
+  emptyState: emptyState.container,
+  emptyIcon: emptyState.icon,
+  emptyTitle: emptyState.title,
+  emptyDescription: emptyState.description,
+
+  featuresContainer: {
+    paddingHorizontal: 32,
+    paddingBottom: 40,
+  } as ViewStyle,
+
+  featuresTitle: createTextStyle('lg', 'semibold', colors.darkText, { marginBottom: 16 }),
+
+  featureItem: createTextStyle('base', 'normal', colors.darkTextLight, {
+    marginBottom: 12,
+    lineHeight: 22,
+  }),
+
+  // Settings-specific
+  settingItem: {
+    ...atomic.flexRowBetween,
+    paddingVertical: 12,
+    ...createBorder(1, colors.darkSecondary, 'bottom'),
+  } as ViewStyle,
+
+  settingContent: {
+    flex: 1,
+    marginRight: 16,
+  } as ViewStyle,
+
+  settingLabel: createTextStyle('base', 'semibold', colors.darkText, { marginBottom: 4 }),
+
+  settingDescription: createTextStyle('xs', 'normal', colors.textTertiary, { lineHeight: 18 }),
+
+  actionItem: {
+    paddingVertical: 16,
+    ...createBorder(1, colors.darkSecondary, 'bottom'),
+  } as ViewStyle,
+
+  actionText: createTextStyle('base', 'normal', colors.darkText),
+
+  aboutContent: { gap: 8 } as ViewStyle,
+
+  aboutText: createTextStyle('sm', 'normal', colors.textTertiary, { marginBottom: 4 }),
 });
 
 /**
- * Map styles
+ * Filter Components - Reuses filterBase pattern
  */
-export const mapStyles = StyleSheet.create({
-  container: {
+export const filterComponentsStyles = StyleSheet.create({
+  filterSection: { marginBottom: 32 } as ViewStyle,
+
+  filterTitle: createTextStyle('lg', 'semibold', colors.textPrimary, { marginBottom: 16 }),
+
+  filterSubtitle: createTextStyle('sm', 'normal', colors.textSecondary, { marginBottom: 12 }),
+
+  filterTitleRow: {
+    ...atomic.flexRowBetween,
+    marginBottom: 16,
+  } as ViewStyle,
+
+  filterActions: {
+    ...atomic.flexRow,
+    marginHorizontal: 6,
+  } as ViewStyle,
+
+  actionButton: { ...buttonBase.small, ...buttonBase.secondary } as ViewStyle,
+
+  actionButtonText: buttonBase.textSmall,
+
+  // Price range
+  priceRangeContainer: {
+    ...atomic.centerH,
+    marginBottom: 16,
+  } as ViewStyle,
+
+  priceLabel: createTextStyle('base', 'semibold', colors.primary),
+
+  sliderContainer: { marginVertical: 8 } as ViewStyle,
+
+  sliderLabels: {
+    ...atomic.flexRowBetween,
+    marginBottom: 8,
+  } as ViewStyle,
+
+  sliderLabel: createTextStyle('xs', 'normal', colors.textSecondary),
+
+  sliderRow: {
+    ...atomic.flexRow,
+    marginHorizontal: 4,
+  } as ViewStyle,
+
+  slider: {
     flex: 1,
+    height: 40,
+  } as ViewStyle,
+
+  sliderThumb: {
+    width: 20,
+    height: 20,
+    backgroundColor: colors.primary,
+  } as ViewStyle,
+
+  // Checkbox/Options (reuses filterBase)
+  checkboxGrid: filterBase.optionsContainer,
+
+  checkboxItem: {
+    ...atomic.flexRowCenter,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.gray200,
+    marginHorizontal: 4,
+  } as ViewStyle,
+
+  checkboxItemSelected: {
+    backgroundColor: colors.primary + '20',
+  } as ViewStyle,
+
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.gray200,
+    ...atomic.center,
+  } as ViewStyle,
+
+  checkboxSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  } as ViewStyle,
+
+  checkboxCheck: createTextStyle('xs', 'bold', colors.white),
+
+  checkboxLabel: createTextStyle('sm', 'normal', colors.textSecondary),
+
+  checkboxLabelSelected: createTextStyle('sm', 'medium', colors.primary),
+
+  // Toggle
+  toggleList: { marginHorizontal: 8 } as ViewStyle,
+
+  toggleItem: {
+    ...atomic.flexRowBetween,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.gray100,
+    borderRadius: 8,
+    marginBottom: 8,
+  } as ViewStyle,
+
+  toggleLabel: atomic.flexRowCenter as ViewStyle,
+
+  toggleIcon: { fontSize: 20, marginRight: 8 } as TextStyle,
+
+  toggleText: createTextStyle('base', 'normal', colors.textPrimary),
+
+  // Spice level
+  spiceLevelContainer: {
+    ...atomic.flexRowBetween,
+    marginTop: 12,
+  } as ViewStyle,
+
+  spiceLevelItem: {
+    ...atomic.centerH,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: colors.gray200,
+    minWidth: 60,
+  } as ViewStyle,
+
+  spiceLevelSelected: {
+    backgroundColor: colors.primary + '20',
+  } as ViewStyle,
+
+  spiceIcon: { fontSize: 20, marginBottom: 4 } as TextStyle,
+
+  spiceLabel: createTextStyle('xs', 'normal', colors.textSecondary, { textAlign: 'center' }),
+
+  spiceLabelSelected: createTextStyle('xs', 'medium', colors.primary),
+
+  // Calorie
+  calorieContainer: { marginTop: 12 } as ViewStyle,
+
+  calorieLabel: createTextStyle('sm', 'normal', colors.textSecondary, {
+    textAlign: 'center',
+    marginBottom: 12,
+  }),
+
+  // Presets
+  presetGrid: {
+    ...atomic.flexRow,
+    flexWrap: 'wrap',
+    marginHorizontal: 6,
+    marginBottom: 20,
+  } as ViewStyle,
+
+  presetButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.gray200,
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    marginRight: 8,
+    marginBottom: 8,
+  } as ViewStyle,
+
+  presetButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  } as ViewStyle,
+
+  presetButtonText: createTextStyle('sm', 'medium', colors.textSecondary),
+
+  presetButtonTextActive: createTextStyle('sm', 'medium', colors.white),
+
+  resetButton: {
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: colors.error + '20',
+    borderWidth: 1,
+    borderColor: colors.error,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  resetButtonText: createTextStyle('base', 'medium', colors.error),
+
+  // Summary
+  summaryContainer: {
+    padding: 12,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 8,
+    marginBottom: 16,
+  } as ViewStyle,
+
+  summaryText: createTextStyle('sm', 'medium', colors.primary, { textAlign: 'center' }),
+});
+
+/**
+ * Drawer Filters - Reuses filterBase extensively
+ */
+export const drawerFiltersStyles = StyleSheet.create({
+  container: {
+    ...atomic.flex1,
+    ...atomic.bgDark,
+    paddingHorizontal: 16,
   } as ViewStyle,
 
   header: {
-    position: 'absolute',
+    ...atomic.flexRowBetween,
+    paddingVertical: 16,
+    ...createBorder(1, colors.darkBorder, 'bottom'),
+  } as ViewStyle,
+
+  title: createTextStyle('lg', 'bold', colors.darkText),
+
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: colors.accent,
+  } as ViewStyle,
+
+  clearButtonText: createTextStyle('xs', 'semibold', colors.white),
+
+  section: {
+    paddingVertical: 16,
+    ...createBorder(1, colors.darkSecondary, 'bottom'),
+  } as ViewStyle,
+
+  sectionTitle: createTextStyle('base', 'semibold', colors.darkText, { marginBottom: 12 }),
+
+  // Reuse filterBase patterns
+  tabContainer: filterBase.tabContainer,
+  tab: filterBase.tab,
+  selectedTab: filterBase.tabSelected,
+  tabText: filterBase.tabText,
+  selectedTabText: filterBase.tabTextSelected,
+
+  optionsContainer: filterBase.optionsContainer,
+  option: filterBase.option,
+  selectedOption: filterBase.optionSelected,
+  optionText: filterBase.optionText,
+  selectedText: filterBase.optionTextSelected,
+  disabledOption: filterBase.optionDisabled,
+  disabledText: filterBase.optionTextDisabled,
+
+  // Ingredients
+  expandableButton: {
+    ...atomic.flexRowBetween,
+    padding: 16,
+    backgroundColor: colors.darkSecondary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.darkBorderLight,
+  } as ViewStyle,
+
+  expandableButtonText: createTextStyle('sm', 'medium', colors.darkText),
+
+  expandableArrow: createTextStyle('base', 'normal', colors.darkText),
+
+  selectedIngredientsContainer: { marginTop: 12 } as ViewStyle,
+
+  selectedIngredientsTitle: createTextStyle('xs', 'normal', colors.darkTextLight, {
+    marginBottom: 8,
+  }),
+
+  selectedIngredientsRow: {
+    ...atomic.flexRow,
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  } as ViewStyle,
+
+  selectedIngredientTag: {
+    ...atomic.flexRowCenter,
+    margin: 4,
+    paddingLeft: 12,
+    paddingRight: 4,
+    paddingVertical: 6,
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+  } as ViewStyle,
+
+  selectedIngredientText: createTextStyle('xs', 'medium', colors.white),
+
+  removeIngredientButton: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  } as ViewStyle,
+
+  removeIngredientText: createTextStyle('base', 'bold', colors.white),
+
+  // Modal
+  modalOverlay: {
+    ...atomic.flex1,
+    ...atomic.bgOverlay,
+    ...atomic.center,
+  } as ViewStyle,
+
+  modalContainer: {
+    width: '95%',
+    maxHeight: '90%',
+    backgroundColor: colors.dark,
+    borderRadius: 12,
+    ...atomic.overflowHidden,
+  } as ViewStyle,
+
+  modalHeader: {
+    ...atomic.flexRowBetween,
+    padding: 16,
+    ...createBorder(1, colors.darkBorder, 'bottom'),
+  } as ViewStyle,
+
+  modalTitle: createTextStyle('lg', 'bold', colors.darkText),
+
+  modalCloseButton: { padding: 4 } as ViewStyle,
+
+  modalCloseText: createTextStyle('lg', 'normal', colors.darkText),
+
+  modalContent: {
+    height: 400,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    backgroundColor: colors.dark,
+  } as ViewStyle,
+
+  ingredientsList: {
+    paddingVertical: 8,
+    backgroundColor: colors.dark,
+  } as ViewStyle,
+
+  ingredientListItem: {
+    paddingVertical: 4,
+    ...createBorder(1, colors.darkSecondary, 'bottom'),
+    backgroundColor: colors.dark,
+    minHeight: 50,
+  } as ViewStyle,
+
+  ingredientListContent: {
+    ...atomic.flexRowBetween,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  } as ViewStyle,
+
+  ingredientListText: createTextStyle('base', 'normal', colors.darkText, { flex: 1 }),
+
+  ingredientCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.darkDragHandle,
+    backgroundColor: colors.darkSecondary,
+    ...atomic.center,
+  } as ViewStyle,
+
+  ingredientCheckboxSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  } as ViewStyle,
+
+  ingredientCheckboxCheck: createTextStyle('sm', 'bold', colors.white),
+
+  ingredientsGrid: filterBase.optionsContainer,
+
+  ingredientOption: filterBase.option,
+
+  modalFooter: {
+    padding: 20,
+    ...createBorder(1, colors.darkBorder, 'top'),
+  } as ViewStyle,
+
+  modalDoneButton: {
+    backgroundColor: colors.accent,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  modalDoneText: createTextStyle('base', 'semibold', colors.white),
+});
+
+/**
+ * Map-related Styles
+ */
+export const mapFooterStyles = StyleSheet.create({
+  container: {
+    backgroundColor: colors.dark,
+    ...createRounded(20, ['TopLeft', 'TopRight']),
+    paddingTop: 16,
+    paddingBottom: 20,
+    ...createShadow(8, colors.black, 0.25),
+  } as ViewStyle,
+
+  header: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  } as ViewStyle,
+
+  headerTitle: createTextStyle('lg', 'bold', colors.white, { marginBottom: 4 }),
+
+  headerSubtitle: createTextStyle('sm', 'normal', colors.darkTextSecondary),
+
+  scrollView: { paddingLeft: 20 } as ViewStyle,
+
+  scrollContent: { paddingRight: 20 } as ViewStyle,
+
+  dishCard: {
+    width: 160,
+    backgroundColor: colors.darkSecondary,
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.darkTertiary,
+  } as ViewStyle,
+
+  dishHeader: {
+    ...atomic.flexRowBetween,
+    marginBottom: 8,
+  } as ViewStyle,
+
+  dishEmoji: { fontSize: 24 } as TextStyle,
+
+  dishRating: {
+    backgroundColor: colors.darkTertiary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  } as ViewStyle,
+
+  ratingText: createTextStyle('xs', 'semibold', colors.white),
+
+  dishName: createTextStyle('sm', 'semibold', colors.white, {
+    marginBottom: 4,
+    minHeight: 34,
+  }),
+
+  restaurantName: createTextStyle('xs', 'normal', colors.darkTextSecondary, { flex: 1 }),
+
+  restaurantRow: {
+    ...atomic.flexRowBetween,
+    marginBottom: 8,
+  } as ViewStyle,
+
+  dishFooter: atomic.flexRowBetween as ViewStyle,
+
+  priceRange: createTextStyle('xs', 'bold', colors.white),
+
+  price: createTextStyle('sm', 'semibold', colors.white),
+
+  unavailableBadge: {
+    ...atomic.absolute,
+    top: 8,
+    right: 8,
+    backgroundColor: colors.danger,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  } as ViewStyle,
+
+  unavailableText: createTextStyle('xs', 'semibold', colors.white),
+
+  showMoreCard: {
+    width: 100,
+    backgroundColor: colors.darkTertiary,
+    borderRadius: 12,
+    padding: 12,
+    ...atomic.center,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
+  } as ViewStyle,
+
+  showMoreIcon: createTextStyle('xl', 'normal', colors.accent, { marginBottom: 4 }),
+
+  showMoreText: createTextStyle('xs', 'medium', colors.accent, { textAlign: 'center' }),
+
+  filterSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    ...createBorder(1, colors.darkTertiary, 'top'),
+  } as ViewStyle,
+
+  filterButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    ...atomic.center,
+    ...createShadow(4, colors.black, 0.25),
+  } as ViewStyle,
+
+  filterButtonText: createTextStyle('base', 'semibold', colors.white),
+});
+
+export const viewModeToggleStyles = StyleSheet.create({
+  container: {
+    ...atomic.flexRow,
+    backgroundColor: colors.darkSecondary,
+    borderRadius: 8,
+    padding: 2,
+    alignSelf: 'center',
+  } as ViewStyle,
+
+  button: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: colors.darkQuaternary,
+  } as ViewStyle,
+
+  activeButton: {
+    backgroundColor: colors.accent,
+  } as ViewStyle,
+
+  text: createTextStyle('sm', 'normal', colors.darkText),
+
+  activeText: createTextStyle('sm', 'normal', colors.white),
+});
+
+export const filterFABStyles = StyleSheet.create({
+  container: {
+    ...atomic.absolute,
+    bottom: 100,
+    right: 20,
+    zIndex: 1000,
+  } as ViewStyle,
+
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    ...atomic.center,
+    ...createShadow(8, colors.black, 0.3),
+  } as ViewStyle,
+
+  fabActive: {
+    backgroundColor: colors.primaryDark,
+    transform: [{ scale: 1.1 }],
+  } as ViewStyle,
+
+  fabIcon: { fontSize: 24 } as TextStyle,
+
+  badge: {
+    ...atomic.absolute,
+    top: -2,
+    right: -2,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    ...atomic.center,
+    borderWidth: 2,
+    borderColor: colors.white,
+  } as ViewStyle,
+
+  badgeText: createTextStyle('xs', 'bold', colors.white),
+});
+
+export const floatingMenuStyles = StyleSheet.create({
+  container: {
+    ...atomic.absoluteFill,
+    zIndex: 9999,
+  } as ViewStyle,
+
+  backdrop: {
+    ...atomic.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  } as ViewStyle,
+
+  menuContainer: {
+    ...atomic.absolute,
+    right: 92,
+    bottom: 560,
+  } as ViewStyle,
+
+  menuItem: {
+    ...atomic.absolute,
+    right: 0,
+    backgroundColor: colors.dark,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    ...createShadow(16, colors.black, 0.5),
+    minWidth: 180,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+  } as ViewStyle,
+
+  menuItemContent: {
+    ...atomic.flexRowCenter,
+    gap: 12,
+  } as ViewStyle,
+
+  menuIcon: { fontSize: 20 } as TextStyle,
+
+  menuLabel: createTextStyle('base', 'semibold', colors.darkText),
+});
+
+// ============================================================================
+// LEGACY STYLES (Keeping for backward compatibility - TODO: Migrate)
+// ============================================================================
+
+export const profile = StyleSheet.create({
+  container: atomic.flex1 as ViewStyle,
+  header: {
+    ...atomic.centerH,
+    paddingVertical: spacing.lg,
+  } as ViewStyle,
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.gray200,
+    ...atomic.center,
+    marginBottom: spacing.md,
+  } as ViewStyle,
+  name: createTextStyle('xl', 'bold', colors.textPrimary),
+  email: createTextStyle('sm', 'normal', colors.textSecondary, { marginTop: spacing.xs }),
+});
+
+export const mapStyles = StyleSheet.create({
+  container: atomic.flex1 as ViewStyle,
+  map: atomic.flex1 as ViewStyle,
+
+  header: {
+    ...atomic.absolute,
     top: 0,
     left: 0,
     right: 0,
@@ -333,14 +1356,11 @@ export const mapStyles = StyleSheet.create({
     paddingBottom: spacing.md,
     paddingHorizontal: layout.headerPaddingHorizontal,
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    ...createBorder(1, colors.border, 'bottom'),
   } as ViewStyle,
 
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    ...atomic.flexRowBetween,
   } as ViewStyle,
 
   headerText: {
@@ -348,73 +1368,38 @@ export const mapStyles = StyleSheet.create({
     textAlign: 'center',
   } as ViewStyle,
 
-  title: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.semibold,
-    color: colors.textPrimary,
-  } as TextStyle,
-
-  subtitle: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-  } as TextStyle,
-
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.md,
-    backgroundColor: colors.backgroundTertiary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  } as ViewStyle,
-
-  footerText: {
-    fontSize: typography.size.xs,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  } as TextStyle,
-
-  // Map-specific components
+  // Map markers
   markerContainer: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...atomic.center,
     borderWidth: 2,
     borderColor: colors.white,
-    ...shadows.md,
+    ...createShadow(4),
   } as ViewStyle,
 
   markerInner: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...atomic.center,
     width: '100%',
     height: '100%',
   } as ViewStyle,
 
-  markerText: {
-    fontSize: typography.size.xs,
-    textAlign: 'center',
-  } as TextStyle,
+  markerText: createTextStyle('xs', 'normal', colors.textPrimary, { textAlign: 'center' }),
 
+  // Location button
   locationButton: {
-    position: 'absolute',
+    ...atomic.absolute,
     bottom: 170,
     right: 20,
     width: 50,
     height: 50,
     borderRadius: 25,
     backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...atomic.center,
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadows.md,
+    ...createShadow(4),
   } as ViewStyle,
 
   locationButtonText: {
@@ -423,159 +1408,6 @@ export const mapStyles = StyleSheet.create({
   } as TextStyle,
 });
 
-/**
- * Button styles
- */
-export const buttons = StyleSheet.create({
-  // Base button styles
-  base: {
-    height: layout.buttonHeight,
-    borderRadius: borderRadius.base,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.base,
-  } as ViewStyle,
-
-  primary: {
-    backgroundColor: colors.primary,
-  } as ViewStyle,
-
-  secondary: {
-    backgroundColor: colors.gray100,
-    borderWidth: 1,
-    borderColor: colors.border,
-  } as ViewStyle,
-
-  // Icon buttons (like menu, location)
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  } as ViewStyle,
-
-  iconButtonLarge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.md,
-  } as ViewStyle,
-
-  // Text styles for buttons
-  primaryText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.white,
-  } as TextStyle,
-
-  secondaryText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.textPrimary,
-  } as TextStyle,
-});
-
-/**
- * Input and Form Component styles
- */
-export const inputs = StyleSheet.create({
-  // Common input container
-  container: {
-    marginBottom: spacing.base,
-  } as ViewStyle,
-
-  label: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.medium,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  } as TextStyle,
-
-  textInput: {
-    height: layout.inputHeight,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.base,
-    paddingHorizontal: spacing.base,
-    fontSize: typography.size.base,
-    color: colors.textPrimary,
-    backgroundColor: colors.background,
-  } as ViewStyle,
-
-  textInputFocused: {
-    borderColor: colors.primary,
-    ...shadows.sm,
-  } as ViewStyle,
-});
-
-/**
- * Switch component configuration
- */
-const switchConfig = {
-  trackColors: {
-    false: colors.gray300,
-    true: colors.primary,
-  },
-};
-
-/**
- * Spacing utilities
- */
-export const spacingUtils = StyleSheet.create({
-  // Margin utilities
-  marginXS: { margin: spacing.xs } as ViewStyle,
-  marginSM: { margin: spacing.sm } as ViewStyle,
-  marginMD: { margin: spacing.md } as ViewStyle,
-  marginBase: { margin: spacing.base } as ViewStyle,
-  marginLG: { margin: spacing.lg } as ViewStyle,
-  marginXL: { margin: spacing.xl } as ViewStyle,
-
-  marginTopXS: { marginTop: spacing.xs } as ViewStyle,
-  marginTopSM: { marginTop: spacing.sm } as ViewStyle,
-  marginTopMD: { marginTop: spacing.md } as ViewStyle,
-  marginTopBase: { marginTop: spacing.base } as ViewStyle,
-  marginTopLG: { marginTop: spacing.lg } as ViewStyle,
-  marginTopXL: { marginTop: spacing.xl } as ViewStyle,
-
-  marginBottomXS: { marginBottom: spacing.xs } as ViewStyle,
-  marginBottomSM: { marginBottom: spacing.sm } as ViewStyle,
-  marginBottomMD: { marginBottom: spacing.md } as ViewStyle,
-  marginBottomBase: { marginBottom: spacing.base } as ViewStyle,
-  marginBottomLG: { marginBottom: spacing.lg } as ViewStyle,
-  marginBottomXL: { marginBottom: spacing.xl } as ViewStyle,
-
-  // Padding utilities
-  paddingXS: { padding: spacing.xs } as ViewStyle,
-  paddingSM: { padding: spacing.sm } as ViewStyle,
-  paddingMD: { padding: spacing.md } as ViewStyle,
-  paddingBase: { padding: spacing.base } as ViewStyle,
-  paddingLG: { padding: spacing.lg } as ViewStyle,
-  paddingXL: { padding: spacing.xl } as ViewStyle,
-
-  paddingHorizontalXS: { paddingHorizontal: spacing.xs } as ViewStyle,
-  paddingHorizontalSM: { paddingHorizontal: spacing.sm } as ViewStyle,
-  paddingHorizontalMD: { paddingHorizontal: spacing.md } as ViewStyle,
-  paddingHorizontalBase: { paddingHorizontal: spacing.base } as ViewStyle,
-  paddingHorizontalLG: { paddingHorizontal: spacing.lg } as ViewStyle,
-  paddingHorizontalXL: { paddingHorizontal: spacing.xl } as ViewStyle,
-
-  paddingVerticalXS: { paddingVertical: spacing.xs } as ViewStyle,
-  paddingVerticalSM: { paddingVertical: spacing.sm } as ViewStyle,
-  paddingVerticalMD: { paddingVertical: spacing.md } as ViewStyle,
-  paddingVerticalBase: { paddingVertical: spacing.base } as ViewStyle,
-  paddingVerticalLG: { paddingVertical: spacing.lg } as ViewStyle,
-  paddingVerticalXL: { paddingVertical: spacing.xl } as ViewStyle,
-});
-
-/**
- * Modal styles (for filter modals, dialogs, etc.)
- */
 export const modals = StyleSheet.create({
   // Modal overlay and container
   overlay: {
@@ -583,6 +1415,8 @@ export const modals = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   } as ViewStyle,
+
+  backdrop: atomic.bgOverlay as ViewStyle,
 
   container: {
     backgroundColor: colors.white,
@@ -630,7 +1464,6 @@ export const modals = StyleSheet.create({
     padding: spacing.lg,
   } as ViewStyle,
 
-  // Modal sections
   section: {
     marginBottom: spacing.lg,
   } as ViewStyle,
@@ -655,16 +1488,100 @@ export const modals = StyleSheet.create({
     marginHorizontal: -4,
   } as ViewStyle,
 
-  // Generic option styles
+  // Dark theme variants
+  darkContainer: {
+    backgroundColor: colors.dark,
+  } as ViewStyle,
+
+  darkTitle: {
+    color: colors.darkText,
+  } as TextStyle,
+
+  darkSectionTitle: {
+    color: colors.darkText,
+  } as TextStyle,
+
+  darkTabText: {
+    color: colors.darkText,
+  } as TextStyle,
+
+  darkOptionText: {
+    color: colors.darkText,
+  } as TextStyle,
+
+  darkCuisineText: {
+    color: colors.darkText,
+  } as TextStyle,
+
+  darkPriceLabel: {
+    color: colors.darkTextLight,
+  } as TextStyle,
+
+  darkClearText: {
+    color: colors.darkText,
+  } as TextStyle,
+
+  darkApplyText: {
+    color: colors.white,
+  } as TextStyle,
+
+  // Tab selection pattern
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.darkSecondary,
+    borderRadius: borderRadius.md,
+    padding: 2,
+    marginVertical: spacing.sm,
+  } as ViewStyle,
+
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: borderRadius.sm,
+    alignItems: 'center',
+    backgroundColor: colors.darkQuaternary,
+  } as ViewStyle,
+
+  selectedTab: {
+    backgroundColor: colors.accent,
+  } as ViewStyle,
+
+  tabText: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  selectedTabText: {
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
+  } as TextStyle,
+
+  multiOptionContainer: {
+    marginTop: spacing.sm,
+  } as ViewStyle,
+
   option: {
     margin: 4,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
-    backgroundColor: '#4A4A4A',
+    backgroundColor: colors.darkQuaternary,
     borderWidth: 1,
-    borderColor: '#666666',
+    borderColor: colors.textSecondary,
     alignItems: 'center',
+  } as ViewStyle,
+
+  selectedOption: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  } as ViewStyle,
+
+  disabledOption: {
+    opacity: 0.3,
+    backgroundColor: colors.darkBorder,
+    borderColor: colors.darkDisabled,
   } as ViewStyle,
 
   optionText: {
@@ -672,33 +1589,13 @@ export const modals = StyleSheet.create({
     color: colors.textSecondary,
   } as TextStyle,
 
-  selectedOption: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  } as ViewStyle,
-
   selectedText: {
     color: colors.white,
     fontWeight: typography.weight.semibold,
   } as TextStyle,
 
-  // Specific option types
-  priceOption: {
-    margin: 4,
-    paddingHorizontal: 16,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-    minWidth: 50,
-    alignItems: 'center',
-  } as ViewStyle,
-
-  priceText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-    color: colors.textSecondary,
+  disabledOptionText: {
+    color: colors.darkDragHandle,
   } as TextStyle,
 
   cuisineOption: {
@@ -706,9 +1603,9 @@ export const modals = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
-    backgroundColor: '#4A4A4A',
+    backgroundColor: colors.darkQuaternary,
     borderWidth: 1,
-    borderColor: '#666666',
+    borderColor: colors.textSecondary,
   } as ViewStyle,
 
   cuisineText: {
@@ -716,48 +1613,44 @@ export const modals = StyleSheet.create({
     color: colors.textSecondary,
   } as TextStyle,
 
-  dietOption: {
+  // Price slider
+  priceSliderContainer: {
+    marginVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+  } as ViewStyle,
+
+  priceSliderLabels: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    marginHorizontal: 4,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.backgroundSecondary,
-    minWidth: 100,
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   } as ViewStyle,
 
-  dietIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  } as TextStyle,
-
-  dietText: {
+  priceSliderLabel: {
     fontSize: typography.size.sm,
+    color: colors.textSecondary,
     fontWeight: typography.weight.medium,
   } as TextStyle,
 
-  calorieToggle: {
-    padding: spacing.md,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.backgroundSecondary,
-    marginRight: spacing.sm,
-    minWidth: 80,
-    alignItems: 'center',
+  priceSliderTrack: {
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    position: 'relative',
   } as ViewStyle,
 
-  calorieOption: {
-    padding: spacing.sm,
-    borderRadius: 6,
-    backgroundColor: colors.backgroundSecondary,
-    marginHorizontal: 4,
-    minWidth: 60,
-    alignItems: 'center',
+  priceSliderThumb: {
+    width: 20,
+    height: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    position: 'absolute',
+    top: -7,
   } as ViewStyle,
 
-  calorieText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-  } as TextStyle,
+  // View mode toggle container
+  viewModeToggleContainer: {
+    marginVertical: 16,
+  } as ViewStyle,
 
   // Preset and action buttons
   presetButton: {
@@ -809,224 +1702,110 @@ export const modals = StyleSheet.create({
     fontWeight: typography.weight.semibold,
   } as TextStyle,
 
-  // Price slider styles
-  priceSliderContainer: {
-    marginVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-  } as ViewStyle,
-
-  priceSliderLabels: {
+  // Diet and calorie options
+  dietOption: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  } as ViewStyle,
-
-  priceSliderLabel: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-    fontWeight: typography.weight.medium,
-  } as TextStyle,
-
-  priceSliderTrack: {
-    height: 6,
-    backgroundColor: colors.border,
-    borderRadius: 3,
-    position: 'relative',
-  } as ViewStyle,
-
-  priceSliderThumb: {
-    width: 20,
-    height: 20,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    position: 'absolute',
-    top: -7,
-  } as ViewStyle,
-
-  // Tab container styles
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#2A2A2A',
-    borderRadius: borderRadius.md,
-    padding: 2,
-    marginVertical: spacing.sm,
-  } as ViewStyle,
-
-  tab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: borderRadius.sm,
     alignItems: 'center',
-    backgroundColor: '#4A4A4A',
+    padding: spacing.sm,
+    marginHorizontal: 4,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    minWidth: 100,
   } as ViewStyle,
 
-  selectedTab: {
-    backgroundColor: '#FF9800',
-  } as ViewStyle,
+  dietIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  } as TextStyle,
 
-  tabText: {
+  dietText: {
     fontSize: typography.size.sm,
-    color: colors.textSecondary,
     fontWeight: typography.weight.medium,
   } as TextStyle,
 
-  selectedTabText: {
-    color: colors.white,
+  calorieToggle: {
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    marginRight: spacing.sm,
+    minWidth: 80,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  calorieOption: {
+    padding: spacing.sm,
+    borderRadius: 6,
+    backgroundColor: colors.backgroundSecondary,
+    marginHorizontal: 4,
+    minWidth: 60,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  calorieText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+  } as TextStyle,
+
+  // Price option styles
+  priceOption: {
+    margin: 4,
+    paddingHorizontal: 16,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minWidth: 50,
+    alignItems: 'center',
+  } as ViewStyle,
+
+  priceText: {
+    fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
+    color: colors.textSecondary,
   } as TextStyle,
-
-  // Multi-option styles
-  multiOptionContainer: {
-    marginTop: spacing.sm,
-  } as ViewStyle,
-
-  // Dark theme overrides
-  darkContainer: {
-    backgroundColor: '#1A1A1A',
-  } as ViewStyle,
-
-  darkTitle: {
-    color: '#E0E0E0',
-  } as TextStyle,
-
-  darkSectionTitle: {
-    color: '#E0E0E0',
-  } as TextStyle,
-
-  darkTabText: {
-    color: '#E0E0E0',
-  } as TextStyle,
-
-  darkOptionText: {
-    color: '#E0E0E0',
-  } as TextStyle,
-
-  darkCuisineText: {
-    color: '#E0E0E0',
-  } as TextStyle,
-
-  darkClearText: {
-    color: '#E0E0E0',
-  } as TextStyle,
-
-  darkApplyText: {
-    color: '#FFFFFF',
-  } as TextStyle,
-
-  darkPriceLabel: {
-    color: '#CCCCCC',
-  } as TextStyle,
-
-  disabledOptionText: {
-    color: '#666',
-  } as TextStyle,
-
-  viewModeToggleContainer: {
-    marginVertical: 16,
-  } as ViewStyle,
 });
 
-/**
- * Floating Action Button (FAB) styles
- */
 export const fabs = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 100,
-    right: spacing.lg,
-    zIndex: 1000,
+    ...atomic.absolute,
+    bottom: 20,
+    right: 20,
   } as ViewStyle,
-
   fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.lg,
+    ...atomic.center,
+    ...createShadow(8),
   } as ViewStyle,
-
-  fabActive: {
-    backgroundColor: colors.primaryDark,
-    transform: [{ scale: 1.1 }],
-  } as ViewStyle,
-
-  fabIcon: {
-    fontSize: 24,
-  } as TextStyle,
-
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: colors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.white,
-  } as ViewStyle,
-
-  badgeText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: typography.weight.bold,
-  } as TextStyle,
+  fabIcon: { fontSize: 24, color: colors.white } as TextStyle,
 });
 
-/**
- * Map-specific component styles
- */
 export const mapComponentStyles = StyleSheet.create({
-  // Map container
-  map: {
-    flex: 1,
+  container: atomic.flex1 as ViewStyle,
+  map: atomic.flex1 as ViewStyle,
+  overlay: {
+    ...atomic.absolute,
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.md,
   } as ViewStyle,
-
-  // Filter FAB (specific positioning)
-  filterFAB: {
-    position: 'absolute',
-    bottom: 100,
-    right: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.lg,
-  } as ViewStyle,
-
-  filterFABIcon: {
-    fontSize: 24,
-  } as TextStyle,
-
-  filterBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: colors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.white,
-  } as ViewStyle,
-
-  filterBadgeText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: typography.weight.bold,
-  } as TextStyle,
 });
 
-// Export all style collections
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+// Switch configuration (non-style export)
+export const switchConfig = {
+  trackColor: { false: colors.gray200, true: colors.primary },
+  thumbColor: colors.white,
+  ios_backgroundColor: colors.gray200,
+};
+
 export const commonStyles = {
   containers,
   headers,
@@ -1042,8 +1821,13 @@ export const commonStyles = {
   modals,
   fabs,
   mapComponentStyles,
+  modalScreenStyles,
+  mapFooterStyles,
+  viewModeToggleStyles,
+  drawerFiltersStyles,
+  filterComponentsStyles,
+  filterFABStyles,
+  floatingMenuStyles,
 };
-
-export { switchConfig };
 
 export default commonStyles;

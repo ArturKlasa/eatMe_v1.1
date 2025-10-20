@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, PanResponder, Animated } from 'reac
 import { DrawerFilters } from '../components/DrawerFilters';
 import type { FiltersScreenProps } from '@/types/navigation';
 import { useFocusEffect } from '@react-navigation/native';
+import { modalScreenStyles } from '@/styles';
 
 /**
  * FiltersScreen Component - Permanent Filters
@@ -64,49 +65,22 @@ export const FiltersScreen: React.FC<FiltersScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose} />
+    <View style={modalScreenStyles.container}>
+      <TouchableOpacity style={modalScreenStyles.overlay} activeOpacity={1} onPress={handleClose} />
       <Animated.View
         style={[
-          styles.modalContainer,
+          modalScreenStyles.modalContainer,
           {
             transform: [{ translateY }],
           },
         ]}
         {...panResponder.panHandlers}
       >
-        <View style={styles.dragHandle} />
+        <View style={modalScreenStyles.dragHandle} />
         <DrawerFilters onClose={handleClose} onScroll={handleScroll} />
       </Animated.View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  overlay: {
-    flex: 1,
-  },
-  modalContainer: {
-    height: '100%',
-    backgroundColor: '#1A1A1A',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  dragHandle: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#666',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-});
 
 export default FiltersScreen;

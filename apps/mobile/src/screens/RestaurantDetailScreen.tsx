@@ -54,27 +54,24 @@ export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
   const paymentNote = getPaymentNote();
 
-  // Generate restaurant tags based on menu content and features
-  const getRestaurantTags = () => {
-    const tags: string[] = [];
+  // Generate restaurant dietary info text
+  const getDietaryInfo = () => {
+    const info: string[] = [];
 
     // Check if restaurant has vegetarian options
     const hasVegetarian = restaurant.menu.some(category =>
       category.items.some(item => item.isVegetarian)
     );
-    if (hasVegetarian) tags.push('Vegetarian options');
+    if (hasVegetarian) info.push('Vegetarian options');
 
     // Check if restaurant has vegan options
     const hasVegan = restaurant.menu.some(category => category.items.some(item => item.isVegan));
-    if (hasVegan) tags.push('Vegan options');
+    if (hasVegan) info.push('Vegan options');
 
-    // Add cuisine type
-    tags.push(restaurant.cuisine);
-
-    return tags;
+    return info.join(' • ');
   };
 
-  const restaurantTags = getRestaurantTags();
+  const dietaryInfo = getDietaryInfo();
 
   const renderMenuItem = (item: MenuItem) => (
     <View key={item.id} style={styles.menuItem}>
@@ -107,14 +104,11 @@ export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) =
             </View>
           </View>
 
-          {/* Restaurant Tags */}
-          <View style={styles.tagsContainer}>
-            {restaurantTags.map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
+          {/* Cuisine Type */}
+          <Text style={styles.cuisineText}>{restaurant.cuisine}</Text>
+
+          {/* Dietary Info */}
+          {dietaryInfo && <Text style={styles.dietaryInfoText}>{dietaryInfo}</Text>}
 
           {/* Opening Hours and Payment Row */}
           <View style={styles.hoursPaymentRow}>
@@ -221,6 +215,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  cuisineText: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 4,
+  },
+  dietaryInfoText: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 4,
   },
   tagsContainer: {
     flexDirection: 'row',

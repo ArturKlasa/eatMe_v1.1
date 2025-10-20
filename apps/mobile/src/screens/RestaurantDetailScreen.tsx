@@ -54,6 +54,28 @@ export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
   const paymentNote = getPaymentNote();
 
+  // Generate restaurant tags based on menu content and features
+  const getRestaurantTags = () => {
+    const tags: string[] = [];
+
+    // Check if restaurant has vegetarian options
+    const hasVegetarian = restaurant.menu.some(category =>
+      category.items.some(item => item.isVegetarian)
+    );
+    if (hasVegetarian) tags.push('Vegetarian options');
+
+    // Check if restaurant has vegan options
+    const hasVegan = restaurant.menu.some(category => category.items.some(item => item.isVegan));
+    if (hasVegan) tags.push('Vegan options');
+
+    // Add cuisine type
+    tags.push(restaurant.cuisine);
+
+    return tags;
+  };
+
+  const restaurantTags = getRestaurantTags();
+
   const renderMenuItem = (item: MenuItem) => (
     <View key={item.id} style={styles.menuItem}>
       <View style={styles.menuItemHeader}>
@@ -83,6 +105,15 @@ export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) =
                 ⭐ {restaurant.rating} ({restaurant.reviewCount})
               </Text>
             </View>
+          </View>
+
+          {/* Restaurant Tags */}
+          <View style={styles.tagsContainer}>
+            {restaurantTags.map((tag, index) => (
+              <View key={index} style={styles.tag}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
           </View>
 
           {/* Opening Hours and Payment Row */}
@@ -190,6 +221,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  tag: {
+    backgroundColor: '#2A2A2A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  tagText: {
+    fontSize: 12,
+    color: '#E0E0E0',
+    fontWeight: '500',
   },
   restaurantMeta: {
     flexDirection: 'row',

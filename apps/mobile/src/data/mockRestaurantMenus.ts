@@ -32,7 +32,6 @@ export interface DetailedRestaurant {
   cuisine: string;
   rating: number;
   reviewCount: number;
-  priceRange: '$' | '$$' | '$$$' | '$$$$';
   coordinates: [number, number];
   address: string;
   phone: string;
@@ -63,7 +62,6 @@ export const mockRestaurantMenus: { [key: string]: DetailedRestaurant } = {
     cuisine: 'Mexican',
     rating: 4.5,
     reviewCount: 342,
-    priceRange: '$$',
     coordinates: [-122.081, 37.424],
     address: '123 Main St, Palo Alto, CA',
     phone: '+1 650 123 4567',
@@ -263,7 +261,6 @@ export const mockRestaurantMenus: { [key: string]: DetailedRestaurant } = {
     cuisine: 'Contemporary Mexican',
     rating: 4.8,
     reviewCount: 892,
-    priceRange: '$$$$',
     coordinates: [-122.087, 37.42],
     address: '456 University Ave, Palo Alto, CA',
     phone: '+1 650 555 3507',
@@ -387,7 +384,6 @@ export const mockRestaurantMenus: { [key: string]: DetailedRestaurant } = {
     cuisine: 'Seafood',
     rating: 4.6,
     reviewCount: 567,
-    priceRange: '$$$',
     coordinates: [-122.079, 37.42],
     address: '789 Forest Ave, Palo Alto, CA',
     phone: '+1 650 514 9217',
@@ -485,7 +481,6 @@ export const mockRestaurantMenus: { [key: string]: DetailedRestaurant } = {
     cuisine: 'Italian',
     rating: 4.7,
     reviewCount: 428,
-    priceRange: '$$$',
     coordinates: [-122.083, 37.418],
     address: '321 California Ave, Palo Alto, CA',
     phone: '+1 650 533 7804',
@@ -645,7 +640,6 @@ export const mockRestaurantMenus: { [key: string]: DetailedRestaurant } = {
     cuisine: 'Contemporary Mexican',
     rating: 4.9,
     reviewCount: 756,
-    priceRange: '$$$$',
     coordinates: [-122.084, 37.422],
     address: '654 Middlefield Rd, Palo Alto, CA',
     phone: '+1 650 280 2680',

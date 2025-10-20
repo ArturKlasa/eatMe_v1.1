@@ -3,9 +3,16 @@
     "name": "mobile",
     "slug": "mobile",
     "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
     "android": {
       "package": "com.anonymous.mobile",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.anonymous.mobile",
@@ -21,6 +28,11 @@
           "locationAlwaysAndWhenInUsePermission": "Allow EatMe to use your location to discover nearby restaurants."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e58b678b-ccce-4ae8-a799-c15e13007040"
+      }
+    }
   }
 }

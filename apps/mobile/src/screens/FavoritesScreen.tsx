@@ -12,7 +12,7 @@ import { modalScreenStyles } from '@/styles';
  * Dark mode styling to match the app theme.
  * Supports swipe-down gesture to close.
  */
-export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) => {
+export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
 
@@ -122,6 +122,6 @@ export const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) 
       </Animated.View>
     </View>
   );
-};
+}
 
 export default FavoritesScreen;

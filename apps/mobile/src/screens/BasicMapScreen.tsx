@@ -28,7 +28,7 @@ import { FloatingMenu } from '../components/FloatingMenu';
  * Displays a Mapbox map centered on Mexico City with restaurant markers and user location.
  * Now refactored into smaller, focused components for better maintainability.
  */
-export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
+export function BasicMapScreen({ navigation }: MapScreenProps) {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
   debugLog('Loaded restaurants:', mockRestaurants.length);
 
@@ -256,6 +256,6 @@ export const BasicMapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
     </View>
   );
-};
+}
 
 export default BasicMapScreen;

@@ -18,7 +18,7 @@ import { modalScreenStyles } from '@/styles';
  * Placeholder screen for app settings and preferences.
  * Will be enhanced with actual settings functionality in later tasks.
  */
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
+export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [locationEnabled, setLocationEnabled] = React.useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
@@ -191,6 +191,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) =>
       </Animated.View>
     </View>
   );
-};
+}
 
 export default SettingsScreen;

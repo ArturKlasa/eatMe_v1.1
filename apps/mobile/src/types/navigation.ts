@@ -13,8 +13,8 @@ import type { DrawerScreenProps as RNDrawerScreenProps } from '@react-navigation
 export type RootStackParamList = {
   Map: undefined;
   Filters: undefined;
-  Favorites: undefined;
   Profile: undefined;
+  EatTogether: undefined;
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
   // Auth screens will be added here later
@@ -22,12 +22,12 @@ export type RootStackParamList = {
   SignUp?: undefined;
 };
 
-// Legacy Drawer Navigator type (kept for backward compatibility during transition)
+// Drawer Navigator type
 export type DrawerParamList = {
   Map: undefined;
   Filters: undefined;
-  Favorites: undefined;
   Profile: undefined;
+  EatTogether: undefined;
   Settings: undefined;
 };
 
@@ -44,11 +44,15 @@ export type DrawerScreenProps<T extends keyof DrawerParamList> = RNDrawerScreenP
 >;
 
 // Navigation prop types for screens
-export type MapScreenProps = RootStackScreenProps<'Map'>;
-export type FiltersScreenProps = RootStackScreenProps<'Filters'>;
-export type FavoritesScreenProps = RootStackScreenProps<'Favorites'>;
-export type ProfileScreenProps = RootStackScreenProps<'Profile'>;
-export type SettingsScreenProps = RootStackScreenProps<'Settings'>;
+// Using DrawerScreenProps since these screens are used in DrawerNavigator
+export type MapScreenProps = DrawerScreenProps<'Map'>;
+export type FiltersScreenProps = DrawerScreenProps<'Filters'>;
+export type ProfileScreenProps = DrawerScreenProps<'Profile'>;
+export type EatTogetherScreenProps = DrawerScreenProps<'EatTogether'>;
+export type SettingsScreenProps = DrawerScreenProps<'Settings'>;
+
+// Legacy type for backward compatibility
+export type FavoritesScreenProps = ProfileScreenProps;
 
 // Global navigation declaration for useNavigation hook
 declare global {

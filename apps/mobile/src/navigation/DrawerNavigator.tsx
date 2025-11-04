@@ -4,8 +4,8 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import {
   MapScreen,
   FiltersScreen,
-  FavoritesScreen,
   ProfileScreen,
+  EatTogetherScreen,
   SettingsScreen,
 } from '@/screens';
 import type { DrawerParamList } from '@/types/navigation';
@@ -53,19 +53,19 @@ export const DrawerNavigator: React.FC = () => {
         }}
       />
       <Drawer.Screen
-        name="Favorites"
-        component={FavoritesScreen}
-        options={{
-          drawerLabel: 'Favorites',
-          drawerIcon: ({ color }) => <Text>❤️</Text>,
-        }}
-      />
-      <Drawer.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
           drawerLabel: 'Profile',
           drawerIcon: ({ color }) => <Text>👤</Text>,
+        }}
+      />
+      <Drawer.Screen
+        name="EatTogether"
+        component={EatTogetherScreen}
+        options={{
+          drawerLabel: 'Eat together',
+          drawerIcon: ({ color }) => <Text>�</Text>,
         }}
       />
       <Drawer.Screen

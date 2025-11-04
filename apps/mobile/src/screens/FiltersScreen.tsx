@@ -10,7 +10,7 @@ import { modalScreenStyles } from '@/styles';
  * Modal-style view similar to Daily Filters but taking more space (90% of screen)
  * Supports swipe-down gesture to close
  */
-export const FiltersScreen: React.FC<FiltersScreenProps> = ({ navigation }) => {
+export function FiltersScreen({ navigation }: FiltersScreenProps) {
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
 
@@ -81,6 +81,6 @@ export const FiltersScreen: React.FC<FiltersScreenProps> = ({ navigation }) => {
       </Animated.View>
     </View>
   );
-};
+}
 
 export default FiltersScreen;

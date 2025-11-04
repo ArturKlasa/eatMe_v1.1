@@ -10,7 +10,7 @@ import { modalScreenStyles } from '@/styles';
  * Placeholder screen for user profile and preferences.
  * Will be enhanced with authentication integration in later tasks.
  */
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
+export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
 
@@ -146,6 +146,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       </Animated.View>
     </View>
   );
-};
+}
 
 export default ProfileScreen;

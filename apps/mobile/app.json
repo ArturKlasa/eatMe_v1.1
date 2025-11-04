@@ -27,6 +27,12 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow EatMe to use your location to discover nearby restaurants."
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiYWtsYXNhIiwiYSI6ImNtZzMxNzdueTBldmMybHB1aHhwa3o4eGYifQ.AeDOBIHaWjsvAh4BqDw6Rg"
+        }
       ]
     ],
     "extra": {

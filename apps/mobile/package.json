@@ -2,6 +2,13 @@
   "name": "mobile",
   "version": "1.0.0",
   "main": "index.js",
+  "react-native": {
+    "codegenConfig": {
+      "name": "AppSpecs",
+      "type": "all",
+      "jsSrcsDir": "./"
+    }
+  },
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
@@ -25,10 +32,13 @@
     "react-native-safe-area-context": "^5.6.1",
     "react-native-screens": "^4.16.0",
     "react-native-slider": "^0.11.0",
+    "react-native-worklets": "^0.6.1",
+    "react-native-worklets-core": "^1.6.2",
     "zustand": "^5.0.8"
   },
   "private": true,
   "devDependencies": {
+    "@react-native-community/cli": "^20.0.2",
     "@types/node": "^22.15.3",
     "@types/react": "19.1.17",
     "babel-preset-expo": "^54.0.4",

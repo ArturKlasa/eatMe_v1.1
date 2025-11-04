@@ -30,4 +30,5 @@ export {
   filterFABStyles,
   floatingMenuStyles,
 } from './common';
+export { restaurantDetailStyles } from './restaurantDetail';
 export type { Theme, Colors, Typography, Spacing } from './theme';

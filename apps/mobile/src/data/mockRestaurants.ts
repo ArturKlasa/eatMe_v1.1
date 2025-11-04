@@ -28,10 +28,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Mexican',
     rating: 4.5,
     priceRange: '$$',
-    coordinates: [-122.081, 37.424], // North of center
-    address: '123 Main St, Palo Alto, CA',
-    phone: '+1 650 123 4567',
-    description: 'Authentic Mexican cuisine in the heart of Silicon Valley',
+    coordinates: [-99.184, 19.435], // North of Anzures
+    address: 'Av. Ejército Nacional 843, Anzures, 11590 Ciudad de México, CDMX',
+    phone: '+52 55 5203 4567',
+    description: 'Authentic Mexican pozole and traditional cuisine',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
     openingHours: {
@@ -45,10 +45,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Contemporary Mexican',
     rating: 4.8,
     priceRange: '$$$$',
-    coordinates: [-122.087, 37.42], // West of center
-    address: '456 University Ave, Palo Alto, CA',
-    phone: '+1 650 555 3507',
-    description: 'World-renowned contemporary Mexican restaurant',
+    coordinates: [-99.188, 19.431], // West of Anzures
+    address: 'Tennyson 133, Polanco, 11560 Ciudad de México, CDMX',
+    phone: '+52 55 5545 3507',
+    description: 'World-renowned contemporary Mexican restaurant by chef Enrique Olvera',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
     openingHours: {
@@ -62,10 +62,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Seafood',
     rating: 4.6,
     priceRange: '$$$',
-    coordinates: [-122.079, 37.42], // East of center
-    address: '789 Forest Ave, Palo Alto, CA',
-    phone: '+1 650 514 9217',
-    description: 'Fresh seafood and vibrant atmosphere',
+    coordinates: [-99.182, 19.433], // East of Anzures
+    address: 'Durango 200, Roma Nte., 06700 Ciudad de México, CDMX',
+    phone: '+52 55 5514 9217',
+    description: 'Fresh seafood and vibrant atmosphere, famous for tuna tostadas',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: false,
     openingHours: {
@@ -79,10 +79,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Italian',
     rating: 4.7,
     priceRange: '$$$',
-    coordinates: [-122.083, 37.418], // South of center
-    address: '321 California Ave, Palo Alto, CA',
-    phone: '+1 650 533 7804',
-    description: 'Elegant Italian dining in a beautiful setting',
+    coordinates: [-99.185, 19.43], // South of Anzures
+    address: 'Colima 166, Roma Nte., 06700 Ciudad de México, CDMX',
+    phone: '+52 55 5533 7804',
+    description: 'Elegant Italian dining in a beautiful colonial mansion',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
     openingHours: {
@@ -96,10 +96,10 @@ export const mockRestaurants: Restaurant[] = [
     cuisine: 'Contemporary Mexican',
     rating: 4.9,
     priceRange: '$$$$',
-    coordinates: [-122.084, 37.422], // Center (near user location)
-    address: '654 Middlefield Rd, Palo Alto, CA',
-    phone: '+1 650 280 2680',
-    description: 'Innovative Mexican cuisine with local ingredients',
+    coordinates: [-99.185, 19.4326], // Center of Anzures
+    address: 'Av. Isaac Newton 55, Polanco, 11560 Ciudad de México, CDMX',
+    phone: '+52 55 5280 2680',
+    description: 'Innovative Mexican cuisine with seasonal local ingredients',
     imageUrl: 'https://via.placeholder.com/300x200',
     isOpen: true,
     openingHours: {

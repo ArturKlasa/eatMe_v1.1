@@ -188,7 +188,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         >
           <View style={styles.optionsMenu}>
             <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('address')}>
-              <Text style={styles.optionIcon}>📍</Text>
               <Text style={styles.optionText}>Address</Text>
             </TouchableOpacity>
 
@@ -196,22 +195,18 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               style={styles.optionItem}
               onPress={() => handleMenuOption('favorites')}
             >
-              <Text style={styles.optionIcon}>❤️</Text>
               <Text style={styles.optionText}>Add to favorites</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('review')}>
-              <Text style={styles.optionIcon}>⭐</Text>
               <Text style={styles.optionText}>Add review</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('share')}>
-              <Text style={styles.optionIcon}>📤</Text>
               <Text style={styles.optionText}>Share</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('call')}>
-              <Text style={styles.optionIcon}>📞</Text>
               <Text style={styles.optionText}>Call</Text>
             </TouchableOpacity>
 
@@ -219,8 +214,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               style={[styles.optionItem, styles.optionItemLast]}
               onPress={() => handleMenuOption('report')}
             >
-              <Text style={styles.optionIcon}>⚠️</Text>
-              <Text style={styles.optionText}>Misleading info report</Text>
+              <Text style={styles.optionText}>Report misleading info</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

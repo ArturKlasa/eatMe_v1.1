@@ -163,14 +163,13 @@ export const restaurantDetailStyles = StyleSheet.create({
   optionsMenu: {
     backgroundColor: colors.darkSecondary,
     borderRadius: borderRadius.md,
-    minWidth: 198,
     ...shadows.lg,
   },
   optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.darkTertiary,
   },
@@ -184,7 +183,7 @@ export const restaurantDetailStyles = StyleSheet.create({
     textAlign: 'center',
   },
   optionText: {
-    fontSize: 13.5,
+    fontSize: typography.size.base,
     color: colors.darkText,
     fontWeight: typography.weight.medium,
   },

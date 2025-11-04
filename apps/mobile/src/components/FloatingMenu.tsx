@@ -1,7 +1,10 @@
 /**
- * Floating Menu Component
- *
- * Displays menu options next to the FAB button when opened.
+ * Floating Menu Componeconst menuItems: MenuItem[] = [
+  { id: 'filters', label: 'Personal filters', icon: '🥢', screen: 'Filters' },
+  { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
+  { id: 'eatTogether', label: 'Eat together', icon: '🍲', screen: 'EatTogether' },
+  { id: 'settings', label: 'Settings', icon: '⚙️', screen: 'Settings' },
+]; * Displays menu options next to the FAB button when opened.
  * Replaces the drawer navigation with a compact floating menu.
  */
 
@@ -28,8 +31,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { id: 'filters', label: 'Personal filters', icon: '🥢', screen: 'Filters' },
-  { id: 'favorites', label: 'Favorites', icon: '❤️', screen: 'Favorites' },
   { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
+  { id: 'eatTogether', label: 'Eat together', icon: '🍲', screen: 'EatTogether' },
   { id: 'settings', label: 'Settings', icon: '⚙️', screen: 'Settings' },
 ];
 

@@ -55,7 +55,7 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
     'Group voting for restaurant selection',
     'Coordinate meeting times and locations',
     'Split the bill with friends',
-    'View friends\' favorite restaurants',
+    "View friends' favorite restaurants",
   ];
 
   return (
@@ -114,21 +114,15 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
             <View style={modalScreenStyles.sectionContent}>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>1.</Text>
-                <Text style={modalScreenStyles.featureText}>
-                  Create or join a dining group
-                </Text>
+                <Text style={modalScreenStyles.featureText}>Create or join a dining group</Text>
               </View>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>2.</Text>
-                <Text style={modalScreenStyles.featureText}>
-                  Share preferences and suggestions
-                </Text>
+                <Text style={modalScreenStyles.featureText}>Share preferences and suggestions</Text>
               </View>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>3.</Text>
-                <Text style={modalScreenStyles.featureText}>
-                  Vote on restaurants together
-                </Text>
+                <Text style={modalScreenStyles.featureText}>Vote on restaurants together</Text>
               </View>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>4.</Text>

@@ -6,6 +6,7 @@ import {
   FiltersScreen,
   FavoritesScreen,
   ProfileScreen,
+  EatTogetherScreen,
   SettingsScreen,
 } from '@/screens';
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
@@ -48,6 +49,14 @@ export const RootNavigator: React.FC = () => {
         <RootStack.Screen
           name="Profile"
           component={ProfileScreen}
+          options={{
+            presentation: 'transparentModal',
+            cardStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <RootStack.Screen
+          name="EatTogether"
+          component={EatTogetherScreen}
           options={{
             presentation: 'transparentModal',
             cardStyle: { backgroundColor: 'transparent' },

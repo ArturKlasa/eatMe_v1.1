@@ -12,7 +12,7 @@ import { getRestaurantMenu, type MenuItem } from '../data/mockRestaurantMenus';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
-export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { restaurantId } = route.params;
   const restaurant = getRestaurantMenu(restaurantId);
   const [showFullWeekHours, setShowFullWeekHours] = useState(false);
@@ -161,7 +161,7 @@ export const RestaurantDetailScreen: React.FC<Props> = ({ route, navigation }) =
       </ScrollView>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {

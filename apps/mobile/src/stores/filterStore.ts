@@ -21,6 +21,9 @@ export interface DailyFilters {
   // Cuisine types selection (multiple choice)
   cuisineTypes: string[];
 
+  // Meal/dish selection (multiple choice)
+  meals: string[];
+
   // Diet preference (single choice: all, vegetarian, vegan)
   dietPreference: 'all' | 'vegetarian' | 'vegan';
 
@@ -145,6 +148,8 @@ interface FilterActions {
   setDailyPriceRange: (min: number, max: number) => void;
   toggleDailyCuisine: (cuisine: string) => void;
   setDailyCuisines: (cuisines: string[]) => void;
+  toggleDailyMeal: (meal: string) => void;
+  setDailyMeals: (meals: string[]) => void;
   setDietPreference: (preference: DailyFilters['dietPreference']) => void;
   toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => void;
   setSpiceLevel: (level: DailyFilters['spiceLevel']) => void;
@@ -201,6 +206,7 @@ const defaultDailyFilters: DailyFilters = {
     max: 4,
   },
   cuisineTypes: [],
+  meals: [],
   dietPreference: 'all',
   proteinTypes: {
     meat: false,
@@ -369,6 +375,30 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       daily: {
         ...state.daily,
         cuisineTypes: cuisines,
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  toggleDailyMeal: (meal: string) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        meals: state.daily.meals.includes(meal)
+          ? state.daily.meals.filter(m => m !== meal)
+          : [...state.daily.meals, meal],
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  setDailyMeals: (meals: string[]) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        meals: meals,
       },
       activePreset: null,
     }));
@@ -748,6 +778,11 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check cuisines
     if (state.daily.cuisineTypes.length > 0) {
+      count++;
+    }
+
+    // Check meals
+    if (state.daily.meals.length > 0) {
       count++;
     }
 

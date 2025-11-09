@@ -32,7 +32,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
     setSpiceLevel,
     setHungerLevel,
   } = useFilterStore();
-  
+
   const [mealModalVisible, setMealModalVisible] = React.useState(false);
 
   // Helper function to check if protein options should be disabled
@@ -92,10 +92,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
           {/* View Mode Toggle */}
           <ViewModeToggle style={modals.viewModeToggleContainer} />
 
-          <ScrollView 
-            style={modals.content} 
+          <ScrollView
+            style={modals.content}
             contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false} 
+            showsVerticalScrollIndicator={false}
             bounces={false}
           >
             {/* 1. Price Range Section - Slider */}
@@ -371,7 +371,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
 /**
  * Meal Selection Modal Component
- * 
+ *
  * A modal for selecting additional meal/dish types beyond the popular options
  */
 interface MealSelectionModalProps {
@@ -451,12 +451,7 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
   onToggleMeal,
 }) => {
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={modals.overlay}>
         <View style={[modals.container, modals.darkContainer, { maxHeight: '80%' }]}>
           <View style={modals.header}>

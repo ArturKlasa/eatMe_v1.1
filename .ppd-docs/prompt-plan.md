@@ -9,9 +9,12 @@ Each phase includes clear validation points.
 
 ## Current Strategy Snapshot
 
-- Focus: Mobile app UX validation with mock data before backend spend.
-- Why: Core value is map-first navigation and quick dish discovery.
-- Backend readiness: Supabase planned; integrate only after UX validated.
+- **Primary Focus**: Restaurant Partner Portal (web app) for data collection and validation
+- **Why Portal First**: Validate database schema with real restaurant data before backend costs
+- **Mobile App**: Continue UX development with mock data (59% complete, Phase 1)
+- **Database Status**: ✅ Schema complete, migrations ready, Supabase client implemented
+- **Backend Integration**: Postponed until after portal collects real-world data
+- **Next Steps**: Build web portal (Phase 2), then integrate backend with validated data (Phase 3)
 
 ## 📈 Phase 1 Progress Status (Updated: September 29, 2025)
 
@@ -198,25 +201,177 @@ Each phase includes clear validation points.
 
 ---
 
-## Phase 2: Backend Integration (Supabase) (~15-20h)
+## Phase 2: Restaurant Partner Portal (~15-20h)
 
-**Goal:** Replace mock data with real backend and implement core user features.
+**Goal:** Build web application for restaurants to enter data, validating our database schema before backend implementation.
 
-### 2.1 Supabase Setup & Configuration (~4h)
+**Status**: 🎯 **CURRENT PRIORITY** - Database schema ready, portal design documented
+
+**Reference**: See `/docs/restaurant-partner-portal.md` for complete implementation plan
+
+### Why This Phase Comes Before Backend Integration
+
+1. **Data Validation**: Test database schema with real restaurant information
+2. **Zero Cost**: No backend infrastructure needed during data collection
+3. **Schema Refinement**: Identify missing/unnecessary fields before committing to backend
+4. **Sales Tool**: Functional demo to attract restaurant partners
+5. **Real Data**: Collect structured data ready for Supabase import
+
+### 2.1 Portal Foundation (~6h)
+
+- [ ] Next.js project setup in monorepo (~1h)
+  - Create `/apps/web-portal` with Next.js 14 (App Router)
+  - Configure TypeScript, ESLint, Tailwind CSS
+  - Install Shadcn/ui and initialize component library
+  - Set up project structure (app/, components/, lib/, types/)
+- [ ] Core dependencies installation (~0.5h)
+  - Install React Hook Form + Zod for form validation
+  - Add Mapbox GL JS for location/address selection
+  - Install date-fns, clsx for utilities
+  - Configure environment variables
+- [ ] Landing page (~2h)
+  - Create welcoming landing page with portal overview
+  - Add "Get Started" CTA and feature highlights
+  - List required information and estimated time (15-20 min)
+  - Design mobile-responsive layout
+- [ ] LocalStorage service (~1h)
+  - Implement data persistence layer using browser LocalStorage
+  - Create save/load/clear utilities
+  - Add auto-save functionality with debouncing
+  - Handle data migration and versioning
+- [ ] Shadcn components setup (~1.5h)
+  - Install required UI components (button, input, form, card, etc.)
+  - Configure theme and design tokens
+  - Create custom component wrappers as needed
+  - Test component styling and interactions
+
+### 2.2 Multi-Step Wizard (~8h)
+
+- [ ] Wizard navigation framework (~2h)
+  - Create wizard layout with step indicator
+  - Implement progress bar component
+  - Add next/back navigation with validation
+  - Handle step transitions and state management
+- [ ] Step 1: Basic Information form (~2h)
+  - Restaurant name, description fields
+  - Address input with Mapbox geocoding
+  - Phone, website, price range selectors
+  - Multi-select cuisines from master list
+  - Form validation with Zod schemas
+- [ ] Step 2: Operations form (~1.5h)
+  - Operating hours selector (per day of week)
+  - Delivery/takeout/dine-in toggles
+  - Average prep time input
+  - Accepts reservations toggle
+- [ ] Step 3: Menu entry form (~2h)
+  - Repeatable dish form (add/remove dishes)
+  - Dish fields: name, description, price
+  - Dietary tags multi-select
+  - Allergens multi-select
+  - Ingredients input (comma-separated)
+  - Photo upload with preview (optional)
+  - Bulk CSV import option
+- [ ] Step 4: Review & export (~0.5h)
+  - Display all entered data in organized layout
+  - Edit links back to specific steps
+  - Export JSON button (matches database schema)
+  - Export CSV button for menu items
+  - Clear form / start new restaurant
+
+### 2.3 Data Export & Integration (~3h)
+
+- [ ] JSON export functionality (~1h)
+  - Generate JSON matching Supabase schema structure
+  - Include proper data types and validation
+  - Handle image data (base64 or URLs)
+  - Add metadata (export date, version)
+- [ ] CSV export for menus (~1h)
+  - Create CSV template for menu items
+  - Generate downloadable CSV from form data
+  - Include all dish fields in proper format
+  - Add import instructions and validation rules
+- [ ] Data validation (~1h)
+  - Validate completeness before export
+  - Check required fields and data formats
+  - Show validation errors with specific feedback
+  - Add data quality scoring (optional)
+
+### 2.4 Polish & Documentation (~3h)
+
+- [ ] UI/UX refinements (~1h)
+  - Add loading states and skeleton screens
+  - Implement responsive design for mobile/tablet
+  - Add form field suggestions and autocomplete
+  - Improve error messages and help text
+- [ ] Restaurant partner documentation (~1h)
+  - Create user guide for portal usage
+  - Add FAQ section
+  - Provide CSV template and import instructions
+  - Include contact information for support
+- [ ] Testing and deployment (~1h)
+  - Test full flow on different devices/browsers
+  - Verify data export formats
+  - Deploy to Vercel (free tier)
+  - Set up custom domain (optional)
+
+**Deliverables:**
+
+- Fully functional web portal deployed on Vercel
+- JSON exports matching database schema
+- CSV templates for bulk menu import
+- User documentation for restaurant partners
+- 5-10 real restaurant data submissions
+
+**Cost:** $0 (Vercel free tier, no backend required)
+
+**Validation Criteria:**
+
+- Restaurant completes full form in <20 minutes
+- JSON export validates against database schema
+- No data loss with LocalStorage persistence
+- Mobile-responsive on phones and tablets
+- 90%+ data completeness on submissions
+- Friends/family can use without instruction
+
+---
+
+## Phase 3: Backend Integration (Supabase) (~10-15h)
+
+**Goal:** Connect mobile app and web portal to Supabase backend with real data.
+
+**Status**: Database schema complete ✅, ready for integration after Phase 2 data collection
+
+**Database Foundation Completed:**
+
+- ✅ Supabase schema designed (9 tables: profiles, restaurants, dishes, reviews, favorites, + master data)
+- ✅ SQL migration file created (`/infra/supabase/migrations/001_initial_schema.sql`)
+- ✅ Platform-agnostic Supabase client implemented (`/packages/database`)
+- ✅ TypeScript types scaffolded (ready for CLI generation)
+- ✅ PostGIS extension configured for geospatial queries
+- ✅ RLS policies defined for data security
+- ✅ Auto-allergen tagging system with triggers
+
+### 3.1 Supabase Project Setup (~3h)
 
 - [ ] Supabase project creation (~1h)
   - Create new Supabase project with appropriate region
   - Configure database settings and connection pooling
   - Set up environment variables for all environments (dev, staging, prod)
   - Test basic connection and authentication
-- [ ] Database schema implementation (~3h)
-  - Create core tables: users, profiles, restaurants, dishes, reviews, favorites
-  - Add PostGIS extension for geospatial queries and location indexing
-  - Set up Row Level Security (RLS) policies for data protection
-  - Create database indexes for performance (location, cuisine_types, price_level)
-  - Import master data tables (cuisines, allergens, dietary_tags)
+- [ ] Apply existing database migration (~1h)
+  - Run `/infra/supabase/migrations/001_initial_schema.sql` via Supabase Dashboard or CLI
+  - Verify all tables created successfully (9 tables)
+  - Confirm PostGIS extension enabled
+  - Test RLS policies and triggers
+  - Validate indexes created properly
+- [ ] Import portal data to database (~1h)
+  - Parse JSON exports from Restaurant Partner Portal (Phase 2)
+  - Bulk import restaurant data into `restaurants` table
+  - Import dish data with proper `restaurant_id` foreign keys
+  - Validate data integrity and relationships
+  - Generate sample user profiles for testing
 
-### 2.2 Authentication System (~4h)
+### 3.2 Authentication System (~4h)
 
 - [ ] Supabase Auth integration (~2h)
   - Install @supabase/supabase-js and configure client
@@ -229,24 +384,26 @@ Each phase includes clear validation points.
   - Integrate preference discovery swipe flow with user profiles
   - Handle authentication errors and edge cases
 
-### 2.3 Data Layer Implementation (~5h)
+### 3.3 Data Layer Implementation (~4h)
 
 - [ ] Repository pattern implementation (~2h)
+  - Implement repository interfaces from `/packages/database`
   - Create Supabase-backed repository implementations
   - Replace mock repositories with real data fetching from database
   - Implement proper error handling, retry logic, and loading states
   - Add data validation and sanitization
-- [ ] Real data population (~2h)
-  - Import comprehensive restaurant data into Supabase tables
-  - Add detailed dish information with ingredients and allergens
-  - Include proper geospatial coordinates for accurate mapping
-  - Add high-quality dish images to Supabase Storage
-- [ ] Performance optimization (~1h)
-  - Implement query optimization with proper indexing
+- [ ] TypeScript types generation (~0.5h)
+  - Run Supabase CLI: `supabase gen types typescript`
+  - Replace placeholder types in `/packages/database/src/types.ts`
+  - Update imports across mobile and web apps
+  - Verify type safety with strict TypeScript checks
+- [ ] Performance optimization (~1.5h)
+  - Test query performance with real data
   - Add caching layer for frequently accessed data
-  - Optimize image loading and storage access
+  - Optimize image loading from Supabase Storage
+  - Implement pagination for large result sets
 
-### 2.4 Core Features (~4h)
+### 3.4 Core Features (~4h)
 
 - [ ] Favorites system (~2h)
   - Implement add/remove favorites for dishes and restaurants
@@ -259,7 +416,7 @@ Each phase includes clear validation points.
   - Add review moderation and reporting functionality
   - Calculate and display average ratings for restaurants/dishes
 
-### 2.5 Advanced Features (~3h)
+### 3.5 Advanced Features (~3h)
 
 - [ ] Recommendation engine (~2h)
   - Implement server-side recommendation logic using Edge Functions
@@ -275,27 +432,29 @@ Each phase includes clear validation points.
 **Validation Criteria:**
 
 - Users can register, log in, and maintain authenticated sessions
-- Real restaurant data loads on map within 3 seconds
+- Real restaurant data (from Phase 2 portal) loads on map within 3 seconds
 - Favorites sync properly across app restarts and devices
 - Reviews submit successfully and display with proper formatting
 - No authentication errors or data inconsistencies
 - Recommendation accuracy improves with user interaction data
+- Portal data successfully migrated to database with 100% integrity
 
 **Cost Optimization:**
 
-- Use PostGIS indexes for efficient geospatial queries
+- Use PostGIS indexes for efficient geospatial queries (already configured)
 - Implement result pagination to reduce data transfer
 - Cache frequently accessed data locally and server-side
 - Monitor Supabase usage and optimize expensive queries
 - Use image optimization and CDN for faster loading
+- Stay within Supabase free tier limits (500MB storage, 50K MAU)
 
 ---
 
-## Phase 3: UX Iteration & Social Features (~12-15h)
+## Phase 4: UX Iteration & Social Features (~12-15h)
 
 **Goal:** Refine user experience and add core social functionality.
 
-### 3.1 User Feedback Integration (~4h)
+### 4.1 User Feedback Integration (~4h)
 
 - [ ] Usability testing sessions (~2h)
   - Conduct 8-10 user tests with target demographic
@@ -309,7 +468,7 @@ Each phase includes clear validation points.
   - Optimize swipe card design and onboarding instructions
   - Enhance information hierarchy and visual flow
 
-### 3.2 Advanced UI Components (~4h)
+### 4.2 Advanced UI Components (~4h)
 
 - [ ] Bottom sheet integration (~2h)
   - Add draggable recommendations panel below map
@@ -322,7 +481,7 @@ Each phase includes clear validation points.
   - Integrate search results with map updates and filtering
   - Add voice search capability for hands-free operation
 
-### 3.3 Social Features Foundation (~4h)
+### 4.3 Social Features Foundation (~4h)
 
 - [ ] Friend system (~2h)
   - Implement friend invite and connection system
@@ -335,7 +494,7 @@ Each phase includes clear validation points.
   - Add group recommendation display with compromise suggestions
   - Handle group session management and real-time updates
 
-### 3.4 Polish and Performance (~3h)
+### 4.4 Polish and Performance (~3h)
 
 - [ ] Visual refinements (~1h)
   - Apply consistent design system and color palette
@@ -360,11 +519,13 @@ Each phase includes clear validation points.
 - Accessibility score >95% in automated testing tools
 - No critical UX issues or confusing user flows remaining
 
-## Phase 4: Web Portal & Admin Tools (~15-20h)
+## Phase 5: Enhanced Partner Portal & Admin Tools (~12-15h)
 
-**Goal:** Enable restaurant partners and admins to manage content independently.
+**Goal:** Upgrade Partner Portal (from Phase 2) with authentication, database integration, and admin tools.
 
-### 4.1 Admin Portal Foundation (~6h)
+**Note:** This phase builds upon the LocalStorage-based portal from Phase 2, adding Supabase backend.
+
+### 5.1 Admin Portal Foundation (~6h)
 
 - [ ] Admin authentication and authorization (~2h)
   - Set up admin role management in Supabase with proper permissions
@@ -382,55 +543,49 @@ Each phase includes clear validation points.
   - Add advanced filtering, sorting, and data export
   - Create custom report generation with scheduling
 
-### 4.2 Restaurant Partner Portal (~8h)
+### 5.2 Partner Portal Backend Integration (~6h)
 
-- [ ] Restaurant onboarding (~3h)
-  - Create restaurant account registration and verification
-  - Build restaurant profile management with photos and descriptions
-  - Add business hours, contact information, and location management
-  - Implement restaurant verification process with documentation upload
-- [ ] Menu management system (~4h)
-  - Build comprehensive dish creation and editing interface
-  - Add bulk menu import from CSV/Excel with validation
-  - Implement photo upload and management with optimization
-  - Add detailed dietary tags, allergen information, and ingredients
-  - Create menu organization with categories and seasonal items
-- [ ] Daily operations (~1h)
-  - Create daily specials and limited-time offers management
-  - Add real-time menu item availability toggles
-  - Implement dynamic pricing and promotion tools
-  - Add staff management and role assignment
+- [ ] Authentication integration (~2h)
+  - Replace LocalStorage with Supabase authentication
+  - Implement restaurant owner account creation
+  - Add login/logout flows with session management
+  - Link portal submissions to authenticated users
+- [ ] Database persistence (~2h)
+  - Replace JSON export with direct Supabase saves
+  - Implement real-time sync between portal and database
+  - Add edit functionality for existing restaurant profiles
+  - Handle image uploads to Supabase Storage
+- [ ] Enhanced menu management (~2h)
+  - Enable editing of previously submitted menus
+  - Add menu versioning and change history
+  - Implement real-time availability toggles
+  - Create daily specials and promotions interface
 
-### 4.3 Integration and Deployment (~6h)
+### 5.3 Integration and Deployment (~3h)
 
-- [ ] API integration and real-time sync (~2h)
-  - Connect web portal to Supabase backend with proper authentication
-  - Implement real-time updates between mobile app and web portal
-  - Add comprehensive error handling and user feedback
-  - Test data consistency across platforms
-- [ ] Performance and optimization (~2h)
-  - Optimize bundle size and implement code splitting
-  - Add proper caching strategies for static and dynamic content
-  - Implement image optimization and lazy loading
-  - Add progressive web app (PWA) capabilities
-- [ ] Testing and deployment (~2h)
-  - Add comprehensive unit and integration testing
-  - Set up automated testing pipeline with GitHub Actions
-  - Configure Vercel deployment with environment management
-  - Add monitoring and error tracking for production
+- [ ] Testing and deployment (~1.5h)
+  - Test full flow with Supabase backend
+  - Verify data consistency between portal and mobile app
+  - Add error tracking and monitoring
+  - Redeploy to Vercel with environment variables
+- [ ] Migration utilities (~1.5h)
+  - Create scripts to migrate old JSON exports to database
+  - Build admin tools for bulk data import/export
+  - Add data validation and cleanup utilities
+  - Document migration process for existing partners
 
 **Validation Criteria:**
 
-- Restaurant partners can manage complete menus without developer help
-- Admin can moderate content and access analytics efficiently
-- Changes in web portal reflect in mobile app within 30 seconds
-- Web portal loads completely in <3 seconds on desktop
-- All admin tools work correctly with proper authorization
-- Restaurant verification process is streamlined and secure
+- Restaurant partners can create accounts and manage profiles independently
+- Changes in portal reflect in mobile app within 30 seconds
+- Admin can moderate and approve restaurant submissions
+- Image uploads work correctly with Supabase Storage
+- All existing JSON exports successfully migrated to database
+- Portal loads completely in <3 seconds on desktop
 
 ---
 
-## Phase 4: CI/CD & Scale
+## Phase 6: CI/CD & Scale (~10h)
 
 **Goal:** Automate and prepare for production.
 
@@ -444,9 +599,49 @@ Each phase includes clear validation points.
 
 ---
 
-## Future Phases (Post-Phase 4)
+## Future Phases (Post-Phase 6)
 
-- **Phase 5: Social Features** - Friend system, group dining, rewards program.
-- **Phase 6: Internationalization** - Multi-language support, traveler features.
-- **Phase 7: Advanced Features** - Daily menus, integrations, optimization.
-- **Phase 8: Launch Preparation** - Testing, security, app store submissions.
+- **Phase 7: Social Features** - Friend system, group dining, rewards program.
+- **Phase 8: Internationalization** - Multi-language support, traveler features.
+- **Phase 9: Advanced Features** - Daily menus, integrations, ML recommendations.
+- **Phase 10: Launch Preparation** - Testing, security, app store submissions.
+
+---
+
+## Key Documentation References
+
+- **Restaurant Partner Portal**: `/docs/restaurant-partner-portal.md` - Complete portal implementation plan
+- **Future Features**: `/docs/future-features.md` - Database fields and features deferred from MVP
+- **Database Schema**: `/infra/supabase/migrations/001_initial_schema.sql` - Complete SQL migration
+- **Database Package**: `/packages/database/` - Platform-agnostic Supabase client and types
+
+---
+
+## Strategic Decision Log
+
+### November 16, 2024: Pivot to Web Portal First
+
+**Decision:** Build Restaurant Partner Portal (Phase 2) before integrating backend (Phase 3)
+
+**Rationale:**
+
+1. Validate database schema with real restaurant data before infrastructure costs
+2. Collect structured data matching our schema design
+3. Zero-cost data collection phase (LocalStorage + Vercel free tier)
+4. Identify schema issues early (missing fields, wrong data types)
+5. Create sales/demo tool for restaurant acquisition
+
+**Impact on Timeline:**
+
+- Phase 2 (Backend) → Phase 3 (now 10-15h instead of 15-20h due to ready schema)
+- New Phase 2: Restaurant Portal (~15-20h)
+- Overall timeline: +15-20h, but reduces risk and validates approach
+- Database foundation already complete, reducing Phase 3 complexity
+
+**Completed Pre-work:**
+
+- ✅ Database schema designed and documented (9 tables)
+- ✅ SQL migrations created with PostGIS, RLS, triggers
+- ✅ Platform-agnostic Supabase client implemented
+- ✅ TypeScript types scaffolded
+- ✅ Future features documented for post-MVP phases

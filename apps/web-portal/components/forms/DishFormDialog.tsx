@@ -5,12 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
 import { Dish } from '@/types/restaurant';
 import { dishSchema, type DishFormData } from '@/lib/validation';
-import { DIETARY_TAGS, ALLERGENS } from '@/lib/constants';
+import { DIETARY_TAGS, ALLERGENS, SPICE_LEVELS, RELIGIOUS_REQUIREMENTS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
 
 interface DishFormDialogProps {
@@ -32,12 +33,14 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
     resolver: zodResolver(dishSchema),
     defaultValues: dish || {
       name: '',
-      description: '',
       price: 0,
+      calories: undefined,
       dietary_tags: [],
       allergens: [],
       ingredients: [],
+      spice_level: 0,
       photo_url: '',
+      is_available: true,
     },
   });
 
@@ -45,11 +48,14 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
   const dietaryTags = useWatch({ control, name: 'dietary_tags', defaultValue: [] }) || [];
   const allergens = useWatch({ control, name: 'allergens', defaultValue: [] }) || [];
   const ingredients = useWatch({ control, name: 'ingredients', defaultValue: [] }) || [];
+  const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 0 });
 
   const handleFormSubmit = (data: DishFormData) => {
     onSubmit({
       ...data,
       id: dish?.id,
+      // Convert NaN to undefined for optional number fields
+      calories: isNaN(data.calories as number) ? undefined : data.calories,
     });
     reset();
   };
@@ -61,13 +67,45 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
 
   const toggleDietaryTag = (tag: string) => {
     const current = dietaryTags;
-    if (current.includes(tag)) {
-      setValue(
-        'dietary_tags',
-        current.filter(t => t !== tag)
-      );
+
+    if (tag === 'vegan') {
+      if (current.includes('vegan')) {
+        // Unchecking vegan - remove it
+        setValue(
+          'dietary_tags',
+          current.filter(t => t !== 'vegan')
+        );
+      } else {
+        // Checking vegan - add both vegan and vegetarian
+        const newTags = [...current, 'vegan'];
+        if (!newTags.includes('vegetarian')) {
+          newTags.push('vegetarian');
+        }
+        setValue('dietary_tags', newTags);
+      }
+    } else if (tag === 'vegetarian') {
+      if (current.includes('vegetarian')) {
+        // Only allow unchecking vegetarian if vegan is not checked
+        if (!current.includes('vegan')) {
+          setValue(
+            'dietary_tags',
+            current.filter(t => t !== 'vegetarian')
+          );
+        }
+      } else {
+        // Checking vegetarian
+        setValue('dietary_tags', [...current, 'vegetarian']);
+      }
     } else {
-      setValue('dietary_tags', [...current, tag]);
+      // Handle other dietary tags normally
+      if (current.includes(tag)) {
+        setValue(
+          'dietary_tags',
+          current.filter(t => t !== tag)
+        );
+      } else {
+        setValue('dietary_tags', [...current, tag]);
+      }
     }
   };
 
@@ -96,118 +134,264 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{dish ? 'Edit Dish' : 'Add New Dish'}</DialogTitle>
+          <p className="text-sm text-gray-500">Information will be visible to customers</p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Name */}
-          <div>
-            <Label htmlFor="name">Dish Name *</Label>
-            <Input id="name" {...register('name')} placeholder="e.g., Margherita Pizza" />
-            {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>}
+          {/* Basic Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Basic Information</h3>
+
+            {/* Name */}
+            <div>
+              <Label htmlFor="name" className="mb-2 block">
+                Dish Name *
+              </Label>
+              <Input id="name" {...register('name')} placeholder="e.g., Margherita Pizza" />
+              {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>}
+            </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              {...register('description')}
-              placeholder="Describe the dish, its ingredients, and what makes it special..."
-              rows={3}
-            />
-            {errors.description && (
-              <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
-            )}
+          <Separator />
+
+          {/* Pricing & Nutrition Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Pricing & Nutrition</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Price */}
+              <div>
+                <Label htmlFor="price" className="mb-2 block">
+                  Price ($) *
+                </Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  {...register('price', { valueAsNumber: true })}
+                  placeholder="16.99"
+                />
+                {errors.price && (
+                  <p className="text-sm text-red-600 mt-1">{errors.price.message}</p>
+                )}
+              </div>
+
+              {/* Calories */}
+              <div>
+                <Label htmlFor="calories" className="mb-2 block">
+                  Calories (Optional)
+                </Label>
+                <Input
+                  id="calories"
+                  type="number"
+                  {...register('calories', { valueAsNumber: true })}
+                  placeholder="350"
+                />
+                {errors.calories && (
+                  <p className="text-sm text-red-600 mt-1">{errors.calories.message}</p>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Price */}
-          <div>
-            <Label htmlFor="price">Price ($) *</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              {...register('price', { valueAsNumber: true })}
-              placeholder="16.99"
-            />
-            {errors.price && <p className="text-sm text-red-600 mt-1">{errors.price.message}</p>}
-          </div>
+          <Separator />
 
-          {/* Ingredients */}
-          <div>
-            <Label htmlFor="ingredients">Ingredients (comma-separated) *</Label>
-            <Input
-              id="ingredients"
-              defaultValue={dish?.ingredients.join(', ') || ''}
-              onChange={e => handleIngredientsChange(e.target.value)}
-              placeholder="tomato, mozzarella, basil, olive oil, flour"
-            />
-            {ingredients.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {ingredients.map((ing, idx) => (
-                  <Badge key={idx} variant="secondary">
-                    {ing}
-                  </Badge>
+          {/* Spice Level Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Spice Level</h3>
+
+            <RadioGroup
+              value={spiceLevel?.toString() || '0'}
+              onValueChange={value => setValue('spice_level', value ? parseInt(value) : 0)}
+            >
+              <div className="grid grid-cols-2 gap-2">
+                {SPICE_LEVELS.map(level => (
+                  <div key={level.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={level.value.toString()} id={`spice-${level.value}`} />
+                    <Label
+                      htmlFor={`spice-${level.value}`}
+                      className="text-xs font-normal cursor-pointer flex flex-col items-center"
+                    >
+                      <span>{level.icon}</span>
+                      <span>{level.label}</span>
+                    </Label>
+                  </div>
                 ))}
               </div>
-            )}
-            {errors.ingredients && (
-              <p className="text-sm text-red-600 mt-1">{errors.ingredients.message}</p>
-            )}
+            </RadioGroup>
           </div>
 
-          {/* Dietary Tags */}
-          <div>
-            <Label>Dietary Tags</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-              {DIETARY_TAGS.map(tag => (
-                <div key={tag} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`dietary-${tag}`}
-                    checked={dietaryTags.includes(tag)}
-                    onCheckedChange={() => toggleDietaryTag(tag)}
-                  />
-                  <Label htmlFor={`dietary-${tag}`} className="text-sm font-normal cursor-pointer">
-                    {tag}
-                  </Label>
+          <Separator />
+
+          {/* Ingredients Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Ingredients</h3>
+
+            {/* Ingredients */}
+            <div>
+              <Label htmlFor="ingredients" className="mb-2 block">
+                Ingredients (comma-separated) *
+              </Label>
+              <Input
+                id="ingredients"
+                defaultValue={dish?.ingredients.join(', ') || ''}
+                onChange={e => handleIngredientsChange(e.target.value)}
+                placeholder="tomato, mozzarella, basil, olive oil, flour"
+              />
+              {ingredients.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {ingredients.map((ing, idx) => (
+                    <Badge key={idx} variant="secondary">
+                      {ing}
+                    </Badge>
+                  ))}
                 </div>
-              ))}
+              )}
+              {errors.ingredients && (
+                <p className="text-sm text-red-600 mt-1">{errors.ingredients.message}</p>
+              )}
             </div>
           </div>
 
-          {/* Allergens */}
-          <div>
-            <Label>Allergens</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-              {ALLERGENS.map(allergen => (
-                <div key={allergen} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`allergen-${allergen}`}
-                    checked={allergens.includes(allergen)}
-                    onCheckedChange={() => toggleAllergen(allergen)}
-                  />
-                  <Label
-                    htmlFor={`allergen-${allergen}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {allergen}
-                  </Label>
-                </div>
-              ))}
+          <Separator />
+
+          {/* Vegetarian/Vegan Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Vegetarian/Vegan</h3>
+
+            <div className="flex gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="vegetarian"
+                  checked={dietaryTags.includes('vegetarian')}
+                  onCheckedChange={() => toggleDietaryTag('vegetarian')}
+                />
+                <Label htmlFor="vegetarian" className="text-sm font-normal cursor-pointer">
+                  🥗 Vegetarian
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="vegan"
+                  checked={dietaryTags.includes('vegan')}
+                  onCheckedChange={() => toggleDietaryTag('vegan')}
+                />
+                <Label htmlFor="vegan" className="text-sm font-normal cursor-pointer">
+                  🌱 Vegan
+                </Label>
+              </div>
             </div>
           </div>
 
-          {/* Photo URL */}
-          <div>
-            <Label htmlFor="photo_url">Photo URL (optional)</Label>
-            <Input
-              id="photo_url"
-              {...register('photo_url')}
-              placeholder="https://example.com/photo.jpg"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Upload photos to a service like Imgur or use your own URL
-            </p>
+          <Separator />
+
+          {/* Allergens Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Allergens</h3>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-2">Mark allergens present in this dish</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {ALLERGENS.map(allergen => (
+                  <div key={allergen} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`allergen-${allergen}`}
+                      checked={allergens.includes(allergen)}
+                      onCheckedChange={() => toggleAllergen(allergen)}
+                    />
+                    <Label
+                      htmlFor={`allergen-${allergen}`}
+                      className="text-sm font-normal cursor-pointer capitalize"
+                    >
+                      {allergen}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Dietary Tags Section */}
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">Dietary Tags</Label>
+              <p className="text-xs text-gray-500 mb-2">Select all that apply</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {DIETARY_TAGS.filter(
+                  tag =>
+                    tag !== 'vegetarian' &&
+                    tag !== 'vegan' &&
+                    !(RELIGIOUS_REQUIREMENTS as readonly string[]).includes(tag)
+                ).map(tag => (
+                  <div key={tag} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`dietary-${tag}`}
+                      checked={dietaryTags.includes(tag)}
+                      onCheckedChange={() => toggleDietaryTag(tag)}
+                    />
+                    <Label
+                      htmlFor={`dietary-${tag}`}
+                      className="text-sm font-normal cursor-pointer capitalize"
+                    >
+                      {tag}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Religious Requirements Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Religious Requirements</h3>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-2">Select all that apply</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {RELIGIOUS_REQUIREMENTS.map(tag => (
+                  <div key={tag} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`religious-${tag}`}
+                      checked={dietaryTags.includes(tag)}
+                      onCheckedChange={() => toggleDietaryTag(tag)}
+                    />
+                    <Label
+                      htmlFor={`religious-${tag}`}
+                      className="text-sm font-normal cursor-pointer capitalize"
+                    >
+                      {tag}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Media Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">Media</h3>
+
+            {/* Photo URL */}
+            <div>
+              <Label htmlFor="photo_url" className="mb-2 block">
+                Photo URL (Optional)
+              </Label>
+              <Input
+                id="photo_url"
+                {...register('photo_url')}
+                placeholder="https://example.com/photo.jpg"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Upload photos to a service like Imgur or use your own URL
+              </p>
+            </div>
           </div>
 
           {/* Actions */}

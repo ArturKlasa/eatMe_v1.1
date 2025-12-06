@@ -1,13 +1,57 @@
+import { RestaurantType } from '@/types/restaurant';
+
+export const COUNTRIES = [
+  { value: 'US', label: 'United States' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'MX', label: 'Mexico' },
+  { value: 'PL', label: 'Poland' },
+];
+
+export const RESTAURANT_TYPES: { value: RestaurantType; label: string; description: string }[] = [
+  { value: 'restaurant', label: 'Restaurant', description: 'Full-service dining establishment' },
+  { value: 'fine_dining', label: 'Fine Dining', description: 'Upscale, formal dining experience' },
+  {
+    value: 'self_service',
+    label: 'Self-Service Restaurant',
+    description: 'Self-service dining establishment',
+  },
+  { value: 'cafe', label: 'Café', description: 'Coffee shop or small eatery' },
+  { value: 'food_truck', label: 'Food Truck', description: 'Mobile food service vehicle' },
+  { value: 'food_stall', label: 'Food Stall', description: 'Street food or market stall' },
+  { value: 'bakery', label: 'Bakery', description: 'Baked goods specialist' },
+  { value: 'buffet', label: 'Buffet', description: 'All-you-can-eat style' },
+  { value: 'ghost_kitchen', label: 'Ghost Kitchen', description: 'Delivery-only kitchen' },
+  { value: 'other', label: 'Other', description: 'Other type of food establishment' },
+];
+
+export const SERVICE_SPEED_OPTIONS = [
+  { value: 15, label: 'Fast Food', description: 'Food ready immediately' },
+  { value: 30, label: 'Regular Restaurant', description: 'Standard preparation time' },
+];
+
+export const POPULAR_CUISINES = [
+  'American',
+  'Italian',
+  'Mexican',
+  'Chinese',
+  'Japanese',
+  'Thai',
+  'Indian',
+  'Mediterranean',
+  'French',
+  'BBQ',
+  'Pizza',
+  'Sushi',
+];
+
 export const CUISINES = [
   'Afghan',
   'African',
   'American',
   'Argentine',
-  'Asian Fusion',
   'BBQ',
   'Bakery',
   'Brazilian',
-  'Breakfast',
   'British',
   'Café',
   'Cajun',
@@ -16,11 +60,11 @@ export const CUISINES = [
   'Colombian',
   'Cuban',
   'Deli',
-  'Dessert',
   'Ethiopian',
   'Fast Food',
   'Filipino',
   'French',
+  'Fusion',
   'German',
   'Greek',
   'Halal',
@@ -30,6 +74,7 @@ export const CUISINES = [
   'Indonesian',
   'Irish',
   'Italian',
+  'Jamaican',
   'Japanese',
   'Korean',
   'Kosher',
@@ -51,7 +96,6 @@ export const CUISINES = [
   'Sandwiches',
   'Seafood',
   'Soul Food',
-  'Soup',
   'Southern',
   'Spanish',
   'Steakhouse',
@@ -62,42 +106,40 @@ export const CUISINES = [
   'Vegan',
   'Vegetarian',
   'Vietnamese',
+  'Other',
 ] as const;
 
 export const DIETARY_TAGS = [
   'vegetarian',
   'vegan',
-  'gluten-free',
-  'dairy-free',
-  'nut-free',
+  'diabetic',
   'keto',
   'paleo',
   'low-carb',
   'halal',
+  'hindu',
   'kosher',
-  'organic',
-  'raw',
-  'whole30',
+  'jain',
 ] as const;
 
+export const RELIGIOUS_REQUIREMENTS = ['halal', 'hindu', 'kosher', 'jain'] as const;
+
 export const ALLERGENS = [
-  'dairy',
-  'eggs',
-  'fish',
-  'shellfish',
-  'tree nuts',
-  'peanuts',
-  'wheat',
+  'lactose',
   'gluten',
+  'peanuts',
   'soy',
   'sesame',
-  'mustard',
-  'celery',
-  'lupin',
-  'sulfites',
+  'shellfish',
+  'nuts',
 ] as const;
 
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
+
+export const SPICE_LEVELS = [
+  { value: 0, label: 'No spicy', icon: '🥛' },
+  { value: 1, label: 'Spicy', icon: '🌶️' },
+] as const;
 
 export const DAYS_OF_WEEK = [
   'monday',

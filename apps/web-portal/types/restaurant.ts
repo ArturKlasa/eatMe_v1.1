@@ -15,23 +15,50 @@ export interface OperatingHours {
 
 export interface Dish {
   id?: string;
+  menu_id?: string; // Reference to which menu this dish belongs to
   name: string;
-  description: string;
+  description?: string;
   price: number;
+  calories?: number;
   dietary_tags: string[];
   allergens: string[];
   ingredients: string[];
+  spice_level?: number; // 0-4 scale
   photo_url?: string;
+  is_available?: boolean;
 }
+
+export interface Menu {
+  id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  display_order: number;
+  dishes: Dish[];
+}
+
+export type RestaurantType =
+  | 'restaurant'
+  | 'cafe'
+  | 'food_truck'
+  | 'food_stall'
+  | 'bakery'
+  | 'buffet'
+  | 'fine_dining'
+  | 'self_service'
+  | 'ghost_kitchen'
+  | 'other';
 
 export interface RestaurantBasicInfo {
   name: string;
-  description: string;
+  restaurant_type?: RestaurantType;
+  description?: string;
+  country?: string;
   address: string;
   location: Location;
-  phone: string;
+  phone?: string;
   website?: string;
-  price_range: '$' | '$$' | '$$$' | '$$$$';
+  price_range?: '$' | '$$' | '$$$' | '$$$$';
   cuisines: string[];
 }
 
@@ -46,7 +73,8 @@ export interface RestaurantOperations {
 
 export interface RestaurantData {
   restaurant: RestaurantBasicInfo & RestaurantOperations;
-  dishes: Dish[];
+  menus: Menu[];
+  dishes: Dish[]; // Keep for backwards compatibility, but prefer using menus
 }
 
 export interface WizardStep {
@@ -59,7 +87,8 @@ export interface WizardStep {
 export interface FormProgress {
   basicInfo: Partial<RestaurantBasicInfo>;
   operations: Partial<RestaurantOperations>;
-  dishes: Dish[];
+  menus: Menu[];
+  dishes: Dish[]; // Keep for backwards compatibility
   currentStep: number;
   lastSaved?: string;
 }

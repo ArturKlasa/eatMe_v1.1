@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dish } from '@/types/restaurant';
 import { Edit, Trash2, Copy } from 'lucide-react';
+import { SPICE_LEVELS } from '@/lib/constants';
 
 interface DishCardProps {
   dish: Dish;
@@ -22,8 +23,13 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-lg font-semibold">{dish.name}</h3>
               <span className="text-lg font-bold text-green-600">${dish.price.toFixed(2)}</span>
+              {dish.calories && (
+                <Badge variant="outline" className="text-xs">
+                  {dish.calories} cal
+                </Badge>
+              )}
             </div>
-            <p className="text-sm text-gray-600">{dish.description}</p>
+            {dish.description && <p className="text-sm text-gray-600">{dish.description}</p>}
           </div>
           <div className="flex gap-2 ml-4">
             <Button variant="ghost" size="icon" onClick={() => onEdit(dish)} title="Edit dish">
@@ -61,13 +67,32 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
 
           {/* Tags and Allergens */}
           <div className="flex flex-wrap gap-2">
+            {/* Spice Level */}
+            {dish.spice_level !== undefined && dish.spice_level > 0 && (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}{' '}
+                {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.label}
+              </Badge>
+            )}
+
+            {/* Dietary Tags */}
             {dish.dietary_tags.map(tag => (
-              <Badge key={tag} variant="secondary" className="bg-green-100 text-green-800">
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="bg-green-100 text-green-800 capitalize"
+              >
                 {tag}
               </Badge>
             ))}
+
+            {/* Allergens */}
             {dish.allergens.map(allergen => (
-              <Badge key={allergen} variant="secondary" className="bg-orange-100 text-orange-800">
+              <Badge
+                key={allergen}
+                variant="secondary"
+                className="bg-orange-100 text-orange-800 capitalize"
+              >
                 ⚠️ {allergen}
               </Badge>
             ))}

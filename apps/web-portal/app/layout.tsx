@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Restaurant Partner Portal | EatMe',
+  title: 'EatMe Restaurant Portal',
   description: 'Join EatMe and reach hungry customers in your area',
 };
 

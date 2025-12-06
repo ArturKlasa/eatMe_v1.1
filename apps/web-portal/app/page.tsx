@@ -6,10 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   Utensils,
   Settings,
-  FileText,
   Download,
   ChefHat,
-  Clock,
   MapPin,
   CheckCircle2,
   ArrowRight,
@@ -27,25 +25,17 @@ export default function Home() {
     return null;
   }, []);
 
+  // Calculate total dishes and menus
+  const totalDishes = savedData?.dishes?.length || 0;
+  const totalMenus = savedData?.menus?.length || 0;
+  const dishBadgeText =
+    totalMenus > 0
+      ? `${totalMenus} ${totalMenus === 1 ? 'menu' : 'menus'}, ${totalDishes} ${totalDishes === 1 ? 'dish' : 'dishes'}`
+      : totalDishes > 0
+        ? `${totalDishes} ${totalDishes === 1 ? 'dish' : 'dishes'}`
+        : null;
+
   const navigationItems = [
-    {
-      title: 'Restaurant Information',
-      description: 'Add or update your restaurant details, location, and contact info',
-      icon: MapPin,
-      href: '/onboard/basic-info',
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-50',
-      status: savedData?.basicInfo ? 'completed' : 'not-started',
-    },
-    {
-      title: 'Operating Hours',
-      description: 'Set your opening hours, service options, and preparation times',
-      icon: Clock,
-      href: '/onboard/operations',
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50',
-      status: savedData?.operations ? 'completed' : 'not-started',
-    },
     {
       title: 'Menu Management',
       description: 'Add, edit, and organize your menu items with prices and descriptions',
@@ -53,20 +43,18 @@ export default function Home() {
       href: '/onboard/menu',
       color: 'text-green-500',
       bgColor: 'bg-green-50',
-      status: savedData?.dishes && savedData.dishes.length > 0 ? 'completed' : 'not-started',
-      badge:
-        savedData?.dishes && savedData.dishes.length > 0
-          ? `${savedData.dishes.length} dishes`
-          : null,
+      status: totalDishes > 0 ? 'completed' : 'not-started',
+      badge: dishBadgeText,
     },
     {
-      title: 'Review & Export',
-      description: 'Preview your complete profile and export data for submission',
-      icon: FileText,
-      href: '/onboard/review',
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-50',
-      status: 'available',
+      title: 'Restaurant Information',
+      description:
+        'Add or update your restaurant details, location, operating hours, and contact info',
+      icon: MapPin,
+      href: '/onboard/basic-info',
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-50',
+      status: savedData?.basicInfo ? 'completed' : 'not-started',
     },
   ];
 
@@ -96,8 +84,8 @@ export default function Home() {
                 <ChefHat className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Restaurant Partner Portal</h1>
-                <p className="text-sm text-gray-600">Manage your EatMe presence</p>
+                <h1 className="text-2xl font-bold">EatMe Restaurant Portal</h1>
+                <p className="text-sm text-gray-600">Manage your restaurant presence</p>
               </div>
             </div>
             {savedData?.lastSaved && (
@@ -110,15 +98,6 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Welcome! 👋</h2>
-          <p className="text-gray-600">
-            Complete your restaurant profile to start reaching hungry customers. Select a section
-            below to get started.
-          </p>
-        </div>
-
         {/* Progress Overview */}
         {savedData && (
           <Card className="mb-8 bg-linear-to-r from-orange-50 to-red-50 border-orange-200">

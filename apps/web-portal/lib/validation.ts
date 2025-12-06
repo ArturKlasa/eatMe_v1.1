@@ -48,16 +48,20 @@ export const operationsSchema = z.object({
 // Dish Schema
 export const dishSchema = z.object({
   id: z.string().optional(),
+  menu_id: z.string().optional(),
   name: z.string().min(2, 'Dish name must be at least 2 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  description: z.string().optional().or(z.literal('')),
   price: z
     .number()
     .positive('Price must be greater than 0')
     .max(10000, 'Price seems unreasonably high'),
+  calories: z.number().min(0).max(5000).optional().or(z.nan()),
   dietary_tags: z.array(z.string()),
   allergens: z.array(z.string()),
   ingredients: z.array(z.string()).min(1, 'Please add at least one ingredient'),
+  spice_level: z.number().min(0).max(4).optional().or(z.nan()),
   photo_url: z.string().optional(),
+  is_available: z.boolean().optional(),
 });
 
 // Menu Schema (array of dishes)

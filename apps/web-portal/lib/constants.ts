@@ -25,9 +25,20 @@ export const RESTAURANT_TYPES: { value: RestaurantType; label: string; descripti
 ];
 
 export const SERVICE_SPEED_OPTIONS = [
-  { value: 15, label: 'Fast Food', description: 'Food ready immediately' },
-  { value: 30, label: 'Regular Restaurant', description: 'Standard preparation time' },
+  { value: 'fast-food', label: 'Fast Food', description: 'Food ready immediately' },
+  { value: 'regular', label: 'Regular Restaurant', description: 'Standard preparation time' },
 ];
+
+export const MENU_CATEGORIES = [
+  { value: 'all_day', label: 'All-Day', description: 'Available all day' },
+  { value: 'breakfast', label: 'Breakfast', description: 'Morning menu' },
+  { value: 'lunch', label: 'Lunch', description: 'Midday menu' },
+  { value: 'dinner', label: 'Dinner', description: 'Evening menu' },
+  { value: 'drinks', label: 'Drinks', description: 'Beverages' },
+  { value: 'happy_hours', label: 'Happy Hours', description: 'Special offers' },
+] as const;
+
+export type MenuCategory = (typeof MENU_CATEGORIES)[number]['value'];
 
 export const POPULAR_CUISINES = [
   'American',

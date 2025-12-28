@@ -58,7 +58,6 @@ export interface RestaurantBasicInfo {
   location: Location;
   phone?: string;
   website?: string;
-  price_range?: '$' | '$$' | '$$$' | '$$$$';
   cuisines: string[];
 }
 
@@ -67,7 +66,7 @@ export interface RestaurantOperations {
   delivery_available: boolean;
   takeout_available: boolean;
   dine_in_available: boolean;
-  average_prep_time_minutes: number;
+  service_speed?: 'fast-food' | 'regular';
   accepts_reservations: boolean;
 }
 

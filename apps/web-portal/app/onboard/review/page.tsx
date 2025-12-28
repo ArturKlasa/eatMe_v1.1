@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,11 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { loadRestaurantData } from '@/lib/storage';
 import { Menu } from '@/types/restaurant';
-import { ArrowLeft, CheckCircle2, Edit } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  supabase,
+  formatLocationForSupabase,
+  formatOperatingHours,
+  RestaurantInsert,
+} from '@/lib/supabase';
 
 export default function ReviewPage() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const restaurantData = useMemo(() => {
     if (typeof window === 'undefined') return null;
@@ -26,12 +33,107 @@ export default function ReviewPage() {
     }
   }, [restaurantData, router]);
 
-  const handleSubmit = () => {
-    // TODO: Submit to backend API
-    toast.success('Restaurant information submitted successfully!');
-    console.log('Submitting restaurant data:', restaurantData);
-    // After successful submission, could redirect to a success page or dashboard
-    // router.push('/success');
+  const handleSubmit = async () => {
+    if (!restaurantData || !restaurantData.basicInfo) {
+      toast.error('Missing restaurant data');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Validate required fields
+      const basicInfo = restaurantData.basicInfo;
+      if (!basicInfo.name || !basicInfo.address) {
+        toast.error('Restaurant name and address are required');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!basicInfo.location?.lat || !basicInfo.location?.lng) {
+        toast.error('Location coordinates are required. Please select location on the map.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!basicInfo.cuisines || basicInfo.cuisines.length === 0) {
+        toast.error('At least one cuisine type is required');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Transform data for Supabase
+      const restaurantPayload: RestaurantInsert = {
+        // Required fields
+        name: basicInfo.name,
+        location: formatLocationForSupabase(basicInfo.location.lat, basicInfo.location.lng),
+        address: basicInfo.address,
+        cuisine_types: basicInfo.cuisines,
+
+        // Optional basic info
+        restaurant_type: basicInfo.restaurant_type,
+        country_code: basicInfo.country,
+
+        // Contact
+        phone: basicInfo.phone,
+        website: basicInfo.website,
+
+        // Operating hours (filter out closed days)
+        open_hours: restaurantData.operations?.operating_hours
+          ? formatOperatingHours(
+              restaurantData.operations.operating_hours as Record<
+                string,
+                { open: string; close: string; closed: boolean }
+              >
+            )
+          : {},
+
+        // Service options
+        delivery_available: restaurantData.operations?.delivery_available ?? true,
+        takeout_available: restaurantData.operations?.takeout_available ?? true,
+        dine_in_available: restaurantData.operations?.dine_in_available ?? true,
+        accepts_reservations: restaurantData.operations?.accepts_reservations ?? false,
+        service_speed: restaurantData.operations?.service_speed as
+          | 'fast-food'
+          | 'regular'
+          | undefined,
+
+        // Optional fields
+        description: basicInfo.description,
+      };
+
+      // Submit to Supabase
+      const { data, error } = await supabase
+        .from('restaurants')
+        .insert(restaurantPayload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message);
+      }
+
+      // Success!
+      console.log('Restaurant submitted successfully:', data);
+      toast.success('Restaurant information submitted successfully!');
+
+      // Clear localStorage after successful submission
+      localStorage.removeItem('eatme_restaurant_data');
+
+      // Redirect to success page or dashboard
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast.error(
+        error instanceof Error
+          ? `Failed to submit: ${error.message}`
+          : 'Failed to submit restaurant information. Please try again.'
+      );
+      setIsSubmitting(false);
+    }
   };
 
   const handleBack = () => {
@@ -261,9 +363,23 @@ export default function ReviewPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <Button onClick={handleSubmit} size="lg" className="bg-green-600 hover:bg-green-700">
-            <CheckCircle2 className="mr-2 h-5 w-5" />
-            Submit Restaurant Profile
+          <Button
+            onClick={handleSubmit}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                Submit Restaurant Profile
+              </>
+            )}
           </Button>
         </div>
       </div>

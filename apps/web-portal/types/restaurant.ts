@@ -32,6 +32,7 @@ export interface Menu {
   id: string;
   name: string;
   description?: string;
+  category?: string; // all_day, breakfast, lunch, dinner, drinks, happy_hours
   is_active: boolean;
   display_order: number;
   dishes: Dish[];
@@ -84,6 +85,7 @@ export interface WizardStep {
 }
 
 export interface FormProgress {
+  restaurant_id?: string; // Track existing restaurant for updates
   basicInfo: Partial<RestaurantBasicInfo>;
   operations: Partial<RestaurantOperations>;
   menus: Menu[];

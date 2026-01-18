@@ -1,18 +1,19 @@
 import { FormProgress } from '@/types/restaurant';
 
-const STORAGE_KEY = 'restaurant_portal_data';
+// User-scoped storage key to isolate data per user
+const getStorageKey = (userId: string) => `eatme_draft_${userId}`;
 const AUTO_SAVE_DEBOUNCE = 500; // 500ms debounce
 
 /**
- * Save restaurant form data to LocalStorage
+ * Save restaurant form data to LocalStorage (user-scoped)
  */
-export const saveRestaurantData = (data: FormProgress): void => {
+export const saveRestaurantData = (userId: string, data: FormProgress): void => {
   try {
     const dataToSave = {
       ...data,
       lastSaved: new Date().toISOString(),
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(dataToSave));
   } catch (error) {
     console.error('Failed to save data to LocalStorage:', error);
     throw new Error('Failed to save progress. Please try again.');
@@ -20,11 +21,11 @@ export const saveRestaurantData = (data: FormProgress): void => {
 };
 
 /**
- * Load restaurant form data from LocalStorage
+ * Load restaurant form data from LocalStorage (user-scoped)
  */
-export const loadRestaurantData = (): FormProgress | null => {
+export const loadRestaurantData = (userId: string): FormProgress | null => {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(getStorageKey(userId));
     if (!data) return null;
 
     const parsed = JSON.parse(data);
@@ -36,23 +37,24 @@ export const loadRestaurantData = (): FormProgress | null => {
 };
 
 /**
- * Clear all restaurant data from LocalStorage
+ * Clear restaurant data from LocalStorage for specific user
  */
-export const clearRestaurantData = (): void => {
+export const clearRestaurantData = (userId: string): void => {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(getStorageKey(userId));
   } catch (error) {
     console.error('Failed to clear data from LocalStorage:', error);
   }
 };
 
 /**
- * Check if there's saved data in LocalStorage
+ * Check if there's saved data in LocalStorage for specific user
  */
-export const hasSavedData = (): boolean => {
+export const hasSavedData = (userId: string): boolean => {
   try {
-    return localStorage.getItem(STORAGE_KEY) !== null;
-  } catch {
+    return localStorage.getItem(getStorageKey(userId)) !== null;
+  } catch (error) {
+    console.error('Failed to check for saved data:', error);
     return false;
   }
 };

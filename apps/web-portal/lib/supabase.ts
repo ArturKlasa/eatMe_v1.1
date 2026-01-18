@@ -16,8 +16,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Portal doesn't need authentication yet
-    autoRefreshToken: false,
+    persistSession: true, // Enable session persistence
+    autoRefreshToken: true, // Auto refresh tokens
+    detectSessionInUrl: true, // Detect session from URL (for email confirmation)
   },
 });
 

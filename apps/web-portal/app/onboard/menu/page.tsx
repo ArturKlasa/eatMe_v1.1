@@ -17,10 +17,13 @@ import {
 } from '@/components/ui/dialog';
 import { DishCard } from '@/components/forms/DishCard';
 import { DishFormDialog } from '@/components/forms/DishFormDialog';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { toast } from 'sonner';
 import { Dish, Menu } from '@/types/restaurant';
 import { menuSchema } from '@/lib/validation';
 import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import {
   PlusCircle,
   ArrowLeft,
@@ -37,8 +40,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export default function MenuPage() {
+function MenuPageContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const [menus, setMenus] = useState<Menu[]>([]);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
@@ -46,56 +50,83 @@ export default function MenuPage() {
   const [isMenuDialogOpen, setIsMenuDialogOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
   const [menuName, setMenuName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Initialize menus from saved data
-  const initialMenus = useMemo(() => {
-    if (typeof window === 'undefined') return [];
-
-    const savedData = loadRestaurantData();
-    if (savedData?.menus && savedData.menus.length > 0) {
-      return savedData.menus;
-    } else if (savedData?.dishes && savedData.dishes.length > 0) {
-      // Migrate old single-menu format
-      return [
-        {
-          id: crypto.randomUUID(),
-          name: 'Main Menu',
-          description: '',
-          is_active: true,
-          display_order: 1,
-          dishes: savedData.dishes,
-        },
-      ];
-    } else {
-      // Create default menu
-      return [
-        {
-          id: crypto.randomUUID(),
-          name: 'Main Menu',
-          description: '',
-          is_active: true,
-          display_order: 1,
-          dishes: [],
-        },
-      ];
-    }
-  }, []);
-
-  // Set initial state from loaded data
-  useState(() => {
-    if (initialMenus.length > 0 && !activeMenuId) {
-      setMenus(initialMenus);
-      setActiveMenuId(initialMenus[0].id);
-    }
-  });
-
-  // Auto-save menus
+  // Load menus from database
   useEffect(() => {
-    if (menus.length > 0) {
-      const savedData = loadRestaurantData();
-      // Flatten all dishes for backwards compatibility
+    const loadMenus = async () => {
+      if (!user?.id) return;
+
+      try {
+        // First, try to load from database
+        const { data: restaurant, error } = await supabase
+          .from('restaurants')
+          .select('id, menus(*, dishes(*))')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading menus:', error);
+        }
+
+        if (restaurant?.menus && restaurant.menus.length > 0) {
+          // Load from database
+          const dbMenus = restaurant.menus.map(menu => ({
+            ...menu,
+            dishes: menu.dishes || [],
+          }));
+          setMenus(dbMenus);
+          setActiveMenuId(dbMenus[0].id);
+        } else {
+          // Fall back to localStorage drafts
+          const savedData = loadRestaurantData(user.id);
+          if (savedData?.menus && savedData.menus.length > 0) {
+            setMenus(savedData.menus);
+            setActiveMenuId(savedData.menus[0].id);
+          } else if (savedData?.dishes && savedData.dishes.length > 0) {
+            // Migrate old single-menu format
+            const defaultMenu = {
+              id: crypto.randomUUID(),
+              name: 'Main Menu',
+              description: '',
+              is_active: true,
+              display_order: 1,
+              dishes: savedData.dishes,
+            };
+            setMenus([defaultMenu]);
+            setActiveMenuId(defaultMenu.id);
+          } else {
+            // Create default menu
+            const defaultMenu = {
+              id: crypto.randomUUID(),
+              name: 'Main Menu',
+              description: '',
+              is_active: true,
+              display_order: 1,
+              dishes: [],
+            };
+            setMenus([defaultMenu]);
+            setActiveMenuId(defaultMenu.id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load menus:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMenus();
+  }, [user?.id]);
+
+  // Auto-save menus to localStorage only when editing (not from database)
+  useEffect(() => {
+    if (menus.length > 0 && user?.id && !loading) {
+      // Only save drafts, not database data
+      const savedData = loadRestaurantData(user.id);
       const allDishes = menus.flatMap(menu => menu.dishes);
-      saveRestaurantData({
+      saveRestaurantData(user.id, {
         basicInfo: savedData?.basicInfo || {},
         operations: savedData?.operations || {},
         menus,
@@ -103,7 +134,7 @@ export default function MenuPage() {
         currentStep: 3,
       });
     }
-  }, [menus]);
+  }, [menus, user?.id, loading]);
 
   const handleAddMenu = () => {
     setEditingMenu(null);
@@ -236,20 +267,99 @@ export default function MenuPage() {
     toast.success('Dish duplicated!');
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Save menus and dishes to database directly
     const allDishes = menus.flatMap(menu => menu.dishes);
-    const result = menuSchema.safeParse({ dishes: allDishes });
 
-    if (!result.success) {
-      toast.error('Please add at least one dish before continuing');
+    if (allDishes.length === 0) {
+      toast.error('Please add at least one dish before saving');
       return;
     }
 
-    router.push('/onboard/review');
+    if (!user?.id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      // Get restaurant ID
+      const { data: restaurant, error: restaurantError } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (restaurantError || !restaurant) {
+        toast.error('Restaurant not found. Please create restaurant information first.');
+        setSaving(false);
+        return;
+      }
+
+      // Delete existing menus and dishes (will cascade delete dishes)
+      await supabase.from('menus').delete().eq('restaurant_id', restaurant.id);
+
+      // Insert new menus and dishes
+      for (const menu of menus) {
+        const { data: insertedMenu, error: menuError } = await supabase
+          .from('menus')
+          .insert({
+            restaurant_id: restaurant.id,
+            name: menu.name,
+            description: menu.description || null,
+            is_active: menu.is_active !== undefined ? menu.is_active : true,
+            display_order: menu.display_order || 1,
+          })
+          .select()
+          .single();
+
+        if (menuError) {
+          console.error('Menu insert error:', menuError);
+          throw new Error(`Failed to save menu "${menu.name}"`);
+        }
+
+        // Insert dishes for this menu
+        if (menu.dishes && menu.dishes.length > 0) {
+          const dishesPayload = menu.dishes.map((dish: any) => ({
+            restaurant_id: restaurant.id,
+            menu_id: insertedMenu.id,
+            name: dish.name,
+            description: dish.description || null,
+            price: dish.price,
+            dietary_tags: dish.dietary_tags || [],
+            allergens: dish.allergens || [],
+            ingredients: dish.ingredients || [],
+            calories: dish.calories || null,
+            spice_level: dish.spice_level || null,
+            image_url: dish.photo_url || null,
+            is_available: dish.is_available !== undefined ? dish.is_available : true,
+          }));
+
+          const { error: dishesError } = await supabase.from('dishes').insert(dishesPayload);
+
+          if (dishesError) {
+            console.error('Dishes insert error:', dishesError);
+            throw new Error(`Failed to save dishes for menu "${menu.name}"`);
+          }
+        }
+      }
+
+      // Clear localStorage draft after successful save
+      localStorage.removeItem(`eatme_draft_${user.id}`);
+
+      toast.success('Menus and dishes saved successfully!');
+      router.push('/');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save menus');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleBack = () => {
-    router.push('/onboard/basic-info');
+    router.push('/');
   };
 
   const handleOpenDishDialog = () => {
@@ -258,6 +368,21 @@ export default function MenuPage() {
   };
 
   const totalDishes = menus.reduce((sum, menu) => sum + menu.dishes.length, 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="flex items-center justify-center py-24">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading menus...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -366,13 +491,22 @@ export default function MenuPage() {
 
         {/* Navigation */}
         <div className="flex justify-between pt-6 border-t">
-          <Button variant="outline" onClick={handleBack}>
+          <Button variant="outline" onClick={handleBack} disabled={saving}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Restaurant Info
+            Back to Dashboard
           </Button>
-          <Button onClick={handleNext} disabled={totalDishes === 0}>
-            Continue to Review
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button onClick={handleNext} disabled={saving}>
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                Save & Return to Dashboard
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
 
@@ -418,5 +552,13 @@ export default function MenuPage() {
         </Dialog>
       </div>
     </div>
+  );
+}
+
+export default function MenuPage() {
+  return (
+    <ProtectedRoute>
+      <MenuPageContent />
+    </ProtectedRoute>
   );
 }

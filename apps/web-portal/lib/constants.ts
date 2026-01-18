@@ -25,8 +25,8 @@ export const RESTAURANT_TYPES: { value: RestaurantType; label: string; descripti
 ];
 
 export const SERVICE_SPEED_OPTIONS = [
-  { value: 'fast-food', label: 'Fast Food', description: 'Food ready immediately' },
   { value: 'regular', label: 'Regular Restaurant', description: 'Standard preparation time' },
+  { value: 'fast-food', label: 'Fast Food', description: 'Food ready immediately' },
 ];
 
 export const MENU_CATEGORIES = [

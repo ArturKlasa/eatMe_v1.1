@@ -16,22 +16,101 @@ import {
   formatOperatingHours,
   RestaurantInsert,
 } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
-export default function ReviewPage() {
+function ReviewPageContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [restaurantData, setRestaurantData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const restaurantData = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    return loadRestaurantData();
-  }, []);
+  // Load restaurant data from database or localStorage
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user?.id) return;
+
+      try {
+        // Try to load from database first
+        const { data: restaurant, error } = await supabase
+          .from('restaurants')
+          .select('*, menus(*, dishes(*))')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading restaurant:', error);
+        }
+
+        if (restaurant) {
+          // Has restaurant in database - show database data
+          console.log('[Review] Loaded from database:', restaurant);
+          setRestaurantData({
+            restaurant_id: restaurant.id,
+            basicInfo: {
+              name: restaurant.name,
+              restaurant_type: restaurant.restaurant_type,
+              description: restaurant.description,
+              country: restaurant.country,
+              address: restaurant.address,
+              location: restaurant.location,
+              phone: restaurant.phone,
+              website: restaurant.website,
+              cuisines: restaurant.cuisine_types || [],
+            },
+            operations: {
+              operating_hours: restaurant.operating_hours,
+              delivery_available: restaurant.delivery_available,
+              takeout_available: restaurant.takeout_available,
+              dine_in_available: restaurant.dine_in_available,
+              service_speed: restaurant.service_speed,
+              accepts_reservations: restaurant.accepts_reservations,
+            },
+            menus: restaurant.menus || [],
+            dishes: restaurant.menus?.flatMap((m: any) => m.dishes || []) || [],
+          });
+          console.log('[Review] Menus count:', restaurant.menus?.length);
+          console.log(
+            '[Review] Dishes count:',
+            restaurant.menus?.flatMap((m: any) => m.dishes || []).length
+          );
+        } else {
+          // No restaurant in database - load from localStorage draft
+          console.log('[Review] No database data, loading from localStorage');
+          const savedData = loadRestaurantData(user.id);
+          console.log('[Review] LocalStorage data:', savedData);
+          setRestaurantData(savedData);
+        }
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        // Fall back to localStorage
+        const savedData = loadRestaurantData(user.id);
+        setRestaurantData(savedData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user?.id]);
 
   useEffect(() => {
-    if (!restaurantData || !restaurantData.menus || restaurantData.menus.length === 0) {
-      toast.error('No restaurant data found. Please add at least one menu first.');
-      router.push('/');
+    console.log('[Review] Validation check - loading:', loading, 'restaurantData:', restaurantData);
+    if (!loading && restaurantData) {
+      console.log('[Review] Menus:', restaurantData.menus);
+      console.log('[Review] Menus length:', restaurantData.menus?.length);
     }
-  }, [restaurantData, router]);
+
+    if (
+      !loading &&
+      (!restaurantData || !restaurantData.menus || restaurantData.menus.length === 0)
+    ) {
+      console.log('[Review] Validation failed - redirecting to menu page');
+      toast.error('No restaurant data found. Please add at least one menu first.');
+      router.push('/onboard/menu');
+    }
+  }, [restaurantData, loading, router]);
 
   const handleSubmit = async () => {
     if (!restaurantData || !restaurantData.basicInfo) {
@@ -63,7 +142,10 @@ export default function ReviewPage() {
       }
 
       // Transform data for Supabase
-      const restaurantPayload: RestaurantInsert = {
+      const restaurantPayload: RestaurantInsert & { owner_id?: string } = {
+        // Link to authenticated user
+        owner_id: user?.id,
+
         // Required fields
         name: basicInfo.name,
         location: formatLocationForSupabase(basicInfo.location.lat, basicInfo.location.lng),
@@ -102,29 +184,120 @@ export default function ReviewPage() {
         description: basicInfo.description,
       };
 
-      // Submit to Supabase
-      const { data, error } = await supabase
-        .from('restaurants')
-        .insert(restaurantPayload)
-        .select()
-        .single();
+      // Step 1: Check if we're updating an existing restaurant
+      const existingRestaurantId = restaurantData.restaurant_id;
+      let restaurant;
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw new Error(error.message);
+      if (existingRestaurantId) {
+        // Update existing restaurant
+        const { data, error: restaurantError } = await supabase
+          .from('restaurants')
+          .update(restaurantPayload)
+          .eq('id', existingRestaurantId)
+          .select()
+          .single();
+
+        if (restaurantError) {
+          console.error('Supabase restaurant update error:', restaurantError);
+          throw new Error(restaurantError.message);
+        }
+
+        restaurant = data;
+        console.log('Restaurant updated successfully:', restaurant);
+
+        // Delete existing menus and dishes (will be recreated)
+        await supabase.from('menus').delete().eq('restaurant_id', existingRestaurantId);
+        // Dishes will be automatically deleted due to CASCADE DELETE
+      } else {
+        // Create new restaurant
+        const { data, error: restaurantError } = await supabase
+          .from('restaurants')
+          .insert(restaurantPayload)
+          .select()
+          .single();
+
+        if (restaurantError) {
+          console.error('Supabase restaurant error:', restaurantError);
+          throw new Error(restaurantError.message);
+        }
+
+        restaurant = data;
+        console.log('Restaurant created successfully:', restaurant);
+      }
+
+      // Step 2: Submit menus and dishes if they exist
+      if (restaurantData.menus && restaurantData.menus.length > 0) {
+        for (const menu of restaurantData.menus) {
+          // Insert menu
+          const { data: insertedMenu, error: menuError } = await supabase
+            .from('menus')
+            .insert({
+              restaurant_id: restaurant.id,
+              name: menu.name,
+              description: menu.description,
+              category: menu.category || null,
+              display_order: menu.display_order || 0,
+              is_active: menu.is_active !== undefined ? menu.is_active : true,
+            })
+            .select()
+            .single();
+
+          if (menuError) {
+            console.error('Menu insert error:', menuError);
+            throw new Error(`Failed to insert menu "${menu.name}": ${menuError.message}`);
+          }
+
+          console.log('Menu submitted successfully:', insertedMenu);
+
+          // Insert dishes for this menu
+          if (menu.dishes && menu.dishes.length > 0) {
+            const dishesPayload = menu.dishes.map(dish => ({
+              restaurant_id: restaurant.id,
+              menu_id: insertedMenu.id,
+              name: dish.name,
+              description: dish.description || null,
+              price: dish.price,
+              dietary_tags: dish.dietary_tags || [],
+              allergens: dish.allergens || [],
+              ingredients: dish.ingredients || [],
+              calories: dish.calories || null,
+              spice_level: dish.spice_level || null,
+              image_url: dish.photo_url || null,
+              is_available: dish.is_available !== undefined ? dish.is_available : true,
+            }));
+
+            const { data: insertedDishes, error: dishesError } = await supabase
+              .from('dishes')
+              .insert(dishesPayload)
+              .select();
+
+            if (dishesError) {
+              console.error('Dishes insert error:', dishesError);
+              throw new Error(
+                `Failed to insert dishes for menu "${menu.name}": ${dishesError.message}`
+              );
+            }
+
+            console.log(`${insertedDishes.length} dishes submitted for menu "${menu.name}"`);
+          }
+        }
       }
 
       // Success!
-      console.log('Restaurant submitted successfully:', data);
-      toast.success('Restaurant information submitted successfully!');
+      const action = existingRestaurantId ? 'updated' : 'created';
+      toast.success(
+        `Restaurant ${action} successfully with ${restaurantData.menus?.length || 0} menus!`
+      );
 
-      // Clear localStorage after successful submission
-      localStorage.removeItem('eatme_restaurant_data');
+      // Clear user-specific draft data after successful submission
+      if (user?.id) {
+        localStorage.removeItem(`eatme_draft_${user.id}`);
+      }
 
-      // Redirect to success page or dashboard
+      // Redirect to dashboard
       setTimeout(() => {
         router.push('/');
-      }, 1500);
+      }, 2000);
     } catch (error) {
       console.error('Submission error:', error);
       toast.error(
@@ -148,10 +321,21 @@ export default function ReviewPage() {
     router.push('/onboard/menu');
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading restaurant data...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!restaurantData || !restaurantData.menus || restaurantData.menus.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500">No data found. Redirecting...</p>
       </div>
     );
   }
@@ -384,5 +568,13 @@ export default function ReviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <ProtectedRoute>
+      <ReviewPageContent />
+    </ProtectedRoute>
   );
 }

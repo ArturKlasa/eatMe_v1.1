@@ -27,6 +27,8 @@ import {
   POPULAR_CUISINES,
   SERVICE_SPEED_OPTIONS,
 } from '@/lib/constants';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   RestaurantBasicInfo,
   RestaurantOperations,
@@ -59,7 +61,7 @@ interface FormData {
   delivery_available: boolean;
   takeout_available: boolean;
   dine_in_available: boolean;
-  average_prep_time_minutes: number;
+  service_speed?: 'fast-food' | 'regular';
   accepts_reservations: boolean;
 }
 
@@ -73,14 +75,15 @@ const DAYS_OF_WEEK = [
   { key: 'sunday', label: 'Sunday' },
 ];
 
-export default function BasicInfoPage() {
+function BasicInfoPageContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const [cuisineSearch, setCuisineSearch] = useState('');
 
-  // Initialize map coordinates from saved data  // Initialize map coordinates from saved data
+  // Initialize map coordinates from saved data
   const [mapCoordinates, setMapCoordinates] = useState<{ lat: number; lng: number } | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const savedData = loadRestaurantData();
+    if (typeof window === 'undefined' || !user?.id) return null;
+    const savedData = loadRestaurantData(user.id);
     if (savedData?.basicInfo?.location?.lat && savedData?.basicInfo?.location?.lng) {
       return {
         lat: savedData.basicInfo.location.lat,
@@ -92,30 +95,30 @@ export default function BasicInfoPage() {
 
   // Initialize cuisines and price range from saved data
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    const savedData = loadRestaurantData();
+    if (typeof window === 'undefined' || !user?.id) return [];
+    const savedData = loadRestaurantData(user.id);
     return savedData?.basicInfo?.cuisines || [];
   });
 
   // Initialize restaurant type from saved data
   const [restaurantType, setRestaurantType] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'restaurant';
-    const savedData = loadRestaurantData();
+    if (typeof window === 'undefined' || !user?.id) return 'restaurant';
+    const savedData = loadRestaurantData(user.id);
     return savedData?.basicInfo?.restaurant_type || 'restaurant';
   });
 
   // Initialize country from saved data
   const [country, setCountry] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'US';
-    const savedData = loadRestaurantData();
+    if (typeof window === 'undefined' || !user?.id) return 'US';
+    const savedData = loadRestaurantData(user.id);
     return savedData?.basicInfo?.country || 'US';
   });
 
   // Initialize service speed from saved data
-  const [serviceSpeed, setServiceSpeed] = useState<number>(() => {
-    if (typeof window === 'undefined') return 30;
-    const savedData = loadRestaurantData();
-    return savedData?.operations?.average_prep_time_minutes || 30;
+  const [serviceSpeed, setServiceSpeed] = useState<'fast-food' | 'regular'>(() => {
+    if (typeof window === 'undefined' || !user?.id) return 'regular';
+    const savedData = loadRestaurantData(user.id);
+    return savedData?.operations?.service_speed || 'regular';
   });
 
   const [operatingHours, setOperatingHours] = useState<
@@ -133,7 +136,7 @@ export default function BasicInfoPage() {
       };
     }
 
-    const savedData = loadRestaurantData();
+    const savedData = loadRestaurantData(user.id);
     if (savedData?.operations?.operating_hours) {
       const hours: Record<string, { open: string; close: string; closed: boolean }> = {};
       DAYS_OF_WEEK.forEach(({ key }) => {
@@ -180,14 +183,16 @@ export default function BasicInfoPage() {
       delivery_available: true,
       takeout_available: true,
       dine_in_available: true,
-      average_prep_time_minutes: 30,
+      service_speed: 'regular',
       accepts_reservations: false,
     },
   });
 
   // Load saved data
   useEffect(() => {
-    const savedData = loadRestaurantData();
+    if (!user?.id) return;
+
+    const savedData = loadRestaurantData(user.id);
     if (savedData) {
       if (savedData.basicInfo) {
         setValue('name', savedData.basicInfo.name || '');
@@ -204,11 +209,11 @@ export default function BasicInfoPage() {
         setValue('delivery_available', savedData.operations.delivery_available ?? true);
         setValue('takeout_available', savedData.operations.takeout_available ?? true);
         setValue('dine_in_available', savedData.operations.dine_in_available ?? true);
-        setValue('average_prep_time_minutes', savedData.operations.average_prep_time_minutes || 30);
+        setValue('service_speed', savedData.operations.service_speed || 'regular');
         setValue('accepts_reservations', savedData.operations.accepts_reservations ?? false);
       }
     }
-  }, [setValue]);
+  }, [user?.id, setValue]);
 
   const handleCuisineToggle = (cuisine: string) => {
     setSelectedCuisines(prev =>
@@ -290,12 +295,17 @@ export default function BasicInfoPage() {
       delivery_available: data.delivery_available,
       takeout_available: data.takeout_available,
       dine_in_available: data.dine_in_available,
-      average_prep_time_minutes: parseInt(data.average_prep_time_minutes.toString()) || 30,
+      service_speed: data.service_speed,
       accepts_reservations: data.accepts_reservations,
     };
 
     // Save to localStorage
-    const savedData = loadRestaurantData();
+    if (!user?.id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    const savedData = loadRestaurantData(user.id);
     const updatedData: FormProgress = {
       basicInfo,
       operations,
@@ -304,7 +314,7 @@ export default function BasicInfoPage() {
       currentStep: 2,
     };
 
-    saveRestaurantData(updatedData);
+    saveRestaurantData(user.id, updatedData);
     toast.success('Restaurant information saved successfully!');
 
     // Navigate to review page for verification
@@ -696,19 +706,15 @@ export default function BasicInfoPage() {
               <div>
                 <Label className="mb-3 block">Service Speed</Label>
                 <RadioGroup
-                  value={serviceSpeed.toString()}
+                  value={serviceSpeed}
                   onValueChange={value => {
-                    const numValue = parseInt(value);
-                    setServiceSpeed(numValue);
-                    setValue('average_prep_time_minutes', numValue);
+                    setServiceSpeed(value as 'fast-food' | 'regular');
+                    setValue('service_speed', value as 'fast-food' | 'regular');
                   }}
                 >
                   {SERVICE_SPEED_OPTIONS.map(option => (
                     <div key={option.value} className="flex items-start space-x-3 mb-3">
-                      <RadioGroupItem
-                        value={option.value.toString()}
-                        id={`speed-${option.value}`}
-                      />
+                      <RadioGroupItem value={option.value} id={`speed-${option.value}`} />
                       <div className="flex-1">
                         <Label
                           htmlFor={`speed-${option.value}`}
@@ -739,5 +745,13 @@ export default function BasicInfoPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function BasicInfoPage() {
+  return (
+    <ProtectedRoute>
+      <BasicInfoPageContent />
+    </ProtectedRoute>
   );
 }

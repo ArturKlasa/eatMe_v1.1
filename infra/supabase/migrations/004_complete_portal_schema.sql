@@ -119,15 +119,44 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS menus (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  category TEXT, -- breakfast, lunch, dinner, drinks, desserts, etc.
-  display_order INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
+  restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add columns if they don't exist (safe to run multiple times)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='menus' AND column_name='restaurant_id') THEN
+    ALTER TABLE menus ADD COLUMN restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='menus' AND column_name='name') THEN
+    ALTER TABLE menus ADD COLUMN name TEXT NOT NULL DEFAULT '';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='menus' AND column_name='description') THEN
+    ALTER TABLE menus ADD COLUMN description TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='menus' AND column_name='category') THEN
+    ALTER TABLE menus ADD COLUMN category TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='menus' AND column_name='display_order') THEN
+    ALTER TABLE menus ADD COLUMN display_order INTEGER DEFAULT 0;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='menus' AND column_name='is_active') THEN
+    ALTER TABLE menus ADD COLUMN is_active BOOLEAN DEFAULT true;
+  END IF;
+END $$;
 
 -- ============================================================================
 -- DISHES TABLE
@@ -135,33 +164,76 @@ CREATE TABLE IF NOT EXISTS menus (
 
 CREATE TABLE IF NOT EXISTS dishes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-  menu_id UUID REFERENCES menus(id) ON DELETE SET NULL,
-  
-  -- Basic Information
-  name TEXT NOT NULL,
-  description TEXT,
-  
-  -- Pricing
-  price NUMERIC(10, 2) NOT NULL,
-  
-  -- Dietary Information
-  dietary_tags TEXT[] DEFAULT ARRAY[]::TEXT[], -- vegan, vegetarian, gluten_free, etc.
-  allergens TEXT[] DEFAULT ARRAY[]::TEXT[], -- nuts, dairy, eggs, etc.
-  ingredients TEXT[] DEFAULT ARRAY[]::TEXT[],
-  
-  -- Nutrition & Taste
-  calories INTEGER,
-  spice_level SMALLINT CHECK (spice_level BETWEEN 0 AND 4), -- 0=none, 4=very spicy
-  
-  -- Media & Availability
-  image_url TEXT,
-  is_available BOOLEAN DEFAULT true,
-  
-  -- Metadata
+  restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add columns if they don't exist (safe to run multiple times)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='restaurant_id') THEN
+    ALTER TABLE dishes ADD COLUMN restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='menu_id') THEN
+    ALTER TABLE dishes ADD COLUMN menu_id UUID REFERENCES menus(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='name') THEN
+    ALTER TABLE dishes ADD COLUMN name TEXT NOT NULL DEFAULT '';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='description') THEN
+    ALTER TABLE dishes ADD COLUMN description TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='price') THEN
+    ALTER TABLE dishes ADD COLUMN price NUMERIC(10, 2) NOT NULL DEFAULT 0;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='dietary_tags') THEN
+    ALTER TABLE dishes ADD COLUMN dietary_tags TEXT[] DEFAULT ARRAY[]::TEXT[];
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='allergens') THEN
+    ALTER TABLE dishes ADD COLUMN allergens TEXT[] DEFAULT ARRAY[]::TEXT[];
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='ingredients') THEN
+    ALTER TABLE dishes ADD COLUMN ingredients TEXT[] DEFAULT ARRAY[]::TEXT[];
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='calories') THEN
+    ALTER TABLE dishes ADD COLUMN calories INTEGER;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='spice_level') THEN
+    ALTER TABLE dishes ADD COLUMN spice_level SMALLINT;
+    ALTER TABLE dishes ADD CONSTRAINT dishes_spice_level_check 
+      CHECK (spice_level BETWEEN 0 AND 4);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='image_url') THEN
+    ALTER TABLE dishes ADD COLUMN image_url TEXT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name='dishes' AND column_name='is_available') THEN
+    ALTER TABLE dishes ADD COLUMN is_available BOOLEAN DEFAULT true;
+  END IF;
+END $$;
 
 -- ============================================================================
 -- INDEXES - RESTAURANTS

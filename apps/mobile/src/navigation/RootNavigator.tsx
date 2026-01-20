@@ -10,6 +10,7 @@ import {
   SettingsScreen,
 } from '@/screens';
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
+import { SupabaseTestScreen } from '../screens/SupabaseTestScreen';
 import type { RootStackParamList } from '@/types/navigation';
 
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -30,6 +31,14 @@ export const RootNavigator: React.FC = () => {
         }}
       >
         <RootStack.Screen name="Map" component={MapScreen} />
+        <RootStack.Screen
+          name="SupabaseTest"
+          component={SupabaseTestScreen}
+          options={{
+            headerShown: true,
+            title: 'Supabase Connection Test',
+          }}
+        />
         <RootStack.Screen
           name="Filters"
           component={FiltersScreen}

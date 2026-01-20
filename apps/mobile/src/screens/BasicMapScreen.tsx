@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, Text } from 'react-native';
+import { StyleSheet, View, Alert, Text, ActivityIndicator } from 'react-native';
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -7,6 +7,7 @@ import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
 import { mockDishes, Dish } from '../data/mockDishes';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { useRestaurants, useAllDishes } from '../hooks';
 import { useFilterStore } from '../stores/filterStore';
 import { useViewModeStore } from '../stores/viewModeStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
@@ -25,15 +26,22 @@ import { FloatingMenu } from '../components/FloatingMenu';
 /**
  * BasicMapScreen Component
  *
- * Displays a Mapbox map centered on Mexico City with restaurant markers and user location.
- * Now refactored into smaller, focused components for better maintainability.
+ * Displays a Mapbox map with restaurant markers and user location.
+ * Now fetches real data from Supabase instead of using mock data.
  */
 export function BasicMapScreen({ navigation }: MapScreenProps) {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
-  debugLog('Loaded restaurants:', mockRestaurants.length);
 
   // Get the root stack navigation for navigating to RestaurantDetail
   const rootNavigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  // Fetch real data from Supabase
+  const {
+    restaurants: dbRestaurants,
+    loading: restaurantsLoading,
+    error: restaurantsError,
+  } = useRestaurants();
+  const { dishes: dbDishes, loading: dishesLoading, error: dishesError } = useAllDishes();
 
   const cameraRef = useRef<Camera>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -44,11 +52,101 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const { daily, permanent } = useFilterStore();
   const { mode } = useViewModeStore();
 
+  // Helper function to parse location data
+  const parseLocation = (location: any): { lat: number; lng: number } | null => {
+    if (!location) return null;
+
+    // If it's already an object with lat/lng
+    if (typeof location === 'object' && location.lat && location.lng) {
+      return { lat: location.lat, lng: location.lng };
+    }
+
+    // If it's a PostGIS point string like "POINT(-122.084 37.422)"
+    if (typeof location === 'string' && location.startsWith('POINT')) {
+      const match = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
+      if (match) {
+        return { lat: parseFloat(match[2]), lng: parseFloat(match[1]) };
+      }
+    }
+
+    console.warn('Unable to parse location:', location);
+    return null;
+  };
+
+  // Convert Supabase data to match existing Restaurant/Dish types
+  const restaurants = useMemo(() => {
+    return dbRestaurants
+      .map(r => {
+        const location = parseLocation(r.location);
+        if (!location) return null;
+
+        // Convert price_range number to $ symbols
+        const priceSymbols = ['$', '$$', '$$$', '$$$$'];
+        const priceRange = priceSymbols[Math.min(r.price_range - 1, 3)] as
+          | '$'
+          | '$$'
+          | '$$$'
+          | '$$$$';
+
+        return {
+          id: r.id,
+          name: r.name,
+          coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
+          cuisine: r.cuisine_types?.[0] || 'Unknown',
+          rating: 4.5, // TODO: Add rating to database
+          priceRange,
+          address: r.address,
+          description: r.description || '',
+          imageUrl: undefined,
+          phone: r.phone || undefined,
+          isOpen: true, // TODO: Calculate from operating_hours
+          openingHours: {
+            open: '09:00',
+            close: '22:00',
+          }, // TODO: Parse from operating_hours
+        };
+      })
+      .filter(r => r !== null) as Restaurant[];
+  }, [dbRestaurants]);
+
+  const dishes = useMemo(() => {
+    return dbDishes
+      .map(d => {
+        const location = parseLocation(d.restaurant.location);
+        if (!location) return null;
+
+        // Determine price range from price
+        let priceRange: '$' | '$$' | '$$$' | '$$$$';
+        if (d.price < 10) priceRange = '$';
+        else if (d.price < 20) priceRange = '$$';
+        else if (d.price < 40) priceRange = '$$$';
+        else priceRange = '$$$$';
+
+        return {
+          id: d.id,
+          name: d.name,
+          restaurantId: d.restaurant_id,
+          restaurantName: d.restaurant.name,
+          price: d.price,
+          priceRange,
+          cuisine: d.restaurant.cuisine_types?.[0] || 'Unknown',
+          coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
+          description: d.description || '',
+          imageUrl: d.image_url || undefined,
+          rating: 4.5, // TODO: Add rating to database
+          isAvailable: d.is_available,
+        };
+      })
+      .filter(d => d !== null) as Dish[];
+  }, [dbDishes]);
+
   // Apply filters to restaurants with performance optimization
   const filteredResults = useMemo(() => {
+    if (restaurantsLoading) return { restaurants: [], dishes: [] };
+
     debugLog('Applying filters to restaurants...');
-    const result = applyFilters(mockRestaurants, daily, permanent);
-    debugLog(`Filtered ${mockRestaurants.length} → ${result.restaurants.length} restaurants`);
+    const result = applyFilters(restaurants, daily, permanent);
+    debugLog(`Filtered ${restaurants.length} → ${result.restaurants.length} restaurants`);
 
     // Validate filters and log any issues
     const validation = validateFilters(daily, permanent);
@@ -63,30 +161,31 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
 
     return result;
-  }, [daily, permanent]);
+  }, [restaurants, daily, permanent, restaurantsLoading]);
 
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
 
-  // Get recommended dishes (mock algorithm - will be replaced with ML/database in future)
-  const getRecommendedDishes = () => {
-    // For now, return top-rated available dishes, limited to 8
-    return mockDishes
-      .filter(dish => dish.isAvailable)
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 8);
-  };
-
-  const recommendedDishes = getRecommendedDishes();
+  // Get recommended dishes from database
+  const recommendedDishes = useMemo(() => {
+    return dishes.filter(dish => dish.isAvailable).slice(0, 8);
+  }, [dishes]);
 
   // Add debugging
-  console.log('=== RESTAURANT DEBUG ===');
-  console.log('Total mock restaurants loaded:', mockRestaurants.length);
+  console.log('=== SUPABASE DATA DEBUG ===');
+  console.log('Raw DB restaurants:', dbRestaurants.length);
+  console.log('First restaurant raw:', dbRestaurants[0]);
+  console.log('Restaurants from DB:', restaurants.length);
+  console.log('First restaurant parsed:', restaurants[0]);
+  console.log('Dishes from DB:', dishes.length);
   console.log('Restaurants after filtering:', displayedRestaurants.length);
   console.log('Filter state - daily:', daily);
   console.log('Filter state - permanent:', permanent);
   console.log('First restaurant coordinates:', displayedRestaurants[0]?.coordinates);
-  console.log('Map center:', ENV.mapbox.defaultLocation);
+  console.log('Map center:', [
+    ENV.mapbox.defaultLocation.longitude,
+    ENV.mapbox.defaultLocation.latitude,
+  ]);
   console.log('========================');
 
   const {
@@ -192,6 +291,40 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     setIsMenuVisible(false);
   };
 
+  // Show loading state while fetching data
+  if (restaurantsLoading || dishesLoading) {
+    return (
+      <View
+        style={[commonStyles.containers.screen, { justifyContent: 'center', alignItems: 'center' }]}
+      >
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>Loading restaurants...</Text>
+      </View>
+    );
+  }
+
+  // Show error state if data fetch failed
+  if (restaurantsError || dishesError) {
+    return (
+      <View
+        style={[
+          commonStyles.containers.screen,
+          { justifyContent: 'center', alignItems: 'center', padding: 20 },
+        ]}
+      >
+        <Text style={{ fontSize: 18, color: '#FF3B30', marginBottom: 8, textAlign: 'center' }}>
+          Failed to load data
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+          {restaurantsError?.message || dishesError?.message}
+        </Text>
+        <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>
+          Please check your internet connection and Supabase configuration
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={commonStyles.containers.screen}>
       <MapView
@@ -236,7 +369,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         {mode === 'restaurant' ? (
           <RestaurantMarkers restaurants={displayedRestaurants} onMarkerPress={handleMarkerPress} />
         ) : (
-          <DishMarkers dishes={mockDishes} onMarkerPress={handleDishPress} />
+          <DishMarkers dishes={dishes} onMarkerPress={handleDishPress} />
         )}
       </MapView>
 

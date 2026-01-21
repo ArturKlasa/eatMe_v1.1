@@ -79,17 +79,27 @@ export interface Restaurant extends RestaurantInsert {
 // ============================================================================
 
 /**
- * Convert portal location format to PostGIS POINT format
+ * Convert portal location format to PostGIS POINT format OR JSONB
  *
  * @param lat - Latitude
  * @param lng - Longitude
- * @returns PostGIS POINT string (note: longitude comes first!)
+ * @param format - 'point' for PostGIS or 'json' for JSONB (default: 'point')
+ * @returns PostGIS POINT string or JSON object
  *
  * @example
  * formatLocationForSupabase(40.7128, -74.0060)
  * // Returns: "POINT(-74.0060 40.7128)"
+ * formatLocationForSupabase(40.7128, -74.0060, 'json')
+ * // Returns: {lat: 40.7128, lng: -74.0060}
  */
-export function formatLocationForSupabase(lat: number, lng: number): string {
+export function formatLocationForSupabase(
+  lat: number,
+  lng: number,
+  format: 'point' | 'json' = 'json'
+): string | { lat: number; lng: number } {
+  if (format === 'json') {
+    return { lat, lng };
+  }
   // PostGIS uses (longitude, latitude) order - this is critical!
   return `POINT(${lng} ${lat})`;
 }

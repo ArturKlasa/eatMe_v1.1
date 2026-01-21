@@ -62,14 +62,31 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
 
     // If it's a PostGIS point string like "POINT(-122.084 37.422)"
-    if (typeof location === 'string' && location.startsWith('POINT')) {
-      const match = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-      if (match) {
-        return { lat: parseFloat(match[2]), lng: parseFloat(match[1]) };
+    if (typeof location === 'string') {
+      if (location.startsWith('POINT')) {
+        const match = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
+        if (match) {
+          return { lat: parseFloat(match[2]), lng: parseFloat(match[1]) };
+        }
+      }
+
+      // If it's WKB hexadecimal format from PostGIS
+      // Format: 0101000020E6... (starts with 0101)
+      if (location.match(/^0101/)) {
+        // WKB format - we need to decode the binary
+        // For now, log and skip - we'll handle this with a better query
+        console.warn(
+          'WKB location format detected, needs proper parsing:',
+          location.substring(0, 40) + '...'
+        );
+        return null;
       }
     }
 
-    console.warn('Unable to parse location:', location);
+    console.warn(
+      'Unable to parse location:',
+      typeof location === 'string' ? location.substring(0, 60) : location
+    );
     return null;
   };
 

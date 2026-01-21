@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Clock } from 'lucide-react';
 
 interface RestaurantFormData {
   name: string;
@@ -22,12 +23,49 @@ interface RestaurantFormData {
   website: string;
 }
 
+const DAYS_OF_WEEK = [
+  { key: 'monday', label: 'Monday' },
+  { key: 'tuesday', label: 'Tuesday' },
+  { key: 'wednesday', label: 'Wednesday' },
+  { key: 'thursday', label: 'Thursday' },
+  { key: 'friday', label: 'Friday' },
+  { key: 'saturday', label: 'Saturday' },
+  { key: 'sunday', label: 'Sunday' },
+];
+
 function EditRestaurantContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+
+  // Operating hours state
+  const [operatingHours, setOperatingHours] = useState<
+    Record<string, { open: string; close: string; closed: boolean }>
+  >({
+    monday: { open: '09:00', close: '21:00', closed: false },
+    tuesday: { open: '09:00', close: '21:00', closed: false },
+    wednesday: { open: '09:00', close: '21:00', closed: false },
+    thursday: { open: '09:00', close: '21:00', closed: false },
+    friday: { open: '09:00', close: '22:00', closed: false },
+    saturday: { open: '09:00', close: '22:00', closed: false },
+    sunday: { open: '10:00', close: '20:00', closed: false },
+  });
+
+  const handleHoursChange = (day: string, field: 'open' | 'close', value: string) => {
+    setOperatingHours(prev => ({
+      ...prev,
+      [day]: { ...prev[day], [field]: value },
+    }));
+  };
+
+  const handleDayClosedToggle = (day: string) => {
+    setOperatingHours(prev => ({
+      ...prev,
+      [day]: { ...prev[day], closed: !prev[day].closed },
+    }));
+  };
 
   const {
     register,
@@ -57,6 +95,20 @@ function EditRestaurantContent() {
           setValue('address', data.address);
           setValue('phone', data.phone || '');
           setValue('website', data.website || '');
+
+          // Load operating hours
+          if (data.operating_hours) {
+            const hours: Record<string, { open: string; close: string; closed: boolean }> = {};
+            DAYS_OF_WEEK.forEach(({ key }) => {
+              const dayHours = data.operating_hours[key];
+              if (dayHours) {
+                hours[key] = { ...dayHours, closed: dayHours.closed || false };
+              } else {
+                hours[key] = { open: '09:00', close: '21:00', closed: true };
+              }
+            });
+            setOperatingHours(hours);
+          }
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
@@ -78,6 +130,26 @@ function EditRestaurantContent() {
     setSaving(true);
 
     try {
+      // Build operating hours (exclude closed days)
+      const operating_hours_to_save: Record<string, { open: string; close: string }> = {};
+      DAYS_OF_WEEK.forEach(({ key }) => {
+        if (!operatingHours[key]?.closed) {
+          operating_hours_to_save[key] = {
+            open: operatingHours[key].open,
+            close: operatingHours[key].close,
+          };
+        }
+      });
+
+      console.log('Updating restaurant with data:', {
+        name: data.name,
+        description: data.description,
+        address: data.address,
+        phone: data.phone,
+        website: data.website,
+        operating_hours: operating_hours_to_save,
+      });
+
       const { error } = await supabase
         .from('restaurants')
         .update({
@@ -86,17 +158,22 @@ function EditRestaurantContent() {
           address: data.address,
           phone: data.phone,
           website: data.website,
+          operating_hours: operating_hours_to_save,
           updated_at: new Date().toISOString(),
         })
         .eq('id', restaurantId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
       toast.success('Restaurant information updated successfully!');
       router.push('/');
     } catch (err) {
       console.error('Failed to update restaurant:', err);
-      toast.error('Failed to update restaurant information');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to update restaurant: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -192,6 +269,56 @@ function EditRestaurantContent() {
                   placeholder="https://www.myrestaurant.com"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Operating Hours */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Operating Hours
+              </CardTitle>
+              <CardDescription>Update your business hours</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {DAYS_OF_WEEK.map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-4">
+                  <div className="w-28">
+                    <Label className="text-sm font-medium">{label}</Label>
+                  </div>
+                  <div className="flex items-center gap-3 flex-1">
+                    <Checkbox
+                      id={`closed-${key}`}
+                      checked={operatingHours[key]?.closed || false}
+                      onCheckedChange={() => handleDayClosedToggle(key)}
+                    />
+                    <Label
+                      htmlFor={`closed-${key}`}
+                      className="text-sm text-gray-500 cursor-pointer"
+                    >
+                      Closed
+                    </Label>
+                    {!operatingHours[key]?.closed && (
+                      <>
+                        <Input
+                          type="time"
+                          value={operatingHours[key]?.open || '09:00'}
+                          onChange={e => handleHoursChange(key, 'open', e.target.value)}
+                          className="w-32"
+                        />
+                        <span className="text-gray-500">to</span>
+                        <Input
+                          type="time"
+                          value={operatingHours[key]?.close || '21:00'}
+                          onChange={e => handleHoursChange(key, 'close', e.target.value)}
+                          className="w-32"
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
 

@@ -1883,6 +1883,235 @@ cd android && ./gradlew clean
 
 ---
 
-**End of Guide**
+## Building Production APK
+
+This section covers how to generate a production-ready APK file for distribution.
+
+### Prerequisites
+
+1. **Install EAS CLI** (if not already installed):
+
+   ```bash
+   npm install -g eas-cli
+   ```
+
+2. **Login to Expo account**:
+
+   ```bash
+   eas login
+   ```
+
+3. **Configure EAS project** (if first time):
+   ```bash
+   cd /home/art/Documents/eatMe_v1/apps/mobile
+   eas build:configure
+   ```
+
+### Method 1: EAS Build (Recommended)
+
+#### Build APK in the Cloud
+
+**For Production:**
+
+```bash
+eas build --platform android --profile production
+```
+
+**For Preview/Testing:**
+
+```bash
+eas build --platform android --profile preview
+```
+
+**What happens:**
+
+1. Code uploaded to Expo servers
+2. APK built in cloud environment
+3. Download link provided when complete
+4. APK available in Expo dashboard
+
+**Advantages:**
+
+- ✅ No local Android setup needed
+- ✅ Consistent build environment
+- ✅ Signing handled automatically
+- ✅ Build available in dashboard
+
+**Time:** ~15-20 minutes
+
+#### Download the APK
+
+After build completes:
+
+1. Click the download link in terminal, OR
+2. Visit https://expo.dev/accounts/[your-account]/projects/mobile/builds
+3. Download the APK file
+4. Install on device: `adb install app-name.apk`
+
+### Method 2: Local Build
+
+#### Build APK Locally
+
+**Requirements:**
+
+- Android SDK installed
+- Java JDK 17+
+- Android Studio (for signing keys)
+
+**Steps:**
+
+1. **Navigate to Android directory:**
+
+   ```bash
+   cd /home/art/Documents/eatMe_v1/apps/mobile/android
+   ```
+
+2. **Build release APK:**
+
+   ```bash
+   ./gradlew assembleRelease
+   ```
+
+3. **Find APK:**
+   ```bash
+   # Location:
+   android/app/build/outputs/apk/release/app-release.apk
+   ```
+
+**Note:** This creates an unsigned APK. For Play Store submission, you need to sign it.
+
+### Method 3: Build Signed APK Locally
+
+#### Generate Signing Key (First Time Only)
+
+```bash
+cd /home/art/Documents/eatMe_v1/apps/mobile/android/app
+keytool -genkeypair -v -storetype PKCS12 -keystore eatme-release.keystore \
+  -alias eatme-key -keyalg RSA -keysize 2048 -validity 10000
+```
+
+**Important:** Save the keystore file and passwords securely!
+
+#### Configure Gradle for Signing
+
+1. **Create `android/gradle.properties` (if not exists):**
+
+   ```properties
+   EATME_RELEASE_STORE_FILE=eatme-release.keystore
+   EATME_RELEASE_KEY_ALIAS=eatme-key
+   EATME_RELEASE_STORE_PASSWORD=your_store_password
+   EATME_RELEASE_KEY_PASSWORD=your_key_password
+   ```
+
+2. **Update `android/app/build.gradle`:**
+
+   ```gradle
+   android {
+       ...
+       signingConfigs {
+           release {
+               storeFile file(EATME_RELEASE_STORE_FILE)
+               storePassword EATME_RELEASE_STORE_PASSWORD
+               keyAlias EATME_RELEASE_KEY_ALIAS
+               keyPassword EATME_RELEASE_KEY_PASSWORD
+           }
+       }
+       buildTypes {
+           release {
+               signingConfig signingConfigs.release
+               ...
+           }
+       }
+   }
+   ```
+
+3. **Build signed APK:**
+
+   ```bash
+   cd android
+   ./gradlew assembleRelease
+   ```
+
+4. **Find signed APK:**
+   ```bash
+   android/app/build/outputs/apk/release/app-release.apk
+   ```
+
+### Build Profiles (eas.json)
+
+Check your `eas.json` configuration:
+
+```json
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
+```
+
+### Testing the APK
+
+1. **Transfer to device:**
+
+   ```bash
+   adb install path/to/app.apk
+   ```
+
+2. **Or scan QR code** (if using EAS build)
+
+3. **Or download directly on device** from Expo dashboard
+
+### Common Issues
+
+**Build fails with "outdated lockfile":**
+
+```bash
+pnpm install
+git add pnpm-lock.yaml
+git commit -m "Update lockfile"
+```
+
+**APK won't install:**
+
+- Check if app is already installed (uninstall first)
+- Enable "Install from unknown sources" on device
+- Verify APK is not corrupted
+
+**Signing errors:**
+
+- Verify keystore passwords are correct
+- Check keystore file path
+- Ensure keystore file is not corrupted
+
+### Distribution Options
+
+1. **Direct Installation:** Share APK file via email/drive
+2. **Internal Testing:** Use EAS internal distribution
+3. **Google Play Store:** Upload signed APK/AAB
+4. **Firebase App Distribution:** For beta testing
+
+### Next Steps After Building
+
+1. **Test thoroughly** on multiple devices
+2. **Check all features** work in production build
+3. **Verify API connections** (Supabase, Mapbox)
+4. **Test offline behavior**
+5. **Monitor crash reports**
+
+---
 
 This guide covers the complete mobile application setup for EatMe. For specific issues not covered here, refer to the error message and online documentation for the specific tool or library involved.

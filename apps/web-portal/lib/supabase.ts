@@ -18,7 +18,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true, // Enable session persistence
     autoRefreshToken: true, // Auto refresh tokens
-    detectSessionInUrl: true, // Detect session from URL (for email confirmation)
+    detectSessionInUrl: true, // Detect session from URL hash
+    flowType: 'implicit', // Use implicit flow to avoid PKCE verifier issues in dev
   },
 });
 

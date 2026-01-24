@@ -6,38 +6,29 @@ import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 /**
- * Client-side OAuth callback handler (PKCE + implicit fallback).
- * Stores session in localStorage via supabase-js, then redirects.
+ * Client-side callback handler for implicit flow (hash-based tokens)
+ * This handles the case where Supabase sends tokens in URL fragment (#)
  */
-export default function AuthCallbackPage() {
+
+export default function CallbackClientPage() {
   const router = useRouter();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Implicit flow (hash tokens) - manually parse and set session
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-
-        if (!accessToken || !refreshToken) {
-          console.warn('[Auth] No tokens in callback URL');
-          window.location.href = '/auth/login';
-          return;
-        }
-
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
+        // Explicitly parse the hash fragment and store the session
+        const { data, error } = await supabase.auth.getSessionFromUrl({
+          storeSession: true,
         });
 
         if (error) {
-          console.error('[Auth] Error setting session:', error);
+          console.error('[Auth] Error processing callback hash:', error);
           window.location.href = '/auth/login?error=session_failed';
           return;
         }
 
-        const user = data.user;
+        const user = data.session?.user;
+
         if (user) {
           console.log('[Auth] User authenticated via implicit flow:', {
             userId: user.id,
@@ -46,12 +37,20 @@ export default function AuthCallbackPage() {
             timestamp: new Date().toISOString(),
           });
 
+          // Role-based redirect
           const userRole = user.user_metadata?.role;
-          window.location.href = userRole === 'admin' ? '/admin' : '/';
-          return;
-        }
 
-        window.location.href = '/auth/login';
+          if (userRole === 'admin') {
+            console.log('[Auth] Redirecting admin to /admin');
+            window.location.href = '/admin';
+          } else {
+            console.log('[Auth] Redirecting owner to /');
+            window.location.href = '/';
+          }
+        } else {
+          console.warn('[Auth] No session after callback');
+          window.location.href = '/auth/login';
+        }
       } catch (error) {
         console.error('[Auth] Callback error:', error);
         window.location.href = '/auth/login?error=callback_error';
@@ -65,7 +64,7 @@ export default function AuthCallbackPage() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-orange-600" />
-        <p className="mt-2 text-gray-600">Signing you in...</p>
+        <p className="mt-2 text-gray-600">Setting up your session...</p>
         <p className="mt-1 text-xs text-gray-500">Please wait...</p>
       </div>
     </div>

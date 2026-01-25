@@ -15,6 +15,24 @@ React Native mobile application with Expo Bare workflow for the EatMe food disco
 
 Make sure you're in the monorepo root directory first.
 
+### Initial Setup (First Time Only)
+
+```bash
+cd apps/mobile
+
+# Generate native projects (android/ and ios/ folders)
+npx expo prebuild
+
+# Build a development client for your platform
+# Android:
+npx expo run:android
+
+# iOS (macOS only):
+npx expo run:ios
+```
+
+**Note:** The app uses Expo Bare workflow with custom native modules (Mapbox). You need to build a development client before running the app. This only needs to be done once, or when native dependencies change.
+
 ### Start Development Server
 
 ```bash
@@ -22,16 +40,18 @@ cd apps/mobile
 pnpm start
 ```
 
+This starts the Metro bundler with the development client.
+
 ### Run on Platforms
 
 ```bash
-# Android (requires Android Studio/emulator)
+# Android (requires Android Studio/emulator or device)
 pnpm android
 
 # iOS (requires macOS and Xcode)
 pnpm ios
 
-# Web (for testing)
+# Web (for testing, limited functionality)
 pnpm web
 ```
 

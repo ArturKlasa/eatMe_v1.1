@@ -205,6 +205,22 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- NEW: Admins and owners can insert menus
+DO $$ 
+BEGIN
+  CREATE POLICY "Admins and owners can insert menus"
+  ON menus FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM restaurants 
+      WHERE id = menus.restaurant_id 
+      AND (owner_id = auth.uid() OR is_admin())
+    )
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- ============================================================================
 -- 6. UPDATE RLS POLICIES FOR DISHES
 -- ============================================================================
@@ -251,6 +267,24 @@ BEGIN
   ON dishes FOR DELETE
   TO authenticated
   USING (is_admin());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- NEW: Admins and owners can insert dishes
+DO $$ 
+BEGIN
+  DROP POLICY IF EXISTS "Admins and owners can insert dishes" ON dishes;
+  CREATE POLICY "Admins and owners can insert dishes"
+  ON dishes FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM menus m
+      JOIN restaurants r ON m.restaurant_id = r.id
+      WHERE m.id = menu_id
+      AND (r.owner_id = auth.uid() OR is_admin())
+    )
+  );
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

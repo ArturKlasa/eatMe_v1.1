@@ -94,6 +94,12 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const restaurants = useMemo(() => {
     return dbRestaurants
       .map(r => {
+        // Guard against null/undefined location
+        if (!r || !r.location) {
+          console.warn('Restaurant missing location data:', r?.id);
+          return null;
+        }
+
         const location = parseLocation(r.location);
         if (!location) return null;
 
@@ -129,6 +135,12 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const dishes = useMemo(() => {
     return dbDishes
       .map(d => {
+        // Guard against null/undefined restaurant or location
+        if (!d || !d.restaurant || !d.restaurant.location) {
+          console.warn('Dish missing restaurant location data:', d?.id);
+          return null;
+        }
+
         const location = parseLocation(d.restaurant.location);
         if (!location) return null;
 

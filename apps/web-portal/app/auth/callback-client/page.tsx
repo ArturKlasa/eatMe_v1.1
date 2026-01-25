@@ -16,10 +16,8 @@ export default function CallbackClientPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Explicitly parse the hash fragment and store the session
-        const { data, error } = await supabase.auth.getSessionFromUrl({
-          storeSession: true,
-        });
+        // Get session from URL hash
+        const { data, error } = await supabase.auth.getSession();
 
         if (error) {
           console.error('[Auth] Error processing callback hash:', error);

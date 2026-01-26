@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function NewMenuPage() {
   const router = useRouter();
@@ -83,78 +88,76 @@ export default function NewMenuPage() {
       </div>
 
       {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white border border-gray-200 rounded-lg p-6 space-y-6"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Menu Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="e.g., Lunch Menu, Dinner Specials, Drinks"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              rows={3}
-              placeholder="Brief description of this menu..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
-            <input
-              type="number"
-              min="1"
-              value={formData.display_order}
-              onChange={e => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Menus will be displayed in this order (lower numbers first)
-            </p>
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
-                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Utensils className="h-5 w-5 text-orange-600" />
+              <CardTitle>Menu Details</CardTitle>
+            </div>
+            <CardDescription>
+              Create a new menu for {restaurantName}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Menu Name *</Label>
+              <Input
+                id="name"
+                required
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Lunch Menu, Dinner Specials, Drinks"
               />
-              <span className="text-sm text-gray-700">Active (visible to customers)</span>
-            </label>
-          </div>
-        </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Brief description of this menu..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="order">Display Order</Label>
+              <Input
+                id="order"
+                type="number"
+                min="1"
+                value={formData.display_order}
+                onChange={e => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
+              />
+              <p className="text-sm text-muted-foreground">
+                Menus will be displayed in this order (lower numbers first)
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="active"
+                checked={formData.is_active}
+                onCheckedChange={checked => setFormData({ ...formData, is_active: checked as boolean })}
+              />
+              <Label htmlFor="active" className="cursor-pointer">
+                ✅ Active (visible to customers)
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="flex gap-4 pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        <div className="flex gap-4">
+          <Button type="submit" disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Create Menu
-          </button>
-
-          <Link
-            href={`/admin/restaurants/${restaurantId}/menus`}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link href={`/admin/restaurants/${restaurantId}/menus`}>Cancel</Link>
+          </Button>
         </div>
       </form>
     </div>

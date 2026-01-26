@@ -294,17 +294,17 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
               <p className="text-xs text-gray-500 mb-2">Mark allergens present in this dish</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {ALLERGENS.map(allergen => (
-                  <div key={allergen} className="flex items-center space-x-2">
+                  <div key={allergen.value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`allergen-${allergen}`}
-                      checked={allergens.includes(allergen)}
-                      onCheckedChange={() => toggleAllergen(allergen)}
+                      id={`allergen-${allergen.value}`}
+                      checked={allergens.includes(allergen.value)}
+                      onCheckedChange={() => toggleAllergen(allergen.value)}
                     />
                     <Label
-                      htmlFor={`allergen-${allergen}`}
-                      className="text-sm font-normal cursor-pointer capitalize"
+                      htmlFor={`allergen-${allergen.value}`}
+                      className="text-sm font-normal cursor-pointer"
                     >
-                      {allergen}
+                      {allergen.icon} {allergen.label}
                     </Label>
                   </div>
                 ))}
@@ -322,21 +322,21 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {DIETARY_TAGS.filter(
                   tag =>
-                    tag !== 'vegetarian' &&
-                    tag !== 'vegan' &&
-                    !(RELIGIOUS_REQUIREMENTS as readonly string[]).includes(tag)
+                    tag.value !== 'vegetarian' &&
+                    tag.value !== 'vegan' &&
+                    !(RELIGIOUS_REQUIREMENTS as readonly string[]).includes(tag.value)
                 ).map(tag => (
-                  <div key={tag} className="flex items-center space-x-2">
+                  <div key={tag.value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`dietary-${tag}`}
-                      checked={dietaryTags.includes(tag)}
-                      onCheckedChange={() => toggleDietaryTag(tag)}
+                      id={`dietary-${tag.value}`}
+                      checked={dietaryTags.includes(tag.value)}
+                      onCheckedChange={() => toggleDietaryTag(tag.value)}
                     />
                     <Label
-                      htmlFor={`dietary-${tag}`}
-                      className="text-sm font-normal cursor-pointer capitalize"
+                      htmlFor={`dietary-${tag.value}`}
+                      className="text-sm font-normal cursor-pointer"
                     >
-                      {tag}
+                      {tag.icon} {tag.label}
                     </Label>
                   </div>
                 ))}

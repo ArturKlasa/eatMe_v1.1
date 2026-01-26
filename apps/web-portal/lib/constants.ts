@@ -121,28 +121,28 @@ export const CUISINES = [
 ] as const;
 
 export const DIETARY_TAGS = [
-  'vegetarian',
-  'vegan',
-  'diabetic',
-  'keto',
-  'paleo',
-  'low-carb',
-  'halal',
-  'hindu',
-  'kosher',
-  'jain',
+  { value: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
+  { value: 'vegan', label: 'Vegan', icon: '🌱' },
+  { value: 'diabetic', label: 'Diabetic', icon: '🩺' },
+  { value: 'keto', label: 'Keto', icon: '🥑' },
+  { value: 'paleo', label: 'Paleo', icon: '🥩' },
+  { value: 'low-carb', label: 'Low-Carb', icon: '📉' },
+  { value: 'halal', label: 'Halal', icon: '☪️' },
+  { value: 'hindu', label: 'Hindu', icon: '🕉️' },
+  { value: 'kosher', label: 'Kosher', icon: '✡️' },
+  { value: 'jain', label: 'Jain', icon: '☸️' },
 ] as const;
 
 export const RELIGIOUS_REQUIREMENTS = ['halal', 'hindu', 'kosher', 'jain'] as const;
 
 export const ALLERGENS = [
-  'lactose',
-  'gluten',
-  'peanuts',
-  'soy',
-  'sesame',
-  'shellfish',
-  'nuts',
+  { value: 'lactose', label: 'Lactose', icon: '🥛' },
+  { value: 'gluten', label: 'Gluten', icon: '🌾' },
+  { value: 'peanuts', label: 'Peanuts', icon: '🥜' },
+  { value: 'soy', label: 'Soy', icon: '🫘' },
+  { value: 'sesame', label: 'Sesame', icon: '🌰' },
+  { value: 'shellfish', label: 'Shellfish', icon: '🦐' },
+  { value: 'nuts', label: 'Nuts', icon: '🌰' },
 ] as const;
 
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;

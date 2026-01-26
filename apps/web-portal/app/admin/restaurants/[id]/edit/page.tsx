@@ -3,10 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, MapPin, Utensils, Building2, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { RESTAURANT_TYPES, CUISINES, POPULAR_CUISINES, COUNTRIES } from '@/lib/constants';
 
 const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
   ssr: false,
@@ -32,6 +40,7 @@ export default function EditRestaurantPage() {
     country_code: 'US',
     phone: '',
     website: '',
+    description: '',
     restaurant_type: 'restaurant',
     cuisine_types: [] as string[],
     latitude: '',
@@ -41,6 +50,8 @@ export default function EditRestaurantPage() {
     dine_in_available: true,
     accepts_reservations: false,
   });
+
+  const [cuisineSearch, setCuisineSearch] = useState('');
 
   useEffect(() => {
     const fetchRestaurant = async () => {
@@ -67,6 +78,7 @@ export default function EditRestaurantPage() {
             country_code: data.country_code || 'US',
             phone: data.phone || '',
             website: data.website || '',
+            description: data.description || '',
             restaurant_type: data.restaurant_type || 'restaurant',
             cuisine_types: data.cuisine_types || [],
             latitude: data.location?.lat?.toString() || '',
@@ -113,6 +125,7 @@ export default function EditRestaurantPage() {
           country_code: formData.country_code,
           phone: formData.phone,
           website: formData.website,
+          description: formData.description || null,
           restaurant_type: formData.restaurant_type,
           cuisine_types: formData.cuisine_types,
           location: { lat, lng },
@@ -147,21 +160,26 @@ export default function EditRestaurantPage() {
     });
   };
 
-  const cuisineOptions = [
-    'Italian',
-    'Chinese',
-    'Japanese',
-    'Mexican',
-    'Indian',
-    'Thai',
-    'French',
-    'American',
-    'Mediterranean',
-    'Korean',
-    'Vietnamese',
-    'Greek',
-    'Spanish',
-  ];
+  const handleCuisineToggle = (cuisine: string) => {
+    setFormData(prev => ({
+      ...prev,
+      cuisine_types: prev.cuisine_types.includes(cuisine)
+        ? prev.cuisine_types.filter(c => c !== cuisine)
+        : [...prev.cuisine_types, cuisine],
+    }));
+  };
+
+  const handleRemoveCuisine = (cuisine: string) => {
+    setFormData(prev => ({
+      ...prev,
+      cuisine_types: prev.cuisine_types.filter(c => c !== cuisine),
+    }));
+  };
+
+  // Filter cuisines based on search
+  const filteredCuisines = cuisineSearch
+    ? CUISINES.filter(c => c.toLowerCase().includes(cuisineSearch.toLowerCase()))
+    : POPULAR_CUISINES;
 
   if (fetching) {
     return (
@@ -185,262 +203,339 @@ export default function EditRestaurantPage() {
           </div>
         </div>
 
-        <Link
-          href={`/admin/restaurants/${restaurantId}/menus`}
-          className="flex items-center gap-2 px-4 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
-        >
-          Manage Menus
-        </Link>
+        <Button asChild variant="outline">
+          <Link href={`/admin/restaurants/${restaurantId}/menus`}>
+            Manage Menus
+          </Link>
+        </Button>
       </div>
 
       {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white border border-gray-200 rounded-lg p-6 space-y-6"
-      >
-        {/* Basic Info */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Restaurant Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Restaurant Type *
-              </label>
-              <select
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-orange-600" />
+              <CardTitle>Basic Information</CardTitle>
+            </div>
+            <CardDescription>Tell us about your restaurant</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Restaurant Name *</Label>
+              <Input
+                id="name"
                 required
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Mario's Italian Kitchen"
+              />
+            </div>
+
+            {/* Type */}
+            <div className="space-y-2">
+              <Label htmlFor="type">Restaurant Type *</Label>
+              <Select
                 value={formData.restaurant_type}
-                onChange={e => setFormData({ ...formData, restaurant_type: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                onValueChange={value => setFormData({ ...formData, restaurant_type: value })}
               >
-                <option value="restaurant">Restaurant</option>
-                <option value="cafe">Cafe</option>
-                <option value="bar">Bar</option>
-                <option value="food-truck">Food Truck</option>
-                <option value="bakery">Bakery</option>
-              </select>
+                <SelectTrigger id="type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESTAURANT_TYPES.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.icon} {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cuisine Types *
-              </label>
-              <select
-                multiple
-                required
-                value={formData.cuisine_types}
-                onChange={e =>
-                  setFormData({
-                    ...formData,
-                    cuisine_types: Array.from(e.target.selectedOptions, option => option.value),
-                  })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                {cuisineOptions.map(cuisine => (
-                  <option key={cuisine} value={cuisine}>
-                    {cuisine}
-                  </option>
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Share what makes your restaurant special..."
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cuisines Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Utensils className="h-5 w-5 text-orange-600" />
+              <CardTitle>Cuisine Types</CardTitle>
+            </div>
+            <CardDescription>Select all that apply</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Selected Cuisines */}
+            {formData.cuisine_types.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 bg-orange-50 rounded-lg">
+                {formData.cuisine_types.map(cuisine => (
+                  <Badge
+                    key={cuisine}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-orange-200"
+                    onClick={() => handleRemoveCuisine(cuisine)}
+                  >
+                    {cuisine} ×
+                  </Badge>
                 ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+              </div>
+            )}
+
+            {/* Search */}
+            <div>
+              <Input
+                type="text"
+                placeholder="Search cuisines..."
+                value={cuisineSearch}
+                onChange={e => setCuisineSearch(e.target.value)}
+              />
             </div>
-          </div>
-        </div>
 
-        {/* Location */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Location</h2>
+            {/* Cuisine Options */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {filteredCuisines.map(cuisine => (
+                <div
+                  key={cuisine}
+                  onClick={() => handleCuisineToggle(cuisine)}
+                  className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                    formData.cuisine_types.includes(cuisine)
+                      ? 'border-orange-600 bg-orange-50'
+                      : 'border-gray-200 hover:border-orange-400 hover:bg-orange-50/50'
+                  }`}
+                >
+                  <p className="text-sm font-medium text-center">{cuisine}</p>
+                </div>
+              ))}
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-            <input
-              type="text"
-              required
-              value={formData.address}
-              onChange={e => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            {cuisineSearch && filteredCuisines.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">
+                No cuisines found matching &quot;{cuisineSearch}&quot;
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Location Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-orange-600" />
+              <CardTitle>Location</CardTitle>
+            </div>
+            <CardDescription>Where can customers find you?</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Address */}
+            <div className="space-y-2">
+              <Label htmlFor="address">Street Address *</Label>
+              <Input
+                id="address"
+                required
+                value={formData.address}
+                onChange={e => setFormData({ ...formData, address: e.target.value })}
+                placeholder="123 Main Street"
+              />
+            </div>
+
+            {/* City, Postal, Country */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  required
+                  value={formData.city}
+                  onChange={e => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="New York"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="postal">Postal Code</Label>
+                <Input
+                  id="postal"
+                  value={formData.postal_code}
+                  onChange={e => setFormData({ ...formData, postal_code: e.target.value })}
+                  placeholder="10001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">Country *</Label>
+                <Select
+                  value={formData.country_code}
+                  onValueChange={value => setFormData({ ...formData, country_code: value })}
+                >
+                  <SelectTrigger id="country">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map(country => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.flag} {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Coordinates */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lat">Latitude *</Label>
+                <Input
+                  id="lat"
+                  type="number"
+                  step="any"
+                  required
+                  value={formData.latitude}
+                  readOnly
+                  placeholder="Click map to set"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lng">Longitude *</Label>
+                <Input
+                  id="lng"
+                  type="number"
+                  step="any"
+                  required
+                  value={formData.longitude}
+                  readOnly
+                  placeholder="Click map to set"
+                />
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              📍 Click on the map to set your restaurant&apos;s exact location
+            </p>
+
+            <LocationPicker
+              initialLat={formData.latitude ? parseFloat(formData.latitude) : undefined}
+              initialLng={formData.longitude ? parseFloat(formData.longitude) : undefined}
+              onLocationSelect={handleLocationSelect}
             />
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-              <input
-                type="text"
-                required
-                value={formData.city}
-                onChange={e => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
+        {/* Contact Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-orange-600" />
+              <CardTitle>Contact Information</CardTitle>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-              <input
-                type="text"
-                value={formData.postal_code}
-                onChange={e => setFormData({ ...formData, postal_code: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
+            <CardDescription>How can customers reach you?</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  type="url"
+                  value={formData.website}
+                  onChange={e => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://yourrestaurant.com"
+                />
+              </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-              <input
-                type="text"
-                value={formData.country_code}
-                onChange={e => setFormData({ ...formData, country_code: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
+        {/* Service Options Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Options</CardTitle>
+            <CardDescription>What services do you offer?</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="delivery"
+                  checked={formData.delivery_available}
+                  onCheckedChange={checked =>
+                    setFormData({ ...formData, delivery_available: checked as boolean })
+                  }
+                />
+                <Label htmlFor="delivery" className="cursor-pointer">
+                  🚚 Delivery Available
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="takeout"
+                  checked={formData.takeout_available}
+                  onCheckedChange={checked =>
+                    setFormData({ ...formData, takeout_available: checked as boolean })
+                  }
+                />
+                <Label htmlFor="takeout" className="cursor-pointer">
+                  🥡 Takeout Available
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="dinein"
+                  checked={formData.dine_in_available}
+                  onCheckedChange={checked =>
+                    setFormData({ ...formData, dine_in_available: checked as boolean })
+                  }
+                />
+                <Label htmlFor="dinein" className="cursor-pointer">
+                  🍽️ Dine-in Available
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="reservations"
+                  checked={formData.accepts_reservations}
+                  onCheckedChange={checked =>
+                    setFormData({ ...formData, accepts_reservations: checked as boolean })
+                  }
+                />
+                <Label htmlFor="reservations" className="cursor-pointer">
+                  📅 Accepts Reservations
+                </Label>
+              </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Latitude *</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={formData.latitude}
-                onChange={e => setFormData({ ...formData, latitude: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="40.7128"
-                readOnly
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Longitude *</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={formData.longitude}
-                onChange={e => setFormData({ ...formData, longitude: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="-74.0060"
-                readOnly
-              />
-            </div>
-          </div>
-
-          <p className="text-sm text-gray-500">
-            Click on the map below to update the restaurant location.
-          </p>
-
-          <LocationPicker
-            initialLat={formData.latitude ? parseFloat(formData.latitude) : undefined}
-            initialLng={formData.longitude ? parseFloat(formData.longitude) : undefined}
-            onLocationSelect={handleLocationSelect}
-          />
-        </div>
-
-        {/* Contact */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Contact</h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-              <input
-                type="url"
-                value={formData.website}
-                onChange={e => setFormData({ ...formData, website: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Service Options */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Service Options</h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.delivery_available}
-                onChange={e => setFormData({ ...formData, delivery_available: e.target.checked })}
-                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-              />
-              <span className="text-sm text-gray-700">Delivery Available</span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.takeout_available}
-                onChange={e => setFormData({ ...formData, takeout_available: e.target.checked })}
-                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-              />
-              <span className="text-sm text-gray-700">Takeout Available</span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.dine_in_available}
-                onChange={e => setFormData({ ...formData, dine_in_available: e.target.checked })}
-                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-              />
-              <span className="text-sm text-gray-700">Dine-in Available</span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.accepts_reservations}
-                onChange={e => setFormData({ ...formData, accepts_reservations: e.target.checked })}
-                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-              />
-              <span className="text-sm text-gray-700">Accepts Reservations</span>
-            </label>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="flex gap-4 pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
+        <div className="flex gap-4">
+          <Button type="submit" disabled={loading} className="flex items-center gap-2">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Save Changes
-          </button>
-
-          <Link
-            href="/admin/restaurants"
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link href="/admin/restaurants">Cancel</Link>
+          </Button>
         </div>
       </form>
     </div>

@@ -3,9 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { DIETARY_TAGS, ALLERGENS, SPICE_LEVELS } from '@/lib/constants';
 
 export default function EditDishPage() {
   const router = useRouter();
@@ -167,142 +174,192 @@ export default function EditDishPage() {
       </div>
 
       {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white border border-gray-200 rounded-lg p-6 space-y-6"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dish Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="e.g., Margherita Pizza, Caesar Salad"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              rows={3}
-              placeholder="Describe the dish, ingredients, preparation..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Price ($) *</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              value={formData.price}
-              onChange={e => setFormData({ ...formData, price: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="12.99"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Tags</label>
-            <select
-              multiple
-              value={formData.dietary_tags}
-              onChange={e =>
-                setFormData({
-                  ...formData,
-                  dietary_tags: Array.from(e.target.selectedOptions, option => option.value),
-                })
-              }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              size={6}
-            >
-              <option value="vegetarian">Vegetarian</option>
-              <option value="vegan">Vegan</option>
-              <option value="gluten-free">Gluten-Free</option>
-              <option value="dairy-free">Dairy-Free</option>
-              <option value="nut-free">Nut-Free</option>
-              <option value="low-carb">Low-Carb</option>
-              <option value="keto">Keto</option>
-              <option value="paleo">Paleo</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Spice Level (0-4)
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="4"
-              value={formData.spice_level}
-              onChange={e => setFormData({ ...formData, spice_level: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">0 = No spice, 4 = Very spicy</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Calories</label>
-            <input
-              type="number"
-              min="0"
-              value={formData.calories}
-              onChange={e => setFormData({ ...formData, calories: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="e.g., 450"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-            <input
-              type="url"
-              value={formData.image_url}
-              onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.is_available}
-                onChange={e => setFormData({ ...formData, is_available: e.target.checked })}
-                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Utensils className="h-5 w-5 text-orange-600" />
+              <CardTitle>Dish Information</CardTitle>
+            </div>
+            <CardDescription>
+              Edit {menuName} dish
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Dish Name *</Label>
+              <Input
+                id="name"
+                required
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Margherita Pizza, Caesar Salad"
               />
-              <span className="text-sm text-gray-700">Available (visible to customers)</span>
-            </label>
-          </div>
-        </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Describe the dish, ingredients, preparation..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price ($) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={formData.price}
+                  onChange={e => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="12.99"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="calories">Calories</Label>
+                <Input
+                  id="calories"
+                  type="number"
+                  min="0"
+                  value={formData.calories}
+                  onChange={e => setFormData({ ...formData, calories: e.target.value })}
+                  placeholder="450"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image">Image URL</Label>
+              <Input
+                id="image"
+                type="url"
+                value={formData.image_url}
+                onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="available"
+                checked={formData.is_available}
+                onCheckedChange={checked => setFormData({ ...formData, is_available: checked as boolean })}
+              />
+              <Label htmlFor="available" className="cursor-pointer">
+                ✅ Available (visible to customers)
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dietary Information</CardTitle>
+            <CardDescription>Help customers find dishes that match their dietary needs</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Dietary Tags</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DIETARY_TAGS.map(tag => {
+                  const isSelected = formData.dietary_tags.includes(tag.value);
+                  return (
+                    <div
+                      key={tag.value}
+                      onClick={() => {
+                        const current = formData.dietary_tags;
+                        setFormData({
+                          ...formData,
+                          dietary_tags: isSelected
+                            ? current.filter(t => t !== tag.value)
+                            : [...current, tag.value],
+                        });
+                      }}
+                      className={`p-3 border rounded-lg cursor-pointer text-center transition-all ${
+                        isSelected
+                          ? 'border-orange-600 bg-orange-50'
+                          : 'border-gray-200 hover:border-orange-400 hover:bg-orange-50/50'
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{tag.icon} {tag.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Spice Level</Label>
+              <div className="flex gap-2">
+                {SPICE_LEVELS.map(level => (
+                  <button
+                    key={level.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, spice_level: level.value })}
+                    className={`flex-1 p-3 border rounded-lg transition-all ${
+                      formData.spice_level === level.value
+                        ? 'border-orange-600 bg-orange-50'
+                        : 'border-gray-200 hover:border-orange-400'
+                    }`}
+                  >
+                    <div className="text-lg">{level.icon}</div>
+                    <p className="text-xs mt-1">{level.label}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Allergens</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {ALLERGENS.map(allergen => {
+                  const isSelected = formData.allergens.includes(allergen.value);
+                  return (
+                    <div
+                      key={allergen.value}
+                      onClick={() => {
+                        const current = formData.allergens;
+                        setFormData({
+                          ...formData,
+                          allergens: isSelected
+                            ? current.filter(a => a !== allergen.value)
+                            : [...current, allergen.value],
+                        });
+                      }}
+                      className={`p-2 border rounded-lg cursor-pointer text-center transition-all ${
+                        isSelected
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-200 hover:border-red-400 hover:bg-red-50/50'
+                      }`}
+                    >
+                      <p className="text-xs font-medium">{allergen.icon} {allergen.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="flex gap-4 pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        <div className="flex gap-4">
+          <Button type="submit" disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Save Changes
-          </button>
-
-          <Link
-            href={`/admin/restaurants/${restaurantId}/menus/${menuId}/dishes`}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link href={`/admin/restaurants/${restaurantId}/menus/${menuId}/dishes`}>
+              Cancel
+            </Link>
+          </Button>
         </div>
       </form>
     </div>

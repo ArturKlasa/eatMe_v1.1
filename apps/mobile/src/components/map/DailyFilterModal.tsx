@@ -11,7 +11,15 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Alert,
+  GestureResponderEvent,
+} from 'react-native';
 import { useFilterStore } from '../../stores/filterStore';
 import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
@@ -98,7 +106,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
-            {/* 1. Price Range Section - Slider */}
+            {/* 1. Price Range Section - Dual Slider */}
             <View style={[modals.section, { marginTop: -20 }]}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
                 💰 How much would you like to spend?
@@ -112,24 +120,13 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     ${daily.priceRange.max}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={modals.priceSliderTrack}
-                  onPress={e => {
-                    // Simple click-to-set logic - can be enhanced with proper slider
-                    const { locationX } = e.nativeEvent;
-                    const width = 300; // approximate slider width
-                    const percentage = locationX / width;
-                    const newMax = Math.round(10 + percentage * 40); // $10-$50 range
-                    setDailyPriceRange(10, Math.max(10, Math.min(50, newMax)));
-                  }}
-                >
-                  <View
-                    style={[
-                      modals.priceSliderThumb,
-                      { left: `${((daily.priceRange.max - 10) / 40) * 100}%` },
-                    ]}
-                  />
-                </TouchableOpacity>
+                <DualRangeSlider
+                  min={10}
+                  max={50}
+                  valueMin={daily.priceRange.min}
+                  valueMax={daily.priceRange.max}
+                  onValuesChange={(min, max) => setDailyPriceRange(min, max)}
+                />
               </View>
             </View>
 
@@ -299,8 +296,8 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               </View>
             </View>
 
-            {/* 4. Spice Level Section */}
-            <View style={modals.section}>
+            {/* 4. Spice Level Section - TEMPORARILY HIDDEN */}
+            {/* <View style={modals.section}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>🌶️ Spicy?</Text>
               <View style={modals.tabContainer}>
                 {[
@@ -325,10 +322,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
+            </View> */}
 
-            {/* 5. Hunger Level Section */}
-            <View style={modals.section}>
+            {/* 5. Hunger Level Section - TEMPORARILY HIDDEN */}
+            {/* <View style={modals.section}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>😋 Hungry, huh?</Text>
               <View style={modals.tabContainer}>
                 {[
@@ -353,7 +350,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
+            </View> */}
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -496,5 +493,71 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
         </View>
       </View>
     </Modal>
+  );
+};
+
+/**
+ * Dual Range Slider Component
+ *
+ * A custom dual-thumb slider for selecting price ranges
+ */
+interface DualRangeSliderProps {
+  min: number;
+  max: number;
+  valueMin: number;
+  valueMax: number;
+  onValuesChange: (min: number, max: number) => void;
+}
+
+const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
+  min,
+  max,
+  valueMin,
+  valueMax,
+  onValuesChange,
+}) => {
+  const [activeThumb, setActiveThumb] = React.useState<'min' | 'max' | null>(null);
+  const sliderWidth = 300;
+
+  const handlePress = (event: GestureResponderEvent) => {
+    const { locationX } = event.nativeEvent;
+    const percentage = Math.max(0, Math.min(1, locationX / sliderWidth));
+    const newValue = Math.round(min + percentage * (max - min));
+
+    // Determine which thumb to move based on proximity
+    const distToMin = Math.abs(newValue - valueMin);
+    const distToMax = Math.abs(newValue - valueMax);
+
+    if (distToMin < distToMax) {
+      // Move min thumb, but don't exceed max
+      const clampedMin = Math.min(newValue, valueMax - 1);
+      onValuesChange(clampedMin, valueMax);
+    } else {
+      // Move max thumb, but don't go below min
+      const clampedMax = Math.max(newValue, valueMin + 1);
+      onValuesChange(valueMin, clampedMax);
+    }
+  };
+
+  const minPosition = ((valueMin - min) / (max - min)) * 100;
+  const maxPosition = ((valueMax - min) / (max - min)) * 100;
+
+  return (
+    <TouchableOpacity style={modals.priceSliderTrack} onPress={handlePress} activeOpacity={1}>
+      {/* Active range highlight */}
+      <View
+        style={[
+          modals.priceSliderActiveRange,
+          {
+            left: `${minPosition}%`,
+            width: `${maxPosition - minPosition}%`,
+          },
+        ]}
+      />
+      {/* Min thumb */}
+      <View style={[modals.priceSliderThumb, { left: `${minPosition}%` }]} />
+      {/* Max thumb */}
+      <View style={[modals.priceSliderThumb, { left: `${maxPosition}%` }]} />
+    </TouchableOpacity>
   );
 };

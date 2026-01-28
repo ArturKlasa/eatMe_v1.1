@@ -10,7 +10,9 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { useRestaurants, useAllDishes } from '../hooks';
 import { useFilterStore } from '../stores/filterStore';
 import { useViewModeStore } from '../stores/viewModeStore';
+import { useRestaurantStore } from '../stores/restaurantStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
+import { formatDistance } from '../services/geoService';
 import { commonStyles, mapComponentStyles } from '@/styles';
 import type { MapScreenProps } from '@/types/navigation';
 import type { RootStackParamList } from '@/types/navigation';
@@ -35,7 +37,15 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Get the root stack navigation for navigating to RestaurantDetail
   const rootNavigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Fetch real data from Supabase
+  // Use geospatial store for nearby restaurants
+  const {
+    nearbyRestaurants,
+    loading: geoLoading,
+    error: geoError,
+    loadNearbyRestaurantsFromCurrentLocation,
+  } = useRestaurantStore();
+
+  // Fallback to old data hooks if needed
   const {
     restaurants: dbRestaurants,
     loading: restaurantsLoading,
@@ -92,6 +102,40 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
   // Convert Supabase data to match existing Restaurant/Dish types
   const restaurants = useMemo(() => {
+    // Prefer geospatial search results if available
+    if (nearbyRestaurants && nearbyRestaurants.length > 0) {
+      debugLog(`Using ${nearbyRestaurants.length} nearby restaurants from geospatial search`);
+      return nearbyRestaurants.map(r => {
+        const priceSymbols = ['$', '$$', '$$$', '$$$$'];
+        const priceRange = priceSymbols[Math.min((r.price_level || 1) - 1, 3)] as
+          | '$'
+          | '$$'
+          | '$$$'
+          | '$$$$';
+
+        return {
+          id: r.id,
+          name: r.name,
+          coordinates: [r.location.lng, r.location.lat] as [number, number],
+          cuisine: r.cuisine_types?.[0] || 'Unknown',
+          rating: r.rating || 4.5,
+          priceRange,
+          address: r.address,
+          description: '',
+          imageUrl: undefined,
+          phone: r.phone || undefined,
+          isOpen: true,
+          openingHours: {
+            open: '09:00',
+            close: '22:00',
+          },
+          distance: formatDistance(r.distance), // Add distance from geospatial search
+        };
+      }) as Restaurant[];
+    }
+
+    // Fallback to old method if geospatial search hasn't loaded yet
+    debugLog('Falling back to dbRestaurants');
     return dbRestaurants
       .map(r => {
         // Guard against null/undefined location
@@ -130,7 +174,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         };
       })
       .filter(r => r !== null) as Restaurant[];
-  }, [dbRestaurants]);
+  }, [dbRestaurants, nearbyRestaurants]);
 
   const dishes = useMemo(() => {
     return dbDishes
@@ -224,6 +268,28 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     getLocationWithPermission,
     hasPermission,
   } = useUserLocation();
+
+  // Load nearby restaurants when location is available and filters change
+  useEffect(() => {
+    const loadNearbyData = async () => {
+      if (hasPermission && !locationLoading && userLocation) {
+        debugLog('Loading nearby restaurants with geospatial search...');
+        try {
+          await loadNearbyRestaurantsFromCurrentLocation(
+            getLocationWithPermission,
+            5, // 5km radius
+            daily,
+            permanent
+          );
+          debugLog('Nearby restaurants loaded successfully');
+        } catch (error) {
+          console.error('[BasicMapScreen] Failed to load nearby restaurants:', error);
+        }
+      }
+    };
+
+    loadNearbyData();
+  }, [hasPermission, userLocation, daily, permanent, locationLoading]);
 
   // Auto-center map on user location when map is ready and location is available
   useEffect(() => {
@@ -320,14 +386,60 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     setIsMenuVisible(false);
   };
 
+  const handleRefresh = async () => {
+    debugLog('Refreshing nearby restaurants...');
+    if (hasPermission && userLocation) {
+      try {
+        await loadNearbyRestaurantsFromCurrentLocation(
+          getLocationWithPermission,
+          5, // 5km radius
+          daily,
+          permanent
+        );
+      } catch (error) {
+        console.error('[BasicMapScreen] Refresh failed:', error);
+        Alert.alert('Refresh Failed', 'Unable to update nearby restaurants. Please try again.');
+      }
+    }
+  };
+
   // Show loading state while fetching data
-  if (restaurantsLoading || dishesLoading) {
+  const isLoading = restaurantsLoading || dishesLoading || geoLoading;
+
+  if (isLoading && nearbyRestaurants.length === 0 && restaurants.length === 0) {
     return (
       <View
         style={[commonStyles.containers.screen, { justifyContent: 'center', alignItems: 'center' }]}
       >
         <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>Loading restaurants...</Text>
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>
+          {geoLoading ? 'Finding nearby restaurants...' : 'Loading restaurants...'}
+        </Text>
+        {userLocation && (
+          <Text style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+            Searching within 5km radius
+          </Text>
+        )}
+      </View>
+    );
+  }
+
+  // Show error state if geospatial search failed (but allow fallback)
+  if (geoError && nearbyRestaurants.length === 0 && restaurants.length === 0) {
+    return (
+      <View
+        style={[
+          commonStyles.containers.screen,
+          { justifyContent: 'center', alignItems: 'center', padding: 20 },
+        ]}
+      >
+        <Text style={{ fontSize: 18, color: '#FF3B30', marginBottom: 8, textAlign: 'center' }}>
+          Unable to find nearby restaurants
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>{geoError.message}</Text>
+        <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>
+          Please check your location permission and internet connection
+        </Text>
       </View>
     );
   }
@@ -413,6 +525,56 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         onDishPress={handleDishPress}
         onFilterPress={handleDailyFilterPress}
       />
+
+      {/* Loading indicator overlay when refreshing in background */}
+      {isLoading && restaurants.length > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 60,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            <ActivityIndicator size="small" color="#FF6B35" />
+            <Text style={{ marginLeft: 10, color: '#fff', fontSize: 14 }}>
+              {geoLoading ? 'Updating nearby restaurants...' : 'Loading...'}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Show restaurant count and search info */}
+      {nearbyRestaurants.length > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 60,
+            right: 16,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 12,
+            zIndex: 999,
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+            {displayedRestaurants.length} nearby
+          </Text>
+        </View>
+      )}
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />

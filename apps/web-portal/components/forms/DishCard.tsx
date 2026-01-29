@@ -58,10 +58,22 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
       <CardContent>
         <div className="space-y-3">
           {/* Ingredients */}
-          {dish.ingredients.length > 0 && (
+          {((dish as any).selectedIngredients?.length > 0 || dish.ingredients?.length > 0) && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">Ingredients:</p>
-              <p className="text-sm">{dish.ingredients.join(', ')}</p>
+              <div className="flex flex-wrap gap-1">
+                {(dish as any).selectedIngredients?.length > 0
+                  ? (dish as any).selectedIngredients.map((ing: any, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {ing.name}
+                      </Badge>
+                    ))
+                  : dish.ingredients.map((ing, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {ing}
+                      </Badge>
+                    ))}
+              </div>
             </div>
           )}
 

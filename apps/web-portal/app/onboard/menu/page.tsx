@@ -24,6 +24,7 @@ import { menuSchema } from '@/lib/validation';
 import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { addDishIngredients } from '@/lib/ingredients';
 import {
   PlusCircle,
   ArrowLeft,
@@ -336,11 +337,45 @@ function MenuPageContent() {
             is_available: dish.is_available !== undefined ? dish.is_available : true,
           }));
 
-          const { error: dishesError } = await supabase.from('dishes').insert(dishesPayload);
+          const { data: insertedDishes, error: dishesError } = await supabase
+            .from('dishes')
+            .insert(dishesPayload)
+            .select();
 
           if (dishesError) {
             console.error('Dishes insert error:', dishesError);
             throw new Error(`Failed to save dishes for menu "${menu.name}"`);
+          }
+
+          // ✨ NEW: Link ingredients to dishes
+          if (insertedDishes) {
+            for (let i = 0; i < insertedDishes.length; i++) {
+              const dish = menu.dishes[i];
+              const insertedDish = insertedDishes[i];
+
+              // Check if dish has selectedIngredients from the new autocomplete
+              if (
+                (dish as any).selectedIngredients &&
+                (dish as any).selectedIngredients.length > 0
+              ) {
+                const { error: ingredientsError } = await addDishIngredients(
+                  insertedDish.id,
+                  (dish as any).selectedIngredients.map((ing: any) => ({
+                    ingredient_id: ing.id,
+                    quantity: ing.quantity || null,
+                  }))
+                );
+
+                if (ingredientsError) {
+                  console.error(
+                    'Failed to link ingredients for dish:',
+                    dish.name,
+                    ingredientsError
+                  );
+                  // Don't throw error - ingredients are optional, dish creation succeeded
+                }
+              }
+            }
           }
         }
       }

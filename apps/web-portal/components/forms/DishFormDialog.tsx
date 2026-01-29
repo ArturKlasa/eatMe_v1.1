@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,6 +14,10 @@ import { Dish } from '@/types/restaurant';
 import { dishSchema, type DishFormData } from '@/lib/validation';
 import { DIETARY_TAGS, ALLERGENS, SPICE_LEVELS, RELIGIOUS_REQUIREMENTS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
+import { IngredientAutocomplete } from '@/components/IngredientAutocomplete';
+import { AllergenWarnings } from '@/components/AllergenWarnings';
+import { DietaryTagBadges } from '@/components/DietaryTagBadges';
+import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
 
 interface DishFormDialogProps {
   isOpen: boolean;
@@ -22,6 +27,13 @@ interface DishFormDialogProps {
 }
 
 export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDialogProps) {
+  // State for new ingredients system
+  const [selectedIngredients, setSelectedIngredients] = useState<
+    (Ingredient & { quantity?: string })[]
+  >([]);
+  const [calculatedAllergens, setCalculatedAllergens] = useState<Allergen[]>([]);
+  const [calculatedDietaryTags, setCalculatedDietaryTags] = useState<DietaryTag[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -51,13 +63,22 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
   const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 0 });
 
   const handleFormSubmit = (data: DishFormData) => {
+    // Pass selected ingredients along with the dish data
     onSubmit({
       ...data,
       id: dish?.id,
       // Convert NaN to undefined for optional number fields
       calories: isNaN(data.calories as number) ? undefined : data.calories,
-    });
+      // Include selected ingredients for parent to save
+      selectedIngredients,
+    } as any); // Type assertion needed because selectedIngredients not in original Dish type
     reset();
+    setSelectedIngredients([]);
+    setSelectedIngredients([]);
+    setCalculatedAllergens([]);
+    setCalculatedDietaryTags([]);
+    setCalculatedAllergens([]);
+    setCalculatedDietaryTags([]);
   };
 
   const handleClose = () => {
@@ -223,34 +244,32 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
 
           <Separator />
 
-          {/* Ingredients Section */}
+          {/* Ingredients Section - NEW AUTOCOMPLETE */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-gray-700">Ingredients</h3>
+            <p className="text-xs text-gray-500">
+              Search from our ingredient database. Allergens and dietary tags will auto-calculate.
+            </p>
 
-            {/* Ingredients */}
-            <div>
-              <Label htmlFor="ingredients" className="mb-2 block">
-                Ingredients (comma-separated) *
-              </Label>
-              <Input
-                id="ingredients"
-                defaultValue={dish?.ingredients.join(', ') || ''}
-                onChange={e => handleIngredientsChange(e.target.value)}
-                placeholder="tomato, mozzarella, basil, olive oil, flour"
-              />
-              {ingredients.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {ingredients.map((ing, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {ing}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              {errors.ingredients && (
-                <p className="text-sm text-red-600 mt-1">{errors.ingredients.message}</p>
-              )}
-            </div>
+            <IngredientAutocomplete
+              selectedIngredients={selectedIngredients}
+              onIngredientsChange={setSelectedIngredients}
+              placeholder="Search ingredients... (e.g., 'tomato', 'cheese')"
+            />
+
+            {/* Show calculated allergens */}
+            {calculatedAllergens.length > 0 && <AllergenWarnings allergens={calculatedAllergens} />}
+
+            {/* Show calculated dietary tags */}
+            {calculatedDietaryTags.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm">Auto-detected Dietary Tags:</Label>
+                <DietaryTagBadges dietaryTags={calculatedDietaryTags} />
+                <p className="text-xs text-gray-500">
+                  These tags were calculated based on ingredients. You can add more tags below.
+                </p>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -304,7 +323,7 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
                       htmlFor={`allergen-${allergen.value}`}
                       className="text-sm font-normal cursor-pointer"
                     >
-                      {allergen.icon} {allergen.label}
+                      {allergen.label}
                     </Label>
                   </div>
                 ))}
@@ -336,7 +355,7 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
                       htmlFor={`dietary-${tag.value}`}
                       className="text-sm font-normal cursor-pointer"
                     >
-                      {tag.icon} {tag.label}
+                      {tag.label}
                     </Label>
                   </div>
                 ))}

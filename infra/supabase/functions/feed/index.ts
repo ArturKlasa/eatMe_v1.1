@@ -136,10 +136,29 @@ serve(async req => {
     }
 
     // Diet preference filter
+    // If user selects vegan/vegetarian, ONLY show dishes explicitly tagged as such
+    // Untagged dishes are assumed to be non-vegan and non-vegetarian
     if (filters.dietPreference && filters.dietPreference !== 'all') {
-      filteredDishes = filteredDishes.filter((d: any) =>
-        d.dietary_tags?.includes(filters.dietPreference)
-      );
+      console.log(`[Feed] Filtering by diet preference: ${filters.dietPreference}`);
+      filteredDishes = filteredDishes.filter((d: any) => {
+        const dietaryTags = d.dietary_tags || [];
+
+        // For vegan: dish must be explicitly tagged as vegan
+        // For vegetarian: dish can be tagged as vegetarian OR vegan (vegan is also vegetarian)
+        let matchesDiet = false;
+        if (filters.dietPreference === 'vegan') {
+          matchesDiet = dietaryTags.includes('vegan');
+        } else if (filters.dietPreference === 'vegetarian') {
+          matchesDiet = dietaryTags.includes('vegetarian') || dietaryTags.includes('vegan');
+        }
+
+        if (!matchesDiet) {
+          console.log(
+            `[Feed] Excluding dish "${d.name}" - not ${filters.dietPreference} (tags: ${JSON.stringify(dietaryTags)})`
+          );
+        }
+        return matchesDiet;
+      });
       console.log(`[Feed] After diet filter: ${filteredDishes.length}`);
     }
 

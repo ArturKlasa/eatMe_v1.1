@@ -208,6 +208,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           imageUrl: d.image_url || undefined,
           rating: 4.5, // TODO: Add rating to database
           isAvailable: d.is_available,
+          // Include diet/allergen fields for filtering
+          dietary_tags: d.dietary_tags || [],
+          allergens: d.allergens || [],
         };
       })
       .filter(d => d !== null) as Dish[];
@@ -239,10 +242,47 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
 
-  // Get recommended dishes from database
+  // Get recommended dishes from database with diet filtering
   const recommendedDishes = useMemo(() => {
-    return dishes.filter(dish => dish.isAvailable).slice(0, 8);
-  }, [dishes]);
+    let filtered = dishes.filter(dish => dish.isAvailable);
+
+    // Apply diet preference filter (from both daily and permanent filters)
+    const dietPreference =
+      daily.dietPreference !== 'all' ? daily.dietPreference : permanent.dietPreference;
+
+    if (dietPreference && dietPreference !== 'all') {
+      filtered = filtered.filter(dish => {
+        const dietaryTags = dish.dietary_tags || [];
+
+        // For vegan: dish must be explicitly tagged as vegan
+        // For vegetarian: dish can be tagged as vegetarian OR vegan
+        if (dietPreference === 'vegan') {
+          return dietaryTags.includes('vegan');
+        } else if (dietPreference === 'vegetarian') {
+          return dietaryTags.includes('vegetarian') || dietaryTags.includes('vegan');
+        }
+        return true;
+      });
+    }
+
+    // Apply allergen filters from permanent filters
+    const activeAllergens = Object.entries(permanent.allergies)
+      .filter(([_, active]) => active)
+      .map(([allergen]) => allergen);
+
+    if (activeAllergens.length > 0) {
+      filtered = filtered.filter(dish => {
+        const dishAllergens = dish.allergens || [];
+        // Exclude dishes that contain any of the user's allergens
+        return !activeAllergens.some(allergen => dishAllergens.includes(allergen));
+      });
+    }
+
+    console.log(
+      `[Filter] Recommended dishes: ${dishes.length} total → ${filtered.length} after diet/allergen filters`
+    );
+    return filtered.slice(0, 8);
+  }, [dishes, daily.dietPreference, permanent.dietPreference, permanent.allergies]);
 
   // Add debugging
   console.log('=== SUPABASE DATA DEBUG ===');
@@ -251,6 +291,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   console.log('Restaurants from DB:', restaurants.length);
   console.log('First restaurant parsed:', restaurants[0]);
   console.log('Dishes from DB:', dishes.length);
+  console.log('First dish dietary_tags:', dishes[0]?.dietary_tags);
+  console.log('Recommended dishes after filter:', recommendedDishes.length);
   console.log('Restaurants after filtering:', displayedRestaurants.length);
   console.log('Filter state - daily:', daily);
   console.log('Filter state - permanent:', permanent);

@@ -14,6 +14,10 @@ export interface Dish {
   description: string;
   isAvailable: boolean;
   rating: number;
+  imageUrl?: string;
+  // Diet and allergen fields for filtering
+  dietary_tags?: string[];
+  allergens?: string[];
 }
 
 export const mockDishes: Dish[] = [

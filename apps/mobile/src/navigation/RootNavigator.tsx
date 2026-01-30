@@ -8,6 +8,7 @@ import {
   ProfileScreen,
   EatTogetherScreen,
   SettingsScreen,
+  SwipeScreen,
 } from '@/screens';
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
 import { SupabaseTestScreen } from '../screens/SupabaseTestScreen';
@@ -31,6 +32,14 @@ export const RootNavigator: React.FC = () => {
         }}
       >
         <RootStack.Screen name="Map" component={MapScreen} />
+        <RootStack.Screen
+          name="Swipe"
+          component={SwipeScreen}
+          options={{
+            headerShown: true,
+            title: 'Swipe Demo',
+          }}
+        />
         <RootStack.Screen
           name="SupabaseTest"
           component={SupabaseTestScreen}

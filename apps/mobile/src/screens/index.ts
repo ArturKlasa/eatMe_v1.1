@@ -6,3 +6,4 @@ export { ProfileScreen } from './ProfileScreen';
 export { EatTogetherScreen } from './EatTogetherScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { RestaurantDetailScreen } from './RestaurantDetailScreen';
+export { SwipeScreen } from './SwipeScreen';

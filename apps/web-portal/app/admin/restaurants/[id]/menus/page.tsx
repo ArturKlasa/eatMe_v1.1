@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, MoreVertical, Pencil, Trash2, Loader2, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -54,7 +54,6 @@ interface Dish {
 }
 
 export default function RestaurantMenusPage() {
-  const router = useRouter();
   const params = useParams();
   const restaurantId = params.id as string;
 
@@ -74,6 +73,7 @@ export default function RestaurantMenusPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const fetchData = async () => {
@@ -304,6 +304,37 @@ export default function RestaurantMenusPage() {
     }
   };
 
+  const handleDuplicateDish = async (dish: Dish) => {
+    try {
+      const { error } = await supabase.from('dishes').insert({
+        restaurant_id: restaurantId,
+        menu_id: dish.menu_id,
+        name: `${dish.name} (Copy)`,
+        description: dish.description || null,
+        price: dish.price,
+        calories: dish.calories || null,
+        spice_level: dish.spice_level || null,
+        image_url: dish.image_url || null,
+        is_available: dish.is_available,
+        dietary_tags: dish.dietary_tags || [],
+        allergens: dish.allergens || [],
+        ingredients: dish.ingredients || [],
+      });
+
+      if (error) {
+        console.error('[Admin] Error duplicating dish:', error);
+        toast.error('Failed to duplicate dish');
+        return;
+      }
+
+      toast.success('Dish duplicated successfully');
+      fetchData();
+    } catch (error) {
+      console.error('[Admin] Unexpected error:', error);
+      toast.error('An unexpected error occurred');
+    }
+  };
+
   const activeMenu = menus.find(m => m.id === activeMenuId);
   const activeDishes = activeMenu?.dishes || [];
 
@@ -417,6 +448,7 @@ export default function RestaurantMenusPage() {
                           dish={dish}
                           onEdit={() => handleEditDish(dish)}
                           onDelete={() => handleDeleteDish(dish.id, dish.name)}
+                          onDuplicate={() => handleDuplicateDish(dish)}
                         />
                       ))}
                     </div>

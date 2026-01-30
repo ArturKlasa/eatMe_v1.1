@@ -11,12 +11,14 @@ import type { StackScreenProps } from '@react-navigation/stack';
 // Root Stack Navigator - Contains all screens
 export type RootStackParamList = {
   Map: undefined;
+  Swipe: undefined;
   Filters: undefined;
   Favorites: undefined;
   Profile: undefined;
   EatTogether: undefined;
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
+  SupabaseTest: undefined;
   // Auth screens will be added here later
   Login?: undefined;
   SignUp?: undefined;

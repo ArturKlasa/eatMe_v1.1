@@ -251,7 +251,7 @@ export default function EditRestaurantPage() {
                 <SelectContent>
                   {RESTAURANT_TYPES.map(type => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.icon} {type.label}
+                      {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

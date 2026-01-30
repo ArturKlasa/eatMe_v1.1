@@ -72,8 +72,8 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
   const filters: any = {};
 
   // Cuisines filter
-  if (daily.cuisines && daily.cuisines.length > 0) {
-    filters.cuisines = daily.cuisines;
+  if (daily.cuisineTypes && daily.cuisineTypes.length > 0) {
+    filters.cuisines = daily.cuisineTypes;
   }
 
   // Price range filter
@@ -91,10 +91,14 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
   }
 
   // Add protein type preferences as dietary tags
-  if (permanent.proteinTypes && permanent.proteinTypes.length > 0) {
-    // This is a simplification - you may want more sophisticated mapping
-    if (!permanent.proteinTypes.includes('meat') && !permanent.proteinTypes.includes('poultry')) {
-      dietaryTags.push('vegetarian');
+  // proteinTypes is on daily filters and is an object
+  if (daily.proteinTypes) {
+    // If user excludes all meat proteins, suggest vegetarian
+    const noMeat = !daily.proteinTypes.meat;
+    const noFish = !daily.proteinTypes.fish;
+    const noSeafood = !daily.proteinTypes.seafood;
+    if (noMeat && noFish && noSeafood && !dietaryTags.includes('vegetarian')) {
+      // Don't auto-add vegetarian - user might still want eggs
     }
   }
 
@@ -103,20 +107,18 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
   }
 
   // Allergens to exclude (from permanent filters)
-  if (permanent.allergies && permanent.allergies.length > 0) {
-    filters.excludeAllergens = permanent.allergies;
+  // allergies is an object with boolean values, convert to array of active allergens
+  if (permanent.allergies) {
+    const activeAllergens = Object.entries(permanent.allergies)
+      .filter(([_, active]) => active)
+      .map(([allergen]) => allergen);
+    if (activeAllergens.length > 0) {
+      filters.excludeAllergens = activeAllergens;
+    }
   }
 
-  // Service types (from daily filters - what's available)
-  const serviceTypes: string[] = [];
-  if (daily.serviceTypes) {
-    if (daily.serviceTypes.delivery) serviceTypes.push('delivery');
-    if (daily.serviceTypes.takeout) serviceTypes.push('takeout');
-    if (daily.serviceTypes.dineIn) serviceTypes.push('dine_in');
-  }
-  if (serviceTypes.length > 0) {
-    filters.serviceTypes = serviceTypes;
-  }
+  // Note: serviceTypes filter could be added to DailyFilters if needed
+  // For now, we don't filter by delivery/takeout/dine-in
 
   return Object.keys(filters).length > 0 ? filters : undefined;
 }

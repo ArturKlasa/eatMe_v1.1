@@ -12,7 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { RESTAURANT_TYPES, CUISINES, POPULAR_CUISINES, COUNTRIES } from '@/lib/constants';
 
@@ -204,9 +210,7 @@ export default function EditRestaurantPage() {
         </div>
 
         <Button asChild variant="outline">
-          <Link href={`/admin/restaurants/${restaurantId}/menus`}>
-            Manage Menus
-          </Link>
+          <Link href={`/admin/restaurants/${restaurantId}/menus`}>Manage Menus</Link>
         </Button>
       </div>
 
@@ -383,8 +387,8 @@ export default function EditRestaurantPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {COUNTRIES.map(country => (
-                      <SelectItem key={country.code} value={country.code}>
-                        {country.flag} {country.name}
+                      <SelectItem key={country.value} value={country.value}>
+                        {country.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

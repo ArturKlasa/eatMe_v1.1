@@ -219,7 +219,10 @@ export function RegisterScreen() {
                     <View
                       style={[
                         styles.strengthBar,
-                        { width: passwordStrength.width, backgroundColor: passwordStrength.color },
+                        {
+                          width: passwordStrength.width as `${number}%`,
+                          backgroundColor: passwordStrength.color,
+                        },
                       ]}
                     />
                   </View>

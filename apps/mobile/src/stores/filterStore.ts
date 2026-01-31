@@ -9,6 +9,12 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { debugLog } from '../config/environment';
+import {
+  loadUserPreferences,
+  saveUserPreferences,
+  permanentFiltersToDb,
+  dbToPermanentFilters,
+} from '../services/userPreferencesService';
 
 // Daily Filters - Quick, session-based choices
 export interface DailyFilters {
@@ -191,6 +197,11 @@ interface FilterActions {
   // Persistence actions
   loadFilters: () => Promise<void>;
   saveFilters: () => Promise<void>;
+
+  // Database sync actions (for authenticated users)
+  loadPreferencesFromDB: (userId: string) => Promise<void>;
+  savePreferencesToDB: (userId: string) => Promise<void>;
+  syncWithDatabase: (userId: string | null) => Promise<void>;
 
   // Utility actions
   getDailyFilterCount: () => number;
@@ -504,7 +515,7 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         dietPreference: preference,
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   toggleExclude: (exclusion: keyof PermanentFilters['exclude']) => {
@@ -517,7 +528,7 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         },
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   toggleAllergy: (allergy: keyof PermanentFilters['allergies']) => {
@@ -530,7 +541,7 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         },
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   toggleDietType: (dietType: keyof PermanentFilters['dietTypes']) => {
@@ -763,6 +774,83 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       debugLog('Saved filters to storage');
     } catch (error) {
       debugLog('Failed to save filters to storage:', error);
+    }
+  },
+
+  // Database sync actions (for authenticated users)
+  loadPreferencesFromDB: async (userId: string) => {
+    try {
+      debugLog('[FilterStore] Loading preferences from database...');
+      const { data, error } = await loadUserPreferences(userId);
+
+      if (error) {
+        console.error('[FilterStore] Failed to load preferences from DB:', error);
+        return;
+      }
+
+      if (data) {
+        // Convert DB format to filterStore format and merge with current state
+        const dbFilters = dbToPermanentFilters(data);
+        set(state => ({
+          permanent: {
+            ...state.permanent,
+            ...dbFilters,
+          },
+        }));
+        debugLog('[FilterStore] Loaded preferences from database');
+      } else {
+        debugLog('[FilterStore] No preferences found in database (first time user)');
+      }
+    } catch (error) {
+      console.error('[FilterStore] Unexpected error loading from DB:', error);
+    }
+  },
+
+  savePreferencesToDB: async (userId: string) => {
+    try {
+      debugLog('[FilterStore] Saving preferences to database...');
+      const currentState = get();
+      const dbPrefs = permanentFiltersToDb(currentState.permanent);
+
+      const { error } = await saveUserPreferences(userId, dbPrefs);
+
+      if (error) {
+        console.error('[FilterStore] Failed to save preferences to DB:', error);
+        return;
+      }
+
+      debugLog('[FilterStore] Saved preferences to database');
+    } catch (error) {
+      console.error('[FilterStore] Unexpected error saving to DB:', error);
+    }
+  },
+
+  syncWithDatabase: async (userId: string | null) => {
+    if (!userId) {
+      debugLog('[FilterStore] No user ID, skipping database sync');
+      return;
+    }
+
+    // Load preferences from database on app start/login
+    await get().loadPreferencesFromDB(userId);
+  },
+
+  // Helper: Save filters locally AND to database if user is authenticated
+  savePermanentFilters: async () => {
+    const state = get();
+    await state.saveFilters(); // Save to AsyncStorage
+
+    // Also save to database if user is authenticated
+    // We'll get the user from authStore
+    try {
+      const { useAuthStore: getAuthStore } = await import('./authStore');
+      const user = getAuthStore.getState().user;
+      if (user?.id) {
+        await state.savePreferencesToDB(user.id);
+      }
+    } catch (error) {
+      // Auth store might not be ready yet, that's okay
+      debugLog('[FilterStore] Could not auto-save to DB:', error);
     }
   },
 

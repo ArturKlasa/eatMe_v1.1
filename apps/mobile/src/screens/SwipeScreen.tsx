@@ -18,6 +18,8 @@ import {
 } from '../services/edgeFunctionsService';
 import { useFilterStore } from '../stores/filterStore';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { useAuthStore } from '../stores/authStore';
+import { trackDishInteraction } from '../services/userPreferencesService';
 
 /**
  * SwipeScreen - Demonstration of Edge Functions Integration
@@ -29,6 +31,7 @@ export function SwipeScreen() {
   const navigation = useNavigation();
   const { daily, permanent } = useFilterStore();
   const { location, isLoading: locationLoading } = useUserLocation();
+  const { user } = useAuthStore();
 
   const [dishes, setDishes] = useState<ServerDish[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,7 +60,7 @@ export function SwipeScreen() {
         { lat: location.latitude, lng: location.longitude },
         daily,
         permanent,
-        undefined, // userId - optional, only if user is logged in
+        user?.id, // Pass authenticated user ID
         10 // radius in km
       );
 
@@ -83,15 +86,26 @@ export function SwipeScreen() {
       [direction]: prev[direction] + 1,
     }));
 
-    // Track swipe (fire and forget - don't wait)
+    // Track swipe to Edge Function (fire and forget)
+    const userId = user?.id || 'anonymous';
     trackSwipe(
-      'demo-user-id', // Replace with actual user ID when auth is implemented
+      userId,
       currentDish.id,
       direction,
       3000, // viewDuration in ms (you'd track this with actual timing)
       currentIndex,
       sessionId
     ).catch(err => console.error('[SwipeScreen] Failed to track swipe:', err));
+
+    // Track interaction to database (only if authenticated)
+    if (user?.id) {
+      trackDishInteraction(
+        user.id,
+        currentDish.id,
+        direction === 'right' ? 'liked' : 'disliked',
+        sessionId
+      ).catch(err => console.error('[SwipeScreen] Failed to track interaction:', err));
+    }
 
     // Move to next dish
     setCurrentIndex(prev => prev + 1);

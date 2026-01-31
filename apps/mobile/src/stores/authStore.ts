@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { debugLog } from '../config/environment';
+import { useFilterStore } from './filterStore';
 
 // Auth state interface
 export interface AuthState {
@@ -94,6 +95,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isInitialized: true,
       });
 
+      // Sync user preferences from database if logged in
+      if (session?.user) {
+        useFilterStore.getState().syncWithDatabase(session.user.id);
+      }
+
       // Set up auth state change listener
       supabase.auth.onAuthStateChange((event, session) => {
         debugLog('[Auth] Auth state changed:', event);
@@ -101,6 +107,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           session,
           user: session?.user ?? null,
         });
+
+        // Sync preferences on sign in
+        if (event === 'SIGNED_IN' && session?.user) {
+          useFilterStore.getState().syncWithDatabase(session.user.id);
+        }
       });
     } catch (err) {
       console.error('[Auth] Initialization error:', err);
@@ -135,6 +146,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         user: data.user,
         isLoading: false,
       });
+
+      // Sync user preferences from database
+      if (data.user) {
+        useFilterStore.getState().syncWithDatabase(data.user.id);
+      }
 
       return { error: null };
     } catch (err) {

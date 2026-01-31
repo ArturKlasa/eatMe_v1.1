@@ -8,8 +8,15 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { StackScreenProps } from '@react-navigation/stack';
 
-// Root Stack Navigator - Contains all screens
-export type RootStackParamList = {
+// Auth Stack Navigator - Authentication screens
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+};
+
+// Main App Stack Navigator - Contains all app screens (authenticated)
+export type MainStackParamList = {
   Map: undefined;
   Swipe: undefined;
   Filters: undefined;
@@ -19,10 +26,14 @@ export type RootStackParamList = {
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
   SupabaseTest: undefined;
-  // Auth screens will be added here later
-  Login?: undefined;
-  SignUp?: undefined;
 };
+
+// Root Stack Navigator - Contains Auth and Main stacks
+export type RootStackParamList = {
+  Auth: NavigatorScreenParams<AuthStackParamList>;
+  Main: NavigatorScreenParams<MainStackParamList>;
+} & MainStackParamList &
+  AuthStackParamList; // Also allow direct navigation for backward compatibility
 
 // Stack Navigator Props
 export type RootStackScreenProps<T extends keyof RootStackParamList> = StackScreenProps<
@@ -30,13 +41,23 @@ export type RootStackScreenProps<T extends keyof RootStackParamList> = StackScre
   T
 >;
 
+export type AuthStackScreenProps<T extends keyof AuthStackParamList> = StackScreenProps<
+  AuthStackParamList,
+  T
+>;
+
+export type MainStackScreenProps<T extends keyof MainStackParamList> = StackScreenProps<
+  MainStackParamList,
+  T
+>;
+
 // Navigation prop types for screens
-export type MapScreenProps = RootStackScreenProps<'Map'>;
-export type FiltersScreenProps = RootStackScreenProps<'Filters'>;
-export type FavoritesScreenProps = RootStackScreenProps<'Favorites'>;
-export type ProfileScreenProps = RootStackScreenProps<'Profile'>;
-export type EatTogetherScreenProps = RootStackScreenProps<'EatTogether'>;
-export type SettingsScreenProps = RootStackScreenProps<'Settings'>;
+export type MapScreenProps = MainStackScreenProps<'Map'>;
+export type FiltersScreenProps = MainStackScreenProps<'Filters'>;
+export type FavoritesScreenProps = MainStackScreenProps<'Favorites'>;
+export type ProfileScreenProps = MainStackScreenProps<'Profile'>;
+export type EatTogetherScreenProps = MainStackScreenProps<'EatTogether'>;
+export type SettingsScreenProps = MainStackScreenProps<'Settings'>;
 
 // Global navigation declaration for useNavigation hook
 declare global {

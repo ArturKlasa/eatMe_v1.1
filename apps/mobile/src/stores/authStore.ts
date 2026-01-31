@@ -1,0 +1,324 @@
+/**
+ * Auth Store - Zustand-based authentication state management
+ *
+ * Handles user authentication state, session management, and auth operations
+ * using Supabase Auth.
+ */
+
+import { create } from 'zustand';
+import { supabase } from '../lib/supabase';
+import { Session, User, AuthError } from '@supabase/supabase-js';
+import { debugLog } from '../config/environment';
+
+// Auth state interface
+export interface AuthState {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+  isInitialized: boolean;
+  error: string | null;
+}
+
+// Auth actions interface
+interface AuthActions {
+  // Initialize auth - check for existing session
+  initialize: () => Promise<void>;
+
+  // Sign in with email/password
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+
+  // Sign up with email/password
+  signUp: (
+    email: string,
+    password: string,
+    metadata?: { profile_name?: string }
+  ) => Promise<{ error: AuthError | null; needsEmailVerification: boolean }>;
+
+  // Sign out
+  signOut: () => Promise<{ error: AuthError | null }>;
+
+  // Send password reset email
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+
+  // Update password (when user is logged in)
+  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
+
+  // Update user profile
+  updateProfile: (data: {
+    profile_name?: string;
+    avatar_url?: string;
+  }) => Promise<{ error: Error | null }>;
+
+  // Clear error
+  clearError: () => void;
+
+  // Set session (for auth state changes)
+  setSession: (session: Session | null) => void;
+}
+
+// Combined store type
+type AuthStore = AuthState & AuthActions;
+
+// Create the auth store
+export const useAuthStore = create<AuthStore>((set, get) => ({
+  // Initial state
+  user: null,
+  session: null,
+  isLoading: true,
+  isInitialized: false,
+  error: null,
+
+  // Initialize auth - check for existing session
+  initialize: async () => {
+    try {
+      debugLog('[Auth] Initializing...');
+      set({ isLoading: true, error: null });
+
+      // Get current session
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('[Auth] Error getting session:', error);
+        set({ error: error.message, isLoading: false, isInitialized: true });
+        return;
+      }
+
+      debugLog('[Auth] Session found:', !!session);
+      set({
+        session,
+        user: session?.user ?? null,
+        isLoading: false,
+        isInitialized: true,
+      });
+
+      // Set up auth state change listener
+      supabase.auth.onAuthStateChange((event, session) => {
+        debugLog('[Auth] Auth state changed:', event);
+        set({
+          session,
+          user: session?.user ?? null,
+        });
+      });
+    } catch (err) {
+      console.error('[Auth] Initialization error:', err);
+      set({
+        error: 'Failed to initialize authentication',
+        isLoading: false,
+        isInitialized: true,
+      });
+    }
+  },
+
+  // Sign in with email/password
+  signIn: async (email: string, password: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog('[Auth] Signing in...');
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('[Auth] Sign in error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      debugLog('[Auth] Sign in successful');
+      set({
+        session: data.session,
+        user: data.user,
+        isLoading: false,
+      });
+
+      return { error: null };
+    } catch (err) {
+      const error = err as AuthError;
+      console.error('[Auth] Unexpected sign in error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error };
+    }
+  },
+
+  // Sign up with email/password
+  signUp: async (email: string, password: string, metadata?: { profile_name?: string }) => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog('[Auth] Signing up...');
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata,
+        },
+      });
+
+      if (error) {
+        console.error('[Auth] Sign up error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error, needsEmailVerification: false };
+      }
+
+      // Check if email confirmation is required
+      const needsEmailVerification = !data.session && !!data.user;
+
+      if (needsEmailVerification) {
+        debugLog('[Auth] Sign up successful - email verification required');
+        set({ isLoading: false });
+      } else {
+        debugLog('[Auth] Sign up successful - auto logged in');
+        set({
+          session: data.session,
+          user: data.user,
+          isLoading: false,
+        });
+      }
+
+      return { error: null, needsEmailVerification };
+    } catch (err) {
+      const error = err as AuthError;
+      console.error('[Auth] Unexpected sign up error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error, needsEmailVerification: false };
+    }
+  },
+
+  // Sign out
+  signOut: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog('[Auth] Signing out...');
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error('[Auth] Sign out error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      debugLog('[Auth] Sign out successful');
+      set({
+        session: null,
+        user: null,
+        isLoading: false,
+      });
+
+      return { error: null };
+    } catch (err) {
+      const error = err as AuthError;
+      console.error('[Auth] Unexpected sign out error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error };
+    }
+  },
+
+  // Send password reset email
+  resetPassword: async (email: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog('[Auth] Sending password reset email...');
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'eatme://reset-password', // Deep link for mobile app
+      });
+
+      if (error) {
+        console.error('[Auth] Password reset error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      debugLog('[Auth] Password reset email sent');
+      set({ isLoading: false });
+      return { error: null };
+    } catch (err) {
+      const error = err as AuthError;
+      console.error('[Auth] Unexpected password reset error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error };
+    }
+  },
+
+  // Update password
+  updatePassword: async (newPassword: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog('[Auth] Updating password...');
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.error('[Auth] Password update error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      debugLog('[Auth] Password updated successfully');
+      set({ isLoading: false });
+      return { error: null };
+    } catch (err) {
+      const error = err as AuthError;
+      console.error('[Auth] Unexpected password update error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error };
+    }
+  },
+
+  // Update user profile
+  updateProfile: async (data: { profile_name?: string; avatar_url?: string }) => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog('[Auth] Updating profile...');
+
+      const { error } = await supabase.auth.updateUser({
+        data,
+      });
+
+      if (error) {
+        console.error('[Auth] Profile update error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      // Refresh user data
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      set({ user, isLoading: false });
+
+      debugLog('[Auth] Profile updated successfully');
+      return { error: null };
+    } catch (err) {
+      const error = err as Error;
+      console.error('[Auth] Unexpected profile update error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error };
+    }
+  },
+
+  // Clear error
+  clearError: () => set({ error: null }),
+
+  // Set session
+  setSession: (session: Session | null) =>
+    set({
+      session,
+      user: session?.user ?? null,
+    }),
+}));
+
+// Selector hooks for common use cases
+export const useUser = () => useAuthStore(state => state.user);
+export const useSession = () => useAuthStore(state => state.session);
+export const useIsAuthenticated = () => useAuthStore(state => !!state.session);
+export const useAuthLoading = () => useAuthStore(state => state.isLoading);
+export const useAuthError = () => useAuthStore(state => state.error);

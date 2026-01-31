@@ -1,16 +1,27 @@
 import React, { useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Animated, PanResponder } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Animated,
+  PanResponder,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { ProfileScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
+import { useAuthStore } from '../stores/authStore';
 
 /**
  * ProfileScreen Component
  *
- * Placeholder screen for user profile and preferences.
- * Will be enhanced with authentication integration in later tasks.
+ * User profile screen with authentication integration.
+ * Shows user info and sign out option.
  */
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
+  const { user, signOut, isLoading } = useAuthStore();
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
 
@@ -85,13 +96,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {/* Mock User Profile Section */}
+          {/* User Profile Section */}
           <View style={modalScreenStyles.profileSection}>
             <View style={modalScreenStyles.avatar}>
               <Text style={modalScreenStyles.avatarText}>👤</Text>
             </View>
-            <Text style={modalScreenStyles.userName}>Food Explorer</Text>
-            <Text style={modalScreenStyles.userSubtitle}>Mock User Profile</Text>
+            <Text style={modalScreenStyles.userName}>
+              {user?.user_metadata?.name || 'Food Explorer'}
+            </Text>
+            <Text style={modalScreenStyles.userSubtitle}>{user?.email || 'Signed in user'}</Text>
           </View>
 
           {/* Preferences Section */}

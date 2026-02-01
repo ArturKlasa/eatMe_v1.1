@@ -39,6 +39,7 @@ export function SwipeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(generateSessionId());
   const [swipeStats, setSwipeStats] = useState({ right: 0, left: 0 });
+  const [feedMetadata, setFeedMetadata] = useState<any>(null);
 
   // Load dishes from Edge Function
   useEffect(() => {
@@ -65,8 +66,11 @@ export function SwipeScreen() {
       );
 
       setDishes(response.dishes);
+      setFeedMetadata(response.metadata);
       console.log(`[SwipeScreen] Loaded ${response.dishes.length} dishes from Edge Function`);
       console.log(`[SwipeScreen] Total available: ${response.metadata.totalAvailable}`);
+      console.log(`[SwipeScreen] Personalized: ${response.metadata.personalized}`);
+      console.log(`[SwipeScreen] User interactions: ${response.metadata.userInteractions}`);
       console.log(`[SwipeScreen] From cache: ${response.metadata.cached}`);
     } catch (err) {
       console.error('[SwipeScreen] Failed to load dishes:', err);
@@ -188,6 +192,15 @@ export function SwipeScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Personalization Banner */}
+      {feedMetadata?.personalized && feedMetadata?.userInteractions > 0 && (
+        <View style={styles.personalizationBanner}>
+          <Text style={styles.bannerText}>
+            ✨ Personalized for you based on {feedMetadata.userInteractions} interactions
+          </Text>
+        </View>
+      )}
 
       {/* Dish Card */}
       <View style={styles.cardContainer}>
@@ -502,5 +515,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     paddingBottom: 16,
+  },
+  personalizationBanner: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  bannerText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

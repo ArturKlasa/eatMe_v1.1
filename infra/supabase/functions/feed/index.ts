@@ -76,7 +76,44 @@ serve(async req => {
 
     console.log('[Feed] Cache miss, querying database');
 
-    // 1. Find nearby restaurants using PostGIS
+    // 1. Load user interaction history (if authenticated)
+    let userLikes: string[] = [];
+    let userDislikes: string[] = [];
+    let userLikedCuisines: string[] = [];
+
+    if (userId && userId !== 'anonymous') {
+      try {
+        const { data: interactions } = await supabase
+          .from('user_dish_interactions')
+          .select(
+            'dish_id, interaction_type, dishes(cuisine_type, restaurant:restaurants(cuisine_types))'
+          )
+          .eq('user_id', userId)
+          .in('interaction_type', ['liked', 'disliked']);
+
+        if (interactions) {
+          userLikes = interactions.filter(i => i.interaction_type === 'liked').map(i => i.dish_id);
+          userDislikes = interactions
+            .filter(i => i.interaction_type === 'disliked')
+            .map(i => i.dish_id);
+
+          // Extract cuisine preferences from liked dishes
+          const cuisinesFromLikes = interactions
+            .filter(i => i.interaction_type === 'liked' && i.dishes?.restaurant?.cuisine_types)
+            .flatMap((i: any) => i.dishes.restaurant.cuisine_types);
+          userLikedCuisines = [...new Set(cuisinesFromLikes)];
+
+          console.log(
+            `[Feed] User history: ${userLikes.length} likes, ${userDislikes.length} dislikes`
+          );
+          console.log(`[Feed] User prefers cuisines:`, userLikedCuisines);
+        }
+      } catch (err) {
+        console.error('[Feed] Error loading user history (non-fatal):', err);
+      }
+    }
+
+    // 2. Find nearby restaurants using PostGIS
     const { data: nearbyRestaurants, error: restaurantError } = await supabase.rpc(
       'restaurants_within_radius',
       {
@@ -101,7 +138,7 @@ serve(async req => {
     const restaurantIds = nearbyRestaurants.map((r: any) => r.id);
     console.log(`[Feed] Found ${restaurantIds.length} restaurants within ${radius}km`);
 
-    // 2. Fetch dishes from nearby restaurants with analytics
+    // 3. Fetch dishes from nearby restaurants with analytics
     const { data: dishes, error: dishError } = await supabase
       .from('dishes')
       .select(
@@ -121,8 +158,17 @@ serve(async req => {
 
     console.log(`[Feed] Found ${dishes?.length || 0} available dishes`);
 
-    // 3. Apply filters
+    // 4. Apply filters
     let filteredDishes = dishes || [];
+
+    // Exclude already disliked dishes (if user is authenticated)
+    if (userDislikes.length > 0) {
+      const beforeCount = filteredDishes.length;
+      filteredDishes = filteredDishes.filter((d: any) => !userDislikes.includes(d.id));
+      console.log(
+        `[Feed] Excluded ${beforeCount - filteredDishes.length} previously disliked dishes`
+      );
+    }
 
     // Price filter
     if (filters.priceRange) {
@@ -191,26 +237,34 @@ serve(async req => {
       console.log(`[Feed] After cuisine filter: ${filteredDishes.length}`);
     }
 
-    // 4. Score and rank dishes
+    // 5. Score and rank dishes (with personalization)
     const scoredDishes = filteredDishes.map((dish: any) => {
       const restaurant = nearbyRestaurants.find((r: any) => r.id === dish.restaurant_id);
       const distance_km = restaurant?.distance_km || 999;
-      const score = calculateScore(dish, filters, distance_km);
+      const score = calculateScore(
+        dish,
+        filters,
+        distance_km,
+        userId,
+        userLikes,
+        userLikedCuisines
+      );
 
       return {
         ...dish,
         score,
         distance_km,
+        is_personalized: userLikes.length > 0, // Mark if personalized
       };
     });
 
     // Sort by score
     scoredDishes.sort((a: any, b: any) => b.score - a.score);
 
-    // 5. Apply diversity (max 3 dishes per restaurant in results)
+    // 6. Apply diversity (max 3 dishes per restaurant in results)
     const diversified = applyDiversity(scoredDishes, 3);
 
-    // 6. Take top N
+    // 7. Take top N
     const result = diversified.slice(0, limit);
 
     const responseData = {
@@ -220,10 +274,12 @@ serve(async req => {
         returned: result.length,
         cached: false,
         processingTime: Date.now() - startTime,
+        personalized: userId && userId !== 'anonymous',
+        userInteractions: userLikes.length + userDislikes.length,
       },
     };
 
-    // 7. Cache result (5 minutes)
+    // 8. Cache result (5 minutes)
     try {
       await redis.setex(cacheKey, 300, JSON.stringify(responseData));
       console.log('[Feed] Cached result');
@@ -245,8 +301,15 @@ serve(async req => {
   }
 });
 
-// Simple scoring function
-function calculateScore(dish: any, filters: any, distance_km: number): number {
+// Enhanced scoring function with personalization
+function calculateScore(
+  dish: any,
+  filters: any,
+  distance_km: number,
+  userId?: string,
+  userLikes: string[] = [],
+  userLikedCuisines: string[] = []
+): number {
   let score = 50; // Base score
 
   // Restaurant rating (0-20 points)
@@ -284,6 +347,37 @@ function calculateScore(dish: any, filters: any, distance_km: number): number {
     if (deviation < 100) {
       score += 5; // Close to target
     }
+  }
+
+  // === PERSONALIZATION BONUSES (if user has history) ===
+  if (userId && userId !== 'anonymous' && userLikes.length > 0) {
+    // Cuisine preference match (0-20 points)
+    if (userLikedCuisines.length > 0) {
+      const dishCuisines = dish.restaurant?.cuisine_types || [];
+      const cuisineMatch = dishCuisines.some((c: string) => userLikedCuisines.includes(c));
+      if (cuisineMatch) {
+        score += 20; // Strong boost for preferred cuisines
+        console.log(`[Score] Cuisine boost for ${dish.name} (+20)`);
+      }
+    }
+
+    // Similar dish from same restaurant (0-15 points)
+    // If user liked other dishes from this restaurant, boost this one
+    const likedFromSameRestaurant = userLikes.filter((likedId: string) => {
+      // This would require fetching the liked dishes' restaurant_ids
+      // For now, we'll skip this optimization
+      return false;
+    }).length;
+    if (likedFromSameRestaurant > 0) {
+      score += Math.min(likedFromSameRestaurant * 5, 15);
+      console.log(
+        `[Score] Same restaurant boost for ${dish.name} (+${Math.min(likedFromSameRestaurant * 5, 15)})`
+      );
+    }
+
+    // Price similarity to liked dishes (0-5 points)
+    // This would require average price of liked dishes
+    // Skipping for now as it requires additional data
   }
 
   return Math.round(score);

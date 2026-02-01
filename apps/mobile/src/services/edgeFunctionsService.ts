@@ -75,6 +75,9 @@ export interface FeedResponse {
     totalAvailable: number;
     returned: number;
     cached: boolean;
+    personalized?: boolean;
+    userInteractions?: number;
+    processingTime?: number;
   };
 }
 

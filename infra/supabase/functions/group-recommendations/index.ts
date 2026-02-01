@@ -1,8 +1,15 @@
 /**
- * Group Recommendations Edge Function
+ * Group Recommendations Edge Function v2
  *
  * Generates restaurant recommendations for Eat Together sessions
  * by analyzing all members' preferences and locations
+ *
+ * Improvements:
+ * - Sophisticated multi-factor scoring algorithm
+ * - Better cuisine preference matching
+ * - Edge case handling (no results, conflicting restrictions)
+ * - Distance-based scoring
+ * - Price level consensus
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -22,6 +29,8 @@ interface Member {
     allergies: Record<string, boolean>;
     exclude: Record<string, boolean>;
     religious_restrictions: Record<string, boolean>;
+    cuisine_preferences?: string[];
+    default_price_range?: { min: number; max: number };
   };
 }
 
@@ -182,7 +191,7 @@ serve(async req => {
     // 7. Score and filter restaurants based on ALL members' requirements
     const scoredRestaurants = restaurants
       .map((restaurant: any) => {
-        const score = scoreRestaurant(restaurant, members);
+        const score = scoreRestaurant(restaurant, members, searchCenter);
         return {
           ...restaurant,
           ...score,
@@ -192,7 +201,53 @@ serve(async req => {
       .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
       .slice(0, 5); // Top 5 for voting
 
-    // 8. Save recommendations to database
+    // 8. Handle edge cases
+    if (scoredRestaurants.length === 0) {
+      // Try expanding radius
+      const expandedRadius = radiusKm * 2;
+      const { data: moreRestaurants } = await supabaseClient.rpc('nearby_restaurants', {
+        lat: searchCenter.lat,
+        lng: searchCenter.lng,
+        radius_km: expandedRadius,
+      });
+
+      if (moreRestaurants && moreRestaurants.length > 0) {
+        const rescored = moreRestaurants
+          .map((restaurant: any) => {
+            const score = scoreRestaurant(restaurant, members, searchCenter);
+            return { ...restaurant, ...score };
+          })
+          .filter(r => r.satisfiesHardConstraints)
+          .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
+          .slice(0, 5);
+
+        if (rescored.length > 0) {
+          scoredRestaurants.push(...rescored);
+        }
+      }
+
+      // Still no results - return helpful error
+      if (scoredRestaurants.length === 0) {
+        const conflicts = analyzeRestrictionConflicts(members);
+        return new Response(
+          JSON.stringify({
+            recommendations: [],
+            message: 'No restaurants found that satisfy all group requirements',
+            searchCenter,
+            radiusKm,
+            expandedRadius,
+            conflicts,
+            suggestions: generateSuggestions(members, conflicts),
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    // 9. Save recommendations to database
     if (scoredRestaurants.length > 0) {
       const recommendationsToInsert = scoredRestaurants.map(r => ({
         session_id: sessionId,
@@ -304,13 +359,13 @@ function calculateSearchCenter(
   return { lat: avgLat, lng: avgLng };
 }
 
-function scoreRestaurant(restaurant: any, members: Member[]) {
-  let compatibilityScore = 100;
+function scoreRestaurant(restaurant: any, members: Member[], searchCenter: { lat: number; lng: number }) {
+  let compatibilityScore = 0;
   let membersSatisfied = 0;
   const dietaryCompatibility: Record<string, any> = {};
   let satisfiesHardConstraints = true;
 
-  // Check HARD CONSTRAINTS - ALL members must be satisfied
+  // STEP 1: Check HARD CONSTRAINTS - ALL members must be satisfied
   for (const member of members) {
     const memberResult = checkMemberCompatibility(restaurant, member);
     dietaryCompatibility[member.profile_name] = memberResult;
@@ -322,26 +377,133 @@ function scoreRestaurant(restaurant: any, members: Member[]) {
 
     if (memberResult.compatible) {
       membersSatisfied++;
-      compatibilityScore += memberResult.score;
     }
+    compatibilityScore += memberResult.score;
   }
 
-  // Average the score
+  if (!satisfiesHardConstraints) {
+    return {
+      compatibilityScore: 0,
+      membersSatisfied: 0,
+      dietaryCompatibility,
+      satisfiesHardConstraints: false,
+    };
+  }
+
+  // STEP 2: Calculate average member satisfaction score
   compatibilityScore = Math.round(compatibilityScore / members.length);
 
-  // Boost by restaurant rating
-  compatibilityScore += Math.round((restaurant.rating || 4.0) * 10);
+  // STEP 3: Restaurant quality bonus (0-50 points)
+  const ratingBonus = Math.round((restaurant.rating || 4.0) * 10);
+  compatibilityScore += ratingBonus;
+
+  // STEP 4: Distance penalty/bonus (0-20 points)
+  // Closer is better, but within reason
+  const distanceKm = restaurant.distance || 0;
+  let distanceScore = 0;
+  if (distanceKm < 1) {
+    distanceScore = 20; // Very close
+  } else if (distanceKm < 2) {
+    distanceScore = 15;
+  } else if (distanceKm < 3) {
+    distanceScore = 10;
+  } else if (distanceKm < 5) {
+    distanceScore = 5;
+  }
+  compatibilityScore += distanceScore;
+
+  // STEP 5: Cuisine preference bonus (0-30 points)
+  const cuisineScore = calculateCuisineScore(restaurant, members);
+  compatibilityScore += cuisineScore;
+
+  // STEP 6: Price consensus (0-10 points)
+  const priceScore = calculatePriceScore(restaurant, members);
+  compatibilityScore += priceScore;
 
   return {
     compatibilityScore,
     membersSatisfied,
     dietaryCompatibility,
     satisfiesHardConstraints,
+    breakdown: {
+      baseScore: Math.round(compatibilityScore - ratingBonus - distanceScore - cuisineScore - priceScore),
+      ratingBonus,
+      distanceScore,
+      cuisineScore,
+      priceScore,
+    },
   };
 }
 
-function checkMemberCompatibility(restaurant: any, member: Member) {
+function calculateCuisineScore(restaurant: any, members: Member[]): number {
+  if (!restaurant.cuisine_types || restaurant.cuisine_types.length === 0) {
+    return 0;
+  }
+
   let score = 0;
+  const restaurantCuisines = restaurant.cuisine_types.map((c: string) => c.toLowerCase());
+
+  // Count how many members have this restaurant's cuisine in their preferences
+  for (const member of members) {
+    const memberCuisines = (member.preferences.cuisine_preferences || []).map(c => c.toLowerCase());
+    
+    if (memberCuisines.length === 0) {
+      // No preferences = slightly positive (neutral)
+      score += 5;
+      continue;
+    }
+
+    // Check for overlap
+    const hasMatch = restaurantCuisines.some(rc => memberCuisines.some(mc => 
+      rc.includes(mc) || mc.includes(rc)
+    ));
+
+    if (hasMatch) {
+      score += 10; // Member's preferred cuisine!
+    } else {
+      score += 2; // Not preferred, but acceptable
+    }
+  }
+
+  return Math.min(30, Math.round(score / members.length));
+}
+
+function calculatePriceScore(restaurant: any, members: Member[]): number {
+  if (!restaurant.price_level) return 5; // Neutral if no price info
+
+  const restaurantPrice = restaurant.price_level;
+  let totalDeviation = 0;
+  let membersWithPrefs = 0;
+
+  for (const member of members) {
+    const priceRange = member.preferences.default_price_range;
+    if (!priceRange) continue;
+
+    membersWithPrefs++;
+
+    // Check if restaurant price is within member's range
+    if (restaurantPrice >= priceRange.min && restaurantPrice <= priceRange.max) {
+      totalDeviation += 0; // Perfect match
+    } else if (restaurantPrice < priceRange.min) {
+      totalDeviation += (priceRange.min - restaurantPrice);
+    } else {
+      totalDeviation += (restaurantPrice - priceRange.max);
+    }
+  }
+
+  if (membersWithPrefs === 0) return 5; // No preferences = neutral
+
+  const avgDeviation = totalDeviation / membersWithPrefs;
+  
+  // Convert deviation to score (0 deviation = 10 points, max deviation = 0 points)
+  if (avgDeviation === 0) return 10;
+  if (avgDeviation >= 2) return 0;
+  
+  return Math.round(10 * (1 - avgDeviation / 2));
+}
+
+function checkMemberCompatibility(restaurant: any, member: Member) {
+  let score = 50; // Base score
   let compatible = true;
   let satisfiesHardConstraints = true;
   const issues: string[] = [];
@@ -350,38 +512,158 @@ function checkMemberCompatibility(restaurant: any, member: Member) {
 
   // HARD CONSTRAINTS - Must satisfy ALL
 
-  // 1. Vegan/Vegetarian requirements
+  // 1. Diet preference (Vegan/Vegetarian)
   if (prefs.diet_preference === 'vegan') {
-    // Check if restaurant has vegan options (simplified - would need menu data)
-    if (!restaurant.cuisine_types?.includes('vegan')) {
+    // Check if restaurant has vegan-friendly indicators
+    const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
+    const hasVeganOptions = cuisines.some((c: string) => 
+      c.includes('vegan') || c.includes('vegetarian') || c.includes('plant')
+    );
+    
+    if (!hasVeganOptions && !restaurant.has_vegan_options) {
       satisfiesHardConstraints = false;
-      issues.push('No vegan options');
+      issues.push('No vegan options available');
+    } else {
+      score += 20; // Bonus for meeting vegan requirement
     }
   } else if (prefs.diet_preference === 'vegetarian') {
-    if (!restaurant.cuisine_types?.includes('vegetarian')) {
-      satisfiesHardConstraints = false;
-      issues.push('No vegetarian options');
+    const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
+    const hasVegetarianOptions = cuisines.some((c: string) => 
+      c.includes('vegetarian') || c.includes('vegan') || c.includes('plant')
+    );
+    
+    if (!hasVegetarianOptions && !restaurant.has_vegetarian_options) {
+      // Less strict than vegan - most restaurants have at least one veggie option
+      score -= 20; // Penalty but not hard fail
+      issues.push('Limited vegetarian options');
+    } else {
+      score += 15;
     }
   }
 
-  // 2. Allergies - HARD CONSTRAINT
-  // (Simplified - would need detailed menu allergen info)
+  // 2. Religious restrictions - HARD CONSTRAINT
+  if (prefs.religious_restrictions) {
+    if (prefs.religious_restrictions.halal) {
+      const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
+      const isHalal = cuisines.some((c: string) => c.includes('halal')) || restaurant.is_halal_certified;
+      
+      if (!isHalal) {
+        satisfiesHardConstraints = false;
+        issues.push('Not halal certified');
+      } else {
+        score += 20;
+      }
+    }
 
-  // 3. Religious restrictions - HARD CONSTRAINT
-  if (prefs.religious_restrictions?.halal && !restaurant.cuisine_types?.includes('halal')) {
-    satisfiesHardConstraints = false;
-    issues.push('Not halal certified');
+    if (prefs.religious_restrictions.kosher) {
+      const isKosher = restaurant.is_kosher_certified || 
+        (restaurant.cuisine_types || []).some((c: string) => c.toLowerCase().includes('kosher'));
+      
+      if (!isKosher) {
+        satisfiesHardConstraints = false;
+        issues.push('Not kosher certified');
+      } else {
+        score += 20;
+      }
+    }
   }
 
-  // SOFT PREFERENCES - Score but don't exclude
+  // 3. Allergies - HARD CONSTRAINT (simplified - would need menu allergen data)
+  if (prefs.allergies) {
+    // Check for critical allergens
+    const criticalAllergies = Object.entries(prefs.allergies)
+      .filter(([_, enabled]) => enabled)
+      .map(([allergen]) => allergen);
 
-  // Cuisine preference matching
-  // (Would need user cuisine preferences to implement)
+    if (criticalAllergies.length > 0) {
+      // For now, just warn - would need detailed menu data
+      issues.push(`Allergies: ${criticalAllergies.join(', ')} - verify with restaurant`);
+      score -= 5; // Small penalty for requiring extra verification
+    }
+  }
+
+  // 4. Dietary exclusions - HARD CONSTRAINT
+  if (prefs.exclude) {
+    if (prefs.exclude.noMeat) {
+      const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
+      const isMeatFocused = cuisines.some((c: string) => 
+        c.includes('steakhouse') || c.includes('bbq') || c.includes('grill')
+      );
+      
+      if (isMeatFocused) {
+        satisfiesHardConstraints = false;
+        issues.push('Meat-focused menu');
+      }
+    }
+    
+    if (prefs.exclude.noSeafood) {
+      const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
+      const isSeafoodFocused = cuisines.some((c: string) => 
+        c.includes('seafood') || c.includes('sushi') || c.includes('fish')
+      );
+      
+      if (isSeafoodFocused) {
+        satisfiesHardConstraints = false;
+        issues.push('Seafood-focused menu');
+      }
+    }
+  }
 
   return {
-    compatible: satisfiesHardConstraints,
+    compatible: satisfiesHardConstraints && score > 30,
     satisfiesHardConstraints,
-    score,
+    score: Math.max(0, Math.min(100, score)),
     issues,
   };
+}
+
+function analyzeRestrictionConflicts(members: Member[]) {
+  const conflicts: string[] = [];
+  
+  // Check for impossible diet combinations
+  const veganCount = members.filter(m => m.preferences.diet_preference === 'vegan').length;
+  const allRestrictionsCount = members.filter(m => {
+    const prefs = m.preferences;
+    return prefs.religious_restrictions?.halal || prefs.religious_restrictions?.kosher ||
+           prefs.exclude?.noMeat || prefs.exclude?.noSeafood;
+  }).length;
+
+  if (veganCount > 0 && veganCount === members.length) {
+    conflicts.push('All members are vegan - very limited restaurant options');
+  }
+
+  if (allRestrictionsCount > members.length * 0.7) {
+    conflicts.push('Multiple dietary restrictions make it difficult to find suitable restaurants');
+  }
+
+  // Check for conflicting preferences
+  const halalRequired = members.some(m => m.preferences.religious_restrictions?.halal);
+  const kosherRequired = members.some(m => m.preferences.religious_restrictions?.kosher);
+  
+  if (halalRequired && kosherRequired) {
+    conflicts.push('Both halal and kosher certification required - very rare combination');
+  }
+
+  return conflicts;
+}
+
+function generateSuggestions(members: Member[], conflicts: string[]) {
+  const suggestions: string[] = [];
+
+  if (conflicts.length > 0) {
+    suggestions.push('Consider expanding search radius');
+    suggestions.push('Try selecting a different meeting location');
+    
+    const restrictiveMembers = members.filter(m => 
+      m.preferences.diet_preference !== 'all' ||
+      Object.values(m.preferences.religious_restrictions || {}).some(v => v) ||
+      Object.values(m.preferences.exclude || {}).some(v => v)
+    );
+
+    if (restrictiveMembers.length > members.length / 2) {
+      suggestions.push(`${restrictiveMembers.length} members have dietary restrictions - consider restaurants specializing in accommodating diverse diets`);
+    }
+  }
+
+  return suggestions;
 }

@@ -1,18 +1,28 @@
 import React, { useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Animated, PanResponder } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Animated,
+  PanResponder,
+  StyleSheet,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { EatTogetherScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
+import { useAuthStore } from '../stores/authStore';
 
 /**
  * EatTogetherScreen Component
  *
- * Placeholder screen for group dining and social features.
- * Will be enhanced with friend system and group recommendations in later phases.
+ * Main entry screen for group dining features.
+ * Allows users to create or join Eat Together sessions.
  */
 export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
+  const user = useAuthStore(state => state.user);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -50,12 +60,12 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
   };
 
   const comingSoonFeatures = [
-    'Invite friends to join your dining plans',
-    'Share restaurant recommendations',
-    'Group voting for restaurant selection',
-    'Coordinate meeting times and locations',
+    '✅ Find restaurants for groups (LIVE)',
+    '✅ Democratic voting system (LIVE)',
+    '✅ Location-based recommendations (LIVE)',
+    'Friend system and favorites',
     'Split the bill with friends',
-    "View friends' favorite restaurants",
+    'Chat and coordination features',
   ];
 
   return (
@@ -86,18 +96,66 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {/* Empty State */}
-          <View style={modalScreenStyles.emptyState}>
-            <Text style={modalScreenStyles.emptyIcon}>👥</Text>
-            <Text style={modalScreenStyles.emptyTitle}>Coming Soon!</Text>
-            <Text style={modalScreenStyles.emptyDescription}>
-              Connect with friends and make group dining decisions easier.
-            </Text>
-          </View>
+          {user ? (
+            <>
+              {/* Action Buttons */}
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity
+                  style={styles.primaryAction}
+                  onPress={() => navigation.navigate('CreateSession' as any)}
+                >
+                  <Text style={styles.actionIcon}>🎯</Text>
+                  <Text style={styles.actionTitle}>Start Eat Together</Text>
+                  <Text style={styles.actionDescription}>
+                    Create a session and invite friends to find the perfect restaurant for everyone
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.secondaryAction}
+                  onPress={() => navigation.navigate('JoinSession' as any)}
+                >
+                  <Text style={styles.actionIcon}>🔗</Text>
+                  <Text style={styles.actionTitle}>Join Session</Text>
+                  <Text style={styles.actionDescription}>
+                    Enter a code or scan QR to join an existing session
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* How It Works */}
+              <View style={modalScreenStyles.section}>
+                <Text style={modalScreenStyles.sectionTitle}>How It Works</Text>
+                <View style={styles.stepsList}>
+                  {[
+                    { icon: '1️⃣', text: 'Create or join a session with friends' },
+                    { icon: '2️⃣', text: 'Everyone shares their location and dietary preferences' },
+                    { icon: '3️⃣', text: 'Get top 5 restaurants that work for ALL members' },
+                    { icon: '4️⃣', text: 'Vote democratically for your favorite' },
+                    { icon: '5️⃣', text: 'See the winner and navigate together!' },
+                  ].map((step, index) => (
+                    <View key={index} style={styles.stepItem}>
+                      <Text style={styles.stepIcon}>{step.icon}</Text>
+                      <Text style={styles.stepText}>{step.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </>
+          ) : (
+            /* Not Signed In */
+            <View style={modalScreenStyles.emptyState}>
+              <Text style={modalScreenStyles.emptyIcon}>🔒</Text>
+              <Text style={modalScreenStyles.emptyTitle}>Sign In Required</Text>
+              <Text style={modalScreenStyles.emptyDescription}>
+                Create an account to use Eat Together and find restaurants with friends.
+              </Text>
+            </View>
+          )}
 
           {/* Planned Features */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>Planned Features</Text>
+            <Text style={modalScreenStyles.sectionTitle}>Features</Text>
             <View style={modalScreenStyles.sectionContent}>
               {comingSoonFeatures.map((feature, index) => (
                 <View key={index} style={modalScreenStyles.featureItem}>
@@ -139,5 +197,65 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  actionsContainer: {
+    padding: 16,
+    gap: 12,
+  },
+  primaryAction: {
+    backgroundColor: '#FF9800',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  secondaryAction: {
+    backgroundColor: '#2A2A2A',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#333',
+  },
+  actionIcon: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  actionTitle: {
+    color: '#E0E0E0',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  actionDescription: {
+    color: '#E0E0E0',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+  stepsList: {
+    gap: 12,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2A2A2A',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  stepIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  stepText: {
+    color: '#E0E0E0',
+    fontSize: 14,
+    flex: 1,
+    lineHeight: 20,
+  },
+});
 
 export default EatTogetherScreen;

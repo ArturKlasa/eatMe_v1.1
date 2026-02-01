@@ -24,6 +24,11 @@ export type MainStackParamList = {
   Profile: undefined;
   ProfileEdit: undefined;
   EatTogether: undefined;
+  CreateSession: undefined;
+  JoinSession: undefined;
+  SessionLobby: { sessionId: string };
+  Recommendations: { sessionId: string };
+  VotingResults: { sessionId: string };
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
   SupabaseTest: undefined;
@@ -59,6 +64,11 @@ export type FavoritesScreenProps = MainStackScreenProps<'Favorites'>;
 export type ProfileScreenProps = MainStackScreenProps<'Profile'>;
 export type ProfileEditScreenProps = MainStackScreenProps<'ProfileEdit'>;
 export type EatTogetherScreenProps = MainStackScreenProps<'EatTogether'>;
+export type CreateSessionScreenProps = MainStackScreenProps<'CreateSession'>;
+export type JoinSessionScreenProps = MainStackScreenProps<'JoinSession'>;
+export type SessionLobbyScreenProps = MainStackScreenProps<'SessionLobby'>;
+export type RecommendationsScreenProps = MainStackScreenProps<'Recommendations'>;
+export type VotingResultsScreenProps = MainStackScreenProps<'VotingResults'>;
 export type SettingsScreenProps = MainStackScreenProps<'Settings'>;
 
 // Global navigation declaration for useNavigation hook

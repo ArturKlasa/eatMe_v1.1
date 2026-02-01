@@ -12,9 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../stores/authStore';
-import { useFilterStore } from '../stores/filterStore';
 import { updateProfileName } from '../services/userPreferencesService';
-import type { PermanentFilters } from '../stores/filterStore';
 
 /**
  * ProfileEditScreen - Edit user profile and preferences
@@ -24,12 +22,6 @@ export function ProfileEditScreen() {
 
   // Use shallow selectors to prevent re-renders
   const user = useAuthStore(state => state.user);
-  const permanent = useFilterStore(state => state.permanent);
-  const setPermanentDietPreference = useFilterStore(state => state.setPermanentDietPreference);
-  const toggleAllergy = useFilterStore(state => state.toggleAllergy);
-  const toggleExclude = useFilterStore(state => state.toggleExclude);
-  const toggleReligiousRestriction = useFilterStore(state => state.toggleReligiousRestriction);
-  const savePreferencesToDB = useFilterStore(state => state.savePreferencesToDB);
 
   const [profileName, setProfileName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -74,9 +66,6 @@ export function ProfileEditScreen() {
         // Update auth metadata
         await useAuthStore.getState().updateProfile({ profile_name: profileName });
       }
-
-      // Save preferences to database
-      await savePreferencesToDB(user.id);
 
       Alert.alert('Success', 'Profile updated successfully');
       navigation.goBack();
@@ -161,101 +150,14 @@ export function ProfileEditScreen() {
           </View>
         </View>
 
-        {/* Diet Preferences Section */}
+        {/* Info about permanent filters */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Diet Preference</Text>
-          <View style={styles.card}>
-            {(['all', 'vegetarian', 'vegan'] as const).map(diet => (
-              <TouchableOpacity
-                key={diet}
-                style={styles.radioOption}
-                onPress={() => {
-                  setPermanentDietPreference(diet);
-                  markChanged();
-                }}
-              >
-                <View style={styles.radio}>
-                  {permanent.dietPreference === diet && <View style={styles.radioSelected} />}
-                </View>
-                <Text style={styles.radioLabel}>
-                  {diet.charAt(0).toUpperCase() + diet.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Allergies Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Allergies</Text>
-          <View style={styles.card}>
-            {Object.entries(permanent.allergies).map(([key, value]) => (
-              <TouchableOpacity
-                key={key}
-                style={styles.checkboxOption}
-                onPress={() => {
-                  toggleAllergy(key as keyof PermanentFilters['allergies']);
-                  markChanged();
-                }}
-              >
-                <View style={[styles.checkbox, value && styles.checkboxChecked]}>
-                  {value && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>
-                  {key.charAt(0).toUpperCase() + key.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Exclusions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Exclude from Diet</Text>
-          <View style={styles.card}>
-            {Object.entries(permanent.exclude).map(([key, value]) => (
-              <TouchableOpacity
-                key={key}
-                style={styles.checkboxOption}
-                onPress={() => {
-                  toggleExclude(key as keyof PermanentFilters['exclude']);
-                  markChanged();
-                }}
-              >
-                <View style={[styles.checkbox, value && styles.checkboxChecked]}>
-                  {value && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>
-                  {key.replace(/([A-Z])/g, ' $1').replace(/^no/, 'No ')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Religious Restrictions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Religious Restrictions</Text>
-          <View style={styles.card}>
-            {Object.entries(permanent.religiousRestrictions).map(([key, value]) => (
-              <TouchableOpacity
-                key={key}
-                style={styles.checkboxOption}
-                onPress={() => {
-                  toggleReligiousRestriction(
-                    key as keyof PermanentFilters['religiousRestrictions']
-                  );
-                  markChanged();
-                }}
-              >
-                <View style={[styles.checkbox, value && styles.checkboxChecked]}>
-                  {value && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>
-                  {key.charAt(0).toUpperCase() + key.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>💡 Diet Preferences & Restrictions</Text>
+            <Text style={styles.infoText}>
+              To manage your diet preferences, allergies, and restrictions, go to the Filters screen
+              and tap "Permanent Filters".
+            </Text>
           </View>
         </View>
 
@@ -375,36 +277,23 @@ const styles = StyleSheet.create({
     color: '#E0E0E0',
     fontSize: 16,
   },
-  checkboxOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+  infoCard: {
+    backgroundColor: '#2A2A2A',
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#555',
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#333',
-  },
-  checkboxChecked: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  },
-  checkmark: {
-    color: '#FFF',
+  infoTitle: {
+    color: '#FF9800',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+    marginBottom: 8,
   },
-  checkboxLabel: {
-    color: '#E0E0E0',
-    fontSize: 16,
+  infoText: {
+    color: '#B0B0B0',
+    fontSize: 14,
+    lineHeight: 20,
   },
   centerContent: {
     flex: 1,

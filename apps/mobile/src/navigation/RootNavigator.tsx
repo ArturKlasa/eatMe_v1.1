@@ -13,6 +13,13 @@ import {
   SwipeScreen,
 } from '@/screens';
 import { LoginScreen, RegisterScreen, ForgotPasswordScreen } from '@/screens/auth';
+import {
+  CreateSessionScreen,
+  JoinSessionScreen,
+  SessionLobbyScreen,
+  RecommendationsScreen,
+  VotingResultsScreen,
+} from '@/screens/eatTogether';
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
 import { SupabaseTestScreen } from '../screens/SupabaseTestScreen';
 import { useAuthStore } from '../stores/authStore';
@@ -109,6 +116,46 @@ function MainNavigator() {
         options={{
           presentation: 'transparentModal',
           cardStyle: { backgroundColor: 'transparent' },
+        }}
+      />
+      <MainStack.Screen
+        name="CreateSession"
+        component={CreateSessionScreen}
+        options={{
+          headerShown: true,
+          title: 'Create Eat Together',
+        }}
+      />
+      <MainStack.Screen
+        name="JoinSession"
+        component={JoinSessionScreen}
+        options={{
+          headerShown: true,
+          title: 'Join Session',
+        }}
+      />
+      <MainStack.Screen
+        name="SessionLobby"
+        component={SessionLobbyScreen}
+        options={{
+          headerShown: true,
+          title: 'Waiting Room',
+        }}
+      />
+      <MainStack.Screen
+        name="Recommendations"
+        component={RecommendationsScreen}
+        options={{
+          headerShown: true,
+          title: 'Restaurant Recommendations',
+        }}
+      />
+      <MainStack.Screen
+        name="VotingResults"
+        component={VotingResultsScreen}
+        options={{
+          headerShown: true,
+          title: 'Voting Results',
         }}
       />
       <MainStack.Screen

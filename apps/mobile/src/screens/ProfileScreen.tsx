@@ -24,8 +24,12 @@ import { supabase } from '../lib/supabase';
  * Shows user info and sign out option.
  */
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
-  const { user, signOut, isLoading } = useAuthStore();
-  const { permanent } = useFilterStore();
+  // Use shallow selectors to prevent re-renders
+  const user = useAuthStore(state => state.user);
+  const signOut = useAuthStore(state => state.signOut);
+  const isLoading = useAuthStore(state => state.isLoading);
+  const permanent = useFilterStore(state => state.permanent);
+
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
 

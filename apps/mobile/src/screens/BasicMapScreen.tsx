@@ -59,8 +59,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
 
-  const { daily, permanent } = useFilterStore();
-  const { mode } = useViewModeStore();
+  // Use shallow selectors to reduce re-renders
+  const daily = useFilterStore(state => state.daily);
+  const permanent = useFilterStore(state => state.permanent);
+  const mode = useViewModeStore(state => state.mode);
 
   // Helper function to parse location data
   const parseLocation = (location: any): { lat: number; lng: number } | null => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,22 +29,41 @@ import { trackDishInteraction } from '../services/userPreferencesService';
  */
 export function SwipeScreen() {
   const navigation = useNavigation();
-  const { daily, permanent } = useFilterStore();
+
+  // Use shallow selectors to prevent re-renders
+  const daily = useFilterStore(state => state.daily);
+  const permanent = useFilterStore(state => state.permanent);
   const { location, isLoading: locationLoading } = useUserLocation();
-  const { user } = useAuthStore();
+  const user = useAuthStore(state => state.user);
 
   const [dishes, setDishes] = useState<ServerDish[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sessionId] = useState(generateSessionId());
   const [swipeStats, setSwipeStats] = useState({ right: 0, left: 0 });
   const [feedMetadata, setFeedMetadata] = useState<any>(null);
 
-  // Load dishes from Edge Function
+  // Stable session ID that doesn't change on re-render
+  const sessionIdRef = useRef(generateSessionId());
+  const sessionId = sessionIdRef.current;
+
+  // Track if initial load has been done
+  const hasLoadedRef = useRef(false);
+
+  // Load dishes from Edge Function - only when location is ready
   useEffect(() => {
-    loadDishes();
-  }, [location, daily, permanent]);
+    if (location && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadDishes();
+    }
+  }, [location]);
+
+  // Reload when filters change (after initial load)
+  useEffect(() => {
+    if (hasLoadedRef.current && location) {
+      loadDishes();
+    }
+  }, [daily, permanent]);
 
   async function loadDishes() {
     if (!location) {

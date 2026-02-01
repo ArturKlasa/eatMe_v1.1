@@ -7,9 +7,12 @@
 
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { Session, User, AuthError } from '@supabase/supabase-js';
+import { Session, User, AuthError, Subscription } from '@supabase/supabase-js';
 import { debugLog } from '../config/environment';
 import { useFilterStore } from './filterStore';
+
+// Track if auth listener is already set up (prevents duplicate listeners)
+let authListenerSubscription: Subscription | null = null;
 
 // Auth state interface
 export interface AuthState {
@@ -71,6 +74,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   // Initialize auth - check for existing session
   initialize: async () => {
+    // Prevent multiple initializations
+    const state = get();
+    if (state.isInitialized) {
+      debugLog('[Auth] Already initialized, skipping...');
+      return;
+    }
+
     try {
       debugLog('[Auth] Initializing...');
       set({ isLoading: true, error: null });
@@ -88,6 +98,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
 
       debugLog('[Auth] Session found:', !!session);
+
+      // Batch state update to reduce re-renders
       set({
         session,
         user: session?.user ?? null,
@@ -95,24 +107,32 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isInitialized: true,
       });
 
-      // Sync user preferences from database if logged in
+      // Sync user preferences from database if logged in (don't await to not block)
       if (session?.user) {
         useFilterStore.getState().syncWithDatabase(session.user.id);
       }
 
-      // Set up auth state change listener
-      supabase.auth.onAuthStateChange((event, session) => {
-        debugLog('[Auth] Auth state changed:', event);
-        set({
-          session,
-          user: session?.user ?? null,
-        });
+      // Set up auth state change listener ONLY ONCE
+      if (!authListenerSubscription) {
+        debugLog('[Auth] Setting up auth state listener...');
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((event, session) => {
+          debugLog('[Auth] Auth state changed:', event);
 
-        // Sync preferences on sign in
-        if (event === 'SIGNED_IN' && session?.user) {
-          useFilterStore.getState().syncWithDatabase(session.user.id);
-        }
-      });
+          // Batch update to reduce re-renders
+          set({
+            session,
+            user: session?.user ?? null,
+          });
+
+          // Sync preferences on sign in (don't await)
+          if (event === 'SIGNED_IN' && session?.user) {
+            useFilterStore.getState().syncWithDatabase(session.user.id);
+          }
+        });
+        authListenerSubscription = subscription;
+      }
     } catch (err) {
       console.error('[Auth] Initialization error:', err);
       set({

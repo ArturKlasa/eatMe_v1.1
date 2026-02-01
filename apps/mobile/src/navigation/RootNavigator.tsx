@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -152,12 +152,21 @@ function LoadingScreen() {
  * - Shows Main app screens if logged in
  */
 export const RootNavigator: React.FC = () => {
-  const { isInitialized, session, initialize } = useAuthStore();
+  // Use shallow selectors to prevent unnecessary re-renders
+  const isInitialized = useAuthStore(state => state.isInitialized);
+  const session = useAuthStore(state => state.session);
+  const initialize = useAuthStore(state => state.initialize);
 
-  // Initialize auth on mount
+  // Track if we've already started initialization
+  const hasInitialized = useRef(false);
+
+  // Initialize auth on mount - only once
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      initialize();
+    }
+  }, []); // Empty deps - only run once
 
   // Show loading while initializing
   if (!isInitialized) {

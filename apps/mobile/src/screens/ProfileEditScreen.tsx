@@ -21,15 +21,15 @@ import type { PermanentFilters } from '../stores/filterStore';
  */
 export function ProfileEditScreen() {
   const navigation = useNavigation();
-  const { user } = useAuthStore();
-  const {
-    permanent,
-    setPermanentDietPreference,
-    toggleAllergy,
-    toggleExclude,
-    toggleReligiousRestriction,
-    savePreferencesToDB,
-  } = useFilterStore();
+
+  // Use shallow selectors to prevent re-renders
+  const user = useAuthStore(state => state.user);
+  const permanent = useFilterStore(state => state.permanent);
+  const setPermanentDietPreference = useFilterStore(state => state.setPermanentDietPreference);
+  const toggleAllergy = useFilterStore(state => state.toggleAllergy);
+  const toggleExclude = useFilterStore(state => state.toggleExclude);
+  const toggleReligiousRestriction = useFilterStore(state => state.toggleReligiousRestriction);
+  const savePreferencesToDB = useFilterStore(state => state.savePreferencesToDB);
 
   const [profileName, setProfileName] = useState('');
   const [isSaving, setIsSaving] = useState(false);

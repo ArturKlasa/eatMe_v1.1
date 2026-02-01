@@ -7,6 +7,7 @@ import {
   FiltersScreen,
   FavoritesScreen,
   ProfileScreen,
+  ProfileEditScreen,
   EatTogetherScreen,
   SettingsScreen,
   SwipeScreen,
@@ -92,6 +93,14 @@ function MainNavigator() {
         options={{
           presentation: 'transparentModal',
           cardStyle: { backgroundColor: 'transparent' },
+        }}
+      />
+      <MainStack.Screen
+        name="ProfileEdit"
+        component={ProfileEditScreen}
+        options={{
+          presentation: 'modal',
+          headerShown: false,
         }}
       />
       <MainStack.Screen

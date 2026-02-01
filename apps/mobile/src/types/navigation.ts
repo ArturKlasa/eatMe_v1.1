@@ -22,6 +22,7 @@ export type MainStackParamList = {
   Filters: undefined;
   Favorites: undefined;
   Profile: undefined;
+  ProfileEdit: undefined;
   EatTogether: undefined;
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
@@ -56,6 +57,7 @@ export type MapScreenProps = MainStackScreenProps<'Map'>;
 export type FiltersScreenProps = MainStackScreenProps<'Filters'>;
 export type FavoritesScreenProps = MainStackScreenProps<'Favorites'>;
 export type ProfileScreenProps = MainStackScreenProps<'Profile'>;
+export type ProfileEditScreenProps = MainStackScreenProps<'ProfileEdit'>;
 export type EatTogetherScreenProps = MainStackScreenProps<'EatTogether'>;
 export type SettingsScreenProps = MainStackScreenProps<'Settings'>;
 

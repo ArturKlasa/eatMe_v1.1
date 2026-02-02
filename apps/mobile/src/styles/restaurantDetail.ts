@@ -87,8 +87,12 @@ export const restaurantDetailStyles = StyleSheet.create({
   hoursMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    flexWrap: 'nowrap',
+    gap: spacing.md,
+  },
+  hoursRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   hoursLabel: {
     fontSize: typography.size.sm,
@@ -109,18 +113,42 @@ export const restaurantDetailStyles = StyleSheet.create({
   },
   weekDayRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingVertical: spacing.xs,
   },
   weekDayName: {
     fontSize: typography.size.xs,
     color: colors.darkTextLight,
     textTransform: 'capitalize',
-    width: 100,
+    width: 80,
+  },
+  weekDayNameToday: {
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
   },
   weekDayHours: {
     fontSize: typography.size.xs,
     color: colors.darkTextSecondary,
+  },
+  weekDayHoursClosed: {
+    fontSize: typography.size.xs,
+    color: '#FF5722',
+    fontWeight: typography.weight.semibold,
+  },
+  currentDayInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  todayHoursText: {
+    fontSize: typography.size.xs,
+    color: colors.darkTextSecondary,
+  },
+  todayHoursClosed: {
+    fontSize: typography.size.xs,
+    color: '#FF5722',
+    fontWeight: typography.weight.semibold,
   },
   openBadge: {
     fontSize: 11,
@@ -130,6 +158,19 @@ export const restaurantDetailStyles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
+    width: 80,
+    textAlign: 'center',
+  },
+  closedBadge: {
+    fontSize: 11,
+    color: '#FF5722',
+    fontWeight: typography.weight.bold,
+    backgroundColor: '#FF572220',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    width: 80,
+    textAlign: 'center',
   },
 
   // Three-Dots Menu Button
@@ -164,6 +205,14 @@ export const restaurantDetailStyles = StyleSheet.create({
     backgroundColor: colors.darkSecondary,
     borderRadius: borderRadius.md,
     ...shadows.lg,
+  },
+  // Address Modal Overlay
+  addressModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
   },
   optionItem: {
     flexDirection: 'row',
@@ -250,6 +299,52 @@ export const restaurantDetailStyles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.darkTextMuted,
     lineHeight: 18,
+  },
+
+  // Address Modal
+  addressModal: {
+    backgroundColor: colors.darkSecondary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    width: '80%',
+    maxWidth: 400,
+    ...shadows.medium,
+  },
+  addressModalTitle: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  addressModalText: {
+    fontSize: typography.size.base,
+    color: colors.darkText,
+    lineHeight: 24,
+    marginBottom: spacing.xl,
+    textAlign: 'center',
+  },
+  addressModalButtons: {
+    flexDirection: 'column',
+    gap: spacing.md,
+  },
+  addressModalButton: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    backgroundColor: colors.darkTertiary,
+  },
+  addressModalButtonPrimary: {
+    backgroundColor: colors.primary,
+  },
+  addressModalButtonText: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
+  },
+  addressModalButtonTextSecondary: {
+    color: colors.darkText,
   },
 
   // Legacy/Unused (kept for compatibility)

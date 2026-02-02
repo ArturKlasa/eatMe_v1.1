@@ -14,20 +14,28 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import type { RootStackScreenProps } from '@/types/navigation';
 import { getRestaurantMenu, type MenuItem } from '../data/mockRestaurantMenus';
 import { supabase } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
+import { useAuthStore } from '../stores/authStore';
+import { toggleFavorite, isFavorited } from '../services/favoritesService';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
 export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { restaurantId } = route.params;
+  const user = useAuthStore(state => state.user);
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showFullWeekHours, setShowFullWeekHours] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoritesInitialized, setFavoritesInitialized] = useState(false);
+  const [hoursExpanded, setHoursExpanded] = useState(false);
 
   // Fetch restaurant from Supabase
   useEffect(() => {
@@ -61,6 +69,22 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
     fetchRestaurant();
   }, [restaurantId]);
+
+  // Check if restaurant is favorited
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!user || !restaurantId) {
+        setFavoritesInitialized(true);
+        return;
+      }
+
+      const { isFavorited: favorited } = await isFavorited(user.id, 'restaurant', restaurantId);
+      setIsFavorite(favorited);
+      setFavoritesInitialized(true);
+    };
+
+    checkFavoriteStatus();
+  }, [user, restaurantId]);
 
   if (loading) {
     return (
@@ -108,15 +132,38 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
   const paymentNote = getPaymentNote();
 
-  const handleMenuOption = (option: string) => {
+  const handleMenuOption = async (option: string) => {
     setShowOptionsMenu(false);
 
     switch (option) {
       case 'address':
-        Alert.alert('Address', 'Address feature coming soon');
+        // Show custom address modal with dark theme
+        setShowAddressModal(true);
         break;
       case 'favorites':
-        Alert.alert('Add to Favorites', 'Favorites feature coming soon');
+        if (!user) {
+          Alert.alert('Sign In Required', 'Please sign in to add favorites');
+          return;
+        }
+        setFavoriteLoading(true);
+        try {
+          const { isFavorited: newStatus, error } = await toggleFavorite(
+            user.id,
+            'restaurant',
+            restaurantId
+          );
+          if (error) {
+            Alert.alert('Error', 'Failed to update favorites');
+          } else {
+            setIsFavorite(newStatus);
+            Alert.alert('Success', newStatus ? 'Added to favorites ⭐' : 'Removed from favorites');
+          }
+        } catch (err) {
+          console.error('[Favorites] Error:', err);
+          Alert.alert('Error', 'Failed to update favorites');
+        } finally {
+          setFavoriteLoading(false);
+        }
         break;
       case 'review':
         Alert.alert('Add Review', 'Review feature coming soon');
@@ -125,7 +172,15 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         Alert.alert('Share', 'Share feature coming soon');
         break;
       case 'call':
-        Alert.alert('Call', 'Call feature coming soon');
+        if (restaurant.phone) {
+          const phoneUrl = `tel:${restaurant.phone}`;
+          Linking.openURL(phoneUrl).catch(err => {
+            console.error('Failed to make call:', err);
+            Alert.alert('Error', 'Failed to open phone dialer');
+          });
+        } else {
+          Alert.alert('No Phone', 'Phone number not available for this restaurant');
+        }
         break;
       case 'report':
         Alert.alert('Report', 'Report misleading info feature coming soon');
@@ -171,39 +226,64 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
           {/* Opening Hours and Payment Row */}
           <View style={styles.hoursPaymentRow}>
-            {/* Opening Hours - Clickable to expand */}
-            <TouchableOpacity
-              style={styles.hoursContainer}
-              onPress={() => setShowFullWeekHours(!showFullWeekHours)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.hoursMainRow}>
-                <Text style={styles.hoursLabel}>
-                  🕐 {getCurrentDayName()}: {todayHours?.open || 'N/A'} -{' '}
-                  {todayHours?.close || 'N/A'}
-                </Text>
-                {isOpenNow && <Text style={styles.openBadge}>Open Now</Text>}
-                <Text style={styles.expandIcon}>{showFullWeekHours ? '▼' : '▶'}</Text>
-              </View>
-
-              {/* Full Week Hours - Expandable */}
-              {showFullWeekHours && (restaurant.operating_hours || restaurant.open_hours) && (
-                <View style={styles.fullWeekHours}>
-                  {Object.entries(restaurant.operating_hours || restaurant.open_hours || {}).map(
-                    ([day, hours]: [string, any]) => (
-                      <View key={day} style={styles.weekDayRow}>
-                        <Text style={styles.weekDayName}>
-                          {day.charAt(0).toUpperCase() + day.slice(1)}
-                        </Text>
-                        <Text style={styles.weekDayHours}>
-                          {hours.open} - {hours.close}
-                        </Text>
-                      </View>
-                    )
+            {/* Opening Hours - Collapsible */}
+            <View style={styles.hoursContainer}>
+              <TouchableOpacity
+                style={styles.hoursMainRow}
+                onPress={() => setHoursExpanded(!hoursExpanded)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.currentDayInfo}>
+                  {todayHours ? (
+                    <Text style={styles.openBadge}>Open Now</Text>
+                  ) : (
+                    <Text style={styles.closedBadge}>Closed</Text>
+                  )}
+                  {todayHours ? (
+                    <Text style={styles.todayHoursText}>
+                      {todayHours.open} - {todayHours.close}
+                    </Text>
+                  ) : (
+                    <Text style={styles.todayHoursClosed}>Closed</Text>
                   )}
                 </View>
+                <View style={styles.hoursRightSection}>
+                  <Text style={styles.expandIcon}>{hoursExpanded ? '▼' : '▶'}</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Full Week Hours - Collapsible */}
+              {hoursExpanded && (
+                <View style={styles.fullWeekHours}>
+                  {[
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                    'sunday',
+                  ].map(day => {
+                    const hours = (restaurant.operating_hours || restaurant.open_hours || {})[day];
+                    const isToday = day === getCurrentDayName().toLowerCase();
+                    return (
+                      <View key={day} style={styles.weekDayRow}>
+                        <Text style={[styles.weekDayName, isToday && styles.weekDayNameToday]}>
+                          {day.charAt(0).toUpperCase() + day.slice(1)}
+                        </Text>
+                        {hours ? (
+                          <Text style={styles.weekDayHours}>
+                            {hours.open} - {hours.close}
+                          </Text>
+                        ) : (
+                          <Text style={styles.weekDayHoursClosed}>Closed</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
               )}
-            </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -256,8 +336,17 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             <TouchableOpacity
               style={styles.optionItem}
               onPress={() => handleMenuOption('favorites')}
+              disabled={favoriteLoading || !favoritesInitialized}
             >
-              <Text style={styles.optionText}>Add to favorites</Text>
+              <Text style={styles.optionText}>
+                {!favoritesInitialized
+                  ? 'Loading...'
+                  : favoriteLoading
+                    ? 'Updating...'
+                    : isFavorite
+                      ? 'Remove from favorites ⭐'
+                      : 'Add to favorites'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('review')}>
@@ -278,6 +367,57 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             >
               <Text style={styles.optionText}>Report misleading info</Text>
             </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Address Modal */}
+      <Modal
+        visible={showAddressModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAddressModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.addressModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAddressModal(false)}
+        >
+          <View style={styles.addressModal}>
+            <Text style={styles.addressModalTitle}>Restaurant Address</Text>
+            <Text style={styles.addressModalText}>
+              {restaurant.address}
+              {'\n'}
+              {restaurant.city}, {restaurant.postal_code}
+            </Text>
+            <View style={styles.addressModalButtons}>
+              <TouchableOpacity
+                style={[styles.addressModalButton, styles.addressModalButtonPrimary]}
+                onPress={() => {
+                  const address = `${restaurant.address}, ${restaurant.city}, ${restaurant.postal_code}`;
+                  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    address
+                  )}`;
+                  Linking.openURL(url).catch(err => {
+                    console.error('Failed to open maps:', err);
+                    Alert.alert('Error', 'Failed to open maps');
+                  });
+                  setShowAddressModal(false);
+                }}
+              >
+                <Text style={styles.addressModalButtonText}>Open in Maps</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addressModalButton}
+                onPress={() => setShowAddressModal(false)}
+              >
+                <Text
+                  style={[styles.addressModalButtonText, styles.addressModalButtonTextSecondary]}
+                >
+                  Close
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>

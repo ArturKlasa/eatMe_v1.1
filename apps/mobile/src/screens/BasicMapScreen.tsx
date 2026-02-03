@@ -611,26 +611,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         </View>
       )}
 
-      {/* Show restaurant count and search info */}
-      {nearbyRestaurants.length > 0 && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 16,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 12,
-            zIndex: 999,
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
-            {displayedRestaurants.length} nearby
-          </Text>
-        </View>
-      )}
-
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
       <RatingFlowModal visible={isRatingFlowVisible} onClose={closeRatingFlow} />

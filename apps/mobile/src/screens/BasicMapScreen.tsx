@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, Text, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Alert, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -14,6 +14,7 @@ import { useRestaurantStore } from '../stores/restaurantStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
 import { formatDistance } from '../services/geoService';
 import { commonStyles, mapComponentStyles } from '@/styles';
+import { colors, typography, spacing } from '@/styles/theme';
 import type { MapScreenProps } from '@/types/navigation';
 import type { RootStackParamList } from '@/types/navigation';
 
@@ -24,6 +25,7 @@ import { DishMarkers } from '../components/map/DishMarkers';
 import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
 import { FloatingMenu } from '../components/FloatingMenu';
+import { RatingFlowModal } from '../components/rating';
 
 /**
  * BasicMapScreen Component
@@ -58,6 +60,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const [hasAutocentered, setHasAutocentered] = useState(false);
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isRatingFlowVisible, setIsRatingFlowVisible] = useState(false);
 
   // Use shallow selectors to reduce re-renders
   const daily = useFilterStore(state => state.daily);
@@ -430,6 +433,14 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     setIsMenuVisible(false);
   };
 
+  const handleRatingBannerPress = () => {
+    setIsRatingFlowVisible(true);
+  };
+
+  const closeRatingFlow = () => {
+    setIsRatingFlowVisible(false);
+  };
+
   const handleRefresh = async () => {
     debugLog('Refreshing nearby restaurants...');
     if (hasPermission && userLocation) {
@@ -622,6 +633,53 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
+      <RatingFlowModal visible={isRatingFlowVisible} onClose={closeRatingFlow} />
+
+      {/* Rating Banner */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          right: 16,
+          zIndex: 1000,
+        }}
+      >
+        <TouchableOpacity
+          onPress={handleRatingBannerPress}
+          style={{
+            backgroundColor: colors.darkSecondary,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            borderRadius: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderWidth: 1,
+            borderColor: colors.darkBorder,
+            shadowColor: colors.black,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 20, marginRight: spacing.sm }}>🎁</Text>
+            <Text
+              style={{
+                color: colors.accent,
+                fontSize: typography.size.base,
+                fontWeight: typography.weight.semibold,
+              }}
+            >
+              Rate dishes, get rewards
+            </Text>
+          </View>
+          <Text style={{ color: colors.accent, fontSize: typography.size.lg }}>→</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

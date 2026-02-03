@@ -22,6 +22,7 @@ import { supabase } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
+import { DishPhotoModal } from '../components/DishPhotoModal';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
@@ -36,6 +37,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
   const [hoursExpanded, setHoursExpanded] = useState(false);
+  const [selectedDish, setSelectedDish] = useState<any>(null);
+  const [dishPhotos, setDishPhotos] = useState<any[]>([]);
 
   // Fetch restaurant from Supabase
   useEffect(() => {
@@ -188,8 +191,36 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleDishPress = async (dish: any) => {
+    setSelectedDish(dish);
+
+    // Fetch photos for this dish
+    try {
+      const { data, error } = await supabase
+        .from('dish_photos')
+        .select('*')
+        .eq('dish_id', dish.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching dish photos:', error);
+        setDishPhotos([]);
+      } else {
+        setDishPhotos(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching dish photos:', err);
+      setDishPhotos([]);
+    }
+  };
+
   const renderMenuItem = (item: any) => (
-    <View key={item.id} style={styles.menuItem}>
+    <TouchableOpacity
+      key={item.id}
+      style={styles.menuItem}
+      onPress={() => handleDishPress(item)}
+      activeOpacity={0.7}
+    >
       <View style={styles.menuItemHeader}>
         <Text style={styles.menuItemName}>
           {item.name}
@@ -201,7 +232,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
       </View>
       {item.description && <Text style={styles.menuItemIngredients}>{item.description}</Text>}
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -421,6 +452,21 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Dish Photo Modal */}
+      {selectedDish && (
+        <DishPhotoModal
+          visible={!!selectedDish}
+          onClose={() => {
+            setSelectedDish(null);
+            setDishPhotos([]);
+          }}
+          dishName={selectedDish.name}
+          dishDescription={selectedDish.description}
+          dishPrice={selectedDish.price}
+          photos={dishPhotos}
+        />
+      )}
     </View>
   );
 }

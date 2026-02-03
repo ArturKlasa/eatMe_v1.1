@@ -3,21 +3,30 @@
  *
  * Tracks user viewing sessions - which restaurants and dishes they've viewed.
  * Used to prompt users for ratings after they've likely visited a restaurant.
+ * Integrates with Supabase to persist session data.
  */
 
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 import { SessionView, RecentlyViewedRestaurant, RecentlyViewedDish } from '../types/rating';
 
 const SESSION_STORAGE_KEY = 'eatme_session_views';
-const SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour (session ends after 1 hour of inactivity)
 
 interface SessionState {
+  // Current session ID from database
+  currentSessionId: string | null;
+
   // Current session views
   views: SessionView[];
 
   // Recently viewed restaurants (compiled from views)
   recentRestaurants: RecentlyViewedRestaurant[];
+
+  // Session tracking
+  startSession: () => Promise<void>;
+  endSession: () => Promise<void>;
 
   // Track a view
   trackView: (entityType: 'restaurant' | 'dish' | 'menu', entityId: string) => void;
@@ -50,10 +59,87 @@ interface SessionState {
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
+  currentSessionId: null,
   views: [],
   recentRestaurants: [],
 
-  trackView: (entityType, entityId) => {
+  startSession: async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('[Session] No user, skipping session start');
+        return;
+      }
+
+      // Check if there's an active session
+      const { data: activeSessions } = await supabase
+        .from('user_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('started_at', { ascending: false })
+        .limit(1);
+
+      if (activeSessions && activeSessions.length > 0) {
+        // Use existing active session
+        set({ currentSessionId: activeSessions[0].id });
+        console.log('[Session] Using existing session:', activeSessions[0].id);
+        return;
+      }
+
+      // Create new session
+      const { data: newSession, error } = await supabase
+        .from('user_sessions')
+        .insert({
+          user_id: user.id,
+          is_active: true,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[Session] Error creating session:', error);
+        return;
+      }
+
+      set({ currentSessionId: newSession.id });
+      console.log('[Session] Started new session:', newSession.id);
+    } catch (error) {
+      console.error('[Session] Error in startSession:', error);
+    }
+  },
+
+  endSession: async () => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_sessions')
+        .update({
+          ended_at: new Date().toISOString(),
+          is_active: false,
+        })
+        .eq('id', currentSessionId);
+
+      if (error) {
+        console.error('[Session] Error ending session:', error);
+        return;
+      }
+
+      set({ currentSessionId: null });
+      console.log('[Session] Ended session:', currentSessionId);
+    } catch (error) {
+      console.error('[Session] Error in endSession:', error);
+    }
+  },
+
+  trackView: async (entityType, entityId) => {
+    const { currentSessionId } = get();
+
+    // Track in local state
     const view: SessionView = {
       entityType,
       entityId,
@@ -64,27 +150,49 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       views: [...state.views, view],
     }));
 
+    // Save to Supabase if we have a session
+    if (currentSessionId) {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await supabase.from('session_views').insert({
+          session_id: currentSessionId,
+          user_id: user.id,
+          entity_type: entityType,
+          entity_id: entityId,
+          viewed_at: new Date().toISOString(),
+        });
+
+        console.log('[Session] Tracked view:', { entityType, entityId });
+      } catch (error) {
+        console.error('[Session] Error tracking view:', error);
+      }
+    }
+
     get().saveToStorage();
   },
 
   trackDishView: (restaurantId, dish) => {
+    // Track in database
+    get().trackView('dish', dish.id);
+
+    // Track in local state for UI
     set(state => {
-      // Find the restaurant in recent views
       const restaurantIndex = state.recentRestaurants.findIndex(r => r.id === restaurantId);
 
       if (restaurantIndex === -1) {
-        // Restaurant not yet tracked, skip (trackRestaurantView should be called first)
         return state;
       }
 
       const updatedRestaurants = [...state.recentRestaurants];
       const restaurant = { ...updatedRestaurants[restaurantIndex] };
 
-      // Check if dish already viewed
       const existingDishIndex = restaurant.viewedDishes.findIndex(d => d.id === dish.id);
 
       if (existingDishIndex === -1) {
-        // Add new dish
         restaurant.viewedDishes = [
           ...restaurant.viewedDishes,
           {
@@ -96,7 +204,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           },
         ];
       } else {
-        // Update view time
         restaurant.viewedDishes = [...restaurant.viewedDishes];
         restaurant.viewedDishes[existingDishIndex] = {
           ...restaurant.viewedDishes[existingDishIndex],
@@ -106,31 +213,23 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
       updatedRestaurants[restaurantIndex] = restaurant;
 
-      // Also track in generic views
-      const view: SessionView = {
-        entityType: 'dish',
-        entityId: dish.id,
-        viewedAt: new Date(),
-      };
-
       return {
-        views: [...state.views, view],
         recentRestaurants: updatedRestaurants,
       };
     });
-
-    get().saveToStorage();
   },
 
   trackRestaurantView: restaurant => {
+    // Track in database
+    get().trackView('restaurant', restaurant.id);
+
+    // Track in local state for UI
     set(state => {
-      // Check if restaurant already in recent views
       const existingIndex = state.recentRestaurants.findIndex(r => r.id === restaurant.id);
 
       let updatedRestaurants: RecentlyViewedRestaurant[];
 
       if (existingIndex === -1) {
-        // Add new restaurant
         const newRestaurant: RecentlyViewedRestaurant = {
           id: restaurant.id,
           name: restaurant.name,
@@ -140,6 +239,19 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           viewedDishes: [],
         };
         updatedRestaurants = [...state.recentRestaurants, newRestaurant];
+      } else {
+        updatedRestaurants = [...state.recentRestaurants];
+        updatedRestaurants[existingIndex] = {
+          ...updatedRestaurants[existingIndex],
+          viewedAt: new Date(),
+        };
+      }
+
+      return {
+        recentRestaurants: updatedRestaurants,
+      };
+    });
+  },
       } else {
         // Update view time
         updatedRestaurants = [...state.recentRestaurants];

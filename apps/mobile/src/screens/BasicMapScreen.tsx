@@ -11,6 +11,7 @@ import { useRestaurants, useAllDishes } from '../hooks';
 import { useFilterStore } from '../stores/filterStore';
 import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
+import { useSessionStore } from '../stores/sessionStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
 import { formatDistance } from '../services/geoService';
 import { commonStyles, mapComponentStyles } from '@/styles';
@@ -61,6 +62,13 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isRatingFlowVisible, setIsRatingFlowVisible] = useState(false);
+
+  // Session tracking for rating prompts
+  const getRecentRestaurantsForRating = useSessionStore(
+    state => state.getRecentRestaurantsForRating
+  );
+  const recentRestaurants = getRecentRestaurantsForRating();
+  const showRatingBanner = recentRestaurants.length > 0;
 
   // Use shallow selectors to reduce re-renders
   const daily = useFilterStore(state => state.daily);
@@ -615,21 +623,22 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
       <RatingFlowModal visible={isRatingFlowVisible} onClose={closeRatingFlow} />
 
-      {/* Rating Banner */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          right: 16,
-          zIndex: 1000,
-        }}
-      >
-        <TouchableOpacity
-          onPress={handleRatingBannerPress}
+      {/* Rating Banner - Only show when user has viewed restaurants */}
+      {showRatingBanner && (
+        <View
           style={{
-            backgroundColor: colors.darkSecondary,
-            paddingHorizontal: spacing.lg,
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            right: 16,
+            zIndex: 1000,
+          }}
+        >
+          <TouchableOpacity
+            onPress={handleRatingBannerPress}
+            style={{
+              backgroundColor: colors.darkSecondary,
+              paddingHorizontal: spacing.lg,
             paddingVertical: spacing.md,
             borderRadius: 12,
             flexDirection: 'row',
@@ -659,7 +668,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           </View>
           <Text style={{ color: colors.accent, fontSize: typography.size.lg }}>→</Text>
         </TouchableOpacity>
-      </View>
+        </View>
+      )}
     </View>
   );
 }

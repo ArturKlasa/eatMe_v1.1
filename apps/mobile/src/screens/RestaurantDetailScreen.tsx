@@ -21,6 +21,7 @@ import { getRestaurantMenu, type MenuItem } from '../data/mockRestaurantMenus';
 import { supabase } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
+import { useSessionStore } from '../stores/sessionStore';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
 
@@ -29,6 +30,8 @@ type Props = RootStackScreenProps<'RestaurantDetail'>;
 export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { restaurantId } = route.params;
   const user = useAuthStore(state => state.user);
+  const trackRestaurantView = useSessionStore(state => state.trackRestaurantView);
+  const trackDishView = useSessionStore(state => state.trackDishView);
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -62,6 +65,14 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
         if (data) {
           setRestaurant(data);
+          
+          // Track restaurant view
+          trackRestaurantView({
+            id: data.id,
+            name: data.name,
+            cuisine: data.cuisine_types?.[0] || 'Restaurant',
+            imageUrl: data.image_url,
+          });
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
@@ -71,7 +82,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     };
 
     fetchRestaurant();
-  }, [restaurantId]);
+  }, [restaurantId, trackRestaurantView]);
 
   // Check if restaurant is favorited
   useEffect(() => {
@@ -193,6 +204,14 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
   const handleDishPress = async (dish: any) => {
     setSelectedDish(dish);
+
+    // Track dish view
+    trackDishView(restaurantId, {
+      id: dish.id,
+      name: dish.name,
+      price: dish.price,
+      imageUrl: dish.photo_url,
+    });
 
     // Fetch photos for this dish
     try {

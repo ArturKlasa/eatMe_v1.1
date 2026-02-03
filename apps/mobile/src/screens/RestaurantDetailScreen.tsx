@@ -65,7 +65,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
         if (data) {
           setRestaurant(data);
-          
+
           // Track restaurant view
           trackRestaurantView({
             id: data.id,

@@ -3,6 +3,7 @@ import { StyleSheet, View, Alert, Text, ActivityIndicator, TouchableOpacity } fr
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { supabase } from '../lib/supabase';
 import { ENV, debugLog } from '../config/environment';
 import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
 import { mockDishes, Dish } from '../data/mockDishes';
@@ -14,6 +15,7 @@ import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
 import { formatDistance } from '../services/geoService';
+import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
 import { commonStyles, mapComponentStyles } from '@/styles';
 import { colors, typography, spacing } from '@/styles/theme';
 import type { MapScreenProps } from '@/types/navigation';
@@ -27,6 +29,8 @@ import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
 import { FloatingMenu } from '../components/FloatingMenu';
 import { RatingFlowModal } from '../components/rating';
+import { useAuthStore } from '../stores/authStore';
+import { DishRatingInput, RestaurantFeedbackInput } from '../types/rating';
 
 /**
  * BasicMapScreen Component
@@ -63,12 +67,16 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isRatingFlowVisible, setIsRatingFlowVisible] = useState(false);
 
+  // Auth and session
+  const user = useAuthStore(state => state.user);
+  const currentSessionId = useSessionStore(state => state.currentSessionId);
+
   // Session tracking for rating prompts
   const getRecentRestaurantsForRating = useSessionStore(
     state => state.getRecentRestaurantsForRating
   );
   const recentRestaurants = getRecentRestaurantsForRating();
-  const showRatingBanner = recentRestaurants.length > 0;
+  const showRatingBanner = recentRestaurants.length > 0 && !!user;
 
   // Use shallow selectors to reduce re-renders
   const daily = useFilterStore(state => state.daily);
@@ -449,6 +457,67 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     setIsRatingFlowVisible(false);
   };
 
+  const handleRatingComplete = async (submission: {
+    restaurantId: string;
+    dishRatings: DishRatingInput[];
+    restaurantFeedback: RestaurantFeedbackInput | null;
+    pointsEarned: any;
+  }) => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to submit ratings');
+      return;
+    }
+
+    const { success, error } = await submitRating(
+      user.id,
+      submission.restaurantId,
+      currentSessionId,
+      submission.dishRatings,
+      submission.restaurantFeedback,
+      submission.pointsEarned
+    );
+
+    if (!success) {
+      Alert.alert('Error', error || 'Failed to submit rating');
+    }
+  };
+
+  const handleSearchRestaurant = () => {
+    // Future: Navigate to restaurant search screen
+    Alert.alert('Coming Soon', 'Search for restaurants feature coming soon!');
+  };
+
+  const handleViewRewards = () => {
+    // Future: Navigate to rewards/profile screen
+    Alert.alert('Coming Soon', 'Rewards screen coming soon!');
+  };
+
+  const getRestaurantDishes = async (restaurantId: string) => {
+    try {
+      const { data, error } = await supabase.from('dishes').select('*').eq('menu_id', restaurantId);
+
+      if (error) throw error;
+
+      return (
+        data?.map(dish => ({
+          id: dish.id,
+          name: dish.name,
+          price: dish.price,
+          imageUrl: dish.photo_url,
+          viewedAt: new Date(),
+        })) || []
+      );
+    } catch (error) {
+      console.error('Error fetching dishes:', error);
+      return [];
+    }
+  };
+
+  const checkIsFirstVisit = async (restaurantId: string) => {
+    if (!user) return false;
+    return await isFirstVisitToRestaurant(user.id, restaurantId);
+  };
+
   const handleRefresh = async () => {
     debugLog('Refreshing nearby restaurants...');
     if (hasPermission && userLocation) {
@@ -621,7 +690,16 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
-      <RatingFlowModal visible={isRatingFlowVisible} onClose={closeRatingFlow} />
+      <RatingFlowModal
+        visible={isRatingFlowVisible}
+        recentRestaurants={recentRestaurants}
+        onClose={closeRatingFlow}
+        onComplete={handleRatingComplete}
+        onSearchRestaurant={handleSearchRestaurant}
+        onViewRewards={handleViewRewards}
+        getRestaurantDishes={getRestaurantDishes}
+        isFirstVisit={checkIsFirstVisit}
+      />
 
       {/* Rating Banner - Only show when user has viewed restaurants */}
       {showRatingBanner && (
@@ -639,35 +717,35 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
             style={{
               backgroundColor: colors.darkSecondary,
               paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.md,
-            borderRadius: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderWidth: 1,
-            borderColor: colors.darkBorder,
-            shadowColor: colors.black,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 20, marginRight: spacing.sm }}>🎁</Text>
-            <Text
-              style={{
-                color: colors.accent,
-                fontSize: typography.size.base,
-                fontWeight: typography.weight.semibold,
-              }}
-            >
-              Rate dishes, get rewards
-            </Text>
-          </View>
-          <Text style={{ color: colors.accent, fontSize: typography.size.lg }}>→</Text>
-        </TouchableOpacity>
+              paddingVertical: spacing.md,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderWidth: 1,
+              borderColor: colors.darkBorder,
+              shadowColor: colors.black,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 20, marginRight: spacing.sm }}>🎁</Text>
+              <Text
+                style={{
+                  color: colors.accent,
+                  fontSize: typography.size.base,
+                  fontWeight: typography.weight.semibold,
+                }}
+              >
+                Rate dishes, get rewards
+              </Text>
+            </View>
+            <Text style={{ color: colors.accent, fontSize: typography.size.lg }}>→</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>

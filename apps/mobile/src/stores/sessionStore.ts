@@ -252,30 +252,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       };
     });
   },
-      } else {
-        // Update view time
-        updatedRestaurants = [...state.recentRestaurants];
-        updatedRestaurants[existingIndex] = {
-          ...updatedRestaurants[existingIndex],
-          viewedAt: new Date(),
-        };
-      }
-
-      // Also track in generic views
-      const view: SessionView = {
-        entityType: 'restaurant',
-        entityId: restaurant.id,
-        viewedAt: new Date(),
-      };
-
-      return {
-        views: [...state.views, view],
-        recentRestaurants: updatedRestaurants,
-      };
-    });
-
-    get().saveToStorage();
-  },
 
   getRecentRestaurantsForRating: () => {
     const { recentRestaurants } = get();

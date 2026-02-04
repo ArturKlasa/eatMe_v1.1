@@ -166,6 +166,11 @@ export async function saveRestaurantFeedback(
     }
 
     // Save restaurant experience response
+    console.log(
+      '[RatingService] Saving restaurant feedback with questionType:',
+      feedback.questionType
+    );
+
     const { error } = await supabase.from('restaurant_experience_responses').insert({
       user_id: userId,
       restaurant_id: restaurantId,

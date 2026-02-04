@@ -55,20 +55,18 @@ export const DISH_TAG_LABELS: Record<DishTag, string> = {
 // Restaurant experience question types
 export type RestaurantQuestionType =
   | 'service_friendly'
-  | 'cleanliness'
-  | 'wait_time'
-  | 'value_for_money'
+  | 'clean'
+  | 'wait_time_reasonable'
   | 'would_recommend'
-  | 'ambiance';
+  | 'good_value';
 
 // Question display text
 export const RESTAURANT_QUESTIONS: Record<RestaurantQuestionType, string> = {
   service_friendly: 'Was the service friendly?',
-  cleanliness: 'Was the restaurant clean?',
-  wait_time: 'Was the wait time reasonable?',
-  value_for_money: 'Was it good value for money?',
-  would_recommend: 'Would you recommend this place?',
-  ambiance: 'Did you enjoy the atmosphere?',
+  clean: 'Was the restaurant clean?',
+  wait_time_reasonable: 'Was the wait time reasonable?',
+  would_recommend: 'Would you recommend this place to a friend?',
+  good_value: 'Was it good value for money?',
 };
 
 // Session view tracking

@@ -40,6 +40,7 @@ interface RatingFlowModalProps {
     restaurantId: string;
     dishRatings: DishRatingInput[];
     restaurantFeedback: RestaurantFeedbackInput | null;
+    pointsEarned: PointsEarned;
   }) => Promise<void>;
   onSearchRestaurant: () => void; // When user taps "I ate somewhere else"
   onViewRewards: () => void;
@@ -177,6 +178,7 @@ export function RatingFlowModal({
         restaurantId: selectedRestaurant!.id,
         dishRatings,
         restaurantFeedback: feedback,
+        pointsEarned: points,
       });
 
       setStep('complete');
@@ -195,6 +197,7 @@ export function RatingFlowModal({
       restaurantId: selectedRestaurant!.id,
       dishRatings,
       restaurantFeedback: null,
+      pointsEarned: points,
     });
 
     setStep('complete');

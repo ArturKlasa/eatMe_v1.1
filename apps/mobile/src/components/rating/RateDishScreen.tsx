@@ -4,7 +4,7 @@
  * Third step of the rating flow - user rates each selected dish.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -45,6 +45,13 @@ export function RateDishScreen({
   const [opinion, setOpinion] = useState<DishOpinion | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<DishTag>>(new Set());
   const [photoUri, setPhotoUri] = useState<string | undefined>();
+
+  // Reset state when dish changes
+  useEffect(() => {
+    setOpinion(null);
+    setSelectedTags(new Set());
+    setPhotoUri(undefined);
+  }, [dish.id]);
 
   const availableTags =
     opinion === 'liked' ? POSITIVE_DISH_TAGS : opinion === 'disliked' ? NEGATIVE_DISH_TAGS : [];
@@ -146,7 +153,6 @@ export function RateDishScreen({
             <Text style={styles.tagsTitle}>
               {opinion === 'liked' ? 'What made it great?' : 'What could be better?'}
             </Text>
-            <Text style={styles.tagsSubtitle}>(optional)</Text>
             <View style={styles.tagsContainer}>
               {availableTags.map(tag => (
                 <TouchableOpacity
@@ -194,7 +200,7 @@ export function RateDishScreen({
           disabled={!canContinue}
         >
           <Text style={styles.continueButtonText}>
-            {currentIndex < totalDishes - 1 ? 'Next →' : 'Continue →'}
+            {currentIndex < totalDishes - 1 ? 'Next' : 'Continue'}
           </Text>
         </TouchableOpacity>
       </View>

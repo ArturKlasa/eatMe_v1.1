@@ -82,7 +82,17 @@ export const restaurantDetailStyles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.darkSecondary,
     borderRadius: borderRadius.base,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
+  },
+  hoursRatingColumns: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  hoursColumn: {
+    flex: 1,
+  },
+  ratingColumn: {
+    flex: 1,
   },
   hoursMainRow: {
     flexDirection: 'row',
@@ -283,12 +293,14 @@ export const restaurantDetailStyles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: spacing.xs,
   },
+  menuItemNameContainer: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
   menuItemName: {
     fontSize: typography.size.base - 1,
     fontWeight: typography.weight.semibold,
     color: colors.darkText,
-    flex: 1,
-    marginRight: spacing.sm,
   },
   menuItemPrice: {
     fontSize: typography.size.base - 1,

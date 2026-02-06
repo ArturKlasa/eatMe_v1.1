@@ -20,10 +20,15 @@ import type { RootStackScreenProps } from '@/types/navigation';
 import { getRestaurantMenu, type MenuItem } from '../data/mockRestaurantMenus';
 import { supabase } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
+import { spacing } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
+import { DishRatingBadge } from '../components/DishRatingBadge';
+import { getDishRatingsBatch, type DishRating } from '../services/dishRatingService';
+import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
+import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
@@ -42,6 +47,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [selectedDish, setSelectedDish] = useState<any>(null);
   const [dishPhotos, setDishPhotos] = useState<any[]>([]);
+  const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
+  const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
 
   // Fetch restaurant from Supabase
   useEffect(() => {
@@ -73,6 +80,19 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             cuisine: data.cuisine_types?.[0] || 'Restaurant',
             imageUrl: data.image_url,
           });
+
+          // Fetch ratings for all dishes
+          const allDishIds: string[] = [];
+          data.menus?.forEach((menu: any) => {
+            menu.dishes?.forEach((dish: any) => {
+              allDishIds.push(dish.id);
+            });
+          });
+
+          if (allDishIds.length > 0) {
+            const ratings = await getDishRatingsBatch(allDishIds);
+            setDishRatings(ratings);
+          }
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
@@ -99,6 +119,16 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
     checkFavoriteStatus();
   }, [user, restaurantId]);
+
+  // Fetch restaurant rating
+  useEffect(() => {
+    const fetchRestaurantRating = async () => {
+      const rating = await getRestaurantRating(restaurantId);
+      setRestaurantRating(rating);
+    };
+
+    fetchRestaurantRating();
+  }, [restaurantId]);
 
   if (loading) {
     return (
@@ -233,26 +263,39 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const renderMenuItem = (item: any) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.menuItem}
-      onPress={() => handleDishPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.menuItemHeader}>
-        <Text style={styles.menuItemName}>
-          {item.name}
-          {item.dietary_tags?.includes('vegan') && ' 🌱'}
-          {item.dietary_tags?.includes('vegetarian') &&
-            !item.dietary_tags?.includes('vegan') &&
-            ' 🥬'}
-        </Text>
-        <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
-      </View>
-      {item.description && <Text style={styles.menuItemIngredients}>{item.description}</Text>}
-    </TouchableOpacity>
-  );
+  const renderMenuItem = (item: any) => {
+    const rating = dishRatings.get(item.id);
+
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={styles.menuItem}
+        onPress={() => handleDishPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.menuItemHeader}>
+          <View style={styles.menuItemNameContainer}>
+            <Text style={styles.menuItemName}>
+              {item.name}
+              {item.dietary_tags?.includes('vegan') && ' 🌱'}
+              {item.dietary_tags?.includes('vegetarian') &&
+                !item.dietary_tags?.includes('vegan') &&
+                ' 🥬'}
+            </Text>
+            {rating && (
+              <DishRatingBadge
+                likePercentage={rating.likePercentage}
+                totalRatings={rating.totalRatings}
+                topTags={rating.topTags}
+              />
+            )}
+          </View>
+          <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
+        </View>
+        {item.description && <Text style={styles.menuItemIngredients}>{item.description}</Text>}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -274,10 +317,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           {/* Cuisine Type */}
           <Text style={styles.cuisineText}>{restaurant.cuisine}</Text>
 
-          {/* Opening Hours and Payment Row */}
-          <View style={styles.hoursPaymentRow}>
-            {/* Opening Hours - Collapsible */}
-            <View style={styles.hoursContainer}>
+          {/* Opening Hours and Restaurant Rating Side by Side */}
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {/* Opening Hours */}
+            <View style={[styles.hoursContainer, { flex: 1 }]}>
               <TouchableOpacity
                 style={styles.hoursMainRow}
                 onPress={() => setHoursExpanded(!hoursExpanded)}
@@ -334,7 +377,13 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 </View>
               )}
             </View>
+
+            {/* Restaurant Rating Badge */}
+            <RestaurantRatingBadge rating={restaurantRating} showBreakdown={true} />
           </View>
+
+          {/* Payment Row */}
+          <View style={styles.hoursPaymentRow}></View>
         </View>
 
         {/* Three-dots menu button */}

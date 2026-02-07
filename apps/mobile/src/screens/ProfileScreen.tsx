@@ -204,9 +204,17 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
             <Text style={modalScreenStyles.userSubtitle}>{user?.email || 'Guest'}</Text>
 
             {user && (
-              <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-                <Text style={styles.editButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+                  <Text style={styles.editButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.editButton, { marginTop: 8 }]}
+                  onPress={() => navigation.navigate('ViewedHistory')}
+                >
+                  <Text style={styles.editButtonText}>Viewed History</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
 

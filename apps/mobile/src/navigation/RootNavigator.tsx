@@ -8,6 +8,7 @@ import {
   FavoritesScreen,
   ProfileScreen,
   ProfileEditScreen,
+  ViewedHistoryScreen,
   EatTogetherScreen,
   SettingsScreen,
   SwipeScreen,
@@ -108,6 +109,16 @@ function MainNavigator() {
         options={{
           presentation: 'modal',
           headerShown: false,
+        }}
+      />
+      <MainStack.Screen
+        name="ViewedHistory"
+        component={ViewedHistoryScreen}
+        options={{
+          presentation: 'card',
+          headerShown: true,
+          headerTitle: 'Viewed History',
+          headerBackTitle: 'Back',
         }}
       />
       <MainStack.Screen

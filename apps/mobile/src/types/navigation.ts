@@ -23,6 +23,7 @@ export type MainStackParamList = {
   Favorites: undefined;
   Profile: undefined;
   ProfileEdit: undefined;
+  ViewedHistory: undefined;
   EatTogether: undefined;
   CreateSession: undefined;
   JoinSession: undefined;

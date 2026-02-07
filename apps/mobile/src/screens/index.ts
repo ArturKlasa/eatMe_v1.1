@@ -4,6 +4,7 @@ export { FiltersScreen } from './FiltersScreen';
 export { FavoritesScreen } from './FavoritesScreen';
 export { ProfileScreen } from './ProfileScreen';
 export { ProfileEditScreen } from './ProfileEditScreen';
+export { ViewedHistoryScreen } from './ViewedHistoryScreen';
 export { EatTogetherScreen } from './EatTogetherScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { RestaurantDetailScreen } from './RestaurantDetailScreen';

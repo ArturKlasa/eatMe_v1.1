@@ -314,49 +314,43 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             </View>
           </View>
 
+          {/* Restaurant Rating Badges - Right below name */}
+          <RestaurantRatingBadge rating={restaurantRating} showBreakdown={true} />
+
           {/* Cuisine Type */}
           <Text style={styles.cuisineText}>{restaurant.cuisine}</Text>
 
-          {/* Opening Hours and Restaurant Rating Side by Side */}
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            {/* Opening Hours */}
-            <View style={[styles.hoursContainer, { flex: 1 }]}>
-              <TouchableOpacity
-                style={styles.hoursMainRow}
-                onPress={() => setHoursExpanded(!hoursExpanded)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.currentDayInfo}>
-                  {todayHours ? (
-                    <Text style={styles.openBadge}>Open Now</Text>
-                  ) : (
-                    <Text style={styles.closedBadge}>Closed</Text>
-                  )}
-                  {todayHours ? (
-                    <Text style={styles.todayHoursText}>
-                      {todayHours.open} - {todayHours.close}
-                    </Text>
-                  ) : (
-                    <Text style={styles.todayHoursClosed}>Closed</Text>
-                  )}
-                </View>
-                <View style={styles.hoursRightSection}>
-                  <Text style={styles.expandIcon}>{hoursExpanded ? '▼' : '▶'}</Text>
-                </View>
-              </TouchableOpacity>
+          {/* Opening Hours */}
+          <View style={styles.hoursContainer}>
+            <TouchableOpacity
+              style={styles.hoursMainRow}
+              onPress={() => setHoursExpanded(!hoursExpanded)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.currentDayInfo}>
+                {todayHours ? (
+                  <Text style={styles.openBadge}>Open Now</Text>
+                ) : (
+                  <Text style={styles.closedBadge}>Closed</Text>
+                )}
+                {todayHours ? (
+                  <Text style={styles.todayHoursText}>
+                    {todayHours.open} - {todayHours.close}
+                  </Text>
+                ) : (
+                  <Text style={styles.todayHoursClosed}>Closed</Text>
+                )}
+              </View>
+              <View style={styles.hoursRightSection}>
+                <Text style={styles.expandIcon}>{hoursExpanded ? '▼' : '▶'}</Text>
+              </View>
+            </TouchableOpacity>
 
-              {/* Full Week Hours - Collapsible */}
-              {hoursExpanded && (
-                <View style={styles.fullWeekHours}>
-                  {[
-                    'monday',
-                    'tuesday',
-                    'wednesday',
-                    'thursday',
-                    'friday',
-                    'saturday',
-                    'sunday',
-                  ].map(day => {
+            {/* Full Week Hours - Collapsible */}
+            {hoursExpanded && (
+              <View style={styles.fullWeekHours}>
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(
+                  day => {
                     const hours = (restaurant.operating_hours || restaurant.open_hours || {})[day];
                     const isToday = day === getCurrentDayName().toLowerCase();
                     return (
@@ -373,13 +367,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                         )}
                       </View>
                     );
-                  })}
-                </View>
-              )}
-            </View>
-
-            {/* Restaurant Rating Badge */}
-            <RestaurantRatingBadge rating={restaurantRating} showBreakdown={true} />
+                  }
+                )}
+              </View>
+            )}
           </View>
 
           {/* Payment Row */}

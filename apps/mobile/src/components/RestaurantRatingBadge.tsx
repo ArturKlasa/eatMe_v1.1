@@ -1,55 +1,90 @@
 /**
  * Restaurant Rating Badge
  *
- * Displays overall restaurant rating with optional breakdown
+ * Displays overall restaurant rating with colored labels
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, typography, spacing, borderRadius } from '../styles/theme';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors, typography, spacing } from '../styles/theme';
 import { RestaurantRating } from '../services/restaurantRatingService';
 
 interface RestaurantRatingBadgeProps {
   rating: RestaurantRating | null;
   showBreakdown?: boolean;
-  compact?: boolean;
 }
 
 export function RestaurantRatingBadge({
   rating,
   showBreakdown = false,
-  compact = false,
 }: RestaurantRatingBadgeProps) {
-  const [breakdownVisible, setBreakdownVisible] = useState(showBreakdown);
-
   if (!rating || rating.overallPercentage === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.noRating}>No ratings yet</Text>
-      </View>
-    );
+    return null;
   }
 
-  const getQualityLabel = (percentage: number): string => {
-    if (percentage >= 85) return 'Great';
-    if (percentage >= 70) return 'Good';
-    if (percentage >= 50) return 'OK';
-    return 'Poor';
+  const getCategoryLabel = (category: string, score: number): { text: string; color: string } => {
+    const percentage = score * 100;
+
+    switch (category) {
+      case 'Food':
+        if (percentage >= 85) return { text: 'Delicious', color: colors.success };
+        if (percentage >= 70) return { text: 'Tasty', color: '#FFB800' };
+        return { text: 'Mediocre food', color: colors.error };
+
+      case 'Service':
+        if (percentage >= 85) return { text: 'Excellent service', color: colors.success };
+        if (percentage >= 70) return { text: 'Good service', color: '#FFB800' };
+        return { text: 'Poor service', color: colors.error };
+
+      case 'Clean':
+        if (percentage >= 85) return { text: 'Clean', color: colors.success };
+        if (percentage >= 70) return { text: 'Fairly clean', color: '#FFB800' };
+        return { text: 'Not clean', color: colors.error };
+
+      case 'Wait time':
+        if (percentage >= 85) return { text: 'Quick', color: colors.success };
+        if (percentage >= 70) return { text: 'Reasonable wait', color: '#FFB800' };
+        return { text: 'Long wait', color: colors.error };
+
+      case 'Value':
+        if (percentage >= 85) return { text: 'Great value', color: colors.success };
+        if (percentage >= 70) return { text: 'Fair value', color: '#FFB800' };
+        return { text: 'Overpriced', color: colors.error };
+
+      default:
+        return { text: 'OK', color: '#FFB800' };
+    }
   };
 
   return (
-    <View style={[styles.container, compact && styles.containerCompact]}>
-      {/* Header */}
-      <Text style={styles.headerText}>What others think</Text>
-
-      {/* Breakdown */}
+    <View style={styles.container}>
       {showBreakdown && (
         <View style={styles.breakdown}>
-          <BreakdownItem label="Food" score={rating.foodScore} />
-          <BreakdownItem label="Service" score={rating.serviceScore} />
-          <BreakdownItem label="Clean" score={rating.cleanlinessScore} />
-          <BreakdownItem label="Wait time" score={rating.waitTimeScore} />
-          <BreakdownItem label="Value" score={rating.valueScore} />
+          <BreakdownItem
+            score={rating.foodScore}
+            getCategoryLabel={getCategoryLabel}
+            category="Food"
+          />
+          <BreakdownItem
+            score={rating.serviceScore}
+            getCategoryLabel={getCategoryLabel}
+            category="Service"
+          />
+          <BreakdownItem
+            score={rating.cleanlinessScore}
+            getCategoryLabel={getCategoryLabel}
+            category="Clean"
+          />
+          <BreakdownItem
+            score={rating.waitTimeScore}
+            getCategoryLabel={getCategoryLabel}
+            category="Wait time"
+          />
+          <BreakdownItem
+            score={rating.valueScore}
+            getCategoryLabel={getCategoryLabel}
+            category="Value"
+          />
         </View>
       )}
     </View>
@@ -57,95 +92,40 @@ export function RestaurantRatingBadge({
 }
 
 interface BreakdownItemProps {
-  label: string;
+  category: string;
   score: number;
+  getCategoryLabel: (category: string, score: number) => { text: string; color: string };
 }
 
-function BreakdownItem({ label, score }: BreakdownItemProps) {
-  const getQualityLabel = (percentage: number): string => {
-    if (percentage >= 85) return 'Great';
-    if (percentage >= 70) return 'Good';
-    if (percentage >= 50) return 'OK';
-    return 'Poor';
-  };
-
-  const getColor = (s: number) => {
-    if (s >= 85) return colors.success;
-    if (s >= 70) return '#FFB800';
-    if (s >= 50) return '#FF9800';
-    return colors.error;
-  };
-
-  const qualityLabel = getQualityLabel(score);
+function BreakdownItem({ category, score, getCategoryLabel }: BreakdownItemProps) {
+  const { text, color } = getCategoryLabel(category, score);
 
   return (
-    <View style={styles.breakdownItem}>
-      <Text style={styles.breakdownLabel}>{label}:</Text>
-      <Text style={[styles.breakdownScore, { color: getColor(score) }]}>{qualityLabel}</Text>
+    <View style={[styles.button, { backgroundColor: color }]}>
+      <Text style={styles.buttonText}>{text}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.darkSecondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
     alignSelf: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  containerCompact: {
-    padding: spacing.xs,
-  },
-  overallRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  indicator: {
-    fontSize: 16,
-    marginRight: spacing.xs,
-  },
-  percentage: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    marginRight: spacing.xs,
-  },
-  label: {
-    fontSize: typography.size.sm,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  expandIcon: {
-    fontSize: typography.size.xs,
-    color: colors.textTertiary,
-  },
-  noRating: {
-    fontSize: typography.size.sm,
-    color: colors.darkText,
-    fontStyle: 'italic',
-  },
-  headerText: {
-    fontSize: typography.size.sm,
-    color: colors.darkText,
-    fontWeight: typography.weight.semibold,
     marginBottom: spacing.xs,
   },
   breakdown: {
-    marginTop: spacing.xs,
-  },
-  breakdownItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    flexWrap: 'wrap',
+    gap: spacing.xs / 2,
   },
-  breakdownLabel: {
-    fontSize: typography.size.sm,
-    color: colors.darkText,
+  button: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
   },
-  breakdownScore: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-    color: colors.darkText,
+  buttonText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.white,
   },
 });

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Edit, Trash2, Ban, CheckCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface Restaurant {
   id: string;
@@ -83,12 +84,29 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
     if (!doubleCheck) return;
 
     try {
-      // TODO: Implement delete API call with audit logging
-      toast.success('Restaurant deleted');
+      // Delete from database
+      const { error } = await supabase.from('restaurants').delete().eq('id', id);
+
+      if (error) {
+        console.error('Error deleting restaurant:', error);
+        toast.error('Failed to delete restaurant: ' + error.message);
+        return;
+      }
+
+      // Refresh materialized views to update ratings summaries
+      try {
+        await supabase.rpc('refresh_materialized_views');
+      } catch (viewError) {
+        console.warn('Failed to refresh materialized views:', viewError);
+        // Non-fatal, continue anyway
+      }
+
+      toast.success('Restaurant deleted successfully');
 
       // Update local state
       setRestaurants(prev => prev.filter(r => r.id !== id));
     } catch (error) {
+      console.error('Error in handleDelete:', error);
       toast.error('Failed to delete restaurant');
     }
   };

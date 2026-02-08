@@ -2,7 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Store, FileText, Users, Settings, AlertTriangle } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Store,
+  FileText,
+  Users,
+  Settings,
+  AlertTriangle,
+  Leaf,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -24,6 +32,11 @@ const navigation = [
     name: 'Restaurants',
     href: '/admin/restaurants',
     icon: Store,
+  },
+  {
+    name: 'Ingredients',
+    href: '/admin/ingredients',
+    icon: Leaf,
   },
   {
     name: 'Audit Logs',

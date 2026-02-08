@@ -8,7 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useAuthStore } from '../stores/authStore';
+import { pickImage, takePhoto, uploadDishPhoto } from '../services/dishPhotoService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,21 +26,78 @@ interface DishPhoto {
 interface DishPhotoModalProps {
   visible: boolean;
   onClose: () => void;
+  dishId: string;
   dishName: string;
   dishDescription?: string;
   dishPrice: number;
   photos: DishPhoto[];
+  onPhotoAdded?: () => void; // Callback to refresh photos after upload
 }
 
 export function DishPhotoModal({
   visible,
   onClose,
+  dishId,
   dishName,
   dishDescription,
   dishPrice,
   photos,
+  onPhotoAdded,
 }: DishPhotoModalProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const user = useAuthStore(state => state.user);
+
+  const handleAddPhoto = () => {
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to upload photos');
+      return;
+    }
+
+    Alert.alert('Add Photo', 'Choose an option', [
+      {
+        text: 'Take Photo',
+        onPress: handleTakePhoto,
+      },
+      {
+        text: 'Choose from Library',
+        onPress: handlePickImage,
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
+  };
+
+  const handleTakePhoto = async () => {
+    const photoUri = await takePhoto();
+    if (photoUri) {
+      await uploadPhoto(photoUri);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const photoUri = await pickImage();
+    if (photoUri) {
+      await uploadPhoto(photoUri);
+    }
+  };
+
+  const uploadPhoto = async (photoUri: string) => {
+    if (!user) return;
+
+    setUploading(true);
+    const result = await uploadDishPhoto(user.id, dishId, photoUri);
+
+    if (result.success) {
+      Alert.alert('Success', 'Photo uploaded successfully!');
+      onPhotoAdded?.(); // Trigger refresh
+    } else {
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    }
+    setUploading(false);
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -106,6 +167,22 @@ export function DishPhotoModal({
               <Text style={styles.description}>{dishDescription}</Text>
             </View>
           )}
+
+          {/* Add Photo Button */}
+          <TouchableOpacity
+            style={styles.addPhotoButton}
+            onPress={handleAddPhoto}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Text style={styles.addPhotoIcon}>📷</Text>
+                <Text style={styles.addPhotoText}>Add Your Photo</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
           {photos.length > 0 && (
             <Text style={styles.photosFromCommunity}>
@@ -240,6 +317,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     lineHeight: 22,
+  },
+  addPhotoButton: {
+    backgroundColor: '#FF6B35',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  addPhotoIcon: {
+    fontSize: 24,
+  },
+  addPhotoText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   photosFromCommunity: {
     fontSize: 14,

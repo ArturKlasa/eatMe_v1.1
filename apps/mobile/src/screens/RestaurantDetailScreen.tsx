@@ -520,10 +520,17 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             setSelectedDish(null);
             setDishPhotos([]);
           }}
+          dishId={selectedDish.id}
           dishName={selectedDish.name}
           dishDescription={selectedDish.description}
           dishPrice={selectedDish.price}
           photos={dishPhotos}
+          onPhotoAdded={() => {
+            // Refresh photos after upload
+            if (selectedDish) {
+              handleDishPress(selectedDish);
+            }
+          }}
         />
       )}
     </View>

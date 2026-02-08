@@ -21,17 +21,17 @@ export async function uploadPhoto(
   userId: string
 ): Promise<string | null> {
   try {
-    // Convert URI to blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
     // Generate unique filename
-    const fileExt = uri.split('.').pop();
+    const fileExt = uri.split('.').pop() || 'jpeg';
     const fileName = `${type}_${userId}_${Date.now()}.${fileExt}`;
     const filePath = `${type}_photos/${fileName}`;
 
+    // Read file as ArrayBuffer for React Native
+    const response = await fetch(uri);
+    const arrayBuffer = await response.arrayBuffer();
+
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage.from('photos').upload(filePath, blob, {
+    const { data, error } = await supabase.storage.from('photos').upload(filePath, arrayBuffer, {
       contentType: 'image/jpeg',
       upsert: false,
     });

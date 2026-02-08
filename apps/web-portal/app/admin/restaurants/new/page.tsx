@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Loader2, Utensils, MapPin, Clock, X } from 'lucide-react';
@@ -199,6 +199,17 @@ export default function NewRestaurantPage() {
     cuisine.toLowerCase().includes(cuisineSearch.toLowerCase())
   );
 
+  // Memoize LocationPicker to prevent re-renders when other form fields change
+  const memoizedLocationPicker = useMemo(() => {
+    return (
+      <LocationPicker
+        initialLat={mapCoordinates?.lat}
+        initialLng={mapCoordinates?.lng}
+        onLocationSelect={handleLocationSelect}
+      />
+    );
+  }, [mapCoordinates?.lat, mapCoordinates?.lng]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -394,11 +405,7 @@ export default function NewRestaurantPage() {
                 automatically.
               </p>
 
-              <LocationPicker
-                initialLat={mapCoordinates?.lat}
-                initialLng={mapCoordinates?.lng}
-                onLocationSelect={handleLocationSelect}
-              />
+              {memoizedLocationPicker}
             </CardContent>
           </Card>
 

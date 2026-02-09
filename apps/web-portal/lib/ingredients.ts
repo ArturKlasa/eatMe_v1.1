@@ -1,13 +1,18 @@
 import { supabase } from './supabase';
 
 // Types
-export interface Ingredient {
+export interface CanonicalIngredient {
   id: string;
-  name: string;
-  name_variants: string[];
-  category: string;
+  canonical_name: string;
   is_vegetarian: boolean;
   is_vegan: boolean;
+}
+
+export interface IngredientAlias {
+  id: string;
+  display_name: string;
+  canonical_ingredient_id: string;
+  canonical_ingredient?: CanonicalIngredient;
 }
 
 export interface Allergen {
@@ -27,47 +32,60 @@ export interface DietaryTag {
 
 export interface DishIngredient {
   dish_id: string;
-  ingredient_id: string;
+  canonical_ingredient_id: string;
   quantity?: string;
 }
 
 /**
- * Search ingredients by name using full-text search
+ * Search ingredient aliases by display name using full-text search
+ * Returns aliases with their canonical ingredient info
  */
 export async function searchIngredients(query: string, limit = 10) {
   if (!query || query.trim().length === 0) {
     return { data: [], error: null };
   }
 
-  // Use ILIKE for simple prefix matching (works well for autocomplete)
+  // Search ingredient aliases by display name
   const { data, error } = await supabase
-    .from('ingredients_master')
-    .select('id, name, name_variants, category, is_vegetarian, is_vegan')
-    .or(`name.ilike.${query}%,name_variants.cs.{${query}}`)
-    .order('name')
+    .from('ingredient_aliases')
+    .select(
+      `
+      id,
+      display_name,
+      canonical_ingredient_id,
+      canonical_ingredient:canonical_ingredients(
+        id,
+        canonical_name,
+        is_vegetarian,
+        is_vegan
+      )
+    `
+    )
+    .ilike('display_name', `${query}%`)
+    .order('display_name')
     .limit(limit);
 
-  return { data: data as Ingredient[] | null, error };
+  return { data: data as IngredientAlias[] | null, error };
 }
 
 /**
- * Get ingredient details with allergens and dietary tags
+ * Get canonical ingredient details with allergens and dietary tags
  */
-export async function getIngredientDetails(ingredientId: string) {
+export async function getIngredientDetails(canonicalIngredientId: string) {
   const { data, error } = await supabase
-    .from('ingredients_master')
+    .from('canonical_ingredients')
     .select(
       `
       *,
-      allergens:ingredient_allergens(
+      allergens:canonical_ingredient_allergens(
         allergen:allergens(*)
       ),
-      dietary_tags:ingredient_dietary_tags(
+      dietary_tags:canonical_ingredient_dietary_tags(
         dietary_tag:dietary_tags(*)
       )
     `
     )
-    .eq('id', ingredientId)
+    .eq('id', canonicalIngredientId)
     .single();
 
   return { data, error };
@@ -92,15 +110,15 @@ export async function getDietaryTags() {
 }
 
 /**
- * Add ingredients to a dish
+ * Add ingredients to a dish (stores canonical ingredient IDs)
  */
 export async function addDishIngredients(
   dishId: string,
-  ingredients: Array<{ ingredient_id: string; quantity?: string }>
+  ingredients: Array<{ canonical_ingredient_id: string; quantity?: string }>
 ) {
   const dishIngredients = ingredients.map(ing => ({
     dish_id: dishId,
-    ingredient_id: ing.ingredient_id,
+    canonical_ingredient_id: ing.canonical_ingredient_id,
     quantity: ing.quantity || null,
   }));
 
@@ -118,10 +136,11 @@ export async function getDishIngredients(dishId: string) {
     .select(
       `
       quantity,
-      ingredient:ingredients_master(
+      canonical_ingredient:canonical_ingredients(
         id,
-        name,
-        category
+        canonical_name,
+        is_vegetarian,
+        is_vegan
       )
     `
     )
@@ -133,12 +152,12 @@ export async function getDishIngredients(dishId: string) {
 /**
  * Remove ingredient from dish
  */
-export async function removeDishIngredient(dishId: string, ingredientId: string) {
+export async function removeDishIngredient(dishId: string, canonicalIngredientId: string) {
   const { error } = await supabase
     .from('dish_ingredients')
     .delete()
     .eq('dish_id', dishId)
-    .eq('ingredient_id', ingredientId);
+    .eq('canonical_ingredient_id', canonicalIngredientId);
 
   return { error };
 }
@@ -148,14 +167,14 @@ export async function removeDishIngredient(dishId: string, ingredientId: string)
  */
 export async function updateDishIngredientQuantity(
   dishId: string,
-  ingredientId: string,
+  canonicalIngredientId: string,
   quantity: string
 ) {
   const { error } = await supabase
     .from('dish_ingredients')
     .update({ quantity })
     .eq('dish_id', dishId)
-    .eq('ingredient_id', ingredientId);
+    .eq('canonical_ingredient_id', canonicalIngredientId);
 
   return { error };
 }

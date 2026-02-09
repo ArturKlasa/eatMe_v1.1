@@ -18,15 +18,26 @@ import { IngredientAutocomplete } from '@/components/IngredientAutocomplete';
 import { AllergenWarnings } from '@/components/AllergenWarnings';
 import { DietaryTagBadges } from '@/components/DietaryTagBadges';
 import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface DishFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (dish: Dish) => void;
+  restaurantId: string;
+  menuCategoryId: string;
   dish?: Dish | null;
+  onSuccess?: () => void;
 }
 
-export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDialogProps) {
+export function DishFormDialog({
+  isOpen,
+  onClose,
+  restaurantId,
+  menuCategoryId,
+  dish,
+  onSuccess,
+}: DishFormDialogProps) {
   // State for new ingredients system
   const [selectedIngredients, setSelectedIngredients] = useState<
     (Ingredient & { quantity?: string })[]
@@ -43,7 +54,7 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
     reset,
   } = useForm<DishFormData>({
     resolver: zodResolver(dishSchema),
-    defaultValues: dish || {
+    defaultValues: {
       name: '',
       price: 0,
       calories: undefined,
@@ -56,29 +67,81 @@ export function DishFormDialog({ isOpen, onClose, onSubmit, dish }: DishFormDial
     },
   });
 
+  // Reset form when dish changes (for edit mode)
+  useEffect(() => {
+    if (dish && isOpen) {
+      reset({
+        name: dish.name || '',
+        price: dish.price || 0,
+        calories: dish.calories || undefined,
+        dietary_tags: dish.dietary_tags || [],
+        allergens: dish.allergens || [],
+        ingredients: dish.ingredients || [],
+        spice_level: dish.spice_level || 0,
+        photo_url: dish.photo_url || '',
+        is_available: dish.is_available !== false,
+      });
+      // TODO: Also populate selectedIngredients if we have ingredient data
+    } else if (!dish && isOpen) {
+      // Reset to empty form when adding new dish
+      reset({
+        name: '',
+        price: 0,
+        calories: undefined,
+        dietary_tags: [],
+        allergens: [],
+        ingredients: [],
+        spice_level: 0,
+        photo_url: '',
+        is_available: true,
+      });
+      setSelectedIngredients([]);
+    }
+  }, [dish, isOpen, reset]);
+
   // Use useWatch instead of watch for better React Compiler compatibility
   const dietaryTags = useWatch({ control, name: 'dietary_tags', defaultValue: [] }) || [];
   const allergens = useWatch({ control, name: 'allergens', defaultValue: [] }) || [];
   const ingredients = useWatch({ control, name: 'ingredients', defaultValue: [] }) || [];
   const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 0 });
 
-  const handleFormSubmit = (data: DishFormData) => {
-    // Pass selected ingredients along with the dish data
-    onSubmit({
-      ...data,
-      id: dish?.id,
-      // Convert NaN to undefined for optional number fields
-      calories: isNaN(data.calories as number) ? undefined : data.calories,
-      // Include selected ingredients for parent to save
-      selectedIngredients,
-    } as any); // Type assertion needed because selectedIngredients not in original Dish type
-    reset();
-    setSelectedIngredients([]);
-    setSelectedIngredients([]);
-    setCalculatedAllergens([]);
-    setCalculatedDietaryTags([]);
-    setCalculatedAllergens([]);
-    setCalculatedDietaryTags([]);
+  const handleFormSubmit = async (data: DishFormData) => {
+    try {
+      const dishData = {
+        restaurant_id: restaurantId,
+        menu_category_id: menuCategoryId,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        is_available: true,
+        display_order: 0,
+        image_url: data.image_url,
+      };
+
+      if (dish?.id) {
+        // Update existing dish
+        const { error } = await supabase.from('dishes').update(dishData).eq('id', dish.id);
+
+        if (error) throw error;
+        toast.success('Dish updated successfully');
+      } else {
+        // Create new dish
+        const { error } = await supabase.from('dishes').insert(dishData);
+
+        if (error) throw error;
+        toast.success('Dish added successfully');
+      }
+
+      reset();
+      setSelectedIngredients([]);
+      setCalculatedAllergens([]);
+      setCalculatedDietaryTags([]);
+      onSuccess?.();
+      onClose();
+    } catch (error: any) {
+      console.error('[DishForm] Error saving dish:', error);
+      toast.error('Failed to save dish: ' + error.message);
+    }
   };
 
   const handleClose = () => {

@@ -84,23 +84,6 @@ export function IngredientAutocomplete({
     onIngredientsChange(selectedIngredients.filter(ing => ing.id !== ingredientId));
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      vegetable: 'bg-green-100 text-green-800',
-      fruit: 'bg-orange-100 text-orange-800',
-      protein: 'bg-red-100 text-red-800',
-      grain: 'bg-yellow-100 text-yellow-800',
-      dairy: 'bg-blue-100 text-blue-800',
-      spice: 'bg-purple-100 text-purple-800',
-      herb: 'bg-emerald-100 text-emerald-800',
-      condiment: 'bg-amber-100 text-amber-800',
-      oil: 'bg-lime-100 text-lime-800',
-      sweetener: 'bg-pink-100 text-pink-800',
-      beverage: 'bg-cyan-100 text-cyan-800',
-    };
-    return colors[category] || 'bg-gray-100 text-gray-800';
-  };
-
   return (
     <div className="space-y-4">
       {/* Search Input */}
@@ -133,19 +116,25 @@ export function IngredientAutocomplete({
                 className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between group"
               >
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">{ingredient.name}</div>
-                  {ingredient.name_variants.length > 0 && (
+                  <div className="font-medium text-gray-900">{ingredient.display_name}</div>
+                  {ingredient.canonical_name && (
                     <div className="text-xs text-gray-500">
-                      Also: {ingredient.name_variants.slice(0, 2).join(', ')}
+                      Canonical: {ingredient.canonical_name}
                     </div>
                   )}
                 </div>
-                <Badge
-                  className={`ml-2 ${getCategoryColor(ingredient.category)}`}
-                  variant="secondary"
-                >
-                  {ingredient.category}
-                </Badge>
+                <div className="flex gap-1">
+                  {ingredient.is_vegetarian && (
+                    <Badge variant="secondary" className="text-xs">
+                      🥬 Veg
+                    </Badge>
+                  )}
+                  {ingredient.is_vegan && (
+                    <Badge variant="secondary" className="text-xs bg-green-100">
+                      🌱 Vegan
+                    </Badge>
+                  )}
+                </div>
               </button>
             ))}
           </div>
@@ -166,13 +155,17 @@ export function IngredientAutocomplete({
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{ingredient.name}</span>
-                    <Badge
-                      className={`${getCategoryColor(ingredient.category)} text-xs`}
-                      variant="secondary"
-                    >
-                      {ingredient.category}
-                    </Badge>
+                    <span className="font-medium text-gray-900">{ingredient.display_name}</span>
+                    {ingredient.is_vegetarian && (
+                      <Badge variant="secondary" className="text-xs">
+                        🥬
+                      </Badge>
+                    )}
+                    {ingredient.is_vegan && (
+                      <Badge variant="secondary" className="text-xs bg-green-100">
+                        🌱
+                      </Badge>
+                    )}
                     {ingredient.is_vegan && <span className="text-xs">🌱</span>}
                     {ingredient.is_vegetarian && !ingredient.is_vegan && (
                       <span className="text-xs">🥗</span>

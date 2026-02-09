@@ -75,6 +75,86 @@ export interface Restaurant extends RestaurantInsert {
   updated_at: string;
 }
 
+/**
+ * Menu (meal period/occasion) - e.g., Breakfast, Lunch, Dinner, Christmas
+ */
+export interface Menu {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  description?: string;
+  display_order: number;
+  is_active: boolean;
+  available_start_time?: string;
+  available_end_time?: string;
+  available_days?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MenuInsert {
+  restaurant_id: string;
+  name: string;
+  description?: string;
+  display_order?: number;
+  is_active?: boolean;
+  available_start_time?: string;
+  available_end_time?: string;
+  available_days?: string[];
+}
+
+/**
+ * Menu Category - e.g., Appetizers, Entrees, Soups, Drinks
+ */
+export interface MenuCategory {
+  id: string;
+  restaurant_id: string;
+  menu_id: string;
+  name: string;
+  type?: string;
+  display_order: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MenuCategoryInsert {
+  restaurant_id: string;
+  menu_id: string;
+  name: string;
+  type?: string;
+  display_order?: number;
+  description?: string;
+}
+
+/**
+ * Dish
+ */
+export interface Dish {
+  id: string;
+  restaurant_id: string;
+  menu_category_id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image_url?: string;
+  is_available: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DishInsert {
+  restaurant_id: string;
+  menu_category_id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image_url?: string;
+  is_available?: boolean;
+  display_order?: number;
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================

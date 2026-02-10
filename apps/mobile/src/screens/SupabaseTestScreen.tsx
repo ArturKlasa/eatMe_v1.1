@@ -55,7 +55,16 @@ export function SupabaseTestScreen() {
             <Text style={styles.restaurantCuisines}>{item.cuisine_types.join(', ')}</Text>
             <Text style={styles.menuCount}>
               {item.menus?.length || 0} menus •
-              {item.menus?.reduce((sum, menu) => sum + (menu.dishes?.length || 0), 0) || 0} dishes
+              {item.menus?.reduce(
+                (sum, menu) =>
+                  sum +
+                  (menu.menu_categories?.reduce(
+                    (catSum, cat) => catSum + (cat.dishes?.length || 0),
+                    0
+                  ) || 0),
+                0
+              ) || 0}{' '}
+              dishes
             </Text>
           </View>
         )}

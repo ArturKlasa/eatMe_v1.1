@@ -59,6 +59,22 @@ export interface Menu {
   description: string | null;
   is_active: boolean;
   display_order: number;
+  available_start_time?: string | null;
+  available_end_time?: string | null;
+  available_days?: string[] | null;
+  created_at: string;
+  updated_at: string;
+  menu_categories?: MenuCategory[];
+}
+
+export interface MenuCategory {
+  id: string;
+  restaurant_id: string;
+  menu_id: string;
+  name: string;
+  type?: string | null;
+  description?: string | null;
+  display_order: number;
   created_at: string;
   updated_at: string;
   dishes?: Dish[];
@@ -67,7 +83,7 @@ export interface Menu {
 export interface Dish {
   id: string;
   restaurant_id: string;
-  menu_id: string;
+  menu_category_id: string;
   name: string;
   description: string | null;
   price: number;
@@ -87,10 +103,10 @@ export interface Dish {
 // ============================================================================
 
 export interface DishWithRelations extends Dish {
-  menu: Menu;
+  menu_category: MenuCategory;
   restaurant: Restaurant;
 }
 
 export interface RestaurantWithMenus extends Restaurant {
-  menus: Array<Menu & { dishes: Dish[] }>;
+  menus: Array<Menu & { menu_categories: Array<MenuCategory & { dishes: Dish[] }> }>;
 }

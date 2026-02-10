@@ -31,7 +31,7 @@ export function useDish(dishId: string | null): UseDishResult {
         .select(
           `
           *,
-          menu:menus (*),
+          menu_category:menu_categories (*),
           restaurant:restaurants (*)
         `
         )

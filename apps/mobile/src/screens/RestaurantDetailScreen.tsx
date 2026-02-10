@@ -61,7 +61,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             *,
             menus (
               *,
-              dishes (*)
+              menu_categories (
+                *,
+                dishes (*)
+              )
             )
           `
           )
@@ -84,8 +87,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           // Fetch ratings for all dishes
           const allDishIds: string[] = [];
           data.menus?.forEach((menu: any) => {
-            menu.dishes?.forEach((dish: any) => {
-              allDishIds.push(dish.id);
+            menu.menu_categories?.forEach((category: any) => {
+              category.dishes?.forEach((dish: any) => {
+                allDishIds.push(dish.id);
+              });
             });
           });
 
@@ -394,9 +399,15 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
       >
         {restaurant.menus?.map((menu: any) => (
-          <View key={menu.id} style={styles.menuCategory}>
-            <Text style={styles.categoryName}>{menu.name}</Text>
-            {menu.dishes?.map(renderMenuItem)}
+          <View key={menu.id} style={styles.menuSection}>
+            <Text style={styles.menuName}>{menu.name}</Text>
+            {menu.description && <Text style={styles.menuDescription}>{menu.description}</Text>}
+            {menu.menu_categories?.map((category: any) => (
+              <View key={category.id} style={styles.menuCategory}>
+                <Text style={styles.categoryName}>{category.name}</Text>
+                {category.dishes?.map(renderMenuItem)}
+              </View>
+            ))}
           </View>
         ))}
         {(!restaurant.menus || restaurant.menus.length === 0) && (

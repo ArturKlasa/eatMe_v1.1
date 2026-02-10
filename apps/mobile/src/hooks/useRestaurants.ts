@@ -36,7 +36,10 @@ export function useRestaurants(options: UseRestaurantsOptions = {}): UseRestaura
           *,
           menus (
             *,
-            dishes (*)
+            menu_categories (
+              *,
+              dishes (*)
+            )
           )
         `
         )

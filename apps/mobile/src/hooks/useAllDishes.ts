@@ -35,7 +35,7 @@ export function useAllDishes(options: UseAllDishesOptions = {}): UseAllDishesRes
         .select(
           `
           *,
-          menu:menus (*),
+          menu_category:menu_categories (*),
           restaurant:restaurants (*)
         `
         )

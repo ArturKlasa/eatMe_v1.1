@@ -494,11 +494,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
   const getRestaurantDishes = async (restaurantId: string) => {
     try {
-      // Fetch dishes through the menus table
+      // Fetch dishes through the menu_categories table
       const { data, error } = await supabase
         .from('dishes')
-        .select('*, menus!inner(restaurant_id)')
-        .eq('menus.restaurant_id', restaurantId);
+        .select('*, menu_categories!inner(restaurant_id)')
+        .eq('menu_categories.restaurant_id', restaurantId);
 
       if (error) throw error;
 

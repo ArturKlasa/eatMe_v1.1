@@ -269,6 +269,23 @@ export const restaurantDetailStyles = StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xl,
   },
+  menuSection: {
+    paddingBottom: spacing.lg,
+  },
+  menuName: {
+    fontSize: typography.size['2xl'],
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  menuDescription: {
+    fontSize: typography.size.sm,
+    color: colors.darkTextMuted,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
   menuCategory: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,

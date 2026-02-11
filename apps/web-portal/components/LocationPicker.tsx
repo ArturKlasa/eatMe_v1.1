@@ -15,6 +15,13 @@ export default function LocationPicker({
   initialLng,
   onLocationSelect,
 }: LocationPickerProps) {
+  console.log(
+    '[LocationPicker] Component render - initialLat:',
+    initialLat,
+    'initialLng:',
+    initialLng
+  );
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(
@@ -22,6 +29,14 @@ export default function LocationPicker({
   );
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+
+  // Component mount/unmount logging
+  useEffect(() => {
+    console.log('[LocationPicker] Component MOUNTED');
+    return () => {
+      console.log('[LocationPicker] Component UNMOUNTING');
+    };
+  }, []);
 
   // Get user's current location
   useEffect(() => {
@@ -85,6 +100,12 @@ export default function LocationPicker({
 
       // Handle map clicks
       map.on('click', (e: L.LeafletMouseEvent) => {
+        // Prevent any default/propagation that could submit the parent form
+        if (e.originalEvent) {
+          e.originalEvent.preventDefault();
+          e.originalEvent.stopPropagation();
+        }
+
         const { lat, lng } = e.latlng;
 
         // Update or create marker
@@ -111,7 +132,8 @@ export default function LocationPicker({
         markerRef.current = null;
       }
     };
-  }, [userLocation, selectedLocation, onLocationSelect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation]); // Removed selectedLocation to prevent map recreation on every click
 
   return (
     <div className="space-y-3">

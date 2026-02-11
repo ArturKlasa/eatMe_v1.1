@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import dynamic from 'next/dynamic';
@@ -168,52 +168,125 @@ function BasicInfoPageContent() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
-    defaultValues: {
-      name: '',
-      restaurant_type: 'restaurant',
-      description: '',
-      country: 'US',
-      address: '',
-      location_lat: '',
-      location_lng: '',
-      phone: '',
-      website: '',
-      delivery_available: true,
-      takeout_available: true,
-      dine_in_available: true,
-      service_speed: 'regular',
-      accepts_reservations: false,
+    defaultValues: async () => {
+      // If we're on the server or no user, return defaults
+      if (typeof window === 'undefined' || !user?.id) {
+        return {
+          name: '',
+          restaurant_type: 'restaurant',
+          description: '',
+          country: 'US',
+          address: '',
+          location_lat: '',
+          location_lng: '',
+          phone: '',
+          website: '',
+          delivery_available: true,
+          takeout_available: true,
+          dine_in_available: true,
+          service_speed: 'regular',
+          accepts_reservations: false,
+        };
+      }
+
+      // Load saved data directly into defaultValues
+      const savedData = loadRestaurantData(user.id);
+      console.log('[BasicInfo] Initializing defaultValues from storage:', savedData);
+
+      if (savedData) {
+        return {
+          name: savedData.basicInfo?.name || '',
+          restaurant_type: savedData.basicInfo?.restaurant_type || 'restaurant',
+          description: savedData.basicInfo?.description || '',
+          country: savedData.basicInfo?.country || 'US',
+          address: savedData.basicInfo?.address || '',
+          location_lat: savedData.basicInfo?.location?.lat?.toString() || '',
+          location_lng: savedData.basicInfo?.location?.lng?.toString() || '',
+          phone: savedData.basicInfo?.phone || '',
+          website: savedData.basicInfo?.website || '',
+          delivery_available: savedData.operations?.delivery_available ?? true,
+          takeout_available: savedData.operations?.takeout_available ?? true,
+          dine_in_available: savedData.operations?.dine_in_available ?? true,
+          service_speed: savedData.operations?.service_speed || 'regular',
+          accepts_reservations: savedData.operations?.accepts_reservations ?? false,
+        };
+      }
+
+      return {
+        name: '',
+        restaurant_type: 'restaurant',
+        description: '',
+        country: 'US',
+        address: '',
+        location_lat: '',
+        location_lng: '',
+        phone: '',
+        website: '',
+        delivery_available: true,
+        takeout_available: true,
+        dine_in_available: true,
+        service_speed: 'regular',
+        accepts_reservations: false,
+      };
     },
   });
 
-  // Load saved data
+  // Auto-save draft to localStorage on any form change
   useEffect(() => {
-    if (!user?.id) return;
+    const subscription = watch(currentValues => {
+      if (!user?.id) return;
 
-    const savedData = loadRestaurantData(user.id);
-    if (savedData) {
-      if (savedData.basicInfo) {
-        setValue('name', savedData.basicInfo.name || '');
-        setValue('restaurant_type', savedData.basicInfo.restaurant_type || 'restaurant');
-        setValue('description', savedData.basicInfo.description || '');
-        setValue('country', savedData.basicInfo.country || 'US');
-        setValue('address', savedData.basicInfo.address || '');
-        setValue('location_lat', savedData.basicInfo.location?.lat?.toString() || '');
-        setValue('location_lng', savedData.basicInfo.location?.lng?.toString() || '');
-        setValue('phone', savedData.basicInfo.phone || '');
-        setValue('website', savedData.basicInfo.website || '');
-      }
-      if (savedData.operations) {
-        setValue('delivery_available', savedData.operations.delivery_available ?? true);
-        setValue('takeout_available', savedData.operations.takeout_available ?? true);
-        setValue('dine_in_available', savedData.operations.dine_in_available ?? true);
-        setValue('service_speed', savedData.operations.service_speed || 'regular');
-        setValue('accepts_reservations', savedData.operations.accepts_reservations ?? false);
-      }
-    }
-  }, [user?.id, setValue]);
+      const savedData = loadRestaurantData(user.id);
+      const basicInfo: Partial<RestaurantBasicInfo> = {
+        name: currentValues.name,
+        restaurant_type: currentValues.restaurant_type as RestaurantType,
+        description: currentValues.description || undefined,
+        country: currentValues.country,
+        address: currentValues.address,
+        location: {
+          lat: parseFloat(currentValues.location_lat) || 0,
+          lng: parseFloat(currentValues.location_lng) || 0,
+        },
+        phone: currentValues.phone || undefined,
+        website: currentValues.website || undefined,
+        cuisines: selectedCuisines,
+      };
+
+      const operating_hours: Record<string, { open: string; close: string }> = {};
+      Object.entries(operatingHours).forEach(([day, hours]) => {
+        if (!hours.closed) {
+          operating_hours[day] = { open: hours.open, close: hours.close };
+        }
+      });
+
+      const operations: Partial<RestaurantOperations> = {
+        operating_hours,
+        delivery_available: currentValues.delivery_available,
+        takeout_available: currentValues.takeout_available,
+        dine_in_available: currentValues.dine_in_available,
+        service_speed: currentValues.service_speed,
+        accepts_reservations: currentValues.accepts_reservations,
+      };
+
+      const updatedData: FormProgress = {
+        basicInfo,
+        operations,
+        menus: savedData?.menus || [],
+        dishes: savedData?.dishes || [],
+        currentStep: savedData?.currentStep ?? 1,
+      };
+
+      saveRestaurantData(user.id, updatedData);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, user?.id, selectedCuisines, operatingHours]);
+
+  // Remove the useEffect that sets values, as we're now using async defaultValues
+  // Only use useEffect to sync external state that's NOT in the form
 
   const handleCuisineToggle = (cuisine: string) => {
     setSelectedCuisines(prev =>
@@ -245,14 +318,26 @@ function BasicInfoPageContent() {
     }));
   };
 
-  const handleLocationSelect = (lat: number, lng: number) => {
-    setValue('location_lat', lat.toString());
-    setValue('location_lng', lng.toString());
-    setMapCoordinates({ lat, lng });
-    toast.success('Location marked on map!');
-  };
+  const handleLocationSelect = useCallback(
+    (lat: number, lng: number) => {
+      console.log('[BasicInfo] ========== handleLocationSelect called ==========');
+      console.log('[BasicInfo] New coordinates:', { lat, lng });
+      console.log('[BasicInfo] Form values BEFORE update:', form.getValues());
+
+      // Simply update the form values
+      setValue('location_lat', lat.toString());
+      setValue('location_lng', lng.toString());
+
+      console.log('[BasicInfo] Form values AFTER update:', form.getValues());
+      console.log('[BasicInfo] ============================================');
+      toast.success('Location marked on map!');
+    },
+    [form, setValue]
+  );
 
   const onSubmit = (data: FormData) => {
+    console.log('[BasicInfo] onSubmit fired');
+    console.log('[BasicInfo] onSubmit data snapshot:', data);
     // Validate required fields
     if (!data.name || !data.address) {
       toast.error('Please fill in all required fields');

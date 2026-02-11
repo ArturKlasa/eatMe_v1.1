@@ -114,7 +114,6 @@ export function DishFormDialog({
         description: data.description,
         price: data.price,
         is_available: true,
-        display_order: 0,
         image_url: data.image_url,
       };
 

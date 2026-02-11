@@ -110,11 +110,12 @@ export default function NewRestaurantPage() {
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
-    setFormData({
-      ...formData,
+    // Use functional update to avoid stale closures and preserve existing fields
+    setFormData(prev => ({
+      ...prev,
       latitude: lat.toString(),
       longitude: lng.toString(),
-    });
+    }));
     setMapCoordinates({ lat, lng });
     toast.success('Location marked on map!');
   };
@@ -198,17 +199,6 @@ export default function NewRestaurantPage() {
   const filteredCuisines = CUISINES.filter(cuisine =>
     cuisine.toLowerCase().includes(cuisineSearch.toLowerCase())
   );
-
-  // Memoize LocationPicker to prevent re-renders when other form fields change
-  const memoizedLocationPicker = useMemo(() => {
-    return (
-      <LocationPicker
-        initialLat={mapCoordinates?.lat}
-        initialLng={mapCoordinates?.lng}
-        onLocationSelect={handleLocationSelect}
-      />
-    );
-  }, [mapCoordinates?.lat, mapCoordinates?.lng]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-6">
@@ -405,7 +395,11 @@ export default function NewRestaurantPage() {
                 automatically.
               </p>
 
-              {memoizedLocationPicker}
+              <LocationPicker
+                initialLat={mapCoordinates?.lat}
+                initialLng={mapCoordinates?.lng}
+                onLocationSelect={handleLocationSelect}
+              />
             </CardContent>
           </Card>
 

@@ -5,15 +5,8 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  Image,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { RecentlyViewedRestaurant } from '../../types/rating';
 

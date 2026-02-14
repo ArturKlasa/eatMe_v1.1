@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { PointsEarned, DishRatingInput, RestaurantFeedbackInput } from '../../types/rating';
 

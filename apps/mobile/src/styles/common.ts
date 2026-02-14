@@ -1003,18 +1003,34 @@ export const modals = StyleSheet.create({
 
   priceSliderTrack: {
     height: 6,
-    backgroundColor: colors.border,
+    backgroundColor: '#E0E0E0', // Grey background
     borderRadius: 3,
     position: 'relative',
   } as ViewStyle,
 
-  priceSliderThumb: {
-    width: 20,
-    height: 20,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
+  priceSliderActiveRange: {
+    height: 6,
+    backgroundColor: '#FF9800', // Orange active range
+    borderRadius: 3,
     position: 'absolute',
-    top: -7,
+    top: 0,
+  } as ViewStyle,
+
+  priceSliderThumb: {
+    width: 24,
+    height: 24,
+    backgroundColor: '#FF9800', // Orange thumb
+    borderRadius: 12,
+    position: 'absolute',
+    top: -9,
+    marginLeft: -12, // Center the thumb
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   } as ViewStyle,
 
   // View mode toggle container

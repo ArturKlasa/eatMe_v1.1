@@ -334,16 +334,14 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             >
               <View style={styles.currentDayInfo}>
                 {todayHours ? (
-                  <Text style={styles.openBadge}>Open Now</Text>
+                  <>
+                    <Text style={styles.openBadge}>Open Now</Text>
+                    <Text style={styles.todayHoursText}>
+                      {todayHours.open} - {todayHours.close}
+                    </Text>
+                  </>
                 ) : (
                   <Text style={styles.closedBadge}>Closed</Text>
-                )}
-                {todayHours ? (
-                  <Text style={styles.todayHoursText}>
-                    {todayHours.open} - {todayHours.close}
-                  </Text>
-                ) : (
-                  <Text style={styles.todayHoursClosed}>Closed</Text>
                 )}
               </View>
               <View style={styles.hoursRightSection}>

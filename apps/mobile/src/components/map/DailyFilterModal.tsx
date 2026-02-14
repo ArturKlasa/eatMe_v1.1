@@ -42,6 +42,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   } = useFilterStore();
 
   const [mealModalVisible, setMealModalVisible] = React.useState(false);
+  const [cuisineModalVisible, setCuisineModalVisible] = React.useState(false);
 
   // Helper function to check if protein options should be disabled
   const isProteinDisabled = (proteinKey: string) => {
@@ -114,10 +115,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               <View style={modals.priceSliderContainer}>
                 <View style={modals.priceSliderLabels}>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    ${daily.priceRange.min}
+                    {daily.priceRange.min === 10 ? '≤$10' : `$${daily.priceRange.min}`}
                   </Text>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    ${daily.priceRange.max}
+                    {daily.priceRange.max === 50 ? '≥$50' : `$${daily.priceRange.max}`}
                   </Text>
                 </View>
                 <DualRangeSlider
@@ -136,8 +137,8 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                 🥗 Meat, fish, veggies?
               </Text>
 
-              {/* Diet Type Tabs */}
-              <View style={modals.tabContainer}>
+              {/* Diet Type Tabs - COMMENTED OUT */}
+              {/* <View style={modals.tabContainer}>
                 {[
                   { key: 'all', label: 'All' },
                   { key: 'vegetarian', label: 'Vegetarian' },
@@ -159,7 +160,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </View> */}
 
               {/* Protein Options */}
               <View style={modals.multiOptionContainer}>
@@ -169,21 +170,38 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     { key: 'fish', label: '🐟 Fish' },
                     { key: 'seafood', label: '🦐 Seafood' },
                     { key: 'egg', label: '🥚 Egg' },
+                    { key: 'vegetarian', label: '🥗 Vegetarian' },
+                    { key: 'vegan', label: '🌱 Vegan' },
                   ].map(protein => {
                     const disabled = isProteinDisabled(protein.key);
+                    const isSelected =
+                      protein.key === 'vegetarian'
+                        ? daily.dietPreference === 'vegetarian'
+                        : protein.key === 'vegan'
+                          ? daily.dietPreference === 'vegan'
+                          : daily.proteinTypes[protein.key as keyof typeof daily.proteinTypes];
+
                     return (
                       <TouchableOpacity
                         key={protein.key}
                         style={[
                           modals.option,
-                          daily.proteinTypes[protein.key as keyof typeof daily.proteinTypes] &&
-                            !disabled &&
-                            modals.selectedOption,
+                          isSelected && !disabled && modals.selectedOption,
                           disabled && { opacity: 0.4 },
                         ]}
                         onPress={() => {
                           if (!disabled) {
-                            toggleProteinType(protein.key as any);
+                            if (protein.key === 'vegetarian') {
+                              setDietPreference('vegetarian');
+                            } else if (protein.key === 'vegan') {
+                              setDietPreference('vegan');
+                            } else {
+                              toggleProteinType(protein.key as any);
+                              // Reset to 'all' if selecting meat/fish/seafood
+                              if (daily.dietPreference !== 'all') {
+                                setDietPreference('all');
+                              }
+                            }
                           }
                         }}
                         disabled={disabled}
@@ -192,9 +210,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                           style={[
                             modals.optionText,
                             modals.darkOptionText,
-                            daily.proteinTypes[protein.key as keyof typeof daily.proteinTypes] &&
-                              !disabled &&
-                              modals.selectedText,
+                            isSelected && !disabled && modals.selectedText,
                             disabled && modals.disabledOptionText,
                           ]}
                         >
@@ -211,40 +227,31 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             <View style={modals.section}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>🍽️ Cuisine</Text>
               <View style={modals.cuisineGrid}>
-                {[
-                  'Italian',
-                  'Asian',
-                  'Mexican',
-                  'American',
-                  'Indian',
-                  'Mediterranean',
-                  'French',
-                ].map(cuisine => (
-                  <TouchableOpacity
-                    key={cuisine}
-                    style={[
-                      modals.cuisineOption,
-                      daily.cuisineTypes.includes(cuisine) && modals.selectedOption,
-                    ]}
-                    onPress={() => toggleDailyCuisine(cuisine)}
-                  >
-                    <Text
+                {['Mexican', 'Italian', 'Chinese', 'Japanese', 'American', 'Indian', 'Thai'].map(
+                  cuisine => (
+                    <TouchableOpacity
+                      key={cuisine}
                       style={[
-                        modals.cuisineText,
-                        modals.darkCuisineText,
-                        daily.cuisineTypes.includes(cuisine) && modals.selectedText,
+                        modals.cuisineOption,
+                        daily.cuisineTypes.includes(cuisine) && modals.selectedOption,
                       ]}
+                      onPress={() => toggleDailyCuisine(cuisine)}
                     >
-                      {cuisine}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          modals.cuisineText,
+                          modals.darkCuisineText,
+                          daily.cuisineTypes.includes(cuisine) && modals.selectedText,
+                        ]}
+                      >
+                        {cuisine}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
                 <TouchableOpacity
                   style={modals.cuisineOption}
-                  onPress={() => {
-                    // TODO: Open wider cuisine selection modal
-                    Alert.alert('More Cuisines', 'Feature coming soon!');
-                  }}
+                  onPress={() => setCuisineModalVisible(true)}
                 >
                   <Text style={[modals.cuisineText, modals.darkCuisineText]}>Other</Text>
                 </TouchableOpacity>
@@ -361,6 +368,14 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
         onClose={() => setMealModalVisible(false)}
         selectedMeals={daily.meals}
         onToggleMeal={toggleDailyMeal}
+      />
+
+      {/* Cuisine Selection Modal */}
+      <CuisineSelectionModal
+        visible={cuisineModalVisible}
+        onClose={() => setCuisineModalVisible(false)}
+        selectedCuisines={daily.cuisineTypes}
+        onToggleCuisine={toggleDailyCuisine}
       />
     </Modal>
   );
@@ -497,6 +512,143 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
 };
 
 /**
+ * Cuisine Selection Modal Component
+ *
+ * A modal for selecting cuisines beyond the popular options
+ */
+interface CuisineSelectionModalProps {
+  visible: boolean;
+  onClose: () => void;
+  selectedCuisines: string[];
+  onToggleCuisine: (cuisine: string) => void;
+}
+
+// All available cuisines
+const ALL_CUISINES = [
+  'Afghan',
+  'African',
+  'American',
+  'Argentine',
+  'Asian',
+  'BBQ',
+  'Bakery',
+  'Brazilian',
+  'British',
+  'Café',
+  'Cajun',
+  'Caribbean',
+  'Chinese',
+  'Colombian',
+  'Comfort Food',
+  'Cuban',
+  'Deli',
+  'Ethiopian',
+  'Fast Food',
+  'Filipino',
+  'Fine Dining',
+  'French',
+  'Fusion',
+  'German',
+  'Greek',
+  'Halal',
+  'Hawaiian',
+  'Healthy',
+  'Indian',
+  'Indonesian',
+  'International',
+  'Irish',
+  'Italian',
+  'Jamaican',
+  'Japanese',
+  'Korean',
+  'Kosher',
+  'Latin American',
+  'Lebanese',
+  'Malaysian',
+  'Mediterranean',
+  'Mexican',
+  'Middle Eastern',
+  'Moroccan',
+  'Nepalese',
+  'Pakistani',
+  'Peruvian',
+  'Pizza',
+  'Polish',
+  'Portuguese',
+  'Russian',
+  'Salad',
+  'Sandwiches',
+  'Seafood',
+  'Soul Food',
+  'Southern',
+  'Spanish',
+  'Steakhouse',
+  'Sushi',
+  'Tapas',
+  'Thai',
+  'Turkish',
+  'Vegan',
+  'Vegetarian',
+  'Vietnamese',
+  'Other',
+];
+
+const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
+  visible,
+  onClose,
+  selectedCuisines,
+  onToggleCuisine,
+}) => {
+  return (
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+      <View style={modals.overlay}>
+        <View style={[modals.container, modals.darkContainer, { maxHeight: '80%' }]}>
+          <View style={modals.header}>
+            <Text style={[modals.title, modals.darkTitle]}>🍽️ Select Cuisines</Text>
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: '#FF9800',
+              }}
+              onPress={onClose}
+            >
+              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={modals.content} showsVerticalScrollIndicator={true}>
+            <View style={modals.cuisineGrid}>
+              {ALL_CUISINES.map(cuisine => (
+                <TouchableOpacity
+                  key={cuisine}
+                  style={[
+                    modals.cuisineOption,
+                    selectedCuisines.includes(cuisine) && modals.selectedOption,
+                  ]}
+                  onPress={() => onToggleCuisine(cuisine)}
+                >
+                  <Text
+                    style={[
+                      modals.cuisineText,
+                      modals.darkCuisineText,
+                      selectedCuisines.includes(cuisine) && modals.selectedText,
+                    ]}
+                  >
+                    {cuisine}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+/**
  * Dual Range Slider Component
  *
  * A custom dual-thumb slider for selecting price ranges
@@ -555,9 +707,25 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
         ]}
       />
       {/* Min thumb */}
-      <View style={[modals.priceSliderThumb, { left: `${minPosition}%` }]} />
+      <View
+        style={[
+          modals.priceSliderThumb,
+          {
+            left: `${minPosition}%`,
+            zIndex: activeThumb === 'min' ? 10 : 5,
+          },
+        ]}
+      />
       {/* Max thumb */}
-      <View style={[modals.priceSliderThumb, { left: `${maxPosition}%` }]} />
+      <View
+        style={[
+          modals.priceSliderThumb,
+          {
+            left: `${maxPosition}%`,
+            zIndex: activeThumb === 'max' ? 10 : 5,
+          },
+        ]}
+      />
     </TouchableOpacity>
   );
 };

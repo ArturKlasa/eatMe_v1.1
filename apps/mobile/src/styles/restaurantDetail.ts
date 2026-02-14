@@ -97,6 +97,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   hoursMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.md,
   },
   hoursRightSection: {

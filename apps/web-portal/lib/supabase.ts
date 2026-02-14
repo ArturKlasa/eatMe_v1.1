@@ -60,6 +60,10 @@ export interface RestaurantInsert {
   accepts_reservations?: boolean;
   service_speed?: 'fast-food' | 'regular';
 
+  // Currency support for internationalization
+  primary_currency?: string;
+  secondary_currency?: string;
+
   // Future fields
   description?: string;
   image_url?: string;

@@ -23,6 +23,8 @@ import {
 import { useFilterStore } from '../../stores/filterStore';
 import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
+import { useTranslation } from 'react-i18next';
+import { formatCurrency } from '../../utils/i18nUtils';
 
 interface DailyFilterModalProps {
   visible: boolean;
@@ -30,6 +32,7 @@ interface DailyFilterModalProps {
 }
 
 export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onClose }) => {
+  const { t } = useTranslation();
   const {
     daily,
     setDailyPriceRange,
@@ -74,7 +77,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
             ]}
           >
-            <Text style={[modals.title, modals.darkTitle]}>🎯 Daily Filters</Text>
+            <Text style={[modals.title, modals.darkTitle]}>{t('filters.dailyFilters')}</Text>
             <TouchableOpacity
               style={{
                 paddingHorizontal: 16,
@@ -93,7 +96,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   fontWeight: '600',
                 }}
               >
-                Apply
+                {t('common.apply')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -110,15 +113,19 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             {/* 1. Price Range Section - Dual Slider */}
             <View style={[modals.section, { marginTop: -20 }]}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
-                💰 How much would you like to spend?
+                💰 {t('filters.priceRange')}
               </Text>
               <View style={modals.priceSliderContainer}>
                 <View style={modals.priceSliderLabels}>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    {daily.priceRange.min === 10 ? '≤$10' : `$${daily.priceRange.min}`}
+                    {daily.priceRange.min === 10
+                      ? `≤${formatCurrency(10)}`
+                      : formatCurrency(daily.priceRange.min)}
                   </Text>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    {daily.priceRange.max === 50 ? '≥$50' : `$${daily.priceRange.max}`}
+                    {daily.priceRange.max === 50
+                      ? `≥${formatCurrency(50)}`
+                      : formatCurrency(daily.priceRange.max)}
                   </Text>
                 </View>
                 <DualRangeSlider
@@ -134,7 +141,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             {/* 2. Diet Preference Section */}
             <View style={modals.section}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
-                🥗 Meat, fish, veggies?
+                🥗 {t('filters.dietPreferences')}
               </Text>
 
               {/* Diet Type Tabs - COMMENTED OUT */}
@@ -166,12 +173,12 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               <View style={modals.multiOptionContainer}>
                 <View style={modals.optionsRow}>
                   {[
-                    { key: 'meat', label: '🥩 Meat' },
-                    { key: 'fish', label: '🐟 Fish' },
-                    { key: 'seafood', label: '🦐 Seafood' },
-                    { key: 'egg', label: '🥚 Egg' },
-                    { key: 'vegetarian', label: '🥗 Vegetarian' },
-                    { key: 'vegan', label: '🌱 Vegan' },
+                    { key: 'meat', label: t('filters.proteinTypes.meat') },
+                    { key: 'fish', label: t('filters.proteinTypes.fish') },
+                    { key: 'seafood', label: t('filters.proteinTypes.seafood') },
+                    { key: 'egg', label: t('filters.proteinTypes.egg') },
+                    { key: 'vegetarian', label: t('filters.proteinTypes.vegetarian') },
+                    { key: 'vegan', label: t('filters.proteinTypes.vegan') },
                   ].map(protein => {
                     const disabled = isProteinDisabled(protein.key);
                     const isSelected =
@@ -225,7 +232,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
 
             {/* 3. Cuisine Section */}
             <View style={modals.section}>
-              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>🍽️ Cuisine</Text>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
+                🍽️ {t('filters.cuisine')}
+              </Text>
               <View style={modals.cuisineGrid}>
                 {['Mexican', 'Italian', 'Chinese', 'Japanese', 'American', 'Indian', 'Thai'].map(
                   cuisine => (
@@ -244,7 +253,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                           daily.cuisineTypes.includes(cuisine) && modals.selectedText,
                         ]}
                       >
-                        {cuisine}
+                        {t(`filters.cuisines.${cuisine.toLowerCase()}`)}
                       </Text>
                     </TouchableOpacity>
                   )
@@ -253,14 +262,18 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   style={modals.cuisineOption}
                   onPress={() => setCuisineModalVisible(true)}
                 >
-                  <Text style={[modals.cuisineText, modals.darkCuisineText]}>Other</Text>
+                  <Text style={[modals.cuisineText, modals.darkCuisineText]}>
+                    {t('common.other')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* 3.5. Meal Section */}
             <View style={modals.section}>
-              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>🍔 Meal</Text>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
+                🍔 {t('filters.meal')}
+              </Text>
               <View style={modals.cuisineGrid}>
                 {[
                   'Tacos',
@@ -290,7 +303,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                         daily.meals.includes(meal) && modals.selectedText,
                       ]}
                     >
-                      {meal}
+                      {t(`filters.meals.${meal.toLowerCase().replace(/\s+/g, '')}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -298,7 +311,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   style={modals.cuisineOption}
                   onPress={() => setMealModalVisible(true)}
                 >
-                  <Text style={[modals.cuisineText, modals.darkCuisineText]}>Other</Text>
+                  <Text style={[modals.cuisineText, modals.darkCuisineText]}>
+                    {t('common.other')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -462,12 +477,13 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
   selectedMeals,
   onToggleMeal,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={modals.overlay}>
         <View style={[modals.container, modals.darkContainer, { maxHeight: '80%' }]}>
           <View style={modals.header}>
-            <Text style={[modals.title, modals.darkTitle]}>🍔 Select Meals</Text>
+            <Text style={[modals.title, modals.darkTitle]}>🍔 {t('filters.selectMeals')}</Text>
             <TouchableOpacity
               style={{
                 paddingHorizontal: 16,
@@ -477,7 +493,9 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
               }}
               onPress={onClose}
             >
-              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>Done</Text>
+              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>
+                {t('common.done')}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -499,7 +517,7 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
                       selectedMeals.includes(meal) && modals.selectedText,
                     ]}
                   >
-                    {meal}
+                    {t(`filters.meals.${meal.toLowerCase().replace(/\s+/g, '')}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -599,12 +617,13 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
   selectedCuisines,
   onToggleCuisine,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={modals.overlay}>
         <View style={[modals.container, modals.darkContainer, { maxHeight: '80%' }]}>
           <View style={modals.header}>
-            <Text style={[modals.title, modals.darkTitle]}>🍽️ Select Cuisines</Text>
+            <Text style={[modals.title, modals.darkTitle]}>🍽️ {t('filters.selectCuisines')}</Text>
             <TouchableOpacity
               style={{
                 paddingHorizontal: 16,
@@ -614,7 +633,9 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
               }}
               onPress={onClose}
             >
-              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>Done</Text>
+              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>
+                {t('common.done')}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -636,7 +657,7 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
                       selectedCuisines.includes(cuisine) && modals.selectedText,
                     ]}
                   >
-                    {cuisine}
+                    {t(`filters.cuisines.${cuisine.toLowerCase().replace(/\s+/g, '')}`)}
                   </Text>
                 </TouchableOpacity>
               ))}

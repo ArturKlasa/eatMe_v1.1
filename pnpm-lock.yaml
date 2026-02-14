@@ -90,6 +90,9 @@ importers:
       expo-image-picker:
         specifier: ~17.0.10
         version: 17.0.10(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))
+      expo-localization:
+        specifier: ^17.0.8
+        version: 17.0.8(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react@19.1.0)
       expo-location:
         specifier: ^19.0.7
         version: 19.0.8(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))
@@ -99,15 +102,24 @@ importers:
       expo-status-bar:
         specifier: ~3.0.8
         version: 3.0.9(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      i18next:
+        specifier: ^25.8.7
+        version: 25.8.7(typescript@5.9.2)
       react:
         specifier: 19.1.0
         version: 19.1.0
+      react-i18next:
+        specifier: ^16.5.4
+        version: 16.5.4(i18next@25.8.7(typescript@5.9.2))(react-dom@19.2.0(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.2)
       react-native:
         specifier: 0.81.4
         version: 0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0)
       react-native-gesture-handler:
         specifier: ^2.28.0
         version: 2.30.0(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react-native-localize:
+        specifier: ^3.6.1
+        version: 3.6.1(@expo/config-plugins@54.0.4)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-qrcode-svg:
         specifier: ^6.3.11
         version: 6.3.21(react-native-svg@15.15.1(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -3522,6 +3534,12 @@ packages:
       expo: '*'
       react: '*'
 
+  expo-localization@17.0.8:
+    resolution: {integrity: sha512-UrdwklZBDJ+t+ZszMMiE0SXZ2eJxcquCuQcl6EvGHM9K+e6YqKVRQ+w8qE+iIB3H75v2RJy6MHAaLK+Mqeo04g==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+
   expo-location@19.0.8:
     resolution: {integrity: sha512-H/FI75VuJ1coodJbbMu82pf+Zjess8X8Xkiv9Bv58ZgPKS/2ztjC1YO1/XMcGz7+s9DrbLuMIw22dFuP4HqneA==}
     peerDependencies:
@@ -3861,6 +3879,9 @@ packages:
     resolution: {integrity: sha512-puUZAUKT5m8Zzvs72XWy3HtvVbTWljRE66cP60bxJzAqf2DgICo7lYTY2IHUmLnNpjYvw5bvmoHvPc0QO2a62w==}
     engines: {node: ^16.14.0 || >=18.0.0}
 
+  html-parse-stringify@3.0.1:
+    resolution: {integrity: sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==}
+
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
@@ -3872,6 +3893,14 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  i18next@25.8.7:
+    resolution: {integrity: sha512-ttxxc5+67S/0hhoeVdEgc1lRklZhdfcUSEPp1//uUG2NB88X3667gRsDar+ZWQFdysnOsnb32bcoMsa4mtzhkQ==}
+    peerDependencies:
+      typescript: ^5
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   iceberg-js@0.8.1:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
@@ -5016,6 +5045,22 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
+  react-i18next@16.5.4:
+    resolution: {integrity: sha512-6yj+dcfMncEC21QPhOTsW8mOSO+pzFmT6uvU7XXdvM/Cp38zJkmTeMeKmTrmCMD5ToT79FmiE/mRWiYWcJYW4g==}
+    peerDependencies:
+      i18next: '>= 25.6.2'
+      react: '>= 16.8.0'
+      react-dom: '*'
+      react-native: '*'
+      typescript: ^5
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      typescript:
+        optional: true
+
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -5057,6 +5102,19 @@ packages:
     peerDependencies:
       react: '*'
       react-native: '*'
+
+  react-native-localize@3.6.1:
+    resolution: {integrity: sha512-0kVFUh8TWeh+8p13yVIDjbcdxR2ZOfPBFNcY/VBh/3/g8KfvXywY/XJkCuCVrX5dCLumMi3aXmy+MmJNy4IaYQ==}
+    peerDependencies:
+      '@expo/config-plugins': '*'
+      react: '*'
+      react-native: '*'
+      react-native-macos: '*'
+    peerDependenciesMeta:
+      '@expo/config-plugins':
+        optional: true
+      react-native-macos:
+        optional: true
 
   react-native-qrcode-svg@6.3.21:
     resolution: {integrity: sha512-6vcj4rcdpWedvphDR+NSJcudJykNuLgNGFwm2p4xYjR8RdyTzlrELKI5LkO4ANS9cQUbqsfkpippPv64Q2tUtA==}
@@ -5264,6 +5322,9 @@ packages:
 
   robust-predicates@2.0.4:
     resolution: {integrity: sha512-l4NwboJM74Ilm4VKfbAtFeGq7aEjWL+5kVFcmgFA2MrdnQWx9iE/tUGvxY5HyMI7o/WpSIUFLbC5fbeaHgSCYg==}
+
+  rtl-detect@1.1.2:
+    resolution: {integrity: sha512-PGMBq03+TTG/p/cRB7HCLKJ1MgDIi07+QU1faSjiYRfmY5UsAttV9Hs08jDAHVwcOwmVLcSJkpwyfXszVjWfIQ==}
 
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
@@ -5867,6 +5928,10 @@ packages:
 
   vlq@1.0.1:
     resolution: {integrity: sha512-gQpnTgkubC6hQgdIcRdYGDSDc+SaujOdyesZQMv6JlfQee/9Mp0Qhnys6WxDWvQnL5WZdT7o2Ul187aSt0Rq+w==}
+
+  void-elements@3.1.0:
+    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
+    engines: {node: '>=0.10.0'}
 
   walker@1.0.8:
     resolution: {integrity: sha512-ts/8E8l5b7kY0vlWLewOkDXMmPdLcVV4GmOQLyxuSswIJsweeFZtAsMF7k1Nszz+TYBQrlYRmzOnr398y1JemQ==}
@@ -9832,6 +9897,12 @@ snapshots:
       expo: 54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react: 19.1.0
 
+  expo-localization@17.0.8(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react@19.1.0):
+    dependencies:
+      expo: 54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      rtl-detect: 1.1.2
+
   expo-location@19.0.8(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)):
     dependencies:
       expo: 54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -10185,6 +10256,10 @@ snapshots:
     dependencies:
       lru-cache: 10.4.3
 
+  html-parse-stringify@3.0.1:
+    dependencies:
+      void-elements: 3.1.0
+
   http-errors@2.0.1:
     dependencies:
       depd: 2.0.0
@@ -10201,6 +10276,12 @@ snapshots:
       - supports-color
 
   human-signals@2.1.0: {}
+
+  i18next@25.8.7(typescript@5.9.2):
+    dependencies:
+      '@babel/runtime': 7.28.6
+    optionalDependencies:
+      typescript: 5.9.2
 
   iceberg-js@0.8.1: {}
 
@@ -11440,6 +11521,18 @@ snapshots:
     dependencies:
       react: 19.2.0
 
+  react-i18next@16.5.4(i18next@25.8.7(typescript@5.9.2))(react-dom@19.2.0(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.2):
+    dependencies:
+      '@babel/runtime': 7.28.6
+      html-parse-stringify: 3.0.1
+      i18next: 25.8.7(typescript@5.9.2)
+      react: 19.1.0
+      use-sync-external-store: 1.6.0(react@19.1.0)
+    optionalDependencies:
+      react-dom: 19.2.0(react@19.1.0)
+      react-native: 0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0)
+      typescript: 5.9.2
+
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
@@ -11476,6 +11569,13 @@ snapshots:
     dependencies:
       react: 19.1.0
       react-native: 0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0)
+
+  react-native-localize@3.6.1(@expo/config-plugins@54.0.4)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-native: 0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0)
+    optionalDependencies:
+      '@expo/config-plugins': 54.0.4
 
   react-native-qrcode-svg@6.3.21(react-native-svg@15.15.1(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
@@ -11736,6 +11836,8 @@ snapshots:
       glob: 7.2.3
 
   robust-predicates@2.0.4: {}
+
+  rtl-detect@1.1.2: {}
 
   run-parallel@1.2.0:
     dependencies:
@@ -12399,6 +12501,8 @@ snapshots:
   vary@1.1.2: {}
 
   vlq@1.0.1: {}
+
+  void-elements@3.1.0: {}
 
   walker@1.0.8:
     dependencies:

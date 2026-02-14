@@ -23,6 +23,8 @@ import { restaurantDetailStyles as styles } from '@/styles';
 import { spacing } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
+import { useTranslation } from 'react-i18next';
+import { formatTime, formatOpeningHours, getCurrentDayName } from '../utils/i18nUtils';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
 import { DishRatingBadge } from '../components/DishRatingBadge';
@@ -33,6 +35,7 @@ import { getRestaurantRating, type RestaurantRating } from '../services/restaura
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
 export function RestaurantDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { restaurantId } = route.params;
   const user = useAuthStore(state => state.user);
   const trackRestaurantView = useSessionStore(state => state.trackRestaurantView);
@@ -335,13 +338,13 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               <View style={styles.currentDayInfo}>
                 {todayHours ? (
                   <>
-                    <Text style={styles.openBadge}>Open Now</Text>
+                    <Text style={styles.openBadge}>{t('restaurant.openNow')}</Text>
                     <Text style={styles.todayHoursText}>
-                      {todayHours.open} - {todayHours.close}
+                      {formatOpeningHours(todayHours.open, todayHours.close)}
                     </Text>
                   </>
                 ) : (
-                  <Text style={styles.closedBadge}>Closed</Text>
+                  <Text style={styles.closedBadge}>{t('restaurant.closed')}</Text>
                 )}
               </View>
               <View style={styles.hoursRightSection}>
@@ -359,14 +362,14 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                     return (
                       <View key={day} style={styles.weekDayRow}>
                         <Text style={[styles.weekDayName, isToday && styles.weekDayNameToday]}>
-                          {day.charAt(0).toUpperCase() + day.slice(1)}
+                          {t(`time.${day}`)}
                         </Text>
                         {hours ? (
                           <Text style={styles.weekDayHours}>
-                            {hours.open} - {hours.close}
+                            {formatOpeningHours(hours.open, hours.close)}
                           </Text>
                         ) : (
-                          <Text style={styles.weekDayHoursClosed}>Closed</Text>
+                          <Text style={styles.weekDayHoursClosed}>{t('restaurant.closed')}</Text>
                         )}
                       </View>
                     );

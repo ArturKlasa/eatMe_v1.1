@@ -6,6 +6,8 @@ import Mapbox from '@rnmapbox/maps';
 import { RootNavigator } from './src/navigation';
 import { ENV } from './src/config/environment';
 import { useSessionStore } from './src/stores/sessionStore';
+import './src/i18n'; // Initialize i18n
+import { initializeSettings } from './src/stores/settingsStore';
 import 'react-native-gesture-handler'; // Required for React Navigation
 
 /**
@@ -23,6 +25,11 @@ export default function App(): React.JSX.Element {
   // Initialize Mapbox once at app level
   useEffect(() => {
     Mapbox.setAccessToken(ENV.mapbox.accessToken);
+  }, []);
+
+  // Initialize settings
+  useEffect(() => {
+    initializeSettings();
   }, []);
 
   // Session management

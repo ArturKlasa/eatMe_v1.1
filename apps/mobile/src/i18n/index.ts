@@ -23,7 +23,8 @@ const getLanguageFromStorage = async (): Promise<string | null> => {
     if (settingsStore.language) {
       return settingsStore.language;
     }
-    // Fallback to AsyncStorage    return await AsyncStorage.getItem('userLanguage');
+    // Fallback to AsyncStorage
+    return await AsyncStorage.getItem('userLanguage');
   } catch {
     return null;
   }
@@ -53,43 +54,42 @@ const resources = {
   pl: { translation: pl },
 };
 
-const initI18n = async () => {
-  // Get saved language preference
-  const savedLanguage = await getLanguageFromStorage();
-  const deviceLanguage = getDeviceLanguage();
+// Initialize i18n synchronously with default language
+i18n.use(initReactI18next).init({
+  resources,
+  lng: 'en', // Start with English, will be updated async
+  fallbackLng: 'en',
 
-  // Priority: saved > device > default
-  const initialLanguage = savedLanguage || deviceLanguage;
+  interpolation: {
+    escapeValue: false, // React already escapes values
+  },
 
-  i18n.use(initReactI18next).init({
-    resources,
-    lng: initialLanguage,
-    fallbackLng: 'en',
+  react: {
+    useSuspense: false,
+  },
+});
 
-    // Language detection
-    detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
-      caches: ['localStorage'],
-    },
+// Async function to load saved language and update
+const loadSavedLanguage = async () => {
+  try {
+    const savedLanguage = await getLanguageFromStorage();
+    const deviceLanguage = getDeviceLanguage();
+    const initialLanguage = savedLanguage || deviceLanguage;
 
-    interpolation: {
-      escapeValue: false, // React already escapes values
-    },
-
-    // React options
-    react: {
-      useSuspense: false,
-    },
-  });
-
-  return i18n;
+    // Only change if needed to avoid unnecessary re-renders
+    if (initialLanguage && i18n.language !== initialLanguage) {
+      await i18n.changeLanguage(initialLanguage);
+    }
+  } catch (error) {
+    console.error('Failed to load saved language:', error);
+  }
 };
 
-// Initialize i18n
-const i18nInstance = initI18n();
+// Load language preference asynchronously
+loadSavedLanguage();
 
 // Export for use in components
-export default i18nInstance;
+export default i18n;
 
 // Export language utilities
 export const changeLanguage = async (language: 'en' | 'es' | 'pl') => {

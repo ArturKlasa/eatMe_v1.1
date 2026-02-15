@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Alert, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
 import { useNavigation } from '@react-navigation/native';
@@ -305,7 +305,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return filtered.slice(0, 8);
   }, [dishes, daily.dietPreference, permanent.dietPreference, permanent.allergies]);
 
-  // Add debugging
+  // Debug logging
   console.log('=== SUPABASE DATA DEBUG ===');
   console.log('Raw DB restaurants:', dbRestaurants.length);
   console.log('First restaurant raw:', dbRestaurants[0]);
@@ -333,51 +333,63 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   } = useUserLocation();
 
   // Load nearby restaurants when location is available and filters change
-  useEffect(() => {
-    const loadNearbyData = async () => {
-      if (hasPermission && !locationLoading && userLocation) {
-        debugLog('Loading nearby restaurants with geospatial search...');
-        try {
-          await loadNearbyRestaurantsFromCurrentLocation(
-            getLocationWithPermission,
-            5, // 5km radius
-            daily,
-            permanent
-          );
-          debugLog('Nearby restaurants loaded successfully');
-        } catch (error) {
-          console.error('[BasicMapScreen] Failed to load nearby restaurants:', error);
-        }
+  // DISABLED: Edge function is failing, causing excessive re-renders and errors
+  // TODO: Fix edge function deployment and re-enable
+  /*
+  const loadNearbyDataStable = useCallback(async () => {
+    if (hasPermission && !locationLoading && userLocation) {
+      debugLog('Loading nearby restaurants with geospatial search...');
+      try {
+        await loadNearbyRestaurantsFromCurrentLocation(
+          getLocationWithPermission,
+          5, // 5km radius
+          daily,
+          permanent
+        );
+        debugLog('Nearby restaurants loaded successfully');
+      } catch (error) {
+        console.error('[BasicMapScreen] Failed to load nearby restaurants:', error);
       }
-    };
+    }
+  }, [hasPermission, locationLoading, userLocation, loadNearbyRestaurantsFromCurrentLocation, getLocationWithPermission, daily, permanent]);
 
-    loadNearbyData();
-  }, [hasPermission, userLocation, daily, permanent, locationLoading]);
+  useEffect(() => {
+    // Debounce filter changes to prevent rapid re-fetching
+    const timeoutId = setTimeout(() => {
+      loadNearbyDataStable();
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [loadNearbyDataStable]);
+  */
 
   // Auto-center map on user location when map is ready and location is available
   useEffect(() => {
-    const autoCenterOnLocation = async () => {
-      if (isMapReady && !hasAutocentered && hasPermission && cameraRef.current) {
-        debugLog('Auto-centering map on user location...');
+    if (!isMapReady || hasAutocentered || !hasPermission || !cameraRef.current) {
+      return;
+    }
 
-        const location = await getLocationWithPermission();
-        if (location) {
-          cameraRef.current.setCamera({
-            centerCoordinate: [location.longitude, location.latitude],
-            zoomLevel: 14,
-            animationDuration: 2000,
-          });
-          debugLog(
-            'Map auto-centered on user location:',
-            `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
-          );
-          setHasAutocentered(true);
-        }
+    const autoCenterOnLocation = async () => {
+      debugLog('Auto-centering map on user location...');
+
+      const location = await getLocationWithPermission();
+      if (location && cameraRef.current) {
+        cameraRef.current.setCamera({
+          centerCoordinate: [location.longitude, location.latitude],
+          zoomLevel: 14,
+          animationDuration: 2000,
+        });
+        debugLog(
+          'Map auto-centered on user location:',
+          `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+        );
+        setHasAutocentered(true);
       }
     };
 
     autoCenterOnLocation();
-  }, [isMapReady, hasPermission, hasAutocentered, getLocationWithPermission]);
+    // Only depend on state flags, not the function itself
+  }, [isMapReady, hasPermission, hasAutocentered]);
 
   // Handler functions
   const handleMarkerPress = (restaurant: Restaurant) => {

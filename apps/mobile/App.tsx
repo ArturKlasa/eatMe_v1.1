@@ -32,25 +32,25 @@ export default function App(): React.JSX.Element {
     initializeSettings();
   }, []);
 
-  // Session management
+  // Session management - disabled to prevent excessive re-renders
+  // TODO: Re-enable with proper debouncing
   useEffect(() => {
-    const startSession = useSessionStore.getState().startSession;
-    const endSession = useSessionStore.getState().endSession;
     const loadFromStorage = useSessionStore.getState().loadFromStorage;
+    const startSession = useSessionStore.getState().startSession;
 
     // Load previous session data
     loadFromStorage();
 
-    // Start new session when app opens
+    // Start initial session
     startSession();
 
-    // Listen for app state changes
+    // Disabled: AppState listener causes too many re-renders
+    // TODO: Add debouncing or rate limiting before re-enabling
+    /*
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // End session when app goes to background
         endSession();
       } else if (nextAppState === 'active') {
-        // Start new session when app becomes active
         startSession();
       }
     });
@@ -59,6 +59,7 @@ export default function App(): React.JSX.Element {
       subscription.remove();
       endSession();
     };
+    */
   }, []);
 
   return (

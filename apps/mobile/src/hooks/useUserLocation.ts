@@ -93,7 +93,6 @@ export const useUserLocation = () => {
           'Using cached location:',
           `${state.cachedLocation.latitude.toFixed(4)}, ${state.cachedLocation.longitude.toFixed(4)}`
         );
-        setState(prev => ({ ...prev, location: prev.cachedLocation, error: null }));
         return state.cachedLocation;
       }
 

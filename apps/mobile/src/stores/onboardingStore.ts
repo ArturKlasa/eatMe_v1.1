@@ -131,8 +131,10 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
     // Save to Supabase
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error('No authenticated user');
       }
@@ -151,11 +153,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         preferences_updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('user_preferences')
-        .upsert(preferencesData, {
-          onConflict: 'user_id',
-        });
+      const { error } = await supabase.from('user_preferences').upsert(preferencesData, {
+        onConflict: 'user_id',
+      });
 
       if (error) throw error;
 
@@ -223,16 +223,14 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
           isCompleted: data.onboarding_completed || false,
           profileCompletion: data.profile_completion_percentage || 0,
           profilePoints: data.profile_points || 0,
-          lastPromptShown: data.last_prompt_shown_at 
-            ? new Date(data.last_prompt_shown_at) 
-            : null,
+          lastPromptShown: data.last_prompt_shown_at ? new Date(data.last_prompt_shown_at) : null,
         });
 
         console.log('[Onboarding] Preferences loaded from Supabase');
       }
     } catch (error) {
       console.error('[Onboarding] Failed to load from Supabase:', error);
-      
+
       // Fallback to AsyncStorage
       try {
         const data = await AsyncStorage.getItem(STORAGE_KEY);
@@ -274,11 +272,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         preferences_updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('user_preferences')
-        .upsert(preferencesData, {
-          onConflict: 'user_id',
-        });
+      const { error } = await supabase.from('user_preferences').upsert(preferencesData, {
+        onConflict: 'user_id',
+      });
 
       if (error) throw error;
 
@@ -360,7 +356,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   dismissPrompt: () => {
     set({ lastPromptShown: new Date() });
-    
+
     // Save timestamp to Supabase
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -377,7 +373,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   recordPromptShown: () => {
     set({ lastPromptShown: new Date() });
-    
+
     // Save timestamp to Supabase
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {

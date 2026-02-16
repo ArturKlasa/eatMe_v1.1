@@ -130,9 +130,7 @@ export function CreateSessionScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{t('eatTogether.createSessionTitle')}</Text>
-        <Text style={styles.subtitle}>
-          {t('eatTogether.createSessionSubtitle')}
-        </Text>
+        <Text style={styles.subtitle}>{t('eatTogether.createSessionSubtitle')}</Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('eatTogether.locationMode')}</Text>
@@ -176,9 +174,7 @@ export function CreateSessionScreen() {
             </View>
             <View style={styles.optionContent}>
               <Text style={styles.optionTitle}>{t('eatTogether.maxReach')}</Text>
-              <Text style={styles.optionDescription}>
-                {t('eatTogether.maxReachDescription')}
-              </Text>
+              <Text style={styles.optionDescription}>{t('eatTogether.maxReachDescription')}</Text>
             </View>
           </TouchableOpacity>
         </View>

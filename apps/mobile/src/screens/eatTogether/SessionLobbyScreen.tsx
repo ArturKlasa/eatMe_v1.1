@@ -143,10 +143,7 @@ export function SessionLobbyScreen() {
       if (data && data.recommendations.length > 0) {
         navigation.navigate('Recommendations' as any, { sessionId });
       } else {
-        Alert.alert(
-          t('sessionLobby.noRestaurants'),
-          t('sessionLobby.noRestaurantsMessage')
-        );
+        Alert.alert(t('sessionLobby.noRestaurants'), t('sessionLobby.noRestaurantsMessage'));
       }
     } catch (error) {
       console.error('[SessionLobby] Error generating recommendations:', error);
@@ -161,9 +158,7 @@ export function SessionLobbyScreen() {
 
     Alert.alert(
       isHost ? t('sessionLobby.closeTitle') : t('sessionLobby.leaveTitle'),
-      isHost
-        ? t('sessionLobby.closeMessage')
-        : t('sessionLobby.leaveMessage'),
+      isHost ? t('sessionLobby.closeMessage') : t('sessionLobby.leaveMessage'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -214,7 +209,9 @@ export function SessionLobbyScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{t('sessionLobby.title')}</Text>
-          <Text style={styles.sessionCode}>{t('sessionLobby.code', { code: session.session_code })}</Text>
+          <Text style={styles.sessionCode}>
+            {t('sessionLobby.code', { code: session.session_code })}
+          </Text>
         </View>
         {isHost && (
           <TouchableOpacity onPress={handleLeaveSession} style={styles.closeButton}>
@@ -227,7 +224,10 @@ export function SessionLobbyScreen() {
         {/* Members Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {t('sessionLobby.membersCount', { count: activeMembers.length, withLocation: membersWithLocation.length })}
+            {t('sessionLobby.membersCount', {
+              count: activeMembers.length,
+              withLocation: membersWithLocation.length,
+            })}
           </Text>
           <View style={styles.membersList}>
             {activeMembers.map(member => (
@@ -243,7 +243,9 @@ export function SessionLobbyScreen() {
                     {member.is_host && ` ${t('sessionLobby.host')}`}
                   </Text>
                   <Text style={styles.memberStatus}>
-                    {member.current_location ? t('sessionLobby.locationShared') : t('sessionLobby.waitingLocation')}
+                    {member.current_location
+                      ? t('sessionLobby.locationShared')
+                      : t('sessionLobby.waitingLocation')}
                   </Text>
                 </View>
               </View>
@@ -257,9 +259,21 @@ export function SessionLobbyScreen() {
             <Text style={styles.sectionTitle}>{t('sessionLobby.locationCalculation')}</Text>
             <View style={styles.locationModes}>
               {[
-                { key: 'host_location', label: t('eatTogether.myLocation'), desc: t('sessionLobby.hostLocation') },
-                { key: 'midpoint', label: t('eatTogether.midpoint'), desc: t('sessionLobby.midpoint') },
-                { key: 'max_radius', label: t('eatTogether.maxReach'), desc: t('sessionLobby.maxRadius', { radius: 5 }) },
+                {
+                  key: 'host_location',
+                  label: t('eatTogether.myLocation'),
+                  desc: t('sessionLobby.hostLocation'),
+                },
+                {
+                  key: 'midpoint',
+                  label: t('eatTogether.midpoint'),
+                  desc: t('sessionLobby.midpoint'),
+                },
+                {
+                  key: 'max_radius',
+                  label: t('eatTogether.maxReach'),
+                  desc: t('sessionLobby.maxRadius', { radius: 5 }),
+                },
               ].map(mode => (
                 <TouchableOpacity
                   key={mode.key}
@@ -285,9 +299,7 @@ export function SessionLobbyScreen() {
         {/* Info Box */}
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            {isHost
-              ? t('sessionLobby.hostInfo')
-              : t('sessionLobby.waitingForMembers')}
+            {isHost ? t('sessionLobby.hostInfo') : t('sessionLobby.waitingForMembers')}
           </Text>
         </View>
       </ScrollView>
@@ -316,9 +328,7 @@ export function SessionLobbyScreen() {
             {generating ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>
-                {t('sessionLobby.generateRecommendations')}
-              </Text>
+              <Text style={styles.buttonText}>{t('sessionLobby.generateRecommendations')}</Text>
             )}
           </TouchableOpacity>
         )}

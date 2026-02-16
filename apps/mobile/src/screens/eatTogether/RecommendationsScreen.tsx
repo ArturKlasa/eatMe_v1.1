@@ -194,15 +194,15 @@ export function RecommendationsScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{t('sessionVoting.title')}</Text>
-          <Text style={styles.headerSubtitle}>{t('sessionVoting.votesCast', { count: totalVotes })}</Text>
+          <Text style={styles.headerSubtitle}>
+            {t('sessionVoting.votesCast', { count: totalVotes })}
+          </Text>
         </View>
       </View>
 
       {/* Voting Instructions */}
       <View style={styles.instructions}>
-        <Text style={styles.instructionsText}>
-          {t('sessionVoting.instructions')}
-        </Text>
+        <Text style={styles.instructionsText}>{t('sessionVoting.instructions')}</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -257,7 +257,10 @@ export function RecommendationsScreen() {
                       ]}
                     />
                     <Text style={styles.voteBarText}>
-                      {t('sessionVoting.votes', { count: voteCount, percentage: votePercentage.toFixed(0) })}
+                      {t('sessionVoting.votes', {
+                        count: voteCount,
+                        percentage: votePercentage.toFixed(0),
+                      })}
                     </Text>
                   </View>
                 )}

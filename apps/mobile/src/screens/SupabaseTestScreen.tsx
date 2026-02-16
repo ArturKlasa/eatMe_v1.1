@@ -37,16 +37,16 @@ export function SupabaseTestScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyText}>{t('supabaseTest.noRestaurants')}</Text>
-        <Text style={styles.emptyHint}>
-          {t('supabaseTest.makeUserHaveRestaurants')}
-        </Text>
+        <Text style={styles.emptyHint}>{t('supabaseTest.makeUserHaveRestaurants')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>{t('supabaseTest.connected', { count: restaurants.length })}</Text>
+      <Text style={styles.header}>
+        {t('supabaseTest.connected', { count: restaurants.length })}
+      </Text>
       <FlatList
         data={restaurants}
         keyExtractor={item => item.id}

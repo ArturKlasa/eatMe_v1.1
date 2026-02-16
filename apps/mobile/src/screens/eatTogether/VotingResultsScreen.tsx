@@ -108,7 +108,9 @@ export function VotingResultsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('votingResults.title')}</Text>
-        <Text style={styles.headerSubtitle}>{t('votingResults.totalVotes', { count: totalVotes })}</Text>
+        <Text style={styles.headerSubtitle}>
+          {t('votingResults.totalVotes', { count: totalVotes })}
+        </Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -164,9 +166,7 @@ export function VotingResultsScreen() {
         {/* Session Info */}
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>{t('votingResults.enjoyMeal')}</Text>
-          <Text style={styles.infoText}>
-            {t('votingResults.sessionCloseInfo')}
-          </Text>
+          <Text style={styles.infoText}>{t('votingResults.sessionCloseInfo')}</Text>
         </View>
       </ScrollView>
 

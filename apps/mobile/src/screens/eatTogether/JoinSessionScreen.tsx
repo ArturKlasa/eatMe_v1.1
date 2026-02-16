@@ -110,7 +110,9 @@ export function JoinSessionScreen() {
 
         <TouchableOpacity
           style={styles.scanButton}
-          onPress={() => Alert.alert(t('sessionJoin.qrScanner'), t('sessionJoin.qrScannerComingSoon'))}
+          onPress={() =>
+            Alert.alert(t('sessionJoin.qrScanner'), t('sessionJoin.qrScannerComingSoon'))
+          }
         >
           <Text style={styles.scanButtonText}>{t('sessionJoin.scanQR')}</Text>
         </TouchableOpacity>

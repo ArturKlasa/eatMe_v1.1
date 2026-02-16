@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { Session, User, AuthError, Subscription } from '@supabase/supabase-js';
 import { debugLog } from '../config/environment';
 import { useFilterStore } from './filterStore';
+import { useOnboardingStore } from './onboardingStore';
 
 // Track if auth listener is already set up (prevents duplicate listeners)
 let authListenerSubscription: Subscription | null = null;
@@ -110,6 +111,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Sync user preferences from database if logged in (don't await to not block)
       if (session?.user) {
         useFilterStore.getState().syncWithDatabase(session.user.id);
+        useOnboardingStore.getState().loadUserPreferences(session.user.id);
       }
 
       // Set up auth state change listener ONLY ONCE
@@ -129,6 +131,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           // Sync preferences on sign in (don't await)
           if (event === 'SIGNED_IN' && session?.user) {
             useFilterStore.getState().syncWithDatabase(session.user.id);
+            useOnboardingStore.getState().loadUserPreferences(session.user.id);
           }
         });
         authListenerSubscription = subscription;
@@ -170,6 +173,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Sync user preferences from database
       if (data.user) {
         useFilterStore.getState().syncWithDatabase(data.user.id);
+        useOnboardingStore.getState().loadUserPreferences(data.user.id);
       }
 
       return { error: null };

@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 export interface OnboardingFormData {
   // Step 1: Dietary & Allergies
@@ -128,6 +129,42 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   completeOnboarding: async () => {
     const state = get();
 
+    // Save to Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('No authenticated user');
+      }
+
+      // Prepare data for Supabase
+      const preferencesData = {
+        user_id: user.id,
+        diet_type: state.formData.dietType,
+        protein_preferences: state.formData.proteinPreferences,
+        allergies: state.formData.allergies,
+        favorite_cuisines: state.formData.favoriteCuisines,
+        favorite_dishes: state.formData.favoriteDishes,
+        spice_tolerance: state.formData.spiceTolerance,
+        onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+        preferences_updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert(preferencesData, {
+          onConflict: 'user_id',
+        });
+
+      if (error) throw error;
+
+      console.log('[Onboarding] Preferences saved to Supabase');
+    } catch (error) {
+      console.error('[Onboarding] Failed to save to Supabase:', error);
+      throw error; // Re-throw to show error in UI
+    }
+
     set({
       isCompleted: true,
       isVisible: false,
@@ -136,7 +173,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     // Calculate completion stats
     get().updateProfileStats();
 
-    // Save to local storage
+    // Also save to AsyncStorage as backup
     try {
       await AsyncStorage.setItem(
         STORAGE_KEY,
@@ -147,41 +184,110 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         })
       );
     } catch (error) {
-      console.error('Failed to save onboarding data:', error);
+      console.error('[Onboarding] Failed to save to AsyncStorage:', error);
     }
   },
 
   // Data management
   loadUserPreferences: async (userId: string) => {
-    // TODO: Load from Supabase
-    // For now, load from AsyncStorage
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
-      const lastPrompt = await AsyncStorage.getItem(`${STORAGE_KEY}_last_prompt`);
+      // Load from Supabase
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        // If no preferences exist yet (PGRST116), that's okay
+        if (error.code === 'PGRST116') {
+          console.log('[Onboarding] No preferences found for user');
+          return;
+        }
+        throw error;
+      }
 
       if (data) {
-        const parsed = JSON.parse(data);
+        // Map database columns to form data
+        const formData: OnboardingFormData = {
+          dietType: data.diet_type || 'all',
+          proteinPreferences: data.protein_preferences || [],
+          allergies: data.allergies || [],
+          favoriteCuisines: data.favorite_cuisines || [],
+          favoriteDishes: data.favorite_dishes || [],
+          spiceTolerance: data.spice_tolerance || 'medium',
+        };
+
         set({
-          formData: parsed.formData || defaultFormData,
-          isCompleted: parsed.isCompleted || false,
+          formData,
+          isCompleted: data.onboarding_completed || false,
+          profileCompletion: data.profile_completion_percentage || 0,
+          profilePoints: data.profile_points || 0,
+          lastPromptShown: data.last_prompt_shown_at 
+            ? new Date(data.last_prompt_shown_at) 
+            : null,
         });
-      }
 
-      if (lastPrompt) {
-        set({ lastPromptShown: new Date(lastPrompt) });
+        console.log('[Onboarding] Preferences loaded from Supabase');
       }
-
-      get().updateProfileStats();
     } catch (error) {
-      console.error('Failed to load user preferences:', error);
+      console.error('[Onboarding] Failed to load from Supabase:', error);
+      
+      // Fallback to AsyncStorage
+      try {
+        const data = await AsyncStorage.getItem(STORAGE_KEY);
+        const lastPrompt = await AsyncStorage.getItem(`${STORAGE_KEY}_last_prompt`);
+
+        if (data) {
+          const parsed = JSON.parse(data);
+          set({
+            formData: parsed.formData || defaultFormData,
+            isCompleted: parsed.isCompleted || false,
+          });
+        }
+
+        if (lastPrompt) {
+          set({ lastPromptShown: new Date(lastPrompt) });
+        }
+
+        get().updateProfileStats();
+      } catch (error) {
+        console.error('Failed to load user preferences:', error);
+      }
     }
   },
 
   savePreferences: async (userId: string) => {
     const state = get();
 
-    // TODO: Save to Supabase
-    // For now, save to AsyncStorage
+    // Save to Supabase
+    try {
+      const preferencesData = {
+        user_id: userId,
+        diet_type: state.formData.dietType,
+        protein_preferences: state.formData.proteinPreferences,
+        allergies: state.formData.allergies,
+        favorite_cuisines: state.formData.favoriteCuisines,
+        favorite_dishes: state.formData.favoriteDishes,
+        spice_tolerance: state.formData.spiceTolerance,
+        onboarding_completed: state.isCompleted,
+        preferences_updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert(preferencesData, {
+          onConflict: 'user_id',
+        });
+
+      if (error) throw error;
+
+      console.log('[Onboarding] Preferences saved to Supabase');
+    } catch (error) {
+      console.error('[Onboarding] Failed to save to Supabase:', error);
+    }
+
+    // Also save to AsyncStorage as backup
     try {
       await AsyncStorage.setItem(
         STORAGE_KEY,
@@ -192,7 +298,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         })
       );
     } catch (error) {
-      console.error('Failed to save preferences:', error);
+      console.error('[Onboarding] Failed to save to AsyncStorage:', error);
     }
   },
 
@@ -254,10 +360,36 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   dismissPrompt: () => {
     set({ lastPromptShown: new Date() });
+    
+    // Save timestamp to Supabase
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase
+          .from('user_preferences')
+          .update({ last_prompt_shown_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .then(({ error }) => {
+            if (error) console.error('[Onboarding] Failed to update prompt timestamp:', error);
+          });
+      }
+    });
   },
 
   recordPromptShown: () => {
     set({ lastPromptShown: new Date() });
+    
+    // Save timestamp to Supabase
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase
+          .from('user_preferences')
+          .update({ last_prompt_shown_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .then(({ error }) => {
+            if (error) console.error('[Onboarding] Failed to record prompt timestamp:', error);
+          });
+      }
+    });
   },
 
   // Reset

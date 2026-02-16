@@ -120,6 +120,15 @@ export default function NewRestaurantPage() {
     toast.success('Location marked on map!');
   };
 
+  const handleAddressSelect = (address: string) => {
+    console.log('[Admin] Address received from reverse geocoding:', address);
+    setFormData(prev => ({
+      ...prev,
+      address,
+    }));
+    toast.success('Address auto-filled from map location!');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -391,14 +400,15 @@ export default function NewRestaurantPage() {
               </div>
 
               <p className="text-sm text-gray-500">
-                Click on the map below to mark the restaurant location and get coordinates
-                automatically.
+                Click on the map below to mark the restaurant location and get coordinates and
+                address automatically.
               </p>
 
               <LocationPicker
                 initialLat={mapCoordinates?.lat}
                 initialLng={mapCoordinates?.lng}
                 onLocationSelect={handleLocationSelect}
+                onAddressSelect={handleAddressSelect}
               />
             </CardContent>
           </Card>

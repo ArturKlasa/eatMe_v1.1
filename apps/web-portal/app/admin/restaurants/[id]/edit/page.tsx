@@ -164,6 +164,16 @@ export default function EditRestaurantPage() {
       latitude: lat.toString(),
       longitude: lng.toString(),
     });
+    toast.success('Location marked on map!');
+  };
+
+  const handleAddressSelect = (address: string) => {
+    console.log('[Admin] Address received from reverse geocoding:', address);
+    setFormData({
+      ...formData,
+      address,
+    });
+    toast.success('Address auto-filled from map location!');
   };
 
   const handleCuisineToggle = (cuisine: string) => {
@@ -425,13 +435,15 @@ export default function EditRestaurantPage() {
             </div>
 
             <p className="text-sm text-gray-500">
-              📍 Click on the map to set your restaurant&apos;s exact location
+              📍 Click on the map to set your restaurant&apos;s exact location and auto-fill the
+              address
             </p>
 
             <LocationPicker
               initialLat={formData.latitude ? parseFloat(formData.latitude) : undefined}
               initialLng={formData.longitude ? parseFloat(formData.longitude) : undefined}
               onLocationSelect={handleLocationSelect}
+              onAddressSelect={handleAddressSelect}
             />
           </CardContent>
         </Card>

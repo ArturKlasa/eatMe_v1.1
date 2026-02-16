@@ -8,12 +8,14 @@ interface LocationPickerProps {
   initialLat?: number;
   initialLng?: number;
   onLocationSelect: (lat: number, lng: number) => void;
+  onAddressSelect?: (address: string) => void;
 }
 
 export default function LocationPicker({
   initialLat,
   initialLng,
   onLocationSelect,
+  onAddressSelect,
 }: LocationPickerProps) {
   console.log(
     '[LocationPicker] Component render - initialLat:',
@@ -99,7 +101,7 @@ export default function LocationPicker({
       }
 
       // Handle map clicks
-      map.on('click', (e: L.LeafletMouseEvent) => {
+      map.on('click', async (e: L.LeafletMouseEvent) => {
         // Prevent any default/propagation that could submit the parent form
         if (e.originalEvent) {
           e.originalEvent.preventDefault();
@@ -117,6 +119,52 @@ export default function LocationPicker({
 
         setSelectedLocation({ lat, lng });
         onLocationSelect(lat, lng);
+
+        // Perform reverse geocoding if callback provided
+        if (onAddressSelect) {
+          try {
+            console.log('[LocationPicker] onAddressSelect callback exists, fetching address...');
+            console.log('[LocationPicker] Coordinates:', { lat, lng });
+
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+            console.log('[LocationPicker] Fetching from URL:', url);
+
+            const response = await fetch(url, {
+              headers: {
+                'Accept-Language': 'en',
+                'User-Agent': 'EatMe-Restaurant-App',
+              },
+            });
+
+            console.log('[LocationPicker] Response status:', response.status);
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('[LocationPicker] Response data:', data);
+
+              const address = data.display_name || '';
+              console.log('[LocationPicker] Extracted address:', address);
+
+              if (address) {
+                console.log('[LocationPicker] Calling onAddressSelect with:', address);
+                onAddressSelect(address);
+              } else {
+                console.warn('[LocationPicker] No address in response');
+              }
+            } else {
+              const errorText = await response.text();
+              console.error(
+                '[LocationPicker] Reverse geocoding failed:',
+                response.status,
+                errorText
+              );
+            }
+          } catch (error) {
+            console.error('[LocationPicker] Error fetching address:', error);
+          }
+        } else {
+          console.log('[LocationPicker] No onAddressSelect callback provided');
+        }
       });
 
       mapRef.current = map;
@@ -145,8 +193,8 @@ export default function LocationPicker({
       <div className="flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
         <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
         <p>
-          Click anywhere on the map to mark your restaurant&apos;s location. The coordinates will be
-          automatically filled in the fields above.
+          Click anywhere on the map to mark your restaurant&apos;s location. The coordinates and
+          address will be automatically filled in the fields above.
         </p>
       </div>
     </div>

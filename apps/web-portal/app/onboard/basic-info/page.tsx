@@ -335,6 +335,15 @@ function BasicInfoPageContent() {
     [form, setValue]
   );
 
+  const handleAddressSelect = useCallback(
+    (address: string) => {
+      console.log('[BasicInfo] Address received from reverse geocoding:', address);
+      setValue('address', address);
+      toast.success('Address auto-filled from map location!');
+    },
+    [setValue]
+  );
+
   const onSubmit = (data: FormData) => {
     console.log('[BasicInfo] onSubmit fired');
     console.log('[BasicInfo] onSubmit data snapshot:', data);
@@ -596,14 +605,15 @@ function BasicInfoPageContent() {
               </div>
 
               <p className="text-sm text-gray-500">
-                Click on the map below to mark your restaurant location and get coordinates
-                automatically.
+                Click on the map below to mark your restaurant location and get coordinates and
+                address automatically.
               </p>
 
               <LocationPicker
                 initialLat={mapCoordinates?.lat}
                 initialLng={mapCoordinates?.lng}
                 onLocationSelect={handleLocationSelect}
+                onAddressSelect={handleAddressSelect}
               />
             </CardContent>
           </Card>

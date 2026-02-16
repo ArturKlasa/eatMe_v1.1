@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 // Get Supabase configuration from environment variables
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
@@ -11,6 +13,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Warm up the browser for faster OAuth flows
+WebBrowser.maybeCompleteAuthSession();
+
 // Create Supabase client configured for React Native
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -20,6 +25,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false, // Not needed in mobile
   },
 });
+
+// Get the redirect URL for OAuth
+export const getOAuthRedirectUrl = () => {
+  // Use expo-linking to get the app's deep link URL
+  const redirectUrl = Linking.createURL('auth/callback');
+  console.log('[OAuth] Redirect URL:', redirectUrl);
+  return redirectUrl;
+};
 
 // ============================================================================
 // DATABASE TYPES

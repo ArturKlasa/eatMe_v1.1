@@ -6,11 +6,12 @@
  */
 
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { supabase, getOAuthRedirectUrl } from '../lib/supabase';
 import { Session, User, AuthError, Subscription } from '@supabase/supabase-js';
 import { debugLog } from '../config/environment';
 import { useFilterStore } from './filterStore';
 import { useOnboardingStore } from './onboardingStore';
+import * as WebBrowser from 'expo-web-browser';
 
 // Track if auth listener is already set up (prevents duplicate listeners)
 let authListenerSubscription: Subscription | null = null;
@@ -53,6 +54,9 @@ interface AuthActions {
     profile_name?: string;
     avatar_url?: string;
   }) => Promise<{ error: Error | null }>;
+
+  // Sign in with OAuth provider (Google/Facebook)
+  signInWithOAuth: (provider: 'google' | 'facebook') => Promise<{ error: Error | null }>;
 
   // Clear error
   clearError: () => void;
@@ -340,6 +344,103 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch (err) {
       const error = err as Error;
       console.error('[Auth] Unexpected profile update error:', error);
+      set({ error: error.message, isLoading: false });
+      return { error };
+    }
+  },
+
+  // Sign in with OAuth provider
+  signInWithOAuth: async (provider: 'google' | 'facebook') => {
+    try {
+      set({ isLoading: true, error: null });
+      debugLog(`[Auth] Starting ${provider} OAuth flow...`);
+
+      const redirectUrl = getOAuthRedirectUrl();
+
+      // Start OAuth flow with Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true, // We'll handle the browser ourselves
+        },
+      });
+
+      if (error) {
+        console.error(`[Auth] ${provider} OAuth error:`, error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      if (!data?.url) {
+        const error = new Error('No OAuth URL returned from Supabase');
+        console.error('[Auth] OAuth error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      debugLog(`[Auth] Opening ${provider} OAuth URL:`, data.url);
+
+      // Open OAuth URL in system browser
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl, {
+        showInRecents: true,
+      });
+
+      debugLog('[Auth] Browser result:', result.type);
+
+      if (result.type === 'success' && result.url) {
+        // Extract the URL parameters
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.hash.substring(1)); // Remove # from hash
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          // Set session with the tokens
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            console.error('[Auth] Session error:', sessionError);
+            set({ error: sessionError.message, isLoading: false });
+            return { error: sessionError };
+          }
+
+          debugLog(`[Auth] ${provider} OAuth successful`);
+          set({
+            session: sessionData.session,
+            user: sessionData.user,
+            isLoading: false,
+          });
+
+          // Sync user preferences from database
+          if (sessionData.user) {
+            useFilterStore.getState().syncWithDatabase(sessionData.user.id);
+            useOnboardingStore.getState().loadUserPreferences(sessionData.user.id);
+          }
+
+          return { error: null };
+        } else {
+          const error = new Error('No access token received from OAuth provider');
+          console.error('[Auth] OAuth error:', error);
+          set({ error: error.message, isLoading: false });
+          return { error };
+        }
+      } else if (result.type === 'cancel') {
+        debugLog(`[Auth] ${provider} OAuth cancelled by user`);
+        set({ isLoading: false });
+        return { error: new Error('OAuth cancelled') };
+      } else {
+        const error = new Error('OAuth failed');
+        console.error('[Auth] OAuth error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('[Auth] Unexpected OAuth error:', error);
       set({ error: error.message, isLoading: false });
       return { error };
     }

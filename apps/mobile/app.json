@@ -1,21 +1,35 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "EatMe",
+    "slug": "eatme",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "scheme": "eatme",
     "android": {
-      "package": "com.anonymous.mobile",
+      "package": "com.eatme.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "eatme",
+              "host": "*"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.mobile",
+      "bundleIdentifier": "com.eatme.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location to show nearby restaurants and provide personalized recommendations.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to show nearby restaurants and provide personalized recommendations."

@@ -118,6 +118,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
     navigation.navigate('ProfileEdit' as any);
   };
 
+  const handleCustomizePreferences = () => {
+    navigation.navigate('OnboardingStep1' as any);
+  };
+
   const handleSignOut = async () => {
     Alert.alert(t('profile.signOutTitle'), t('profile.signOutMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -215,6 +219,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               <>
                 <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
                   <Text style={styles.editButtonText}>{t('profile.editProfile')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.editButton, { marginTop: 8 }]}
+                  onPress={handleCustomizePreferences}
+                >
+                  <Text style={styles.editButtonText}>{t('profile.customizePreferences')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.editButton, { marginTop: 8 }]}

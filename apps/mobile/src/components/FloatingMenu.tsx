@@ -30,7 +30,6 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'swipe', label: 'Swipe Demo (Edge Functions)', icon: '💫', screen: 'Swipe' },
   { id: 'filters', label: 'Personal filters', icon: '🥢', screen: 'Filters' },
   { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
   { id: 'eatTogether', label: 'Eat together', icon: '🍲', screen: 'EatTogether' },

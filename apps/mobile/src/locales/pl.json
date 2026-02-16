@@ -485,8 +485,7 @@
   "profile": {
     "title": "Profil",
     "subtitle": "Twoja Kulinarna Podróż",
-    "editProfile": "Edytuj Profil",
-    "viewedHistory": "Historia Wyświetlania",
+    "editProfile": "Edytuj Profil",    "customizePreferences": "Dostosuj Preferencje",    "viewedHistory": "Historia Wyświetlania",
     "dietaryPreferences": "Preferencje Dietetyczne",
     "yourActivity": "Twoja Aktywność",
     "defaultName": "Odkrywca Jedzenia",

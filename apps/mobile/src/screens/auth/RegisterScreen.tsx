@@ -160,7 +160,8 @@ export function RegisterScreen() {
             onPress={() => setShowLanguageSelector(!showLanguageSelector)}
           >
             <Text style={styles.languageButtonText}>
-              {supportedLanguages.find(lang => lang.code === currentLanguage)?.flag} {supportedLanguages.find(lang => lang.code === currentLanguage)?.name}
+              {supportedLanguages.find(lang => lang.code === currentLanguage)?.flag}{' '}
+              {supportedLanguages.find(lang => lang.code === currentLanguage)?.name}
             </Text>
           </TouchableOpacity>
 
@@ -178,9 +179,7 @@ export function RegisterScreen() {
                   <Text style={styles.languageOptionText}>
                     {lang.flag} {lang.name}
                   </Text>
-                  {currentLanguage === lang.code && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                  {currentLanguage === lang.code && <Text style={styles.checkmark}>✓</Text>}
                 </TouchableOpacity>
               ))}
             </View>

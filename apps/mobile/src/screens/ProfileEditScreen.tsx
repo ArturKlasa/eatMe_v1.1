@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { updateProfileName } from '../services/userPreferencesService';
 
@@ -19,6 +20,7 @@ import { updateProfileName } from '../services/userPreferencesService';
  */
 export function ProfileEditScreen() {
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   // Use shallow selectors to prevent re-renders
   const user = useAuthStore(state => state.user);
@@ -36,7 +38,7 @@ export function ProfileEditScreen() {
 
   const validateProfileName = (name: string): boolean => {
     if (name.length < 3 || name.length > 12) {
-      Alert.alert('Invalid Name', 'Profile name must be 3-12 characters');
+      Alert.alert(t('profileEdit.invalidName'), t('profileEdit.nameLength'));
       return false;
     }
     return true;
@@ -58,7 +60,7 @@ export function ProfileEditScreen() {
       if (profileName !== user.user_metadata?.profile_name) {
         const { error: nameError } = await updateProfileName(user.id, profileName);
         if (nameError) {
-          Alert.alert('Error', 'Failed to update profile name');
+          Alert.alert(t('common.error'), t('profileEdit.updateFailed'));
           setIsSaving(false);
           return;
         }
@@ -67,11 +69,11 @@ export function ProfileEditScreen() {
         await useAuthStore.getState().updateProfile({ profile_name: profileName });
       }
 
-      Alert.alert('Success', 'Profile updated successfully');
+      Alert.alert(t('common.success'), t('profileEdit.updateSuccess'));
       navigation.goBack();
     } catch (error) {
       console.error('[ProfileEdit] Save error:', error);
-      Alert.alert('Error', 'Failed to save profile');
+      Alert.alert(t('common.error'), t('profileEdit.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -79,14 +81,14 @@ export function ProfileEditScreen() {
 
   const handleCancel = () => {
     if (hasChanges) {
-      Alert.alert(
-        'Discard Changes?',
-        'You have unsaved changes. Are you sure you want to go back?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
-        ]
-      );
+      Alert.alert(t('profileEdit.discardTitle'), t('profileEdit.discardMessage'), [
+        { text: t('profileEdit.keepEditing'), style: 'cancel' },
+        {
+          text: t('profileEdit.discard'),
+          style: 'destructive',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
     } else {
       navigation.goBack();
     }
@@ -98,7 +100,7 @@ export function ProfileEditScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.errorText}>Please sign in to edit your profile</Text>
+          <Text style={styles.errorText}>{t('profileEdit.signInRequired')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -109,9 +111,9 @@ export function ProfileEditScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>Cancel</Text>
+          <Text style={styles.headerButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{t('profileEdit.title')}</Text>
         <TouchableOpacity
           onPress={handleSave}
           style={[styles.headerButton, isSaving && styles.headerButtonDisabled]}
@@ -120,7 +122,7 @@ export function ProfileEditScreen() {
           {isSaving ? (
             <ActivityIndicator size="small" color="#FF9800" />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -128,12 +130,12 @@ export function ProfileEditScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Name Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profile Information</Text>
+          <Text style={styles.sectionTitle}>{t('profileEdit.profileInfo')}</Text>
           <View style={styles.card}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('auth.email')}</Text>
             <Text style={styles.emailText}>{user.email}</Text>
 
-            <Text style={styles.label}>Profile Name</Text>
+            <Text style={styles.label}>{t('register.profileName')}</Text>
             <TextInput
               style={styles.input}
               value={profileName}
@@ -141,23 +143,20 @@ export function ProfileEditScreen() {
                 setProfileName(text);
                 markChanged();
               }}
-              placeholder="Your display name"
+              placeholder={t('profileEdit.namePlaceholder')}
               placeholderTextColor="#666"
               maxLength={12}
               autoCapitalize="none"
             />
-            <Text style={styles.hint}>3-12 characters • Used in social features</Text>
+            <Text style={styles.hint}>{t('profileEdit.nameHint')}</Text>
           </View>
         </View>
 
         {/* Info about permanent filters */}
         <View style={styles.section}>
           <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>💡 Diet Preferences & Restrictions</Text>
-            <Text style={styles.infoText}>
-              To manage your diet preferences, allergies, and restrictions, go to the Filters screen
-              and tap "Permanent Filters".
-            </Text>
+            <Text style={styles.infoTitle}>{t('profileEdit.dietPreferencesTitle')}</Text>
+            <Text style={styles.infoText}>{t('profileEdit.dietPreferencesInfo')}</Text>
           </View>
         </View>
 

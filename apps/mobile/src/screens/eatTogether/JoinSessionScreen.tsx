@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { joinSession } from '../../services/eatTogetherService';
@@ -18,6 +19,7 @@ import { joinSession } from '../../services/eatTogetherService';
  * JoinSessionScreen - Join existing session by code
  */
 export function JoinSessionScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const user = useAuthStore(state => state.user);
   const { location } = useUserLocation();
@@ -27,12 +29,12 @@ export function JoinSessionScreen() {
 
   const handleJoin = async () => {
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to join a session');
+      Alert.alert(t('common.error'), t('sessionJoin.mustBeLoggedIn'));
       return;
     }
 
     if (sessionCode.length !== 6) {
-      Alert.alert('Invalid Code', 'Session code must be 6 characters');
+      Alert.alert(t('sessionJoin.invalidCode'), t('sessionJoin.codeLength'));
       return;
     }
 
@@ -46,14 +48,14 @@ export function JoinSessionScreen() {
       const { data, error } = await joinSession(user.id, sessionCode, userLocation);
 
       if (error || !data) {
-        Alert.alert('Error', error?.message || 'Failed to join session');
+        Alert.alert(t('common.error'), error?.message || t('sessionJoin.joinFailed'));
         return;
       }
 
       // Navigate to session lobby
       navigation.navigate('SessionLobby' as any, { sessionId: data.id });
     } catch (err) {
-      Alert.alert('Error', 'Something went wrong');
+      Alert.alert(t('common.error'), t('common.somethingWrong'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -72,23 +74,23 @@ export function JoinSessionScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Join Eat Together</Text>
-        <Text style={styles.subtitle}>Enter the 6-character code shared by your host</Text>
+        <Text style={styles.title}>{t('sessionJoin.title')}</Text>
+        <Text style={styles.subtitle}>{t('sessionJoin.subtitle')}</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Session Code</Text>
+          <Text style={styles.label}>{t('sessionJoin.sessionCode')}</Text>
           <TextInput
             style={styles.input}
             value={sessionCode}
             onChangeText={handleCodeChange}
-            placeholder="ABC123"
+            placeholder={t('sessionJoin.codePlaceholder')}
             placeholderTextColor="#666"
             maxLength={6}
             autoCapitalize="characters"
             autoCorrect={false}
             keyboardType="default"
           />
-          <Text style={styles.hint}>6 characters • Case insensitive</Text>
+          <Text style={styles.hint}>{t('sessionJoin.codeHint')}</Text>
         </View>
 
         <TouchableOpacity
@@ -102,19 +104,19 @@ export function JoinSessionScreen() {
           {loading ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.joinButtonText}>Join Session</Text>
+            <Text style={styles.joinButtonText}>{t('sessionJoin.joinButton')}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.scanButton}
-          onPress={() => Alert.alert('QR Scanner', 'QR scanning coming soon!')}
+          onPress={() => Alert.alert(t('sessionJoin.qrScanner'), t('sessionJoin.qrScannerComingSoon'))}
         >
-          <Text style={styles.scanButtonText}>📷 Scan QR Code Instead</Text>
+          <Text style={styles.scanButtonText}>{t('sessionJoin.scanQR')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Cancel</Text>
+          <Text style={styles.backButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

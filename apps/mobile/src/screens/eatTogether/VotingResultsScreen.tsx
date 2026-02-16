@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import {
   getSessionDetails,
   getVoteResults,
@@ -27,6 +28,7 @@ type VotingResultsScreenRouteParams = {
  * VotingResultsScreen - Shows voting results and winning restaurant
  */
 export function VotingResultsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<VotingResultsScreenRouteParams, 'VotingResults'>>();
   const { sessionId } = route.params;
@@ -76,7 +78,7 @@ export function VotingResultsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color="#FF9800" />
-          <Text style={styles.loadingText}>Loading results...</Text>
+          <Text style={styles.loadingText}>{t('votingResults.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -86,12 +88,12 @@ export function VotingResultsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.errorText}>No voting results found</Text>
+          <Text style={styles.errorText}>{t('votingResults.noResults')}</Text>
           <TouchableOpacity
             style={styles.button}
             onPress={() => navigation.navigate('EatTogether' as any)}
           >
-            <Text style={styles.buttonText}>Go to Eat Together</Text>
+            <Text style={styles.buttonText}>{t('votingResults.goToEatTogether')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -105,8 +107,8 @@ export function VotingResultsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎉 Voting Results</Text>
-        <Text style={styles.headerSubtitle}>{totalVotes} total votes</Text>
+        <Text style={styles.headerTitle}>{t('votingResults.title')}</Text>
+        <Text style={styles.headerSubtitle}>{t('votingResults.totalVotes', { count: totalVotes })}</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -115,18 +117,18 @@ export function VotingResultsScreen() {
           <View style={styles.crownBadge}>
             <Text style={styles.crownEmoji}>👑</Text>
           </View>
-          <Text style={styles.winnerLabel}>Winner</Text>
+          <Text style={styles.winnerLabel}>{t('votingResults.winner')}</Text>
           <Text style={styles.winnerName}>{winner.restaurant?.name}</Text>
           <Text style={styles.winnerAddress}>{winner.restaurant?.address}</Text>
 
           <View style={styles.winnerStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{winner.vote_count}</Text>
-              <Text style={styles.statLabel}>Votes</Text>
+              <Text style={styles.statLabel}>{t('votingResults.votes')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{winner.percentage?.toFixed(0)}%</Text>
-              <Text style={styles.statLabel}>Majority</Text>
+              <Text style={styles.statLabel}>{t('votingResults.majority')}</Text>
             </View>
           </View>
 
@@ -134,13 +136,13 @@ export function VotingResultsScreen() {
             style={styles.navigationButton}
             onPress={() => openMaps(winner.restaurant)}
           >
-            <Text style={styles.navigationButtonText}>📍 Open in Maps</Text>
+            <Text style={styles.navigationButtonText}>{t('votingResults.openInMaps')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* All Results */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>All Results</Text>
+          <Text style={styles.sectionTitle}>{t('votingResults.allResults')}</Text>
           {voteResults.map((result: any, index) => (
             <View key={result.restaurant_id} style={styles.resultCard}>
               <View style={styles.resultRank}>
@@ -161,9 +163,9 @@ export function VotingResultsScreen() {
 
         {/* Session Info */}
         <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>✨ Enjoy your meal together!</Text>
+          <Text style={styles.infoTitle}>{t('votingResults.enjoyMeal')}</Text>
           <Text style={styles.infoText}>
-            This session will close automatically in 3 hours, or the host can close it manually.
+            {t('votingResults.sessionCloseInfo')}
           </Text>
         </View>
       </ScrollView>
@@ -174,7 +176,7 @@ export function VotingResultsScreen() {
           style={styles.button}
           onPress={() => navigation.navigate('EatTogether' as any)}
         >
-          <Text style={styles.buttonText}>Back to Eat Together</Text>
+          <Text style={styles.buttonText}>{t('votingResults.backToEatTogether')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { colors, typography, spacing, borderRadius } from '../styles/theme';
@@ -26,6 +27,7 @@ import {
 import type { RootStackParamList } from '../types/navigation';
 
 export function ViewedHistoryScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const user = useAuthStore(state => state.user);
   const [restaurants, setRestaurants] = useState<ViewedRestaurant[]>([]);
@@ -77,7 +79,7 @@ export function ViewedHistoryScreen() {
           onPress={() => handleShowRestaurant(item.id)}
           activeOpacity={0.7}
         >
-          <Text style={styles.showButtonText}>Show</Text>
+          <Text style={styles.showButtonText}>{t('viewedHistory.show')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -87,7 +89,7 @@ export function ViewedHistoryScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={styles.loadingText}>Loading history...</Text>
+        <Text style={styles.loadingText}>{t('viewedHistory.loading')}</Text>
       </View>
     );
   }
@@ -95,7 +97,7 @@ export function ViewedHistoryScreen() {
   if (!user) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>Please sign in to view history</Text>
+        <Text style={styles.emptyText}>{t('viewedHistory.signInRequired')}</Text>
       </View>
     );
   }
@@ -103,18 +105,16 @@ export function ViewedHistoryScreen() {
   if (restaurants.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>No restaurants viewed yet</Text>
-        <Text style={styles.emptySubtext}>
-          Start exploring restaurants and they'll appear here!
-        </Text>
+        <Text style={styles.emptyText}>{t('viewedHistory.empty')}</Text>
+        <Text style={styles.emptySubtext}>{t('viewedHistory.emptyMessage')}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Recently Viewed</Text>
-      <Text style={styles.subheader}>Last 15 restaurants you've checked out</Text>
+      <Text style={styles.header}>{t('viewedHistory.title')}</Text>
+      <Text style={styles.subheader}>{t('viewedHistory.subtitle')}</Text>
 
       <FlatList
         data={restaurants}

@@ -142,7 +142,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, color: '#666' }}>Loading restaurant...</Text>
+        <Text style={{ marginTop: 16, color: '#666' }}>{t('restaurant.loadingRestaurant')}</Text>
       </View>
     );
   }
@@ -151,9 +151,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Restaurant not found</Text>
+          <Text style={styles.errorText}>{t('restaurant.restaurantNotFound')}</Text>
           <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -194,7 +194,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         break;
       case 'favorites':
         if (!user) {
-          Alert.alert('Sign In Required', 'Please sign in to add favorites');
+          Alert.alert(t('common.signInRequired'), t('favorites.signInToAdd'));
           return;
         }
         setFavoriteLoading(true);
@@ -205,37 +205,40 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             restaurantId
           );
           if (error) {
-            Alert.alert('Error', 'Failed to update favorites');
+            Alert.alert(t('common.error'), t('favorites.updateFailed'));
           } else {
             setIsFavorite(newStatus);
-            Alert.alert('Success', newStatus ? 'Added to favorites ⭐' : 'Removed from favorites');
+            Alert.alert(
+              t('common.success'),
+              newStatus ? t('favorites.addedToFavorites') : t('favorites.removedFromFavorites')
+            );
           }
         } catch (err) {
           console.error('[Favorites] Error:', err);
-          Alert.alert('Error', 'Failed to update favorites');
+          Alert.alert(t('common.error'), t('favorites.updateFailed'));
         } finally {
           setFavoriteLoading(false);
         }
         break;
       case 'review':
-        Alert.alert('Add Review', 'Review feature coming soon');
+        Alert.alert(t('restaurantDetail.addReview'), t('restaurantDetail.reviewComingSoon'));
         break;
       case 'share':
-        Alert.alert('Share', 'Share feature coming soon');
+        Alert.alert(t('restaurant.share'), t('restaurantDetail.shareComingSoon'));
         break;
       case 'call':
         if (restaurant.phone) {
           const phoneUrl = `tel:${restaurant.phone}`;
           Linking.openURL(phoneUrl).catch(err => {
             console.error('Failed to make call:', err);
-            Alert.alert('Error', 'Failed to open phone dialer');
+            Alert.alert(t('common.error'), t('restaurantDetail.phoneDialerFailed'));
           });
         } else {
-          Alert.alert('No Phone', 'Phone number not available for this restaurant');
+          Alert.alert(t('restaurantDetail.noPhone'), t('restaurantDetail.phoneNotAvailable'));
         }
         break;
       case 'report':
-        Alert.alert('Report', 'Report misleading info feature coming soon');
+        Alert.alert(t('restaurant.report'), t('restaurantDetail.reportComingSoon'));
         break;
     }
   };

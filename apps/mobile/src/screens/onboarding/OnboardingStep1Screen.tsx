@@ -7,32 +7,34 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 
 const DIET_TYPES = [
-  { value: 'all', label: 'Everything', emoji: '🍽️' },
-  { value: 'vegetarian', label: 'Vegetarian', emoji: '🥗' },
-  { value: 'vegan', label: 'Vegan', emoji: '🌱' },
+  { value: 'all', key: 'dietEverything', emoji: '🍽️' },
+  { value: 'vegetarian', key: 'dietVegetarian', emoji: '🥗' },
+  { value: 'vegan', key: 'dietVegan', emoji: '🌱' },
 ];
 
 const PROTEIN_OPTIONS = [
-  { value: 'meat', label: 'Meat', emoji: '🥩' },
-  { value: 'fish', label: 'Fish', emoji: '🐟' },
-  { value: 'seafood', label: 'Seafood', emoji: '🦐' },
-  { value: 'egg', label: 'Eggs', emoji: '🥚' },
+  { value: 'meat', key: 'proteinMeat', emoji: '🥩' },
+  { value: 'fish', key: 'proteinFish', emoji: '🐟' },
+  { value: 'seafood', key: 'proteinSeafood', emoji: '🦐' },
+  { value: 'egg', key: 'proteinEgg', emoji: '🥚' },
 ];
 
 const ALLERGY_OPTIONS = [
-  { value: 'nuts', label: 'Nuts', emoji: '🥜' },
-  { value: 'dairy', label: 'Dairy', emoji: '🥛' },
-  { value: 'gluten', label: 'Gluten', emoji: '🌾' },
-  { value: 'shellfish', label: 'Shellfish', emoji: '🦐' },
-  { value: 'eggs', label: 'Eggs', emoji: '🥚' },
-  { value: 'soy', label: 'Soy', emoji: '🫘' },
+  { value: 'nuts', key: 'allergyNuts', emoji: '🥜' },
+  { value: 'dairy', key: 'allergyDairy', emoji: '🥛' },
+  { value: 'gluten', key: 'allergyGluten', emoji: '🌾' },
+  { value: 'shellfish', key: 'allergyShellfish', emoji: '🦐' },
+  { value: 'eggs', key: 'allergyEggs', emoji: '🥚' },
+  { value: 'soy', key: 'allergySoy', emoji: '🫘' },
 ];
 
 export function OnboardingStep1Screen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const { formData, updateFormData, nextStep } = useOnboardingStore();
 
@@ -70,17 +72,17 @@ export function OnboardingStep1Screen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.stepIndicator}>Step 1 of 2</Text>
+          <Text style={styles.stepIndicator}>{t('onboarding.step1Of2')}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '50%' }]} />
           </View>
-          <Text style={styles.title}>Your Dietary Preferences</Text>
-          <Text style={styles.subtitle}>Help us personalize your food recommendations</Text>
+          <Text style={styles.title}>{t('onboarding.step1Title')}</Text>
+          <Text style={styles.subtitle}>{t('onboarding.step1Subtitle')}</Text>
         </View>
 
         {/* Diet Type */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What's your diet? 🍽️</Text>
+          <Text style={styles.sectionTitle}>{t('onboarding.dietQuestion')}</Text>
           <View style={styles.optionsGrid}>
             {DIET_TYPES.map(diet => (
               <TouchableOpacity
@@ -99,7 +101,7 @@ export function OnboardingStep1Screen() {
                     formData.dietType === diet.value && styles.optionLabelSelected,
                   ]}
                 >
-                  {diet.label}
+                  {t(`onboarding.${diet.key}`)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -109,8 +111,8 @@ export function OnboardingStep1Screen() {
         {/* Protein Preferences */}
         {formData.dietType === 'all' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>What proteins do you enjoy? 🥩</Text>
-            <Text style={styles.sectionSubtitle}>Select all that apply</Text>
+            <Text style={styles.sectionTitle}>{t('onboarding.proteinQuestion')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('onboarding.selectAll')}</Text>
             <View style={styles.optionsGrid}>
               {PROTEIN_OPTIONS.map(protein => (
                 <TouchableOpacity
@@ -131,7 +133,7 @@ export function OnboardingStep1Screen() {
                         styles.optionLabelSelected,
                     ]}
                   >
-                    {protein.label}
+                    {t(`onboarding.${protein.key}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -141,8 +143,8 @@ export function OnboardingStep1Screen() {
 
         {/* Allergies */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Any food allergies? 🚫</Text>
-          <Text style={styles.sectionSubtitle}>We'll help you avoid these</Text>
+          <Text style={styles.sectionTitle}>{t('onboarding.allergiesQuestion')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('onboarding.allergiesHint')}</Text>
           <View style={styles.optionsGrid}>
             {ALLERGY_OPTIONS.map(allergy => (
               <TouchableOpacity
@@ -161,7 +163,7 @@ export function OnboardingStep1Screen() {
                     formData.allergies.includes(allergy.value) && styles.optionLabelSelected,
                   ]}
                 >
-                  {allergy.label}
+                  {t(`onboarding.${allergy.key}`)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -174,10 +176,10 @@ export function OnboardingStep1Screen() {
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <Text style={styles.skipButtonText}>{t('common.skip')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.8}>
-          <Text style={styles.nextButtonText}>Continue →</Text>
+          <Text style={styles.nextButtonText}>{t('onboarding.continue')}</Text>
         </TouchableOpacity>
       </View>
     </View>

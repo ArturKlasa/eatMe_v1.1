@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import {
   getFeed,
   trackSwipe,
@@ -28,6 +29,7 @@ import { trackDishInteraction } from '../services/userPreferencesService';
  * to get server-filtered dishes and track user interactions.
  */
 export function SwipeScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
 
   // Use shallow selectors to prevent re-renders
@@ -146,7 +148,7 @@ export function SwipeScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Getting your location...</Text>
+          <Text style={styles.loadingText}>{t('swipe.gettingLocation')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -157,7 +159,7 @@ export function SwipeScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Loading dishes...</Text>
+          <Text style={styles.loadingText}>{t('swipe.loadingDishes')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -167,9 +169,11 @@ export function SwipeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.errorText}>Error: {error}</Text>
+          <Text style={styles.errorText}>
+            {t('common.error')}: {error}
+          </Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadDishes}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -180,17 +184,19 @@ export function SwipeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.emptyTitle}>No more dishes nearby!</Text>
-          <Text style={styles.emptySubtitle}>
-            Try adjusting your filters or expanding your search radius
-          </Text>
+          <Text style={styles.emptyTitle}>{t('swipe.noMoreDishes')}</Text>
+          <Text style={styles.emptySubtitle}>{t('swipe.noMoreDishesHint')}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => setCurrentIndex(0)}>
-            <Text style={styles.retryButtonText}>Start Over</Text>
+            <Text style={styles.retryButtonText}>{t('swipe.startOver')}</Text>
           </TouchableOpacity>
           <View style={styles.statsContainer}>
-            <Text style={styles.statsTitle}>Session Stats:</Text>
-            <Text style={styles.statsText}>❤️ Liked: {swipeStats.right}</Text>
-            <Text style={styles.statsText}>✕ Passed: {swipeStats.left}</Text>
+            <Text style={styles.statsTitle}>{t('swipe.sessionStats')}</Text>
+            <Text style={styles.statsText}>
+              ❤️ {t('swipe.liked')}: {swipeStats.right}
+            </Text>
+            <Text style={styles.statsText}>
+              ✕ {t('swipe.passed')}: {swipeStats.left}
+            </Text>
           </View>
         </View>
       </SafeAreaView>
@@ -204,7 +210,7 @@ export function SwipeScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Swipe Demo</Text>
+        <Text style={styles.headerTitle}>{t('swipe.title')}</Text>
         <View style={styles.statsCompact}>
           <Text style={styles.statsCompactText}>
             ❤️ {swipeStats.right} | ✕ {swipeStats.left}
@@ -216,7 +222,7 @@ export function SwipeScreen() {
       {feedMetadata?.personalized && feedMetadata?.userInteractions > 0 && (
         <View style={styles.personalizationBanner}>
           <Text style={styles.bannerText}>
-            ✨ Personalized for you based on {feedMetadata.userInteractions} interactions
+            ✨ {t('swipe.personalizedBanner', { count: feedMetadata.userInteractions })}
           </Text>
         </View>
       )}
@@ -228,7 +234,7 @@ export function SwipeScreen() {
             <Image source={{ uri: currentDish.image_url }} style={styles.dishImage} />
           ) : (
             <View style={[styles.dishImage, styles.placeholderImage]}>
-              <Text style={styles.placeholderText}>No Image</Text>
+              <Text style={styles.placeholderText}>{t('swipe.noImage')}</Text>
             </View>
           )}
 

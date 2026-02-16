@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useUserLocation } from '../../hooks/useUserLocation';
 import { createSession, updateMemberLocation } from '../../services/eatTogetherService';
@@ -20,6 +21,7 @@ import { createSession, updateMemberLocation } from '../../services/eatTogetherS
  * CreateSessionScreen - Host creates Eat Together session
  */
 export function CreateSessionScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const user = useAuthStore(state => state.user);
   const { location } = useUserLocation();
@@ -43,7 +45,7 @@ export function CreateSessionScreen() {
 
   const handleCreateSession = async () => {
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to create a session');
+      Alert.alert(t('common.error'), t('eatTogether.mustBeLoggedIn'));
       return;
     }
 
@@ -53,7 +55,7 @@ export function CreateSessionScreen() {
       const { data, error } = await createSession(user.id, locationMode);
 
       if (error || !data) {
-        Alert.alert('Error', error?.message || 'Failed to create session');
+        Alert.alert(t('common.error'), error?.message || t('eatTogether.createFailed'));
         return;
       }
 
@@ -66,7 +68,7 @@ export function CreateSessionScreen() {
       // Navigate to session lobby
       navigation.navigate('SessionLobby' as any, { sessionId: data.id });
     } catch (err) {
-      Alert.alert('Error', 'Something went wrong');
+      Alert.alert(t('common.error'), t('common.somethingWrong'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -78,8 +80,8 @@ export function CreateSessionScreen() {
 
     try {
       await Share.share({
-        message: `Join my Eat Together session! Code: ${session.session_code}\n\nOr click: ${shareLink}`,
-        title: 'Join Eat Together',
+        message: t('eatTogether.shareMessage', { code: session.session_code, link: shareLink }),
+        title: t('eatTogether.shareTitle'),
       });
     } catch (err) {
       console.error(err);
@@ -91,33 +93,33 @@ export function CreateSessionScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Session Created! 🎉</Text>
+          <Text style={styles.title}>{t('eatTogether.sessionCreated')}</Text>
 
           <View style={styles.codeSection}>
-            <Text style={styles.label}>Session Code</Text>
+            <Text style={styles.label}>{t('eatTogether.sessionCode')}</Text>
             <View style={styles.codeBox}>
               <Text style={styles.codeText}>{session.session_code}</Text>
             </View>
-            <Text style={styles.hint}>Share this code with your friends</Text>
+            <Text style={styles.hint}>{t('eatTogether.shareCode')}</Text>
           </View>
 
           <View style={styles.qrSection}>
-            <Text style={styles.label}>QR Code</Text>
+            <Text style={styles.label}>{t('eatTogether.qrCode')}</Text>
             <View style={styles.qrBox}>
               <QRCode value={shareLink} size={200} backgroundColor="#FFF" />
             </View>
-            <Text style={styles.hint}>Or let them scan this</Text>
+            <Text style={styles.hint}>{t('eatTogether.qrCodeDescription')}</Text>
           </View>
 
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Text style={styles.shareButtonText}>Share Link</Text>
+            <Text style={styles.shareButtonText}>{t('eatTogether.shareLink')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.continueButton}
             onPress={() => navigation.navigate('SessionLobby' as any, { sessionId: session.id })}
           >
-            <Text style={styles.continueButtonText}>Go to Session Lobby</Text>
+            <Text style={styles.continueButtonText}>{t('eatTogether.goToLobby')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -127,14 +129,14 @@ export function CreateSessionScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Create Eat Together Session</Text>
+        <Text style={styles.title}>{t('eatTogether.createSessionTitle')}</Text>
         <Text style={styles.subtitle}>
-          Invite friends and find restaurants that work for everyone
+          {t('eatTogether.createSessionSubtitle')}
         </Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location Mode</Text>
-          <Text style={styles.sectionHint}>How should we calculate the best location?</Text>
+          <Text style={styles.sectionTitle}>{t('eatTogether.locationMode')}</Text>
+          <Text style={styles.sectionHint}>{t('eatTogether.locationModeDescription')}</Text>
 
           <TouchableOpacity
             style={[
@@ -147,8 +149,8 @@ export function CreateSessionScreen() {
               {locationMode === 'host_location' && <View style={styles.radioSelected} />}
             </View>
             <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>My Location (Default)</Text>
-              <Text style={styles.optionDescription}>Find restaurants near you</Text>
+              <Text style={styles.optionTitle}>{t('eatTogether.myLocation')}</Text>
+              <Text style={styles.optionDescription}>{t('eatTogether.myLocationDescription')}</Text>
             </View>
           </TouchableOpacity>
 
@@ -160,8 +162,8 @@ export function CreateSessionScreen() {
               {locationMode === 'midpoint' && <View style={styles.radioSelected} />}
             </View>
             <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Midpoint</Text>
-              <Text style={styles.optionDescription}>Average of everyone's location</Text>
+              <Text style={styles.optionTitle}>{t('eatTogether.midpoint')}</Text>
+              <Text style={styles.optionDescription}>{t('eatTogether.midpointDescription')}</Text>
             </View>
           </TouchableOpacity>
 
@@ -173,9 +175,9 @@ export function CreateSessionScreen() {
               {locationMode === 'max_radius' && <View style={styles.radioSelected} />}
             </View>
             <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Maximum Reach</Text>
+              <Text style={styles.optionTitle}>{t('eatTogether.maxReach')}</Text>
               <Text style={styles.optionDescription}>
-                Ensure restaurants are reachable by everyone
+                {t('eatTogether.maxReachDescription')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -189,7 +191,7 @@ export function CreateSessionScreen() {
           {loading ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.createButtonText}>Create Session</Text>
+            <Text style={styles.createButtonText}>{t('eatTogether.createSession')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

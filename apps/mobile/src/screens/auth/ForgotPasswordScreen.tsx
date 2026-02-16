@@ -14,12 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
 
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 export function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const { resetPassword, isLoading, error, clearError } = useAuthStore();
 
@@ -28,13 +30,13 @@ export function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      Alert.alert(t('common.error'), t('forgotPassword.emailRequired'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert(t('common.error'), t('forgotPassword.invalidEmail'));
       return;
     }
 
@@ -42,7 +44,7 @@ export function ForgotPasswordScreen() {
     const { error } = await resetPassword(email.trim());
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
     } else {
       setEmailSent(true);
     }
@@ -57,21 +59,20 @@ export function ForgotPasswordScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.successContainer}>
           <Text style={styles.successIcon}>📧</Text>
-          <Text style={styles.successTitle}>Check Your Email</Text>
+          <Text style={styles.successTitle}>{t('forgotPassword.checkEmailTitle')}</Text>
           <Text style={styles.successText}>
-            We've sent a password reset link to{'\n'}
+            {t('forgotPassword.checkEmailMessage', { email })}
+            {'\n'}
             <Text style={styles.emailHighlight}>{email}</Text>
           </Text>
-          <Text style={styles.successHint}>
-            Didn't receive the email? Check your spam folder or try again.
-          </Text>
+          <Text style={styles.successHint}>{t('forgotPassword.didntReceive')}</Text>
 
           <TouchableOpacity style={styles.backToLoginButton} onPress={handleBackToLogin}>
-            <Text style={styles.backToLoginButtonText}>Back to Sign In</Text>
+            <Text style={styles.backToLoginButtonText}>{t('forgotPassword.backToSignIn')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.resendButton} onPress={() => setEmailSent(false)}>
-            <Text style={styles.resendButtonText}>Try a different email</Text>
+            <Text style={styles.resendButtonText}>{t('forgotPassword.tryDifferentEmail')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -102,17 +103,15 @@ export function ForgotPasswordScreen() {
 
           {/* Form */}
           <View style={styles.formContainer}>
-            <Text style={styles.title}>Forgot Password?</Text>
-            <Text style={styles.subtitle}>
-              No worries! Enter your email address and we'll send you a link to reset your password.
-            </Text>
+            <Text style={styles.title}>{t('forgotPassword.title')}</Text>
+            <Text style={styles.subtitle}>{t('forgotPassword.subtitle')}</Text>
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>{t('common.emailAddress')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder={t('forgotPassword.emailPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={email}
                 onChangeText={setEmail}
@@ -139,16 +138,16 @@ export function ForgotPasswordScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.resetButtonText}>Send Reset Link</Text>
+                <Text style={styles.resetButtonText}>{t('forgotPassword.sendResetLink')}</Text>
               )}
             </TouchableOpacity>
           </View>
 
           {/* Back to Login */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Remember your password? </Text>
+            <Text style={styles.loginText}>{t('forgotPassword.rememberPassword')} </Text>
             <TouchableOpacity onPress={handleBackToLogin}>
-              <Text style={styles.loginLink}>Sign In</Text>
+              <Text style={styles.loginLink}>{t('auth.signIn')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

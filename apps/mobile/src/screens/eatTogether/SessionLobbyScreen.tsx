@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import {
   getSessionDetails,
@@ -35,6 +36,7 @@ type SessionLobbyScreenRouteParams = {
  * Shows live member list, allows host to trigger recommendations
  */
 export function SessionLobbyScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<SessionLobbyScreenRouteParams, 'SessionLobby'>>();
   const { sessionId, isHost } = route.params;
@@ -125,7 +127,7 @@ export function SessionLobbyScreen() {
 
     const activeMembers = members.filter(m => !m.left_at);
     if (activeMembers.length < 2) {
-      Alert.alert('Not Enough Members', 'You need at least 2 members to generate recommendations.');
+      Alert.alert(t('sessionLobby.notEnoughMembers'), t('sessionLobby.needTwoMembers'));
       return;
     }
 
@@ -134,7 +136,7 @@ export function SessionLobbyScreen() {
       const { data, error } = await generateRecommendations(sessionId, locationMode, 5);
 
       if (error) {
-        Alert.alert('Error', error.message || 'Failed to generate recommendations');
+        Alert.alert(t('common.error'), error.message || t('common.somethingWrong'));
         return;
       }
 
@@ -142,13 +144,13 @@ export function SessionLobbyScreen() {
         navigation.navigate('Recommendations' as any, { sessionId });
       } else {
         Alert.alert(
-          'No Restaurants Found',
-          "No restaurants found matching all members' dietary requirements in the area."
+          t('sessionLobby.noRestaurants'),
+          t('sessionLobby.noRestaurantsMessage')
         );
       }
     } catch (error) {
       console.error('[SessionLobby] Error generating recommendations:', error);
-      Alert.alert('Error', 'Failed to generate recommendations');
+      Alert.alert(t('common.error'), t('common.somethingWrong'));
     } finally {
       setGenerating(false);
     }
@@ -158,14 +160,14 @@ export function SessionLobbyScreen() {
     if (!user) return;
 
     Alert.alert(
-      isHost ? 'Close Session?' : 'Leave Session?',
+      isHost ? t('sessionLobby.closeTitle') : t('sessionLobby.leaveTitle'),
       isHost
-        ? 'This will close the session for all members.'
-        : 'Are you sure you want to leave this session?',
+        ? t('sessionLobby.closeMessage')
+        : t('sessionLobby.leaveMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: isHost ? 'Close' : 'Leave',
+          text: isHost ? t('sessionLobby.close') : t('sessionLobby.leave'),
           style: 'destructive',
           onPress: async () => {
             await leaveSession(sessionId, user.id);
@@ -184,7 +186,7 @@ export function SessionLobbyScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color="#FF9800" />
-          <Text style={styles.loadingText}>Loading session...</Text>
+          <Text style={styles.loadingText}>{t('sessionLobby.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -194,9 +196,9 @@ export function SessionLobbyScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.errorText}>Session not found</Text>
+          <Text style={styles.errorText}>{t('sessionLobby.notFound')}</Text>
           <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-            <Text style={styles.buttonText}>Go Back</Text>
+            <Text style={styles.buttonText}>{t('common.goBack')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -211,12 +213,12 @@ export function SessionLobbyScreen() {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Eat Together</Text>
-          <Text style={styles.sessionCode}>Code: {session.session_code}</Text>
+          <Text style={styles.headerTitle}>{t('sessionLobby.title')}</Text>
+          <Text style={styles.sessionCode}>{t('sessionLobby.code', { code: session.session_code })}</Text>
         </View>
         {isHost && (
           <TouchableOpacity onPress={handleLeaveSession} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>{t('sessionLobby.close')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -225,7 +227,7 @@ export function SessionLobbyScreen() {
         {/* Members Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Members ({activeMembers.length}) • {membersWithLocation.length} with location
+            {t('sessionLobby.membersCount', { count: activeMembers.length, withLocation: membersWithLocation.length })}
           </Text>
           <View style={styles.membersList}>
             {activeMembers.map(member => (
@@ -238,10 +240,10 @@ export function SessionLobbyScreen() {
                 <View style={styles.memberInfo}>
                   <Text style={styles.memberName}>
                     {member.profile_name}
-                    {member.is_host && ' (Host)'}
+                    {member.is_host && ` ${t('sessionLobby.host')}`}
                   </Text>
                   <Text style={styles.memberStatus}>
-                    {member.current_location ? '📍 Location shared' : '⏳ Waiting for location'}
+                    {member.current_location ? t('sessionLobby.locationShared') : t('sessionLobby.waitingLocation')}
                   </Text>
                 </View>
               </View>
@@ -252,12 +254,12 @@ export function SessionLobbyScreen() {
         {/* Location Mode (Host Only) */}
         {isHost && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Location Calculation</Text>
+            <Text style={styles.sectionTitle}>{t('sessionLobby.locationCalculation')}</Text>
             <View style={styles.locationModes}>
               {[
-                { key: 'host_location', label: 'From My Location', desc: 'Use host location' },
-                { key: 'midpoint', label: 'Midpoint', desc: 'Center of all members' },
-                { key: 'max_radius', label: 'Max Radius', desc: 'Reachable by all' },
+                { key: 'host_location', label: t('eatTogether.myLocation'), desc: t('sessionLobby.hostLocation') },
+                { key: 'midpoint', label: t('eatTogether.midpoint'), desc: t('sessionLobby.midpoint') },
+                { key: 'max_radius', label: t('eatTogether.maxReach'), desc: t('sessionLobby.maxRadius', { radius: 5 }) },
               ].map(mode => (
                 <TouchableOpacity
                   key={mode.key}
@@ -284,8 +286,8 @@ export function SessionLobbyScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
             {isHost
-              ? '💡 When everyone is ready, tap "Get Recommendations" to find restaurants that work for all members.'
-              : '⏳ Waiting for host to find restaurants...'}
+              ? t('sessionLobby.hostInfo')
+              : t('sessionLobby.waitingForMembers')}
           </Text>
         </View>
       </ScrollView>
@@ -297,7 +299,7 @@ export function SessionLobbyScreen() {
             style={[styles.button, styles.leaveButton]}
             onPress={handleLeaveSession}
           >
-            <Text style={styles.buttonText}>Leave Session</Text>
+            <Text style={styles.buttonText}>{t('sessionLobby.leave')}</Text>
           </TouchableOpacity>
         )}
 
@@ -315,7 +317,7 @@ export function SessionLobbyScreen() {
               <ActivityIndicator color="#FFF" />
             ) : (
               <Text style={styles.buttonText}>
-                Get Recommendations ({activeMembers.length} members)
+                {t('sessionLobby.generateRecommendations')}
               </Text>
             )}
           </TouchableOpacity>

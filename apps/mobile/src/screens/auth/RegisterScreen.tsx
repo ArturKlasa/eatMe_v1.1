@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -20,6 +21,7 @@ import type { AuthStackParamList } from '../../types/navigation';
 type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const { signUp, isLoading, error, clearError } = useAuthStore();
 
@@ -32,16 +34,16 @@ export function RegisterScreen() {
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
-      return 'Password must be at least 8 characters';
+      return t('register.passwordTooShort');
     }
     if (!/[A-Z]/.test(pwd)) {
-      return 'Password must contain at least one uppercase letter';
+      return t('register.passwordNeedsUppercase');
     }
     if (!/[a-z]/.test(pwd)) {
-      return 'Password must contain at least one lowercase letter';
+      return t('register.passwordNeedsLowercase');
     }
     if (!/[0-9]/.test(pwd)) {
-      return 'Password must contain at least one number';
+      return t('register.passwordNeedsNumber');
     }
     return null;
   };
@@ -49,28 +51,28 @@ export function RegisterScreen() {
   const handleRegister = async () => {
     // Validate inputs
     if (!profileName.trim()) {
-      Alert.alert('Error', 'Please enter a profile name');
+      Alert.alert(t('auth.error'), t('register.profileNameRequired'));
       return;
     }
 
     if (profileName.trim().length < 3) {
-      Alert.alert('Error', 'Profile name must be at least 3 characters');
+      Alert.alert(t('auth.error'), t('register.profileNameTooShort'));
       return;
     }
 
     if (profileName.trim().length > 12) {
-      Alert.alert('Error', 'Profile name must be 12 characters or less');
+      Alert.alert(t('auth.error'), t('register.profileNameTooLong'));
       return;
     }
 
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert(t('auth.error'), t('register.emailRequired'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert(t('auth.error'), t('register.emailInvalid'));
       return;
     }
 
@@ -81,12 +83,12 @@ export function RegisterScreen() {
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('auth.error'), t('register.passwordMismatch'));
       return;
     }
 
     if (!agreeToTerms) {
-      Alert.alert('Error', 'Please agree to the Terms of Service and Privacy Policy');
+      Alert.alert(t('auth.error'), t('register.termsRequired'));
       return;
     }
 
@@ -96,18 +98,14 @@ export function RegisterScreen() {
     });
 
     if (error) {
-      Alert.alert('Registration Failed', error.message);
+      Alert.alert(t('register.registrationFailed'), error.message);
     } else if (needsEmailVerification) {
-      Alert.alert(
-        'Verify Your Email',
-        "We've sent a verification link to your email address. Please check your inbox and verify your email to continue.",
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]
-      );
+      Alert.alert(t('register.verifyEmail'), t('register.verifyEmailMessage'), [
+        {
+          text: t('common.ok'),
+          onPress: () => navigation.navigate('Login'),
+        },
+      ]);
     }
   };
 
@@ -128,9 +126,10 @@ export function RegisterScreen() {
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
 
-    if (score <= 2) return { strength: 'Weak', color: '#EF4444', width: '33%' };
-    if (score <= 4) return { strength: 'Medium', color: '#F59E0B', width: '66%' };
-    return { strength: 'Strong', color: '#10B981', width: '100%' };
+    if (score <= 2) return { strength: t('register.passwordWeak'), color: '#EF4444', width: '33%' };
+    if (score <= 4)
+      return { strength: t('register.passwordMedium'), color: '#F59E0B', width: '66%' };
+    return { strength: t('register.passwordStrong'), color: '#10B981', width: '100%' };
   };
 
   const passwordStrength = getPasswordStrength();
@@ -148,20 +147,20 @@ export function RegisterScreen() {
           {/* Header */}
           <View style={styles.headerContainer}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backButtonText}>← Back</Text>
+              <Text style={styles.backButtonText}>← {t('common.back')}</Text>
             </TouchableOpacity>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join EatMe and discover amazing food</Text>
+            <Text style={styles.title}>{t('register.title')}</Text>
+            <Text style={styles.subtitle}>{t('register.subtitle')}</Text>
           </View>
 
           {/* Registration Form */}
           <View style={styles.formContainer}>
             {/* Name Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Profile Name</Text>
+              <Text style={styles.label}>{t('register.profileName')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Choose a display name"
+                placeholder={t('register.profileNamePlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={profileName}
                 onChangeText={setProfileName}
@@ -169,17 +168,15 @@ export function RegisterScreen() {
                 maxLength={12}
                 editable={!isLoading}
               />
-              <Text style={styles.inputHint}>
-                This is how you can share profile with others in the app
-              </Text>
+              <Text style={styles.inputHint}>{t('register.profileNameHint')}</Text>
             </View>
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{t('auth.email')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder={t('register.emailPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={email}
                 onChangeText={setEmail}
@@ -192,11 +189,11 @@ export function RegisterScreen() {
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>{t('auth.password')}</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Create a password"
+                  placeholder={t('register.passwordPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   value={password}
                   onChangeText={setPassword}
@@ -232,20 +229,18 @@ export function RegisterScreen() {
                 </View>
               )}
 
-              <Text style={styles.passwordHint}>
-                Min 8 characters, uppercase, lowercase, and number
-              </Text>
+              <Text style={styles.passwordHint}>{t('register.passwordRequirements')}</Text>
             </View>
 
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password</Text>
+              <Text style={styles.label}>{t('auth.confirmPassword')}</Text>
               <TextInput
                 style={[
                   styles.input,
                   confirmPassword.length > 0 && confirmPassword !== password && styles.inputError,
                 ]}
-                placeholder="Confirm your password"
+                placeholder={t('register.confirmPasswordPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -254,7 +249,7 @@ export function RegisterScreen() {
                 editable={!isLoading}
               />
               {confirmPassword.length > 0 && confirmPassword !== password && (
-                <Text style={styles.errorHint}>Passwords do not match</Text>
+                <Text style={styles.errorHint}>{t('register.passwordMismatch')}</Text>
               )}
             </View>
 
@@ -267,8 +262,10 @@ export function RegisterScreen() {
                 {agreeToTerms && <Text style={styles.checkmark}>✓</Text>}
               </View>
               <Text style={styles.termsText}>
-                I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
+                {t('register.agreeToTerms')}{' '}
+                <Text style={styles.termsLink}>{t('register.termsOfService')}</Text>{' '}
+                {t('common.and')}{' '}
+                <Text style={styles.termsLink}>{t('register.privacyPolicy')}</Text>
               </Text>
             </TouchableOpacity>
 
@@ -288,16 +285,16 @@ export function RegisterScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.registerButtonText}>Create Account</Text>
+                <Text style={styles.registerButtonText}>{t('register.createAccount')}</Text>
               )}
             </TouchableOpacity>
           </View>
 
           {/* Login Link */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account? </Text>
+            <Text style={styles.loginText}>{t('register.alreadyHaveAccount')} </Text>
             <TouchableOpacity onPress={handleLogin}>
-              <Text style={styles.loginLink}>Sign In</Text>
+              <Text style={styles.loginLink}>{t('register.signIn')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

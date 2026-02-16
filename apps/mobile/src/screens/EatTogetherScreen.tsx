@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { EatTogetherScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
@@ -20,6 +21,7 @@ import { useAuthStore } from '../stores/authStore';
  * Allows users to create or join Eat Together sessions.
  */
 export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
   const user = useAuthStore(state => state.user);
@@ -59,15 +61,6 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
     scrollOffsetY.current = event.nativeEvent.contentOffset.y;
   };
 
-  const comingSoonFeatures = [
-    '✅ Find restaurants for groups (LIVE)',
-    '✅ Democratic voting system (LIVE)',
-    '✅ Location-based recommendations (LIVE)',
-    'Friend system and favorites',
-    'Split the bill with friends',
-    'Chat and coordination features',
-  ];
-
   return (
     <View style={modalScreenStyles.container}>
       <TouchableOpacity
@@ -87,8 +80,8 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
         <View style={modalScreenStyles.dragHandle} />
 
         <View style={modalScreenStyles.header}>
-          <Text style={modalScreenStyles.title}>Eat Together</Text>
-          <Text style={modalScreenStyles.subtitle}>Group Dining Made Easy</Text>
+          <Text style={modalScreenStyles.title}>{t('eatTogether.title')}</Text>
+          <Text style={modalScreenStyles.subtitle}>{t('eatTogether.subtitle')}</Text>
         </View>
 
         <ScrollView
@@ -105,10 +98,8 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
                   onPress={() => navigation.navigate('CreateSession' as any)}
                 >
                   <Text style={styles.actionIcon}>🎯</Text>
-                  <Text style={styles.actionTitle}>Start Eat Together</Text>
-                  <Text style={styles.actionDescription}>
-                    Create a session and invite friends to find the perfect restaurant for everyone
-                  </Text>
+                  <Text style={styles.actionTitle}>{t('eatTogether.startSession')}</Text>
+                  <Text style={styles.actionDescription}>{t('eatTogether.startDescription')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -116,23 +107,23 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
                   onPress={() => navigation.navigate('JoinSession' as any)}
                 >
                   <Text style={styles.actionIcon}>🔗</Text>
-                  <Text style={styles.actionTitle}>Join Session</Text>
-                  <Text style={styles.actionDescription}>
-                    Enter a code or scan QR to join an existing session
-                  </Text>
+                  <Text style={styles.actionTitle}>{t('eatTogether.joinSession')}</Text>
+                  <Text style={styles.actionDescription}>{t('eatTogether.joinDescription')}</Text>
                 </TouchableOpacity>
               </View>
 
               {/* How It Works */}
               <View style={modalScreenStyles.section}>
-                <Text style={modalScreenStyles.sectionTitle}>How It Works</Text>
+                <Text style={modalScreenStyles.sectionTitle}>
+                  {t('eatTogether.howItWorksTitle')}
+                </Text>
                 <View style={styles.stepsList}>
                   {[
-                    { icon: '1️⃣', text: 'Create or join a session with friends' },
-                    { icon: '2️⃣', text: 'Everyone shares their location and dietary preferences' },
-                    { icon: '3️⃣', text: 'Get top 5 restaurants that work for ALL members' },
-                    { icon: '4️⃣', text: 'Vote democratically for your favorite' },
-                    { icon: '5️⃣', text: 'See the winner and navigate together!' },
+                    { icon: '1️⃣', text: t('eatTogether.step1') },
+                    { icon: '2️⃣', text: t('eatTogether.step2') },
+                    { icon: '3️⃣', text: t('eatTogether.step3') },
+                    { icon: '4️⃣', text: t('eatTogether.step4') },
+                    { icon: '5️⃣', text: t('eatTogether.step5') },
                   ].map((step, index) => (
                     <View key={index} style={styles.stepItem}>
                       <Text style={styles.stepIcon}>{step.icon}</Text>
@@ -146,18 +137,25 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
             /* Not Signed In */
             <View style={modalScreenStyles.emptyState}>
               <Text style={modalScreenStyles.emptyIcon}>🔒</Text>
-              <Text style={modalScreenStyles.emptyTitle}>Sign In Required</Text>
+              <Text style={modalScreenStyles.emptyTitle}>{t('common.signInRequired')}</Text>
               <Text style={modalScreenStyles.emptyDescription}>
-                Create an account to use Eat Together and find restaurants with friends.
+                {t('eatTogether.signInMessage')}
               </Text>
             </View>
           )}
 
           {/* Planned Features */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>Features</Text>
+            <Text style={modalScreenStyles.sectionTitle}>{t('eatTogether.features')}</Text>
             <View style={modalScreenStyles.sectionContent}>
-              {comingSoonFeatures.map((feature, index) => (
+              {[
+                t('eatTogether.feature1'),
+                t('eatTogether.feature2'),
+                t('eatTogether.feature3'),
+                t('eatTogether.feature4'),
+                t('eatTogether.feature5'),
+                t('eatTogether.feature6'),
+              ].map((feature, index) => (
                 <View key={index} style={modalScreenStyles.featureItem}>
                   <Text style={modalScreenStyles.featureBullet}>•</Text>
                   <Text style={modalScreenStyles.featureText}>{feature}</Text>
@@ -168,25 +166,23 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
 
           {/* Info Section */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>How It Will Work</Text>
+            <Text style={modalScreenStyles.sectionTitle}>{t('eatTogether.futureTitle')}</Text>
             <View style={modalScreenStyles.sectionContent}>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>1.</Text>
-                <Text style={modalScreenStyles.featureText}>Create or join a dining group</Text>
+                <Text style={modalScreenStyles.featureText}>{t('eatTogether.future1')}</Text>
               </View>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>2.</Text>
-                <Text style={modalScreenStyles.featureText}>Share preferences and suggestions</Text>
+                <Text style={modalScreenStyles.featureText}>{t('eatTogether.future2')}</Text>
               </View>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>3.</Text>
-                <Text style={modalScreenStyles.featureText}>Vote on restaurants together</Text>
+                <Text style={modalScreenStyles.featureText}>{t('eatTogether.future3')}</Text>
               </View>
               <View style={modalScreenStyles.featureItem}>
                 <Text style={modalScreenStyles.featureBullet}>4.</Text>
-                <Text style={modalScreenStyles.featureText}>
-                  Get personalized group recommendations
-                </Text>
+                <Text style={modalScreenStyles.featureText}>{t('eatTogether.future4')}</Text>
               </View>
             </View>
           </View>

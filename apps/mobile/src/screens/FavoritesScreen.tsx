@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, PanResponder, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { FavoritesScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 
@@ -13,6 +14,7 @@ import { modalScreenStyles } from '@/styles';
  * Supports swipe-down gesture to close.
  */
 export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
 
@@ -67,11 +69,11 @@ export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
   };
 
   const comingSoonFeatures = [
-    'Favorite restaurants list',
-    'Liked dishes collection',
-    'Personal taste preferences',
-    'Quick access from map',
-    'Share favorites with friends',
+    t('favorites.feature1'),
+    t('favorites.feature2'),
+    t('favorites.feature3'),
+    t('favorites.feature4'),
+    t('favorites.feature5'),
   ];
 
   return (
@@ -90,8 +92,8 @@ export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
 
         {/* Header */}
         <View style={modalScreenStyles.header}>
-          <Text style={modalScreenStyles.title}>Favorites</Text>
-          <Text style={modalScreenStyles.subtitle}>Your Saved Places</Text>
+          <Text style={modalScreenStyles.title}>{t('favorites.title')}</Text>
+          <Text style={modalScreenStyles.subtitle}>{t('favorites.subtitle')}</Text>
         </View>
 
         {/* Content */}
@@ -103,15 +105,13 @@ export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
           {/* Empty State */}
           <View style={modalScreenStyles.emptyState}>
             <Text style={modalScreenStyles.emptyIcon}>❤️</Text>
-            <Text style={modalScreenStyles.emptyTitle}>No Favorites Yet</Text>
-            <Text style={modalScreenStyles.emptyDescription}>
-              Start swiping on dishes and liking restaurants to build your personal collection!
-            </Text>
+            <Text style={modalScreenStyles.emptyTitle}>{t('favorites.empty')}</Text>
+            <Text style={modalScreenStyles.emptyDescription}>{t('favorites.emptyMessage')}</Text>
           </View>
 
           {/* Coming Soon Features */}
           <View style={modalScreenStyles.featuresContainer}>
-            <Text style={modalScreenStyles.featuresTitle}>Coming Soon:</Text>
+            <Text style={modalScreenStyles.featuresTitle}>{t('favorites.comingSoonTitle')}</Text>
             {comingSoonFeatures.map((feature, index) => (
               <Text key={index} style={modalScreenStyles.featureItem}>
                 • {feature}

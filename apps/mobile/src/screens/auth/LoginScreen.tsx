@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
 import Svg, { Path, G } from 'react-native-svg';
@@ -53,6 +54,7 @@ const FacebookIcon = () => (
 );
 
 export function LoginScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { signIn, signInWithOAuth, isLoading, error, clearError } = useAuthStore();
 
@@ -63,7 +65,7 @@ export function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert(t('common.error'), t('login.enterCredentials'));
       return;
     }
 
@@ -71,7 +73,7 @@ export function LoginScreen() {
     const { error } = await signIn(email.trim(), password);
 
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      Alert.alert(t('login.failed'), error.message);
     }
   };
 
@@ -85,10 +87,7 @@ export function LoginScreen() {
 
     if (error) {
       if (error.message !== 'OAuth cancelled') {
-        Alert.alert(
-          'Authentication Failed',
-          `Failed to sign in with ${provider === 'google' ? 'Google' : 'Facebook'}. ${error.message}`
-        );
+        Alert.alert(t('login.authFailed'), `${t('login.oauthError')} ${error.message}`);
       }
     }
   };
@@ -116,18 +115,18 @@ export function LoginScreen() {
           {/* Logo/Brand */}
           <View style={styles.headerContainer}>
             <Text style={styles.logo}>🍽️</Text>
-            <Text style={styles.title}>EatMe</Text>
-            <Text style={styles.subtitle}>Discover your next favorite dish</Text>
+            <Text style={styles.title}>{t('app.name')}</Text>
+            <Text style={styles.subtitle}>{t('app.tagline')}</Text>
           </View>
 
           {/* Login Form */}
           <View style={styles.formContainer}>
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{t('auth.email')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder={t('login.emailPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 value={email}
                 onChangeText={setEmail}
@@ -140,11 +139,11 @@ export function LoginScreen() {
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>{t('auth.password')}</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   value={password}
                   onChangeText={setPassword}
@@ -163,7 +162,7 @@ export function LoginScreen() {
 
             {/* Forgot Password */}
             <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>{t('login.forgotPassword')}</Text>
             </TouchableOpacity>
 
             {/* Error Message */}
@@ -182,14 +181,14 @@ export function LoginScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
+                <Text style={styles.loginButtonText}>{t('login.signIn')}</Text>
               )}
             </TouchableOpacity>
 
             {/* Divider */}
             <View style={styles.dividerContainer}>
               <View style={styles.divider} />
-              <Text style={styles.dividerText}>or</Text>
+              <Text style={styles.dividerText}>{t('common.or')}</Text>
               <View style={styles.divider} />
             </View>
 
@@ -204,7 +203,7 @@ export function LoginScreen() {
               ) : (
                 <>
                   <GoogleIcon />
-                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  <Text style={styles.googleButtonText}>{t('login.continueWithGoogle')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -219,7 +218,7 @@ export function LoginScreen() {
               ) : (
                 <>
                   <FacebookIcon />
-                  <Text style={styles.facebookButtonText}>Continue with Facebook</Text>
+                  <Text style={styles.facebookButtonText}>{t('login.continueWithFacebook')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -227,9 +226,9 @@ export function LoginScreen() {
 
           {/* Sign Up Link */}
           <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
+            <Text style={styles.signUpText}>{t('login.noAccount')}</Text>
             <TouchableOpacity onPress={handleSignUp}>
-              <Text style={styles.signUpLink}>Sign Up</Text>
+              <Text style={styles.signUpLink}>{t('login.signUp')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

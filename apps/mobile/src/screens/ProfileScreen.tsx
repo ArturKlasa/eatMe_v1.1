@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { ProfileScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
@@ -26,6 +27,8 @@ import { supabase } from '../lib/supabase';
  * Shows user info and sign out option.
  */
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
+  const { t } = useTranslation();
+
   // Use shallow selectors to prevent re-renders
   const user = useAuthStore(state => state.user);
   const signOut = useAuthStore(state => state.signOut);
@@ -116,15 +119,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   };
 
   const handleSignOut = async () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.signOutTitle'), t('profile.signOutMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('profile.signOutButton'),
         style: 'destructive',
         onPress: async () => {
           const { error } = await signOut();
           if (error) {
-            Alert.alert('Error', 'Failed to sign out');
+            Alert.alert(t('common.error'), t('profile.signOutFailed'));
           }
         },
       },
@@ -155,15 +158,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
       summary.push(activeRestrictions.join(', '));
     }
 
-    return summary.length > 0 ? summary : ['No dietary restrictions'];
+    return summary.length > 0 ? summary : [t('profile.noDietRestrictions')];
   };
 
   const comingSoonFeatures = [
-    'Real user authentication',
-    'Personalized recommendations',
-    'Dining history tracking',
-    'Social features & sharing',
-    'Achievement badges',
+    t('profile.comingSoon1'),
+    t('profile.comingSoon2'),
+    t('profile.comingSoon3'),
+    t('profile.comingSoon4'),
+    t('profile.comingSoon5'),
   ];
 
   return (
@@ -185,8 +188,8 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
         <View style={modalScreenStyles.dragHandle} />
 
         <View style={modalScreenStyles.header}>
-          <Text style={modalScreenStyles.title}>Profile</Text>
-          <Text style={modalScreenStyles.subtitle}>Your Food Journey</Text>
+          <Text style={modalScreenStyles.title}>{t('profile.title')}</Text>
+          <Text style={modalScreenStyles.subtitle}>{t('profile.subtitle')}</Text>
         </View>
 
         <ScrollView
@@ -202,20 +205,22 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               </Text>
             </View>
             <Text style={modalScreenStyles.userName}>
-              {user?.user_metadata?.profile_name || user?.user_metadata?.name || 'Food Explorer'}
+              {user?.user_metadata?.profile_name ||
+                user?.user_metadata?.name ||
+                t('profile.defaultName')}
             </Text>
-            <Text style={modalScreenStyles.userSubtitle}>{user?.email || 'Guest'}</Text>
+            <Text style={modalScreenStyles.userSubtitle}>{user?.email || t('profile.guest')}</Text>
 
             {user && (
               <>
                 <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-                  <Text style={styles.editButtonText}>Edit Profile</Text>
+                  <Text style={styles.editButtonText}>{t('profile.editProfile')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.editButton, { marginTop: 8 }]}
                   onPress={() => navigation.navigate('ViewedHistory')}
                 >
-                  <Text style={styles.editButtonText}>Viewed History</Text>
+                  <Text style={styles.editButtonText}>{t('profile.viewedHistory')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -230,7 +235,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
 
           {/* Preferences Section */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>Dietary Preferences</Text>
+            <Text style={modalScreenStyles.sectionTitle}>{t('profile.dietaryPreferences')}</Text>
             <View style={modalScreenStyles.sectionContent}>
               {getFilterSummary().map((pref, index) => (
                 <Text key={index} style={modalScreenStyles.preferenceText}>
@@ -242,7 +247,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
 
           {/* Stats Section */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>Your Activity</Text>
+            <Text style={modalScreenStyles.sectionTitle}>{t('profile.yourActivity')}</Text>
             {loadingStats ? (
               <ActivityIndicator color="#FF9800" />
             ) : (

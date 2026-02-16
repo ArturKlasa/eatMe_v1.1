@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useRestaurants } from '../hooks';
 
 /**
@@ -7,6 +8,7 @@ import { useRestaurants } from '../hooks';
  * This can be used to test data fetching before integrating with the swipe interface
  */
 export function SupabaseTestScreen() {
+  const { t } = useTranslation();
   const { restaurants, loading, error, refetch } = useRestaurants({ limit: 10 });
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export function SupabaseTestScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={styles.loadingText}>Loading restaurants...</Text>
+        <Text style={styles.loadingText}>{t('supabaseTest.loading')}</Text>
       </View>
     );
   }
@@ -25,8 +27,8 @@ export function SupabaseTestScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>❌ Error: {error.message}</Text>
-        <Text style={styles.errorHint}>Check your Supabase credentials in .env</Text>
+        <Text style={styles.errorText}>{t('supabaseTest.error', { error: error.message })}</Text>
+        <Text style={styles.errorHint}>{t('supabaseTest.checkCredentials')}</Text>
       </View>
     );
   }
@@ -34,9 +36,9 @@ export function SupabaseTestScreen() {
   if (restaurants.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>No restaurants found</Text>
+        <Text style={styles.emptyText}>{t('supabaseTest.noRestaurants')}</Text>
         <Text style={styles.emptyHint}>
-          Make sure you have restaurants in your Supabase database
+          {t('supabaseTest.makeUserHaveRestaurants')}
         </Text>
       </View>
     );
@@ -44,7 +46,7 @@ export function SupabaseTestScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>✅ Supabase Connected! {restaurants.length} restaurants</Text>
+      <Text style={styles.header}>{t('supabaseTest.connected', { count: restaurants.length })}</Text>
       <FlatList
         data={restaurants}
         keyExtractor={item => item.id}

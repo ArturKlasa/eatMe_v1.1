@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import {
   getSessionRecommendations,
@@ -32,6 +33,7 @@ type RecommendationsScreenRouteParams = {
  * Members vote for their preferred restaurant
  */
 export function RecommendationsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RecommendationsScreenRouteParams, 'Recommendations'>>();
   const { sessionId } = route.params;
@@ -133,7 +135,7 @@ export function RecommendationsScreen() {
       const { error } = await castVote(sessionId, user.id, restaurantId);
 
       if (error) {
-        Alert.alert('Error', error.message || 'Failed to cast vote');
+        Alert.alert(t('common.error'), error.message || t('sessionVoting.voteFailed'));
         return;
       }
 
@@ -141,7 +143,7 @@ export function RecommendationsScreen() {
       await loadVoteResults();
     } catch (error) {
       console.error('[Recommendations] Error voting:', error);
-      Alert.alert('Error', 'Failed to cast vote');
+      Alert.alert(t('common.error'), t('sessionVoting.voteFailed'));
     } finally {
       setVoting(false);
     }
@@ -164,7 +166,7 @@ export function RecommendationsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color="#FF9800" />
-          <Text style={styles.loadingText}>Loading recommendations...</Text>
+          <Text style={styles.loadingText}>{t('sessionVoting.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -174,9 +176,9 @@ export function RecommendationsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <Text style={styles.errorText}>No recommendations found</Text>
+          <Text style={styles.errorText}>{t('sessionVoting.noRecommendations')}</Text>
           <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-            <Text style={styles.buttonText}>Go Back</Text>
+            <Text style={styles.buttonText}>{t('common.goBack')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -191,18 +193,15 @@ export function RecommendationsScreen() {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Vote for Restaurant</Text>
-          <Text style={styles.headerSubtitle}>{totalVotes} votes cast</Text>
+          <Text style={styles.headerTitle}>{t('sessionVoting.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('sessionVoting.votesCast', { count: totalVotes })}</Text>
         </View>
       </View>
 
       {/* Voting Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          🗳️{' '}
-          {myVote
-            ? 'You voted! You can change your vote.'
-            : 'Tap to vote for your favorite restaurant'}
+          {t('sessionVoting.instructions')}
         </Text>
       </View>
 
@@ -232,17 +231,17 @@ export function RecommendationsScreen() {
                 {/* Compatibility Score */}
                 <View style={styles.scoreRow}>
                   <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Match</Text>
+                    <Text style={styles.scoreLabel}>{t('sessionVoting.match')}</Text>
                     <Text style={styles.scoreValue}>{rec.compatibility_score}/100</Text>
                   </View>
                   <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Members</Text>
+                    <Text style={styles.scoreLabel}>{t('sessionVoting.members')}</Text>
                     <Text style={styles.scoreValue}>
                       {rec.members_satisfied}/{rec.total_members}
                     </Text>
                   </View>
                   <View style={styles.scoreItem}>
-                    <Text style={styles.scoreLabel}>Distance</Text>
+                    <Text style={styles.scoreLabel}>{t('sessionVoting.distance')}</Text>
                     <Text style={styles.scoreValue}>{rec.distance_from_center?.toFixed(1)}km</Text>
                   </View>
                 </View>
@@ -258,14 +257,14 @@ export function RecommendationsScreen() {
                       ]}
                     />
                     <Text style={styles.voteBarText}>
-                      {voteCount} vote{voteCount !== 1 ? 's' : ''} ({votePercentage.toFixed(0)}%)
+                      {t('sessionVoting.votes', { count: voteCount, percentage: votePercentage.toFixed(0) })}
                     </Text>
                   </View>
                 )}
 
                 {isMyVote && (
                   <View style={styles.votedBadge}>
-                    <Text style={styles.votedBadgeText}>✓ Your Vote</Text>
+                    <Text style={styles.votedBadgeText}>{t('sessionVoting.yourVote')}</Text>
                   </View>
                 )}
               </View>

@@ -15,6 +15,8 @@ import type { ProfileScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
 import { useFilterStore } from '../stores/filterStore';
+import { useOnboardingStore } from '../stores/onboardingStore';
+import { ProfileCompletionCard } from '../components/ProfileCompletionCard';
 import { supabase } from '../lib/supabase';
 
 /**
@@ -29,6 +31,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const signOut = useAuthStore(state => state.signOut);
   const isLoading = useAuthStore(state => state.isLoading);
   const permanent = useFilterStore(state => state.permanent);
+  const { isCompleted, profileCompletion } = useOnboardingStore();
 
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
@@ -217,6 +220,13 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               </>
             )}
           </View>
+
+          {/* Profile Completion Card */}
+          {user && !isCompleted && (
+            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+              <ProfileCompletionCard onPress={() => navigation.navigate('OnboardingStep1')} />
+            </View>
+          )}
 
           {/* Preferences Section */}
           <View style={modalScreenStyles.section}>

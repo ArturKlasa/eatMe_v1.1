@@ -29,7 +29,9 @@ import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
 import { FloatingMenu } from '../components/FloatingMenu';
 import { RatingFlowModal } from '../components/rating';
+import { ProfileCompletionBanner } from '../components/ProfileCompletionBanner';
 import { useAuthStore } from '../stores/authStore';
+import { useOnboardingStore } from '../stores/onboardingStore';
 import { DishRatingInput, RestaurantFeedbackInput } from '../types/rating';
 
 /**
@@ -70,6 +72,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Auth and session
   const user = useAuthStore(state => state.user);
   const currentSessionId = useSessionStore(state => state.currentSessionId);
+
+  // Onboarding state
+  const { shouldShowPrompt, isCompleted } = useOnboardingStore();
+  const showOnboardingBanner = user && !isCompleted && shouldShowPrompt();
 
   // Session tracking for rating prompts
   const getRecentRestaurantsForRating = useSessionStore(
@@ -716,6 +722,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         getRestaurantDishes={getRestaurantDishes}
         isFirstVisit={checkIsFirstVisit}
       />
+
+      {/* Onboarding Banner - Gentle prompt to complete profile */}
+      {showOnboardingBanner && (
+        <ProfileCompletionBanner onPress={() => rootNavigation.navigate('OnboardingStep1')} />
+      )}
 
       {/* Rating Banner - Only show when user has viewed restaurants */}
       {showRatingBanner && (

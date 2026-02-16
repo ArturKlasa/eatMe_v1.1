@@ -18,16 +18,6 @@ export interface OnboardingFormData {
   favoriteCuisines: string[];
   favoriteDishes: string[];
   spiceTolerance: 'none' | 'mild' | 'medium' | 'spicy' | 'very_spicy';
-
-  // Step 3: Budget & Preferences (optional)
-  priceRange: { min: number; max: number };
-  servicePreferences: {
-    dineIn: boolean;
-    takeout: boolean;
-    delivery: boolean;
-  };
-  mealTimes: string[];
-  diningOccasions: string[];
 }
 
 interface OnboardingState {
@@ -73,7 +63,7 @@ interface OnboardingState {
   reset: () => void;
 }
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 2;
 const STORAGE_KEY = '@eatme_onboarding';
 const PROMPT_COOLDOWN_HOURS = 24; // Show prompt once per day
 
@@ -84,14 +74,6 @@ const defaultFormData: OnboardingFormData = {
   favoriteCuisines: [],
   favoriteDishes: [],
   spiceTolerance: 'medium',
-  priceRange: { min: 10, max: 50 },
-  servicePreferences: {
-    dineIn: true,
-    takeout: true,
-    delivery: true,
-  },
-  mealTimes: [],
-  diningOccasions: [],
 };
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
@@ -232,7 +214,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
     // Optional fields (20 points)
     if (data.allergies.length > 0) score += 5;
-    if (data.priceRange.min !== 10 || data.priceRange.max !== 50) score += 5;
+
     if (data.mealTimes.length > 0) score += 5;
     if (data.diningOccasions.length > 0) score += 5;
 
@@ -245,8 +227,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     if (data.favoriteDishes.length >= 5) points += 10;
     if (data.proteinPreferences.length >= 2) points += 10;
     if (data.allergies.length > 0) points += 5;
-    if (data.mealTimes.length >= 2) points += 5;
-    if (data.diningOccasions.length >= 2) points += 5;
 
     set({
       profileCompletion,

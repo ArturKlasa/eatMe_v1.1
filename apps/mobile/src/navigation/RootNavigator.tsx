@@ -12,6 +12,8 @@ import {
   EatTogetherScreen,
   SettingsScreen,
   SwipeScreen,
+  OnboardingStep1Screen,
+  OnboardingStep2Screen,
 } from '@/screens';
 import { LoginScreen, RegisterScreen, ForgotPasswordScreen } from '@/screens/auth';
 import {
@@ -184,6 +186,24 @@ function MainNavigator() {
           presentation: 'modal',
           gestureEnabled: true,
           cardStyle: { backgroundColor: 'transparent' },
+        }}
+      />
+      <MainStack.Screen
+        name="OnboardingStep1"
+        component={OnboardingStep1Screen}
+        options={{
+          headerShown: true,
+          title: 'Complete Your Profile',
+          headerBackTitle: 'Cancel',
+        }}
+      />
+      <MainStack.Screen
+        name="OnboardingStep2"
+        component={OnboardingStep2Screen}
+        options={{
+          headerShown: true,
+          title: 'Complete Your Profile',
+          headerBackTitle: 'Back',
         }}
       />
     </MainStack.Navigator>

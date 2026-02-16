@@ -33,6 +33,8 @@ export type MainStackParamList = {
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
   SupabaseTest: undefined;
+  OnboardingStep1: undefined;
+  OnboardingStep2: undefined;
 };
 
 // Root Stack Navigator - Contains Auth and Main stacks

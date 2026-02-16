@@ -15,3 +15,6 @@ export * from './eatTogether';
 
 // Auth screens
 export * from './auth';
+
+// Onboarding screens
+export * from './onboarding';

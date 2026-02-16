@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
 import Svg, { Path, G } from 'react-native-svg';
+import { getSupportedLanguages, changeLanguage } from '../../i18n';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -54,7 +55,7 @@ const FacebookIcon = () => (
 );
 
 export function LoginScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { signIn, signInWithOAuth, isLoading, error, clearError } = useAuthStore();
 
@@ -62,6 +63,15 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+
+  const supportedLanguages = getSupportedLanguages();
+  const currentLanguage = i18n.language;
+
+  const handleLanguageChange = async (languageCode: 'en' | 'es' | 'pl') => {
+    await changeLanguage(languageCode);
+    setShowLanguageSelector(false);
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -112,6 +122,38 @@ export function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Language Selector */}
+          <TouchableOpacity
+            style={styles.languageButton}
+            onPress={() => setShowLanguageSelector(!showLanguageSelector)}
+          >
+            <Text style={styles.languageButtonText}>
+              {supportedLanguages.find(lang => lang.code === currentLanguage)?.flag} {supportedLanguages.find(lang => lang.code === currentLanguage)?.name}
+            </Text>
+          </TouchableOpacity>
+
+          {showLanguageSelector && (
+            <View style={styles.languagePicker}>
+              {supportedLanguages.map(lang => (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.languageOption,
+                    currentLanguage === lang.code && styles.languageOptionActive,
+                  ]}
+                  onPress={() => handleLanguageChange(lang.code as 'en' | 'es' | 'pl')}
+                >
+                  <Text style={styles.languageOptionText}>
+                    {lang.flag} {lang.name}
+                  </Text>
+                  {currentLanguage === lang.code && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           {/* Logo/Brand */}
           <View style={styles.headerContainer}>
             <Text style={styles.logo}>🍽️</Text>
@@ -423,5 +465,45 @@ const styles = StyleSheet.create({
     color: '#FF9800', // accent
     fontSize: 14,
     fontWeight: '600',
+  },
+  languageButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  languageButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  languagePicker: {
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  languageOptionActive: {
+    backgroundColor: '#3A3A3A',
+  },
+  languageOptionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  checkmark: {
+    color: '#FF9800',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

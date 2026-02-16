@@ -11,3 +11,4 @@ export * from './common';
 export { DrawerFilters } from './DrawerFilters';
 export { FilterFAB } from './FilterFAB';
 export { FloatingMenu } from './FloatingMenu';
+export { LanguageSelector } from './LanguageSelector';

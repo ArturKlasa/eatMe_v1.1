@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage, getSupportedLanguages, getCurrentLanguage } from '../i18n';
 import { colors, typography, spacing, borderRadius } from '../styles/theme';
@@ -24,12 +24,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onLanguageCh
     try {
       await changeLanguage(languageCode as 'en' | 'es' | 'pl');
       onLanguageChange?.();
-      Alert.alert(
-        t('common.success'),
-        t('settings.language') + ' ' + t('common.saved').toLowerCase()
-      );
     } catch (error) {
-      Alert.alert(t('common.error'), t('errors.unknownError'));
+      console.error('[LanguageSelector] Failed to change language:', error);
     }
   };
 

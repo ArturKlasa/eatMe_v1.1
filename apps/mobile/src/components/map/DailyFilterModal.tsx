@@ -119,12 +119,12 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                 <View style={modals.priceSliderLabels}>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
                     {daily.priceRange.min === 10
-                      ? `≤${formatCurrency(10)}`
+                      ? `${t('filters.lessThan')} ${formatCurrency(10)}`
                       : formatCurrency(daily.priceRange.min)}
                   </Text>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
                     {daily.priceRange.max === 50
-                      ? `≥${formatCurrency(50)}`
+                      ? `${t('filters.over')} ${formatCurrency(50)}`
                       : formatCurrency(daily.priceRange.max)}
                   </Text>
                 </View>

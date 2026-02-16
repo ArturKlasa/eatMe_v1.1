@@ -65,6 +65,8 @@
   "filters": {
     "dailyFilters": "Codzienne Filtry",
     "priceRange": "Ile chcesz wydać?",
+    "lessThan": "mniej niż",
+    "over": "ponad",
     "cuisine": "Kuchnia",
     "meal": "Posiłek",
     "dietPreferences": "Mięso, ryby, warzywa?",

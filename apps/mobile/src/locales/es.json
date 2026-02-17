@@ -64,8 +64,10 @@
   },
   "filters": {
     "dailyFilters": "Filtros Diarios",
-    "priceRange": "¿Cuánto quieres gastar?",    "lessThan": "menos de",
-    "over": "más de",    "cuisine": "Cocina",
+    "priceRange": "¿Cuánto quieres gastar?",
+    "lessThan": "menos de",
+    "over": "más de",
+    "cuisine": "Cocina",
     "meal": "Comida",
     "dietPreferences": "¿Carne, pescado, verduras?",
     "proteinTypes": {

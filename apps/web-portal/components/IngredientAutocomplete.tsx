@@ -29,7 +29,6 @@ export function IngredientAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Search ingredients when query changes
   useEffect(() => {
     const search = async () => {
       if (query.trim().length < 2) {
@@ -55,7 +54,6 @@ export function IngredientAutocomplete({
     return () => clearTimeout(debounce);
   }, [query, selectedIngredients]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

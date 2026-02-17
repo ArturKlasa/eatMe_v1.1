@@ -21,8 +21,9 @@ interface DrawerFiltersProps {
   onScroll?: (event: any) => void;
 }
 
-// Mock ingredients list (20 items)
-const MOCK_INGREDIENTS = [
+// TODO: Replace with API call to fetch ingredients from Supabase ingredients_master table
+// Common ingredients list for user preference filtering
+const COMMON_INGREDIENTS = [
   'Cilantro',
   'Mushrooms',
   'Onions',
@@ -344,7 +345,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
             <View style={drawerFiltersStyles.modalContent}>
               <ScrollView showsVerticalScrollIndicator={true}>
                 <View style={drawerFiltersStyles.ingredientsList}>
-                  {MOCK_INGREDIENTS.map(ingredient => (
+                  {COMMON_INGREDIENTS.map(ingredient => (
                     <TouchableOpacity
                       key={ingredient}
                       style={drawerFiltersStyles.ingredientListItem}

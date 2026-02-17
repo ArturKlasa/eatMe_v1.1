@@ -5,8 +5,19 @@
  * filters to restaurant/dish data with proper validation and error handling.
  */
 
-import { Restaurant } from '../data/mockRestaurants';
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
+
+// Restaurant type used by filter service
+interface Restaurant {
+  id: string;
+  name: string;
+  cuisine: string;
+  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  rating: number;
+  coordinates: [number, number];
+  address: string;
+  isOpen: boolean;
+}
 import { debugLog } from '../config/environment';
 
 /**

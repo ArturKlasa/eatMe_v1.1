@@ -44,8 +44,6 @@ function ReviewPageContent() {
         }
 
         if (restaurant) {
-          // Has restaurant in database - show database data
-          console.log('[Review] Loaded from database:', restaurant);
           setRestaurantData({
             restaurant_id: restaurant.id,
             basicInfo: {
@@ -70,16 +68,8 @@ function ReviewPageContent() {
             menus: restaurant.menus || [],
             dishes: restaurant.menus?.flatMap((m: any) => m.dishes || []) || [],
           });
-          console.log('[Review] Menus count:', restaurant.menus?.length);
-          console.log(
-            '[Review] Dishes count:',
-            restaurant.menus?.flatMap((m: any) => m.dishes || []).length
-          );
         } else {
-          // No restaurant in database - load from localStorage draft
-          console.log('[Review] No database data, loading from localStorage');
           const savedData = loadRestaurantData(user.id);
-          console.log('[Review] LocalStorage data:', savedData);
           setRestaurantData(savedData);
         }
       } catch (err) {
@@ -96,12 +86,6 @@ function ReviewPageContent() {
   }, [user?.id]);
 
   useEffect(() => {
-    console.log('[Review] Validation check - loading:', loading, 'restaurantData:', restaurantData);
-    if (!loading && restaurantData) {
-      console.log('[Review] Menus:', restaurantData.menus);
-      console.log('[Review] Menus length:', restaurantData.menus?.length);
-    }
-
     if (
       !loading &&
       (!restaurantData || !restaurantData.menus || restaurantData.menus.length === 0)

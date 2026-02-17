@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Basic Info Schema
 export const basicInfoSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
@@ -19,7 +18,6 @@ export const basicInfoSchema = z.object({
   cuisines: z.array(z.string()).min(1, 'Please select at least one cuisine'),
 });
 
-// Operating Hours Schema
 const timeSchema = z.object({
   open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
   close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
@@ -45,7 +43,6 @@ export const operationsSchema = z.object({
   accepts_reservations: z.boolean(),
 });
 
-// Dish Schema
 export const dishSchema = z.object({
   id: z.string().optional(),
   menu_id: z.string().optional(),
@@ -64,18 +61,15 @@ export const dishSchema = z.object({
   is_available: z.boolean().optional(),
 });
 
-// Menu Schema (array of dishes)
 export const menuSchema = z.object({
   dishes: z.array(dishSchema).min(1, 'Please add at least one dish'),
 });
 
-// Full Restaurant Data Schema
 export const restaurantDataSchema = z.object({
   restaurant: basicInfoSchema.merge(operationsSchema),
   dishes: z.array(dishSchema).min(1, 'Please add at least one dish'),
 });
 
-// Export types inferred from schemas
 export type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
 export type OperationsFormData = z.infer<typeof operationsSchema>;
 export type DishFormData = z.infer<typeof dishSchema>;

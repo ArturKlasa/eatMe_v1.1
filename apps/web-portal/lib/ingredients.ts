@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 
-// Types
 export interface CanonicalIngredient {
   id: string;
   canonical_name: string;
@@ -45,7 +44,6 @@ export async function searchIngredients(query: string, limit = 10) {
     return { data: [], error: null };
   }
 
-  // Search ingredient aliases by display name
   const { data, error } = await supabase
     .from('ingredient_aliases')
     .select(

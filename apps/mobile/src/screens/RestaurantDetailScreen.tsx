@@ -17,7 +17,6 @@ import {
   Linking,
 } from 'react-native';
 import type { RootStackScreenProps } from '@/types/navigation';
-import { getRestaurantMenu, type MenuItem } from '../data/mockRestaurantMenus';
 import { supabase } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { spacing } from '@/styles/theme';

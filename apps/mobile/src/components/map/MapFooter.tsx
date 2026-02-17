@@ -2,13 +2,21 @@
  * Map Footer Component
  *
  * Scrollable list of recommended dishes based on user preferences
- * Uses mock data for now, will be connected to database in the future
  */
 
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { mapFooterStyles } from '@/styles';
-import { Dish } from '@/data/mockDishes';
+
+// Dish type from mobile hooks
+interface Dish {
+  id: string;
+  name: string;
+  restaurantName: string;
+  price: number;
+  priceRange: string;
+  imageUrl?: string;
+}
 
 interface MapFooterProps {
   recommendedDishes: Dish[];

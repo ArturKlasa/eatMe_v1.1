@@ -7,8 +7,15 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { PointAnnotation } from '@rnmapbox/maps';
-import { Restaurant } from '../../data/mockRestaurants';
 import { commonStyles, theme } from '@/styles';
+
+// Restaurant type from mobile hooks
+interface Restaurant {
+  id: string;
+  name: string;
+  coordinates: [number, number];
+  isOpen: boolean;
+}
 
 interface RestaurantMarkersProps {
   restaurants: Restaurant[];

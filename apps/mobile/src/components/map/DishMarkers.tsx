@@ -5,7 +5,15 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { PointAnnotation } from '@rnmapbox/maps';
-import { Dish } from '../../data/mockDishes';
+
+// Dish type from mobile hooks
+interface Dish {
+  id: string;
+  name: string;
+  coordinates: [number, number];
+  price: number;
+  priceRange: '$' | '$$' | '$$$' | '$$$$';
+}
 
 interface DishMarkersProps {
   dishes: Dish[];

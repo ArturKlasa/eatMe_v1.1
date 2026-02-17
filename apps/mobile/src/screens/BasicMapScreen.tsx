@@ -5,8 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { supabase } from '../lib/supabase';
 import { ENV, debugLog } from '../config/environment';
-import { mockRestaurants, Restaurant } from '../data/mockRestaurants';
-import { mockDishes, Dish } from '../data/mockDishes';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useRestaurants, useAllDishes } from '../hooks';
 import { useFilterStore } from '../stores/filterStore';

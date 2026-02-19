@@ -38,12 +38,35 @@ export function OnboardingStep1Screen() {
   const navigation = useNavigation();
   const { formData, updateFormData, nextStep } = useOnboardingStore();
 
+  // Safety check and debug logging
+  if (!formData) {
+    console.error('[OnboardingStep1] formData is null/undefined');
+    return null;
+  }
+
+  // Additional type validation
+  console.log('[OnboardingStep1] formData:', formData);
+  console.log(
+    '[OnboardingStep1] allergies type:',
+    typeof formData.allergies,
+    'isArray:',
+    Array.isArray(formData.allergies)
+  );
+  console.log('[OnboardingStep1] allergies value:', formData.allergies);
+
+  // Helper to safely get array values
+  const safeArrayValue = (value: any): string[] => {
+    if (Array.isArray(value)) return value;
+    console.warn('[OnboardingStep1] Non-array value detected:', value);
+    return [];
+  };
+
   const handleDietSelect = (diet: 'all' | 'vegetarian' | 'vegan') => {
     updateFormData({ dietType: diet });
   };
 
   const toggleProtein = (protein: string) => {
-    const current = formData.proteinPreferences;
+    const current = safeArrayValue(formData?.proteinPreferences);
     const updated = current.includes(protein)
       ? current.filter(p => p !== protein)
       : [...current, protein];
@@ -51,7 +74,7 @@ export function OnboardingStep1Screen() {
   };
 
   const toggleAllergy = (allergy: string) => {
-    const current = formData.allergies;
+    const current = safeArrayValue(formData?.allergies);
     const updated = current.includes(allergy)
       ? current.filter(a => a !== allergy)
       : [...current, allergy];
@@ -89,7 +112,7 @@ export function OnboardingStep1Screen() {
                 key={diet.value}
                 style={[
                   styles.optionCard,
-                  formData.dietType === diet.value && styles.optionCardSelected,
+                  formData?.dietType === diet.value && styles.optionCardSelected,
                 ]}
                 onPress={() => handleDietSelect(diet.value as any)}
                 activeOpacity={0.7}
@@ -98,7 +121,7 @@ export function OnboardingStep1Screen() {
                 <Text
                   style={[
                     styles.optionLabel,
-                    formData.dietType === diet.value && styles.optionLabelSelected,
+                    formData?.dietType === diet.value && styles.optionLabelSelected,
                   ]}
                 >
                   {t(`onboarding.${diet.key}`)}
@@ -109,7 +132,7 @@ export function OnboardingStep1Screen() {
         </View>
 
         {/* Protein Preferences */}
-        {formData.dietType === 'all' && (
+        {formData?.dietType === 'all' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('onboarding.proteinQuestion')}</Text>
             <Text style={styles.sectionSubtitle}>{t('onboarding.selectAll')}</Text>
@@ -119,7 +142,7 @@ export function OnboardingStep1Screen() {
                   key={protein.value}
                   style={[
                     styles.optionCard,
-                    formData.proteinPreferences.includes(protein.value) &&
+                    safeArrayValue(formData?.proteinPreferences).includes(protein.value) &&
                       styles.optionCardSelected,
                   ]}
                   onPress={() => toggleProtein(protein.value)}
@@ -129,7 +152,7 @@ export function OnboardingStep1Screen() {
                   <Text
                     style={[
                       styles.optionLabel,
-                      formData.proteinPreferences.includes(protein.value) &&
+                      safeArrayValue(formData?.proteinPreferences).includes(protein.value) &&
                         styles.optionLabelSelected,
                     ]}
                   >
@@ -151,7 +174,8 @@ export function OnboardingStep1Screen() {
                 key={allergy.value}
                 style={[
                   styles.optionCard,
-                  formData.allergies.includes(allergy.value) && styles.optionCardSelected,
+                  safeArrayValue(formData?.allergies).includes(allergy.value) &&
+                    styles.optionCardSelected,
                 ]}
                 onPress={() => toggleAllergy(allergy.value)}
                 activeOpacity={0.7}
@@ -160,7 +184,8 @@ export function OnboardingStep1Screen() {
                 <Text
                   style={[
                     styles.optionLabel,
-                    formData.allergies.includes(allergy.value) && styles.optionLabelSelected,
+                    safeArrayValue(formData?.allergies).includes(allergy.value) &&
+                      styles.optionLabelSelected,
                   ]}
                 >
                   {t(`onboarding.${allergy.key}`)}

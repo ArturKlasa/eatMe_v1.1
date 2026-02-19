@@ -49,11 +49,8 @@ const DISH_OPTIONS = [
 ];
 
 const SPICE_LEVELS = [
-  { value: 'none', key: 'spiceNone', emoji: '😌' },
-  { value: 'mild', key: 'spiceMild', emoji: '🌶️' },
-  { value: 'medium', key: 'spiceMedium', emoji: '🌶️🌶️' },
-  { value: 'spicy', key: 'spiceHot', emoji: '🌶️🌶️🌶️' },
-  { value: 'very_spicy', key: 'spiceVeryHot', emoji: '🔥' },
+  { value: 'no', key: 'spiceNo', emoji: '😌' },
+  { value: 'yes', key: 'spiceYes', emoji: '🌶️' },
 ];
 
 export function OnboardingStep2Screen() {
@@ -61,8 +58,21 @@ export function OnboardingStep2Screen() {
   const navigation = useNavigation();
   const { formData, updateFormData, completeOnboarding } = useOnboardingStore();
 
+  // Safety check and debug logging
+  if (!formData) {
+    console.error('[OnboardingStep2] formData is null/undefined');
+    return null;
+  }
+
+  // Helper to safely get array values
+  const safeArrayValue = (value: any): string[] => {
+    if (Array.isArray(value)) return value;
+    console.warn('[OnboardingStep2] Non-array value detected:', value);
+    return [];
+  };
+
   const toggleCuisine = (cuisine: string) => {
-    const current = formData.favoriteCuisines;
+    const current = safeArrayValue(formData?.favoriteCuisines);
     const updated = current.includes(cuisine)
       ? current.filter(c => c !== cuisine)
       : [...current, cuisine];
@@ -70,12 +80,12 @@ export function OnboardingStep2Screen() {
   };
 
   const toggleDish = (dish: string) => {
-    const current = formData.favoriteDishes;
+    const current = safeArrayValue(formData?.favoriteDishes);
     const updated = current.includes(dish) ? current.filter(d => d !== dish) : [...current, dish];
     updateFormData({ favoriteDishes: updated });
   };
 
-  const handleSpiceSelect = (spice: 'none' | 'mild' | 'medium' | 'spicy' | 'very_spicy') => {
+  const handleSpiceSelect = (spice: 'yes' | 'no') => {
     updateFormData({ spiceTolerance: spice });
   };
 
@@ -121,7 +131,8 @@ export function OnboardingStep2Screen() {
                 key={cuisine.value}
                 style={[
                   styles.optionCard,
-                  formData.favoriteCuisines.includes(cuisine.value) && styles.optionCardSelected,
+                  safeArrayValue(formData?.favoriteCuisines).includes(cuisine.value) &&
+                    styles.optionCardSelected,
                 ]}
                 onPress={() => toggleCuisine(cuisine.value)}
                 activeOpacity={0.7}
@@ -130,7 +141,8 @@ export function OnboardingStep2Screen() {
                 <Text
                   style={[
                     styles.optionLabel,
-                    formData.favoriteCuisines.includes(cuisine.value) && styles.optionLabelSelected,
+                    safeArrayValue(formData?.favoriteCuisines).includes(cuisine.value) &&
+                      styles.optionLabelSelected,
                   ]}
                 >
                   {t(`onboarding.${cuisine.key}`)}
@@ -150,7 +162,8 @@ export function OnboardingStep2Screen() {
                 key={dish.value}
                 style={[
                   styles.optionCard,
-                  formData.favoriteDishes.includes(dish.value) && styles.optionCardSelected,
+                  safeArrayValue(formData?.favoriteDishes).includes(dish.value) &&
+                    styles.optionCardSelected,
                 ]}
                 onPress={() => toggleDish(dish.value)}
                 activeOpacity={0.7}
@@ -159,7 +172,8 @@ export function OnboardingStep2Screen() {
                 <Text
                   style={[
                     styles.optionLabel,
-                    formData.favoriteDishes.includes(dish.value) && styles.optionLabelSelected,
+                    safeArrayValue(formData?.favoriteDishes).includes(dish.value) &&
+                      styles.optionLabelSelected,
                   ]}
                 >
                   {t(`onboarding.${dish.key}`)}
@@ -179,7 +193,7 @@ export function OnboardingStep2Screen() {
                 key={spice.value}
                 style={[
                   styles.spiceCard,
-                  formData.spiceTolerance === spice.value && styles.spiceCardSelected,
+                  formData?.spiceTolerance === spice.value && styles.spiceCardSelected,
                 ]}
                 onPress={() => handleSpiceSelect(spice.value as any)}
                 activeOpacity={0.7}
@@ -188,7 +202,7 @@ export function OnboardingStep2Screen() {
                 <Text
                   style={[
                     styles.spiceLabel,
-                    formData.spiceTolerance === spice.value && styles.spiceLabelSelected,
+                    formData?.spiceTolerance === spice.value && styles.spiceLabelSelected,
                   ]}
                 >
                   {t(`onboarding.${spice.key}`)}

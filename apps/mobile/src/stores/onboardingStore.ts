@@ -18,7 +18,7 @@ export interface OnboardingFormData {
   // Step 2: Cuisines & Dishes
   favoriteCuisines: string[];
   favoriteDishes: string[];
-  spiceTolerance: 'none' | 'mild' | 'medium' | 'spicy' | 'very_spicy';
+  spiceTolerance: 'yes' | 'no';
 }
 
 interface OnboardingState {
@@ -74,7 +74,7 @@ const defaultFormData: OnboardingFormData = {
   allergies: [],
   favoriteCuisines: [],
   favoriteDishes: [],
-  spiceTolerance: 'medium',
+  spiceTolerance: 'no',
 };
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
@@ -102,10 +102,34 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     })),
 
   // Update form data
-  updateFormData: (data: Partial<OnboardingFormData>) =>
+  updateFormData: (data: Partial<OnboardingFormData>) => {
+    // Ensure array fields are always arrays
+    const sanitizedData = { ...data };
+    if ('proteinPreferences' in sanitizedData) {
+      sanitizedData.proteinPreferences = Array.isArray(sanitizedData.proteinPreferences)
+        ? sanitizedData.proteinPreferences
+        : [];
+    }
+    if ('allergies' in sanitizedData) {
+      sanitizedData.allergies = Array.isArray(sanitizedData.allergies)
+        ? sanitizedData.allergies
+        : [];
+    }
+    if ('favoriteCuisines' in sanitizedData) {
+      sanitizedData.favoriteCuisines = Array.isArray(sanitizedData.favoriteCuisines)
+        ? sanitizedData.favoriteCuisines
+        : [];
+    }
+    if ('favoriteDishes' in sanitizedData) {
+      sanitizedData.favoriteDishes = Array.isArray(sanitizedData.favoriteDishes)
+        ? sanitizedData.favoriteDishes
+        : [];
+    }
+
     set(state => ({
-      formData: { ...state.formData, ...data },
-    })),
+      formData: { ...state.formData, ...sanitizedData },
+    }));
+  },
 
   // Flow control
   showOnboarding: () => set({ isVisible: true, currentStep: 0 }),
@@ -150,7 +174,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         spice_tolerance: state.formData.spiceTolerance,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
-        preferences_updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase.from('user_preferences').upsert(preferencesData, {
@@ -209,13 +232,20 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
       if (data) {
         // Map database columns to form data
+        // Ensure arrays are always arrays (handle null, undefined, and non-array values)
+        const ensureArray = (value: any): string[] => {
+          if (Array.isArray(value)) return value;
+          if (!value) return [];
+          return [];
+        };
+
         const formData: OnboardingFormData = {
           dietType: data.diet_type || 'all',
-          proteinPreferences: data.protein_preferences || [],
-          allergies: data.allergies || [],
-          favoriteCuisines: data.favorite_cuisines || [],
-          favoriteDishes: data.favorite_dishes || [],
-          spiceTolerance: data.spice_tolerance || 'medium',
+          proteinPreferences: ensureArray(data.protein_preferences),
+          allergies: ensureArray(data.allergies),
+          favoriteCuisines: ensureArray(data.favorite_cuisines),
+          favoriteDishes: ensureArray(data.favorite_dishes),
+          spiceTolerance: data.spice_tolerance || 'no',
         };
 
         set({
@@ -269,7 +299,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         favorite_dishes: state.formData.favoriteDishes,
         spice_tolerance: state.formData.spiceTolerance,
         onboarding_completed: state.isCompleted,
-        preferences_updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase.from('user_preferences').upsert(preferencesData, {

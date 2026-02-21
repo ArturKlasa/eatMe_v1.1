@@ -46,6 +46,7 @@ export const operationsSchema = z.object({
 export const dishSchema = z.object({
   id: z.string().optional(),
   menu_id: z.string().optional(),
+  dish_category_id: z.string().uuid('Invalid category').nullable().optional(),
   name: z.string().min(2, 'Dish name must be at least 2 characters'),
   description: z.string().optional().or(z.literal('')),
   price: z
@@ -55,7 +56,7 @@ export const dishSchema = z.object({
   calories: z.number().min(0).max(5000).optional().or(z.nan()),
   dietary_tags: z.array(z.string()),
   allergens: z.array(z.string()),
-  ingredients: z.array(z.string()).optional().default([]),
+  ingredients: z.array(z.string()),
   spice_level: z.number().min(0).max(4).optional().or(z.nan()),
   photo_url: z.string().optional(),
   is_available: z.boolean().optional(),

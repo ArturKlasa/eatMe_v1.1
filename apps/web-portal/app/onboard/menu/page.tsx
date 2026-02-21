@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DishCard } from '@/components/forms/DishCard';
 import { DishFormDialog } from '@/components/forms/DishFormDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -51,8 +52,10 @@ function MenuPageContent() {
   const [isMenuDialogOpen, setIsMenuDialogOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
   const [menuName, setMenuName] = useState('');
+  const [menuType, setMenuType] = useState<'food' | 'drink'>('food');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restaurantCuisine, setRestaurantCuisine] = useState<string>('');
 
   // Load menus from database
   useEffect(() => {
@@ -60,6 +63,12 @@ function MenuPageContent() {
       if (!user?.id) return;
 
       try {
+        // Load restaurant basic info for cuisine
+        const savedData = loadRestaurantData(user.id);
+        if (savedData?.basicInfo?.cuisines && savedData.basicInfo.cuisines.length > 0) {
+          setRestaurantCuisine(savedData.basicInfo.cuisines[0]); // Use first cuisine
+        }
+
         // First, try to load from database
         const { data: restaurant, error } = await supabase
           .from('restaurants')
@@ -140,12 +149,14 @@ function MenuPageContent() {
   const handleAddMenu = () => {
     setEditingMenu(null);
     setMenuName('');
+    setMenuType('food');
     setIsMenuDialogOpen(true);
   };
 
   const handleEditMenu = (menu: Menu) => {
     setEditingMenu(menu);
     setMenuName(menu.name);
+    setMenuType(menu.menu_type ?? 'food');
     setIsMenuDialogOpen(true);
   };
 
@@ -157,7 +168,9 @@ function MenuPageContent() {
 
     if (editingMenu) {
       // Update existing menu
-      const updatedMenus = menus.map(m => (m.id === editingMenu.id ? { ...m, name: menuName } : m));
+      const updatedMenus = menus.map(m =>
+        m.id === editingMenu.id ? { ...m, name: menuName, menu_type: menuType } : m
+      );
       setMenus(updatedMenus);
       toast.success('Menu updated successfully!');
     } else {
@@ -166,6 +179,7 @@ function MenuPageContent() {
         id: crypto.randomUUID(),
         name: menuName,
         description: '',
+        menu_type: menuType,
         is_active: true,
         display_order: menus.length + 1,
         dishes: [],
@@ -177,6 +191,7 @@ function MenuPageContent() {
 
     setIsMenuDialogOpen(false);
     setMenuName('');
+    setMenuType('food');
     setEditingMenu(null);
   };
 
@@ -311,6 +326,7 @@ function MenuPageContent() {
             description: menu.description || null,
             is_active: menu.is_active !== undefined ? menu.is_active : true,
             display_order: menu.display_order || 1,
+            menu_type: menu.menu_type ?? 'food',
           })
           .select()
           .single();
@@ -335,6 +351,7 @@ function MenuPageContent() {
             spice_level: dish.spice_level || null,
             image_url: dish.photo_url || null,
             is_available: dish.is_available !== undefined ? dish.is_available : true,
+            dish_category_id: dish.dish_category_id ?? null,
           }));
 
           const { data: insertedDishes, error: dishesError } = await supabase
@@ -403,6 +420,8 @@ function MenuPageContent() {
   };
 
   const totalDishes = menus.reduce((sum, menu) => sum + menu.dishes.length, 0);
+  const activeMenu = menus.find(m => m.id === activeMenuId) ?? null;
+  const activeMenuType: 'food' | 'drink' = activeMenu?.menu_type ?? 'food';
 
   if (loading) {
     return (
@@ -438,6 +457,7 @@ function MenuPageContent() {
               <TabsList>
                 {menus.map(menu => (
                   <TabsTrigger key={menu.id} value={menu.id}>
+                    {menu.menu_type === 'drink' ? '🥤 ' : '🍽 '}
                     {menu.name}
                     {menu.dishes.length > 0 && (
                       <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded-full">
@@ -554,6 +574,8 @@ function MenuPageContent() {
           }}
           onSubmit={editingDish ? handleUpdateDish : handleAddDish}
           dish={editingDish}
+          menuType={activeMenuType}
+          restaurantCuisine={restaurantCuisine}
         />
 
         {/* Dialog for Add/Edit Menu */}
@@ -575,6 +597,30 @@ function MenuPageContent() {
                   onChange={e => setMenuName(e.target.value)}
                 />
                 <p className="text-xs text-gray-500 mt-1">Menu Name will be visible to customers</p>
+              </div>
+              <div>
+                <Label className="mb-2 block">Menu Type *</Label>
+                <RadioGroup
+                  value={menuType}
+                  onValueChange={val => setMenuType(val as 'food' | 'drink')}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="food" id="menu-type-food" />
+                    <Label htmlFor="menu-type-food" className="cursor-pointer font-normal">
+                      🍽 Food Menu
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="drink" id="menu-type-drink" />
+                    <Label htmlFor="menu-type-drink" className="cursor-pointer font-normal">
+                      🥤 Drink Menu
+                    </Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-xs text-gray-500 mt-1">
+                  Drink menus are excluded from food recommendations in the mobile app.
+                </p>
               </div>
             </div>
             <DialogFooter>

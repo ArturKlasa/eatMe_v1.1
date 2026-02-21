@@ -10,40 +10,72 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Dish } from '@/types/restaurant';
 import { dishSchema, type DishFormData } from '@/lib/validation';
 import { DIETARY_TAGS, ALLERGENS, SPICE_LEVELS, RELIGIOUS_REQUIREMENTS } from '@/lib/constants';
-import { Badge } from '@/components/ui/badge';
 import { IngredientAutocomplete } from '@/components/IngredientAutocomplete';
 import { AllergenWarnings } from '@/components/AllergenWarnings';
 import { DietaryTagBadges } from '@/components/DietaryTagBadges';
 import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
+import { fetchDishCategories, type DishCategory } from '@/lib/dish-categories';
+import { getCuisineCategories } from '@/lib/cuisine-categories';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+// The component supports two modes:
+//   Wizard mode – onSubmit is provided; data stays in local state, no Supabase write.
+//   DB mode    – restaurantId + menuCategoryId are provided; writes directly to Supabase.
 interface DishFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  restaurantId: string;
-  menuCategoryId: string;
-  dish?: Dish | null;
+  // Accepts either the full Dish (wizard) or a DB record partial (admin) without type error
+  dish?: (Partial<Dish> & { id?: string }) | null;
+
+  // The type of the parent menu — filters the category dropdown
+  menuType?: 'food' | 'drink';
+
+  // Restaurant cuisine for smart category suggestions
+  restaurantCuisine?: string;
+
+  // DB mode
+  restaurantId?: string;
+  menuCategoryId?: string;
   onSuccess?: () => void;
+
+  // Wizard mode (local state – no immediate DB write)
+  onSubmit?: (dish: Dish) => void;
 }
 
 export function DishFormDialog({
   isOpen,
   onClose,
+  dish,
+  menuType,
+  restaurantCuisine,
   restaurantId,
   menuCategoryId,
-  dish,
   onSuccess,
+  onSubmit: onWizardSubmit,
 }: DishFormDialogProps) {
-  // State for new ingredients system
-  const [selectedIngredients, setSelectedIngredients] = useState<
-    (Ingredient & { quantity?: string })[]
-  >([]);
+  const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
   const [calculatedAllergens, setCalculatedAllergens] = useState<Allergen[]>([]);
   const [calculatedDietaryTags, setCalculatedDietaryTags] = useState<DietaryTag[]>([]);
+
+  // Internal Food/Drink toggle (overrides menuType if user changes it)
+  const [dishType, setDishType] = useState<'food' | 'drink'>('food');
+
+  // Canonical dish categories fetched from DB
+  const [dishCategories, setDishCategories] = useState<DishCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   const {
     register,
@@ -58,16 +90,35 @@ export function DishFormDialog({
       name: '',
       price: 0,
       calories: undefined,
-      dietary_tags: [],
-      allergens: [],
-      ingredients: [],
+      dietary_tags: [] as string[],
+      allergens: [] as string[],
+      ingredients: [] as string[],
       spice_level: 0,
       photo_url: '',
       is_available: true,
+      dish_category_id: null,
     },
   });
 
-  // Reset form when dish changes (for edit mode)
+  // Load categories once on mount
+  useEffect(() => {
+    const load = async () => {
+      setLoadingCategories(true);
+      const { data, error } = await fetchDishCategories();
+      if (!error) setDishCategories(data);
+      setLoadingCategories(false);
+    };
+    load();
+  }, []);
+
+  // Initialize dishType from menuType prop
+  useEffect(() => {
+    if (menuType) {
+      setDishType(menuType);
+    }
+  }, [menuType, isOpen]);
+
+  // Reset form when dish or open state changes
   useEffect(() => {
     if (dish && isOpen) {
       reset({
@@ -80,10 +131,9 @@ export function DishFormDialog({
         spice_level: dish.spice_level || 0,
         photo_url: dish.photo_url || '',
         is_available: dish.is_available !== false,
+        dish_category_id: dish.dish_category_id ?? null,
       });
-      // TODO: Also populate selectedIngredients if we have ingredient data
     } else if (!dish && isOpen) {
-      // Reset to empty form when adding new dish
       reset({
         name: '',
         price: 0,
@@ -94,39 +144,60 @@ export function DishFormDialog({
         spice_level: 0,
         photo_url: '',
         is_available: true,
+        dish_category_id: null,
       });
       setSelectedIngredients([]);
     }
   }, [dish, isOpen, reset]);
 
-  // Use useWatch instead of watch for better React Compiler compatibility
   const dietaryTags = useWatch({ control, name: 'dietary_tags', defaultValue: [] }) || [];
   const allergens = useWatch({ control, name: 'allergens', defaultValue: [] }) || [];
-  const ingredients = useWatch({ control, name: 'ingredients', defaultValue: [] }) || [];
   const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 0 });
+  const dishCategoryId = useWatch({ control, name: 'dish_category_id', defaultValue: null });
 
   const handleFormSubmit = async (data: DishFormData) => {
+    // ── Wizard mode (local state, no immediate DB write) ────────────────────
+    if (onWizardSubmit) {
+      const localDish: Dish = {
+        id: dish?.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        calories: !isNaN(data.calories as number) ? data.calories : undefined,
+        dietary_tags: data.dietary_tags || [],
+        allergens: data.allergens || [],
+        ingredients: data.ingredients || [],
+        spice_level: !isNaN(data.spice_level as number) ? data.spice_level : undefined,
+        photo_url: data.photo_url,
+        is_available: data.is_available !== false,
+        dish_category_id: data.dish_category_id ?? null,
+        // carry selectedIngredients for linking later during final submission
+        ...(selectedIngredients.length > 0 ? { selectedIngredients } : {}),
+      } as Dish & { selectedIngredients?: typeof selectedIngredients };
+      onWizardSubmit(localDish);
+      handleClose();
+      return;
+    }
+
+    // ── DB mode (direct Supabase write) ─────────────────────────────────────
     try {
       const dishData = {
         restaurant_id: restaurantId,
         menu_category_id: menuCategoryId,
+        dish_category_id: data.dish_category_id ?? null,
         name: data.name,
         description: data.description,
         price: data.price,
-        is_available: true,
-        image_url: data.image_url,
+        is_available: data.is_available !== false,
+        image_url: data.photo_url,
       };
 
       if (dish?.id) {
-        // Update existing dish
         const { error } = await supabase.from('dishes').update(dishData).eq('id', dish.id);
-
         if (error) throw error;
         toast.success('Dish updated successfully');
       } else {
-        // Create new dish
         const { error } = await supabase.from('dishes').insert(dishData);
-
         if (error) throw error;
         toast.success('Dish added successfully');
       }
@@ -204,13 +275,11 @@ export function DishFormDialog({
     }
   };
 
-  const handleIngredientsChange = (value: string) => {
-    const ingredients = value
-      .split(',')
-      .map(i => i.trim())
-      .filter(i => i.length > 0);
-    setValue('ingredients', ingredients);
-  };
+  // Filter categories by the parent menu type.
+  // If menuType is 'drink' → show only drink categories.
+  // Filter categories by the selected dishType
+  const foodCategories = dishCategories.filter(c => !c.is_drink);
+  const drinkCategories = dishCategories.filter(c => c.is_drink);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -221,11 +290,120 @@ export function DishFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          {/* Food/Drink Toggle */}
+          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <span className="text-sm font-medium text-gray-700 mr-2">Type:</span>
+            <Button
+              type="button"
+              variant={dishType === 'food' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDishType('food')}
+              className="flex-1"
+            >
+              🍽️ Food
+            </Button>
+            <Button
+              type="button"
+              variant={dishType === 'drink' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDishType('drink')}
+              className="flex-1"
+            >
+              🥤 Drink
+            </Button>
+          </div>
+
           {/* Basic Information Section */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-gray-700">Basic Information</h3>
 
-            {/* Name */}
+            {/* Canonical Dish Category - MOVED TO TOP */}
+            <div>
+              <Label htmlFor="dish_category_id" className="mb-2 block">
+                Dish Category *
+                <span className="ml-1 text-xs font-normal text-gray-500">
+                  (Helps customers find similar dishes)
+                </span>
+              </Label>
+
+              {/* Quick-select popular categories based on cuisine */}
+              {restaurantCuisine && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {getCuisineCategories(restaurantCuisine).map(categoryName => {
+                    const matchedCategory = dishCategories.find(
+                      c => c.name === categoryName && c.is_drink === (dishType === 'drink')
+                    );
+                    return matchedCategory ? (
+                      <Button
+                        key={matchedCategory.id}
+                        type="button"
+                        variant={dishCategoryId === matchedCategory.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() =>
+                          setValue('dish_category_id', matchedCategory.id, { shouldValidate: true })
+                        }
+                        className="text-xs"
+                      >
+                        {matchedCategory.name}
+                      </Button>
+                    ) : null;
+                  })}
+                </div>
+              )}
+
+              <Select
+                value={dishCategoryId ?? 'none'}
+                onValueChange={val =>
+                  setValue('dish_category_id', val === 'none' ? null : val, {
+                    shouldValidate: true,
+                  })
+                }
+                disabled={loadingCategories}
+              >
+                <SelectTrigger id="dish_category_id" className="w-full">
+                  <SelectValue
+                    placeholder={loadingCategories ? 'Loading categories…' : 'Select a category'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No category —</SelectItem>
+                  {dishType === 'food' && foodCategories.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs text-gray-500 uppercase tracking-wide">
+                        🍽 Food
+                      </SelectLabel>
+                      {foodCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {dishType === 'drink' && drinkCategories.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs text-gray-500 uppercase tracking-wide">
+                        🥤 Drinks
+                      </SelectLabel>
+                      {drinkCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                {dishType === 'food'
+                  ? 'e.g., Pizza, Burger, Salad'
+                  : 'e.g., Coffee, Smoothie, Cocktail'}
+              </p>
+              {errors.dish_category_id && (
+                <p className="text-sm text-red-600 mt-1">{errors.dish_category_id.message}</p>
+              )}
+            </div>
+
+            {/* Name - NOW BELOW CATEGORY */}
             <div>
               <Label htmlFor="name" className="mb-2 block">
                 Dish Name *

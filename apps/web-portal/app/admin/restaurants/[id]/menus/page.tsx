@@ -48,6 +48,7 @@ export default function RestaurantMenusPage() {
   const restaurantId = params.id as string;
 
   const [restaurantName, setRestaurantName] = useState('');
+  const [restaurantCuisine, setRestaurantCuisine] = useState<string>('');
   const [menus, setMenus] = useState<MenuWithCategories[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
@@ -79,7 +80,7 @@ export default function RestaurantMenusPage() {
       // Fetch restaurant name
       const { data: restaurant, error: restaurantError } = await supabase
         .from('restaurants')
-        .select('name')
+        .select('name, cuisine_types')
         .eq('id', restaurantId)
         .single();
 
@@ -90,6 +91,10 @@ export default function RestaurantMenusPage() {
 
       if (restaurant) {
         setRestaurantName(restaurant.name);
+        // Set first cuisine if available
+        if (restaurant.cuisine_types && restaurant.cuisine_types.length > 0) {
+          setRestaurantCuisine(restaurant.cuisine_types[0]);
+        }
       }
 
       // Fetch menus
@@ -656,6 +661,7 @@ export default function RestaurantMenusPage() {
           menuCategoryId={selectedCategoryForDish}
           dish={editingDish}
           onSuccess={fetchData}
+          restaurantCuisine={restaurantCuisine}
         />
       )}
     </div>

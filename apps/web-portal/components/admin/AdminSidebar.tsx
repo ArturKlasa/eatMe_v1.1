@@ -10,6 +10,7 @@ import {
   Settings,
   AlertTriangle,
   Leaf,
+  Tag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,11 @@ const navigation = [
     name: 'Ingredients',
     href: '/admin/ingredients',
     icon: Leaf,
+  },
+  {
+    name: 'Dish Categories',
+    href: '/admin/dish-categories',
+    icon: Tag,
   },
   {
     name: 'Audit Logs',

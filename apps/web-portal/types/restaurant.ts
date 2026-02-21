@@ -13,9 +13,20 @@ export interface OperatingHours {
   sunday?: { open: string; close: string };
 }
 
+export interface DishCategory {
+  id: string;
+  name: string;
+  parent_category_id?: string | null;
+  is_drink: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Dish {
   id?: string;
   menu_id?: string; // Reference to which menu this dish belongs to
+  dish_category_id?: string | null; // Canonical category FK (e.g. "Pizza", "Pasta")
   name: string;
   description?: string;
   price: number;
@@ -33,6 +44,7 @@ export interface Menu {
   name: string;
   description?: string;
   category?: string; // all_day, breakfast, lunch, dinner, drinks, happy_hours
+  menu_type?: 'food' | 'drink'; // food menu vs drink menu
   is_active: boolean;
   display_order: number;
   dishes: Dish[];

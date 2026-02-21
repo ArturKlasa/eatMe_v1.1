@@ -36,10 +36,27 @@ export interface DishIngredient {
 }
 
 /**
+ * Flat ingredient shape returned by searchIngredients and used in the UI.
+ * Combines alias display data with canonical ingredient properties.
+ */
+export interface Ingredient {
+  id: string; // ingredient_alias.id
+  display_name: string; // ingredient_alias.display_name
+  canonical_ingredient_id: string;
+  canonical_name?: string; // flattened from canonical_ingredient.canonical_name
+  is_vegetarian?: boolean; // flattened from canonical_ingredient.is_vegetarian
+  is_vegan?: boolean; // flattened from canonical_ingredient.is_vegan
+  quantity?: string; // optional quantity when added to a dish
+}
+
+/**
  * Search ingredient aliases by display name using full-text search
  * Returns aliases with their canonical ingredient info
  */
-export async function searchIngredients(query: string, limit = 10) {
+export async function searchIngredients(
+  query: string,
+  limit = 10
+): Promise<{ data: Ingredient[]; error: unknown }> {
   if (!query || query.trim().length === 0) {
     return { data: [], error: null };
   }
@@ -63,7 +80,17 @@ export async function searchIngredients(query: string, limit = 10) {
     .order('display_name')
     .limit(limit);
 
-  return { data: data as IngredientAlias[] | null, error };
+  // Flatten nested canonical_ingredient into the Ingredient shape
+  const flat: Ingredient[] = (data ?? []).map((row: any) => ({
+    id: row.id,
+    display_name: row.display_name,
+    canonical_ingredient_id: row.canonical_ingredient_id,
+    canonical_name: row.canonical_ingredient?.canonical_name,
+    is_vegetarian: row.canonical_ingredient?.is_vegetarian,
+    is_vegan: row.canonical_ingredient?.is_vegan,
+  }));
+
+  return { data: flat, error };
 }
 
 /**

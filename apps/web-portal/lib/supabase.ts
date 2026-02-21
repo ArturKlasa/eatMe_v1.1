@@ -86,6 +86,7 @@ export interface Menu {
   description?: string;
   display_order: number;
   is_active: boolean;
+  menu_type: 'food' | 'drink'; // food menu vs drink/beverage menu
   available_start_time?: string;
   available_end_time?: string;
   available_days?: string[];
@@ -99,9 +100,23 @@ export interface MenuInsert {
   description?: string;
   display_order?: number;
   is_active?: boolean;
+  menu_type?: 'food' | 'drink';
   available_start_time?: string;
   available_end_time?: string;
   available_days?: string[];
+}
+
+/**
+ * Canonical Dish Category - e.g., Pizza, Pasta, Cocktails
+ */
+export interface DishCategory {
+  id: string;
+  name: string;
+  parent_category_id?: string | null;
+  is_drink: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -135,6 +150,7 @@ export interface Dish {
   id: string;
   restaurant_id: string;
   menu_category_id: string;
+  dish_category_id?: string | null; // Canonical category FK (e.g. Pizza, Pasta)
   name: string;
   description?: string;
   price: number;
@@ -148,6 +164,7 @@ export interface Dish {
 export interface DishInsert {
   restaurant_id: string;
   menu_category_id: string;
+  dish_category_id?: string | null; // Canonical category FK
   name: string;
   description?: string;
   price: number;

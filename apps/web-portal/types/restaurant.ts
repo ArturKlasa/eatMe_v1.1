@@ -67,6 +67,10 @@ export interface RestaurantBasicInfo {
   restaurant_type?: RestaurantType;
   description?: string;
   country?: string;
+  city?: string;
+  postal_code?: string;
+  neighbourhood?: string;
+  state?: string;
   address: string;
   location: Location;
   phone?: string;

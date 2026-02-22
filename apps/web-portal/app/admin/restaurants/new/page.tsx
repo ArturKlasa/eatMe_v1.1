@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CUISINES, RESTAURANT_TYPES, COUNTRIES, POPULAR_CUISINES } from '@/lib/constants';
+import type { ParsedLocationDetails } from '@/lib/parseAddress';
 
 const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
   ssr: false,
@@ -53,6 +54,8 @@ export default function NewRestaurantPage() {
     name: '',
     address: '',
     city: '',
+    neighbourhood: '',
+    state: '',
     postal_code: '',
     country_code: 'US',
     phone: '',
@@ -129,6 +132,26 @@ export default function NewRestaurantPage() {
     toast.success('Address auto-filled from map location!');
   };
 
+  /**
+   * Called by LocationPicker after a successful reverse-geocoding lookup.
+   * Auto-fills country_code, city, neighbourhood, state and postal_code from the structured Nominatim data.
+   */
+  const handleLocationDetails = (details: ParsedLocationDetails) => {
+    console.log('[Admin] Location details from reverse geocoding:', details);
+    setFormData(prev => {
+      // Only switch country if the resolved code is in our supported list
+      const supportedCountry = COUNTRIES.find(c => c.value === details.countryCode);
+      return {
+        ...prev,
+        city: details.city || prev.city,
+        neighbourhood: details.neighbourhood || prev.neighbourhood,
+        state: details.state || prev.state,
+        postal_code: details.postalCode || prev.postal_code,
+        country_code: supportedCountry ? details.countryCode : prev.country_code,
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -172,6 +195,8 @@ export default function NewRestaurantPage() {
         name: formData.name,
         address: formData.address,
         city: formData.city || null,
+        neighbourhood: formData.neighbourhood || null,
+        state: formData.state || null,
         postal_code: formData.postal_code || null,
         country_code: formData.country_code,
         phone: formData.phone || null,
@@ -313,6 +338,22 @@ export default function NewRestaurantPage() {
               <CardDescription>Where can customers find this restaurant?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
+                <p>
+                  Click anywhere on the map to pin the restaurant. Country, city, postal code and
+                  address will be auto-filled — you can still edit them manually.
+                </p>
+              </div>
+
+              <LocationPicker
+                initialLat={mapCoordinates?.lat}
+                initialLng={mapCoordinates?.lng}
+                onLocationSelect={handleLocationSelect}
+                onAddressSelect={handleAddressSelect}
+                onLocationDetails={handleLocationDetails}
+              />
+
               <div>
                 <Label htmlFor="country_code">
                   Country <span className="text-red-500">*</span>
@@ -332,20 +373,6 @@ export default function NewRestaurantPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="address">
-                  Full Address <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="address"
-                  required
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="123 Main Street, City, State, ZIP"
-                  className="mt-2"
-                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -374,6 +401,44 @@ export default function NewRestaurantPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="neighbourhood">Neighbourhood</Label>
+                  <Input
+                    id="neighbourhood"
+                    value={formData.neighbourhood}
+                    onChange={e => setFormData({ ...formData, neighbourhood: e.target.value })}
+                    placeholder="Downtown"
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="state">State / Province</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={e => setFormData({ ...formData, state: e.target.value })}
+                    placeholder="California"
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="address">
+                  Full Address <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="address"
+                  required
+                  value={formData.address}
+                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="123 Main Street, City, State, ZIP"
+                  className="mt-2"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label htmlFor="latitude">Latitude</Label>
                   <Input
                     id="latitude"
@@ -398,18 +463,6 @@ export default function NewRestaurantPage() {
                   />
                 </div>
               </div>
-
-              <p className="text-sm text-gray-500">
-                Click on the map below to mark the restaurant location and get coordinates and
-                address automatically.
-              </p>
-
-              <LocationPicker
-                initialLat={mapCoordinates?.lat}
-                initialLng={mapCoordinates?.lng}
-                onLocationSelect={handleLocationSelect}
-                onAddressSelect={handleAddressSelect}
-              />
             </CardContent>
           </Card>
 

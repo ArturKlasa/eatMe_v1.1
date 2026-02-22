@@ -1,14 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MapPin } from 'lucide-react';
 import type L from 'leaflet';
+import { parseNominatimAddress, type ParsedLocationDetails } from '@/lib/parseAddress';
 
 interface LocationPickerProps {
   initialLat?: number;
   initialLng?: number;
   onLocationSelect: (lat: number, lng: number) => void;
   onAddressSelect?: (address: string) => void;
+  /**
+   * Called after a successful reverse-geocoding lookup with structured address
+   * fields (city, postalCode, countryCode, etc.) so parent forms can auto-fill
+   * their inputs without needing to parse the raw display_name themselves.
+   */
+  onLocationDetails?: (details: ParsedLocationDetails) => void;
 }
 
 export default function LocationPicker({
@@ -16,6 +22,7 @@ export default function LocationPicker({
   initialLng,
   onLocationSelect,
   onAddressSelect,
+  onLocationDetails,
 }: LocationPickerProps) {
   console.log(
     '[LocationPicker] Component render - initialLat:',
@@ -120,10 +127,10 @@ export default function LocationPicker({
         setSelectedLocation({ lat, lng });
         onLocationSelect(lat, lng);
 
-        // Perform reverse geocoding if callback provided
-        if (onAddressSelect) {
+        // Perform reverse geocoding when at least one detail callback is provided
+        if (onAddressSelect || onLocationDetails) {
           try {
-            console.log('[LocationPicker] onAddressSelect callback exists, fetching address...');
+            console.log('[LocationPicker] Fetching reverse geocoding...');
             console.log('[LocationPicker] Coordinates:', { lat, lng });
 
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
@@ -142,14 +149,26 @@ export default function LocationPicker({
               const data = await response.json();
               console.log('[LocationPicker] Response data:', data);
 
-              const address = data.display_name || '';
-              console.log('[LocationPicker] Extracted address:', address);
+              // Parse the structured address object first so we can reuse it
+              // for both callbacks without parsing twice.
+              const parsed = data.address
+                ? parseNominatimAddress(data.display_name || '', data.address)
+                : null;
 
-              if (address) {
-                console.log('[LocationPicker] Calling onAddressSelect with:', address);
-                onAddressSelect(address);
-              } else {
-                console.warn('[LocationPicker] No address in response');
+              // Fill the "Full Address" field with only the street-level part
+              // (house number + road). City, postal code and country are
+              // handled separately via onLocationDetails so they don't end up
+              // duplicated in the address field.
+              if (onAddressSelect) {
+                const streetAddress = parsed?.streetAddress || '';
+                console.log('[LocationPicker] Calling onAddressSelect with:', streetAddress);
+                onAddressSelect(streetAddress);
+              }
+
+              // Emit structured details so parent forms can auto-fill country,
+              // city and postal code fields.
+              if (onLocationDetails && parsed) {
+                onLocationDetails(parsed);
               }
             } else {
               const errorText = await response.text();
@@ -162,8 +181,6 @@ export default function LocationPicker({
           } catch (error) {
             console.error('[LocationPicker] Error fetching address:', error);
           }
-        } else {
-          console.log('[LocationPicker] No onAddressSelect callback provided');
         }
       });
 
@@ -190,13 +207,6 @@ export default function LocationPicker({
         className="w-full h-64 rounded-lg border-2 border-gray-300 relative z-0"
         style={{ minHeight: '256px' }}
       />
-      <div className="flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
-        <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
-        <p>
-          Click anywhere on the map to mark your restaurant&apos;s location. The coordinates and
-          address will be automatically filled in the fields above.
-        </p>
-      </div>
     </div>
   );
 }

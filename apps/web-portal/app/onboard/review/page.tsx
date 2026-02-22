@@ -139,6 +139,10 @@ function ReviewPageContent() {
         // Optional basic info
         restaurant_type: basicInfo.restaurant_type,
         country_code: basicInfo.country,
+        city: basicInfo.city,
+        neighbourhood: basicInfo.neighbourhood,
+        state: basicInfo.state,
+        postal_code: basicInfo.postal_code,
 
         // Contact
         phone: basicInfo.phone,

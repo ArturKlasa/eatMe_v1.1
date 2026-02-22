@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
+import type { ParsedLocationDetails } from '@/lib/parseAddress';
 import {
   CUISINES,
   RESTAURANT_TYPES,
@@ -53,6 +54,10 @@ interface FormData {
   restaurant_type: string;
   description: string;
   country: string;
+  city: string;
+  neighbourhood: string;
+  state: string;
+  postal_code: string;
   address: string;
   location_lat: string;
   location_lng: string;
@@ -179,6 +184,10 @@ function BasicInfoPageContent() {
           restaurant_type: 'restaurant',
           description: '',
           country: 'US',
+          city: '',
+          neighbourhood: '',
+          state: '',
+          postal_code: '',
           address: '',
           location_lat: '',
           location_lng: '',
@@ -202,6 +211,10 @@ function BasicInfoPageContent() {
           restaurant_type: savedData.basicInfo?.restaurant_type || 'restaurant',
           description: savedData.basicInfo?.description || '',
           country: savedData.basicInfo?.country || 'US',
+          city: savedData.basicInfo?.city || '',
+          neighbourhood: savedData.basicInfo?.neighbourhood || '',
+          state: savedData.basicInfo?.state || '',
+          postal_code: savedData.basicInfo?.postal_code || '',
           address: savedData.basicInfo?.address || '',
           location_lat: savedData.basicInfo?.location?.lat?.toString() || '',
           location_lng: savedData.basicInfo?.location?.lng?.toString() || '',
@@ -220,6 +233,10 @@ function BasicInfoPageContent() {
         restaurant_type: 'restaurant',
         description: '',
         country: 'US',
+        city: '',
+        neighbourhood: '',
+        state: '',
+        postal_code: '',
         address: '',
         location_lat: '',
         location_lng: '',
@@ -245,6 +262,10 @@ function BasicInfoPageContent() {
         restaurant_type: currentValues.restaurant_type as RestaurantType,
         description: currentValues.description || undefined,
         country: currentValues.country,
+        city: currentValues.city || undefined,
+        neighbourhood: currentValues.neighbourhood || undefined,
+        state: currentValues.state || undefined,
+        postal_code: currentValues.postal_code || undefined,
         address: currentValues.address,
         location: {
           lat: parseFloat(currentValues.location_lat) || 0,
@@ -320,26 +341,43 @@ function BasicInfoPageContent() {
 
   const handleLocationSelect = useCallback(
     (lat: number, lng: number) => {
-      console.log('[BasicInfo] ========== handleLocationSelect called ==========');
-      console.log('[BasicInfo] New coordinates:', { lat, lng });
-      console.log('[BasicInfo] Form values BEFORE update:', form.getValues());
-
-      // Simply update the form values
       setValue('location_lat', lat.toString());
       setValue('location_lng', lng.toString());
-
-      console.log('[BasicInfo] Form values AFTER update:', form.getValues());
-      console.log('[BasicInfo] ============================================');
+      setMapCoordinates({ lat, lng });
       toast.success('Location marked on map!');
     },
-    [form, setValue]
+    [setValue]
   );
 
   const handleAddressSelect = useCallback(
     (address: string) => {
       console.log('[BasicInfo] Address received from reverse geocoding:', address);
       setValue('address', address);
-      toast.success('Address auto-filled from map location!');
+    },
+    [setValue]
+  );
+
+  /**
+   * Called by LocationPicker after a successful reverse-geocoding lookup.
+   * Auto-fills country, city and postal code from the structured Nominatim data.
+   */
+  const handleLocationDetails = useCallback(
+    (details: ParsedLocationDetails) => {
+      console.log('[BasicInfo] Location details from reverse geocoding:', details);
+
+      if (details.city) setValue('city', details.city);
+      if (details.neighbourhood) setValue('neighbourhood', details.neighbourhood);
+      if (details.state) setValue('state', details.state);
+      if (details.postalCode) setValue('postal_code', details.postalCode);
+
+      // Only switch country selector if the resolved code exists in our list
+      const supportedCountry = COUNTRIES.find(c => c.value === details.countryCode);
+      if (supportedCountry) {
+        setCountry(details.countryCode);
+        setValue('country', details.countryCode);
+      }
+
+      toast.success('Location details auto-filled!');
     },
     [setValue]
   );
@@ -374,6 +412,10 @@ function BasicInfoPageContent() {
       restaurant_type: data.restaurant_type as RestaurantType,
       description: data.description || undefined,
       country: data.country,
+      city: data.city || undefined,
+      neighbourhood: data.neighbourhood || undefined,
+      state: data.state || undefined,
+      postal_code: data.postal_code || undefined,
       address: data.address,
       location: {
         lat: parseFloat(data.location_lat) || 0,
@@ -539,6 +581,22 @@ function BasicInfoPageContent() {
               <CardDescription>Where can customers find you?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
+                <p>
+                  Click anywhere on the map to pin your restaurant. Country, city, postal code and
+                  address will be auto-filled — you can still edit them manually.
+                </p>
+              </div>
+
+              <LocationPicker
+                initialLat={mapCoordinates?.lat}
+                initialLng={mapCoordinates?.lng}
+                onLocationSelect={handleLocationSelect}
+                onAddressSelect={handleAddressSelect}
+                onLocationDetails={handleLocationDetails}
+              />
+
               <div>
                 <Label htmlFor="country" className="mb-2 block">
                   Country <span className="text-red-500">*</span>
@@ -561,6 +619,52 @@ function BasicInfoPageContent() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city" className="mb-2 block">
+                    City
+                  </Label>
+                  <Input
+                    id="city"
+                    {...register('city')}
+                    placeholder="San Francisco"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="postal_code" className="mb-2 block">
+                    Postal Code
+                  </Label>
+                  <Input
+                    id="postal_code"
+                    {...register('postal_code')}
+                    placeholder="94102"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="neighbourhood" className="mb-2 block">
+                    Neighbourhood
+                  </Label>
+                  <Input
+                    id="neighbourhood"
+                    {...register('neighbourhood')}
+                    placeholder="Downtown"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state" className="mb-2 block">
+                    State / Province
+                  </Label>
+                  <Input
+                    id="state"
+                    {...register('state')}
+                    placeholder="California"
+                  />
+                </div>
               </div>
 
               <div>
@@ -603,18 +707,6 @@ function BasicInfoPageContent() {
                   />
                 </div>
               </div>
-
-              <p className="text-sm text-gray-500">
-                Click on the map below to mark your restaurant location and get coordinates and
-                address automatically.
-              </p>
-
-              <LocationPicker
-                initialLat={mapCoordinates?.lat}
-                initialLng={mapCoordinates?.lng}
-                onLocationSelect={handleLocationSelect}
-                onAddressSelect={handleAddressSelect}
-              />
             </CardContent>
           </Card>
 

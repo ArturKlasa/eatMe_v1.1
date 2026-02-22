@@ -39,6 +39,8 @@ export interface RestaurantInsert {
   country_code?: string;
   city?: string;
   postal_code?: string;
+  neighbourhood?: string;
+  state?: string;
 
   // Contact
   phone?: string;

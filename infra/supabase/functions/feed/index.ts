@@ -16,10 +16,15 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-const redis = new Redis({
-  url: Deno.env.get('UPSTASH_REDIS_REST_URL')!,
-  token: Deno.env.get('UPSTASH_REDIS_REST_TOKEN')!,
-});
+// Redis is optional — if UPSTASH env vars are not configured, caching is skipped gracefully
+let _redis: Redis | null = null;
+function getRedis(): Redis | null {
+  const url = Deno.env.get('UPSTASH_REDIS_REST_URL');
+  const token = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+  if (!url || !token) return null;
+  if (!_redis) _redis = new Redis({ url, token });
+  return _redis;
+}
 
 interface FeedRequest {
   location: { lat: number; lng: number };
@@ -62,16 +67,23 @@ serve(async req => {
     const filterHash = JSON.stringify(filters);
     const cacheKey = `feed:${userId || 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:${filterHash}`;
 
-    // Check cache
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      console.log('[Feed] Cache hit');
-      return new Response(
-        JSON.stringify({ ...cached, metadata: { ...cached.metadata, cached: true } }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Check cache (only if Redis is configured)
+    const redis = getRedis();
+    if (redis) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          console.log('[Feed] Cache hit');
+          return new Response(
+            JSON.stringify({ ...cached, metadata: { ...(cached as any).metadata, cached: true } }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
-      );
+      } catch (cacheReadError) {
+        console.error('[Feed] Cache read error (non-fatal):', cacheReadError);
+      }
     }
 
     console.log('[Feed] Cache miss, querying database');
@@ -113,22 +125,64 @@ serve(async req => {
       }
     }
 
-    // 2. Find nearby restaurants using PostGIS
-    const { data: nearbyRestaurants, error: restaurantError } = await supabase.rpc(
+    // 2. Find nearby restaurants — try PostGIS RPC first, fall back to JS haversine if unavailable
+    let nearbyRestaurants: any[] = [];
+
+    const { data: rpcResult, error: restaurantError } = await supabase.rpc(
       'restaurants_within_radius',
-      {
-        p_lat: location.lat,
-        p_lng: location.lng,
-        p_radius_km: radius,
-      }
+      { p_lat: location.lat, p_lng: location.lng, p_radius_km: radius }
     );
 
     if (restaurantError) {
-      console.error('[Feed] Restaurant query error:', restaurantError);
-      throw restaurantError;
+      console.warn(
+        '[Feed] PostGIS RPC failed, falling back to JS distance filter:',
+        restaurantError.message
+      );
+
+      // Fallback: fetch all restaurants and filter by haversine distance in JS
+      const { data: allRestaurants, error: allError } = await supabase
+        .from('restaurants')
+        .select('id, name, cuisine_types, rating, location');
+
+      if (allError) {
+        console.error('[Feed] Fallback restaurant query failed:', allError);
+        throw allError;
+      }
+
+      nearbyRestaurants = (allRestaurants || [])
+        .map((r: any) => {
+          // location is JSONB {lat, lng} (after migration 007)
+          const loc = r.location;
+          let lat: number | null = null;
+          let lng: number | null = null;
+          if (loc && typeof loc === 'object' && loc.lat != null) {
+            lat = parseFloat(loc.lat);
+            lng = parseFloat(loc.lng);
+          }
+          if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) return null;
+
+          // Haversine formula
+          const R = 6371;
+          const dLat = ((lat - location.lat) * Math.PI) / 180;
+          const dLng = ((lng - location.lng) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos((location.lat * Math.PI) / 180) *
+              Math.cos((lat * Math.PI) / 180) *
+              Math.sin(dLng / 2) ** 2;
+          const distance_km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+          return { ...r, distance_km };
+        })
+        .filter((r: any) => r !== null && r.distance_km <= radius);
+
+      console.log(`[Feed] Fallback: ${nearbyRestaurants.length} restaurants within ${radius}km`);
+    } else {
+      nearbyRestaurants = rpcResult || [];
+      console.log(`[Feed] PostGIS: ${nearbyRestaurants.length} restaurants within ${radius}km`);
     }
 
-    if (!nearbyRestaurants || nearbyRestaurants.length === 0) {
+    if (nearbyRestaurants.length === 0) {
       const result = { dishes: [], metadata: { totalAvailable: 0, returned: 0, cached: false } };
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -136,7 +190,7 @@ serve(async req => {
     }
 
     const restaurantIds = nearbyRestaurants.map((r: any) => r.id);
-    console.log(`[Feed] Found ${restaurantIds.length} restaurants within ${radius}km`);
+    console.log(`[Feed] Querying dishes for ${restaurantIds.length} restaurants`);
 
     // 3. Fetch dishes from nearby restaurants with analytics
     const { data: dishes, error: dishError } = await supabase
@@ -170,15 +224,21 @@ serve(async req => {
       );
     }
 
-    // Price filter
+    // Price filter — min/max are dollar amounts from the app slider (range: 10–50).
+    // The edges are open: min=10 means "no lower bound" (include all cheaper dishes),
+    // max=50 means "no upper bound" (include all more expensive dishes).
     if (filters.priceRange) {
       const [min, max] = filters.priceRange;
-      const minPrice = min * 5; // Rough conversion: 1=$5, 2=$10, etc.
-      const maxPrice = max * 15;
-      filteredDishes = filteredDishes.filter(
-        (d: any) => d.price >= minPrice && d.price <= maxPrice
+      const SLIDER_MIN = 10;
+      const SLIDER_MAX = 50;
+      filteredDishes = filteredDishes.filter((d: any) => {
+        const aboveMin = min <= SLIDER_MIN ? true : d.price >= min;
+        const belowMax = max >= SLIDER_MAX ? true : d.price <= max;
+        return aboveMin && belowMax;
+      });
+      console.log(
+        `[Feed] After price filter (${min <= SLIDER_MIN ? 'no min' : `$${min}`}–${max >= SLIDER_MAX ? 'no max' : `$${max}`}): ${filteredDishes.length}`
       );
-      console.log(`[Feed] After price filter: ${filteredDishes.length}`);
     }
 
     // Diet preference filter
@@ -279,12 +339,14 @@ serve(async req => {
       },
     };
 
-    // 8. Cache result (5 minutes)
-    try {
-      await redis.setex(cacheKey, 300, JSON.stringify(responseData));
-      console.log('[Feed] Cached result');
-    } catch (cacheError) {
-      console.error('[Feed] Cache error (non-fatal):', cacheError);
+    // 8. Cache result (5 minutes, only if Redis is configured)
+    if (redis) {
+      try {
+        await redis.setex(cacheKey, 300, JSON.stringify(responseData));
+        console.log('[Feed] Cached result');
+      } catch (cacheError) {
+        console.error('[Feed] Cache error (non-fatal):', cacheError);
+      }
     }
 
     console.log(`[Feed] Returning ${result.length} dishes (${Date.now() - startTime}ms)`);

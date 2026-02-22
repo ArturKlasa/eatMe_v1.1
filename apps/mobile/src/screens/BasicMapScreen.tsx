@@ -12,6 +12,7 @@ import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
+import { getFeed, ServerDish } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
 import { commonStyles, mapComponentStyles } from '@/styles';
@@ -66,6 +67,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isRatingFlowVisible, setIsRatingFlowVisible] = useState(false);
+  const [feedDishes, setFeedDishes] = useState<ServerDish[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
 
   // Auth and session
   const user = useAuthStore(state => state.user);
@@ -267,47 +270,31 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
 
-  // Get recommended dishes from database with diet filtering
+  // Map edge-function ServerDish results into the shape MapFooter expects
   const recommendedDishes = useMemo(() => {
-    let filtered = dishes.filter(dish => dish.isAvailable);
+    return feedDishes.map(dish => {
+      let priceRange: '$' | '$$' | '$$$' | '$$$$';
+      if (dish.price < 10) priceRange = '$';
+      else if (dish.price < 20) priceRange = '$$';
+      else if (dish.price < 40) priceRange = '$$$';
+      else priceRange = '$$$$';
 
-    // Apply diet preference filter (from both daily and permanent filters)
-    const dietPreference =
-      daily.dietPreference !== 'all' ? daily.dietPreference : permanent.dietPreference;
-
-    if (dietPreference && dietPreference !== 'all') {
-      filtered = filtered.filter(dish => {
-        const dietaryTags = dish.dietary_tags || [];
-
-        // For vegan: dish must be explicitly tagged as vegan
-        // For vegetarian: dish can be tagged as vegetarian OR vegan
-        if (dietPreference === 'vegan') {
-          return dietaryTags.includes('vegan');
-        } else if (dietPreference === 'vegetarian') {
-          return dietaryTags.includes('vegetarian') || dietaryTags.includes('vegan');
-        }
-        return true;
-      });
-    }
-
-    // Apply allergen filters from permanent filters
-    const activeAllergens = Object.entries(permanent.allergies)
-      .filter(([_, active]) => active)
-      .map(([allergen]) => allergen);
-
-    if (activeAllergens.length > 0) {
-      filtered = filtered.filter(dish => {
-        const dishAllergens = dish.allergens || [];
-        // Exclude dishes that contain any of the user's allergens
-        return !activeAllergens.some(allergen => dishAllergens.includes(allergen));
-      });
-    }
-
-    console.log(
-      `[Filter] Recommended dishes: ${dishes.length} total → ${filtered.length} after diet/allergen filters`
-    );
-    return filtered.slice(0, 8);
-  }, [dishes, daily.dietPreference, permanent.dietPreference, permanent.allergies]);
+      return {
+        id: dish.id,
+        name: dish.name,
+        restaurantId: dish.restaurant_id,
+        restaurantName: dish.restaurant?.name || 'Unknown Restaurant',
+        price: dish.price,
+        priceRange,
+        cuisine: dish.restaurant?.cuisine_types?.[0] || 'Unknown',
+        imageUrl: dish.image_url || undefined,
+        rating: dish.restaurant?.rating || 0,
+        isAvailable: dish.is_available,
+        dietary_tags: dish.dietary_tags || [],
+        allergens: dish.allergens || [],
+      };
+    });
+  }, [feedDishes]);
 
   // Debug logging
   console.log('=== SUPABASE DATA DEBUG ===');
@@ -335,6 +322,45 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     getLocationWithPermission,
     hasPermission,
   } = useUserLocation();
+
+  // Eagerly request location on mount so the feed can load without waiting for map auto-centering
+  useEffect(() => {
+    getLocationWithPermission();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch recommended dishes from the 'feed' Edge Function whenever location or filters change
+  useEffect(() => {
+    if (!userLocation) return;
+
+    let cancelled = false;
+    const timeoutId = setTimeout(async () => {
+      setFeedLoading(true);
+      try {
+        const response = await getFeed(
+          { lat: userLocation.latitude, lng: userLocation.longitude },
+          daily,
+          permanent,
+          user?.id,
+          10 // 10km radius
+        );
+        if (!cancelled) {
+          setFeedDishes(response.dishes);
+          console.log(
+            `[BasicMapScreen] Feed loaded: ${response.dishes.length} dishes (personalized: ${response.metadata.personalized})`
+          );
+        }
+      } catch (err) {
+        console.error('[BasicMapScreen] Failed to load feed from Edge Function:', err);
+      } finally {
+        if (!cancelled) setFeedLoading(false);
+      }
+    }, 300); // debounce rapid filter changes
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [userLocation, daily, permanent, user?.id]);
 
   // Load nearby restaurants when location is available and filters change
   // DISABLED: Edge function is failing, causing excessive re-renders and errors

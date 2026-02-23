@@ -20,7 +20,7 @@ import {
   Alert,
   GestureResponderEvent,
 } from 'react-native';
-import { useFilterStore } from '../../stores/filterStore';
+import { useFilterStore, DailyFilters, defaultDailyFilters } from '../../stores/filterStore';
 import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
 import { useTranslation } from 'react-i18next';
@@ -33,23 +33,26 @@ interface DailyFilterModalProps {
 
 export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onClose }) => {
   const { t } = useTranslation();
-  const {
-    daily,
-    setDailyPriceRange,
-    toggleDailyCuisine,
-    toggleDailyMeal,
-    setDietPreference,
-    toggleProteinType,
-    setSpiceLevel,
-    setHungerLevel,
-  } = useFilterStore();
+  const replaceDailyFilters = useFilterStore(state => state.replaceDailyFilters);
+  // Read the current applied daily filters once so the modal opens showing them.
+  const currentDaily = useFilterStore(state => state.daily);
 
+  // Local state — initialised from the currently applied filters each time the modal opens.
+  // Changes here don’t affect the feed until the user presses Apply.
+  const [localFilters, setLocalFilters] = React.useState<DailyFilters>({ ...currentDaily });
   const [mealModalVisible, setMealModalVisible] = React.useState(false);
   const [cuisineModalVisible, setCuisineModalVisible] = React.useState(false);
 
-  // Helper function to check if protein options should be disabled
+  // Sync to current applied state each time the modal becomes visible
+  React.useEffect(() => {
+    if (visible) {
+      setLocalFilters({ ...currentDaily });
+    }
+  }, [visible]); // intentionally only on open; currentDaily not in deps
+
+  // Helper: which protein buttons should be greyed out given the current local diet choice
   const isProteinDisabled = (proteinKey: string) => {
-    if (daily.dietPreference === 'vegan') {
+    if (localFilters.dietPreference === 'vegan') {
       return (
         proteinKey === 'meat' ||
         proteinKey === 'fish' ||
@@ -57,7 +60,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
         proteinKey === 'egg'
       );
     }
-    if (daily.dietPreference === 'vegetarian') {
+    if (localFilters.dietPreference === 'vegetarian') {
       return proteinKey === 'meat' || proteinKey === 'fish' || proteinKey === 'seafood';
     }
     return false;
@@ -87,7 +90,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
-              onPress={onClose}
+              onPress={() => {
+                replaceDailyFilters(localFilters);
+                onClose();
+              }}
             >
               <Text
                 style={{
@@ -118,22 +124,24 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               <View style={modals.priceSliderContainer}>
                 <View style={modals.priceSliderLabels}>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    {daily.priceRange.min === 10
+                    {localFilters.priceRange.min === 10
                       ? `${t('filters.lessThan')} ${formatCurrency(10)}`
-                      : formatCurrency(daily.priceRange.min)}
+                      : formatCurrency(localFilters.priceRange.min)}
                   </Text>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    {daily.priceRange.max === 50
+                    {localFilters.priceRange.max === 50
                       ? `${t('filters.over')} ${formatCurrency(50)}`
-                      : formatCurrency(daily.priceRange.max)}
+                      : formatCurrency(localFilters.priceRange.max)}
                   </Text>
                 </View>
                 <DualRangeSlider
                   min={10}
                   max={50}
-                  valueMin={daily.priceRange.min}
-                  valueMax={daily.priceRange.max}
-                  onValuesChange={(min, max) => setDailyPriceRange(min, max)}
+                  valueMin={localFilters.priceRange.min}
+                  valueMax={localFilters.priceRange.max}
+                  onValuesChange={(min, max) =>
+                    setLocalFilters(prev => ({ ...prev, priceRange: { min, max } }))
+                  }
                 />
               </View>
             </View>
@@ -183,10 +191,12 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     const disabled = isProteinDisabled(protein.key);
                     const isSelected =
                       protein.key === 'vegetarian'
-                        ? daily.dietPreference === 'vegetarian'
+                        ? localFilters.dietPreference === 'vegetarian'
                         : protein.key === 'vegan'
-                          ? daily.dietPreference === 'vegan'
-                          : daily.proteinTypes[protein.key as keyof typeof daily.proteinTypes];
+                          ? localFilters.dietPreference === 'vegan'
+                          : localFilters.proteinTypes[
+                              protein.key as keyof typeof localFilters.proteinTypes
+                            ];
 
                     return (
                       <TouchableOpacity
@@ -199,15 +209,22 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                         onPress={() => {
                           if (!disabled) {
                             if (protein.key === 'vegetarian') {
-                              setDietPreference('vegetarian');
+                              setLocalFilters(prev => ({ ...prev, dietPreference: 'vegetarian' }));
                             } else if (protein.key === 'vegan') {
-                              setDietPreference('vegan');
+                              setLocalFilters(prev => ({ ...prev, dietPreference: 'vegan' }));
                             } else {
-                              toggleProteinType(protein.key as any);
-                              // Reset to 'all' if selecting meat/fish/seafood
-                              if (daily.dietPreference !== 'all') {
-                                setDietPreference('all');
-                              }
+                              // Selecting a protein type resets diet to 'all' and toggles the protein
+                              setLocalFilters(prev => ({
+                                ...prev,
+                                dietPreference: 'all',
+                                proteinTypes: {
+                                  ...prev.proteinTypes,
+                                  [protein.key]:
+                                    !prev.proteinTypes[
+                                      protein.key as keyof typeof prev.proteinTypes
+                                    ],
+                                },
+                              }));
                             }
                           }
                         }}
@@ -242,15 +259,22 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                       key={cuisine}
                       style={[
                         modals.cuisineOption,
-                        daily.cuisineTypes.includes(cuisine) && modals.selectedOption,
+                        localFilters.cuisineTypes.includes(cuisine) && modals.selectedOption,
                       ]}
-                      onPress={() => toggleDailyCuisine(cuisine)}
+                      onPress={() =>
+                        setLocalFilters(prev => ({
+                          ...prev,
+                          cuisineTypes: prev.cuisineTypes.includes(cuisine)
+                            ? prev.cuisineTypes.filter(c => c !== cuisine)
+                            : [...prev.cuisineTypes, cuisine],
+                        }))
+                      }
                     >
                       <Text
                         style={[
                           modals.cuisineText,
                           modals.darkCuisineText,
-                          daily.cuisineTypes.includes(cuisine) && modals.selectedText,
+                          localFilters.cuisineTypes.includes(cuisine) && modals.selectedText,
                         ]}
                       >
                         {t(`filters.cuisines.${cuisine.toLowerCase()}`)}
@@ -292,15 +316,22 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     key={meal}
                     style={[
                       modals.cuisineOption,
-                      daily.meals.includes(meal) && modals.selectedOption,
+                      localFilters.meals.includes(meal) && modals.selectedOption,
                     ]}
-                    onPress={() => toggleDailyMeal(meal)}
+                    onPress={() =>
+                      setLocalFilters(prev => ({
+                        ...prev,
+                        meals: prev.meals.includes(meal)
+                          ? prev.meals.filter(m => m !== meal)
+                          : [...prev.meals, meal],
+                      }))
+                    }
                   >
                     <Text
                       style={[
                         modals.cuisineText,
                         modals.darkCuisineText,
-                        daily.meals.includes(meal) && modals.selectedText,
+                        localFilters.meals.includes(meal) && modals.selectedText,
                       ]}
                     >
                       {t(`filters.meals.${meal.toLowerCase().replace(/\s+/g, '')}`)}
@@ -381,16 +412,30 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
       <MealSelectionModal
         visible={mealModalVisible}
         onClose={() => setMealModalVisible(false)}
-        selectedMeals={daily.meals}
-        onToggleMeal={toggleDailyMeal}
+        selectedMeals={localFilters.meals}
+        onToggleMeal={meal =>
+          setLocalFilters(prev => ({
+            ...prev,
+            meals: prev.meals.includes(meal)
+              ? prev.meals.filter(m => m !== meal)
+              : [...prev.meals, meal],
+          }))
+        }
       />
 
       {/* Cuisine Selection Modal */}
       <CuisineSelectionModal
         visible={cuisineModalVisible}
         onClose={() => setCuisineModalVisible(false)}
-        selectedCuisines={daily.cuisineTypes}
-        onToggleCuisine={toggleDailyCuisine}
+        selectedCuisines={localFilters.cuisineTypes}
+        onToggleCuisine={cuisine =>
+          setLocalFilters(prev => ({
+            ...prev,
+            cuisineTypes: prev.cuisineTypes.includes(cuisine)
+              ? prev.cuisineTypes.filter(c => c !== cuisine)
+              : [...prev.cuisineTypes, cuisine],
+          }))
+        }
       />
     </Modal>
   );

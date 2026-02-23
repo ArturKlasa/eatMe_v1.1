@@ -164,6 +164,8 @@ interface FilterActions {
   setDailyMaxDistance: (distance: number) => void;
   toggleOpenNow: () => void;
   setSortBy: (sortBy: DailyFilters['sortBy']) => void;
+  /** Replaces the entire daily filter state atomically (used by the daily filter modal on Apply). */
+  replaceDailyFilters: (filters: DailyFilters) => void;
 
   // Permanent filter actions
   setPermanentDietPreference: (preference: PermanentFilters['dietPreference']) => void;
@@ -211,7 +213,7 @@ interface FilterActions {
 }
 
 // Default daily filters
-const defaultDailyFilters: DailyFilters = {
+export const defaultDailyFilters: DailyFilters = {
   priceRange: {
     min: 10,
     max: 50,
@@ -507,6 +509,13 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     get().saveFilters();
   },
 
+  replaceDailyFilters: (filters: DailyFilters) => {
+    // Atomically replace all daily filters (called when user presses Apply in the modal).
+    // Intentionally NOT saved to AsyncStorage — daily filters are session-only and
+    // reset to defaults the next time the modal is opened.
+    set({ daily: { ...filters }, activePreset: null });
+  },
+
   // Permanent filter actions
   setPermanentDietPreference: (preference: PermanentFilters['dietPreference']) => {
     set(state => ({
@@ -738,26 +747,22 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
   // Persistence actions
   loadFilters: async () => {
     try {
-      const [dailyStored, permanentStored] = await Promise.all([
-        AsyncStorage.getItem(DAILY_STORAGE_KEY),
-        AsyncStorage.getItem(PERMANENT_STORAGE_KEY),
-      ]);
+      // Daily filters are session-only — always start from defaults.
+      // Remove any stale key that may have been saved by older app versions.
+      await AsyncStorage.removeItem(DAILY_STORAGE_KEY);
 
-      let updates: Partial<FilterState> = {};
-
-      if (dailyStored) {
-        const parsedDaily = JSON.parse(dailyStored);
-        updates.daily = { ...defaultDailyFilters, ...parsedDaily };
-      }
-
+      const permanentStored = await AsyncStorage.getItem(PERMANENT_STORAGE_KEY);
       if (permanentStored) {
         const parsedPermanent = JSON.parse(permanentStored);
-        updates.permanent = { ...defaultPermanentFilters, ...parsedPermanent };
-      }
-
-      if (Object.keys(updates).length > 0) {
-        set(state => ({ ...state, ...updates }));
-        debugLog('Loaded filters from storage');
+        set(state => ({
+          ...state,
+          daily: { ...defaultDailyFilters }, // ensure daily is always reset on load
+          permanent: { ...defaultPermanentFilters, ...parsedPermanent },
+        }));
+        debugLog('Loaded permanent filters from storage; daily filters reset to defaults');
+      } else {
+        // No permanent filters saved yet — still reset daily to be safe
+        set(state => ({ ...state, daily: { ...defaultDailyFilters } }));
       }
     } catch (error) {
       debugLog('Failed to load filters from storage:', error);
@@ -766,12 +771,10 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
   saveFilters: async () => {
     try {
+      // Daily filters are session-only — only permanent filters are persisted.
       const currentState = get();
-      await Promise.all([
-        AsyncStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(currentState.daily)),
-        AsyncStorage.setItem(PERMANENT_STORAGE_KEY, JSON.stringify(currentState.permanent)),
-      ]);
-      debugLog('Saved filters to storage');
+      await AsyncStorage.setItem(PERMANENT_STORAGE_KEY, JSON.stringify(currentState.permanent));
+      debugLog('Saved permanent filters to storage');
     } catch (error) {
       debugLog('Failed to save filters to storage:', error);
     }

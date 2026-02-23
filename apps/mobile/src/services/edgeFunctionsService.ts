@@ -57,7 +57,8 @@ export interface FeedRequest {
   radius?: number; // km, default 10
   filters: {
     priceRange?: [number, number];
-    dietPreference?: string;
+    dietPreference?: string; // hard filter — permanent filters
+    preferredDiet?: string; // soft boost — daily filters
     calorieRange?: { min: number; max: number };
     allergens?: string[];
     cuisines?: string[];
@@ -108,7 +109,10 @@ export async function getFeed(
     radius,
     filters: {
       priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max],
+      // Permanent diet preference → hard filter (excludes non-matching dishes)
       dietPreference: permanentFilters.dietPreference,
+      // Daily diet preference → soft boost (dishes matching get scored higher)
+      preferredDiet: dailyFilters.dietPreference,
       calorieRange: dailyFilters.calorieRange.enabled
         ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
         : undefined,

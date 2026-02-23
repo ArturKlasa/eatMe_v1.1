@@ -31,7 +31,8 @@ interface FeedRequest {
   radius?: number; // km, default 10
   filters: {
     priceRange?: [number, number];
-    dietPreference?: string;
+    dietPreference?: string; // hard filter — from permanent filters only
+    preferredDiet?: string; // soft boost — from daily filters
     calorieRange?: { min: number; max: number };
     allergens?: string[];
     cuisines?: string[];
@@ -241,9 +242,8 @@ serve(async req => {
       );
     }
 
-    // Diet preference filter
-    // If user selects vegan/vegetarian, ONLY show dishes explicitly tagged as such
-    // Untagged dishes are assumed to be non-vegan and non-vegetarian
+    // Diet preference filter — HARD exclusion, permanent filters only.
+    // Daily diet preference is handled as a scoring boost below, not here.
     if (filters.dietPreference && filters.dietPreference !== 'all') {
       console.log(`[Feed] Filtering by diet preference: ${filters.dietPreference}`);
       filteredDishes = filteredDishes.filter((d: any) => {
@@ -408,6 +408,21 @@ function calculateScore(
     const deviation = Math.abs(dish.calories - targetMid);
     if (deviation < 100) {
       score += 5; // Close to target
+    }
+  }
+
+  // === DAILY DIET PREFERENCE BOOST ===
+  // When the user picks vegetarian/vegan as a daily (soft) filter,
+  // dishes that match get a significant score bump so they float to the top
+  // without excluding anything.
+  if (filters.preferredDiet && filters.preferredDiet !== 'all') {
+    const tags: string[] = dish.dietary_tags || [];
+    const matchesDailyDiet =
+      filters.preferredDiet === 'vegan'
+        ? tags.includes('vegan')
+        : tags.includes('vegetarian') || tags.includes('vegan');
+    if (matchesDailyDiet) {
+      score += 30; // strong enough to surface above untagged dishes
     }
   }
 

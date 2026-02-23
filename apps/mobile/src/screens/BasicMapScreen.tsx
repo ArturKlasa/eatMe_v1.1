@@ -340,7 +340,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           { lat: userLocation.latitude, lng: userLocation.longitude },
           daily,
           permanent,
-          user?.id,
+          undefined, // userId intentionally omitted — swipe-based personalisation not active yet
           10 // 10km radius
         );
         if (!cancelled) {
@@ -360,7 +360,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [userLocation, daily, permanent, user?.id]);
+  }, [userLocation, daily, permanent]);
 
   // Load nearby restaurants when location is available and filters change
   // DISABLED: Edge function is failing, causing excessive re-renders and errors

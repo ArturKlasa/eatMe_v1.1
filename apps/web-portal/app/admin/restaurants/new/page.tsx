@@ -112,6 +112,18 @@ export default function NewRestaurantPage() {
     }));
   };
 
+  const [quickHours, setQuickHours] = useState({ open: '09:00', close: '21:00' });
+
+  const applyQuickHours = (days: string[]) => {
+    setOperatingHours(prev => {
+      const next = { ...prev };
+      days.forEach(day => {
+        next[day] = { open: quickHours.open, close: quickHours.close, closed: false };
+      });
+      return next;
+    });
+  };
+
   const handleLocationSelect = (lat: number, lng: number) => {
     // Use functional update to avoid stale closures and preserve existing fields
     setFormData(prev => ({
@@ -558,6 +570,50 @@ export default function NewRestaurantPage() {
               <CardDescription>When is the restaurant open for business?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Quick-fill strip */}
+              <div className="flex flex-wrap items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <span className="text-sm font-medium text-gray-700 shrink-0">Apply to:</span>
+                <Input
+                  type="time"
+                  value={quickHours.open}
+                  onChange={e => setQuickHours(q => ({ ...q, open: e.target.value }))}
+                  className="w-32"
+                />
+                <span className="text-sm text-gray-500">to</span>
+                <Input
+                  type="time"
+                  value={quickHours.close}
+                  onChange={e => setQuickHours(q => ({ ...q, close: e.target.value }))}
+                  className="w-32"
+                />
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyQuickHours(DAYS_OF_WEEK.map(d => d.key))}
+                  >
+                    All days
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])}
+                  >
+                    Weekdays
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyQuickHours(['saturday', 'sunday'])}
+                  >
+                    Weekends
+                  </Button>
+                </div>
+              </div>
+              <Separator />
               {DAYS_OF_WEEK.map(({ key, label }) => (
                 <div key={key} className="flex items-center gap-4">
                   <div className="w-28">

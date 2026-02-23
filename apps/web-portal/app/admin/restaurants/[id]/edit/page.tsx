@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, MapPin, Utensils, Building2, Globe } from 'lucide-react';
+import { ArrowLeft, Loader2, MapPin, Utensils, Building2, Globe, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { RESTAURANT_TYPES, CUISINES, POPULAR_CUISINES, COUNTRIES } from '@/lib/constants';
 import type { ParsedLocationDetails } from '@/lib/parseAddress';
 
@@ -62,6 +63,28 @@ export default function EditRestaurantPage() {
 
   const [cuisineSearch, setCuisineSearch] = useState('');
 
+  const DAYS_OF_WEEK = [
+    { key: 'monday', label: 'Monday' },
+    { key: 'tuesday', label: 'Tuesday' },
+    { key: 'wednesday', label: 'Wednesday' },
+    { key: 'thursday', label: 'Thursday' },
+    { key: 'friday', label: 'Friday' },
+    { key: 'saturday', label: 'Saturday' },
+    { key: 'sunday', label: 'Sunday' },
+  ];
+
+  const [operatingHours, setOperatingHours] = useState<
+    Record<string, { open: string; close: string; closed: boolean }>
+  >({
+    monday: { open: '09:00', close: '21:00', closed: false },
+    tuesday: { open: '09:00', close: '21:00', closed: false },
+    wednesday: { open: '09:00', close: '21:00', closed: false },
+    thursday: { open: '09:00', close: '21:00', closed: false },
+    friday: { open: '09:00', close: '22:00', closed: false },
+    saturday: { open: '09:00', close: '22:00', closed: false },
+    sunday: { open: '10:00', close: '20:00', closed: false },
+  });
+
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
@@ -99,6 +122,20 @@ export default function EditRestaurantPage() {
             dine_in_available: data.dine_in_available !== false,
             accepts_reservations: data.accepts_reservations || false,
           });
+
+          // Populate operating hours from DB (open_hours stores only open days)
+          if (data.open_hours) {
+            setOperatingHours(prev => {
+              const next = { ...prev };
+              DAYS_OF_WEEK.forEach(({ key }) => {
+                const saved = data.open_hours?.[key];
+                next[key] = saved
+                  ? { open: saved.open, close: saved.close, closed: false }
+                  : { ...prev[key], closed: true };
+              });
+              return next;
+            });
+          }
         }
       } catch (error) {
         console.error('[Admin] Unexpected error:', error);
@@ -126,6 +163,14 @@ export default function EditRestaurantPage() {
         return;
       }
 
+      // Build open_hours: only include days that are not closed
+      const open_hours: Record<string, { open: string; close: string }> = {};
+      Object.entries(operatingHours).forEach(([day, hours]) => {
+        if (!hours.closed) {
+          open_hours[day] = { open: hours.open, close: hours.close };
+        }
+      });
+
       const { error } = await supabase
         .from('restaurants')
         .update({
@@ -142,6 +187,7 @@ export default function EditRestaurantPage() {
           restaurant_type: formData.restaurant_type,
           cuisine_types: formData.cuisine_types,
           location: { lat, lng },
+          open_hours,
           delivery_available: formData.delivery_available,
           takeout_available: formData.takeout_available,
           dine_in_available: formData.dine_in_available,
@@ -209,6 +255,32 @@ export default function EditRestaurantPage() {
         ? prev.cuisine_types.filter(c => c !== cuisine)
         : [...prev.cuisine_types, cuisine],
     }));
+  };
+
+  const handleDayClosedToggle = (day: string) => {
+    setOperatingHours(prev => ({
+      ...prev,
+      [day]: { ...prev[day], closed: !prev[day].closed },
+    }));
+  };
+
+  const handleHoursChange = (day: string, field: 'open' | 'close', value: string) => {
+    setOperatingHours(prev => ({
+      ...prev,
+      [day]: { ...prev[day], [field]: value },
+    }));
+  };
+
+  const [quickHours, setQuickHours] = useState({ open: '09:00', close: '21:00' });
+
+  const applyQuickHours = (days: string[]) => {
+    setOperatingHours(prev => {
+      const next = { ...prev };
+      days.forEach(day => {
+        next[day] = { open: quickHours.open, close: quickHours.close, closed: false };
+      });
+      return next;
+    });
   };
 
   const handleRemoveCuisine = (cuisine: string) => {
@@ -592,6 +664,103 @@ export default function EditRestaurantPage() {
                 </Label>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Operating Hours Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-600" />
+              <CardTitle>Operating Hours</CardTitle>
+            </div>
+            <CardDescription>When is this restaurant open for business?</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Quick-fill strip */}
+            <div className="flex flex-wrap items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <span className="text-sm font-medium text-gray-700 shrink-0">Apply to:</span>
+              <Input
+                type="time"
+                value={quickHours.open}
+                onChange={e => setQuickHours(q => ({ ...q, open: e.target.value }))}
+                className="w-32"
+              />
+              <span className="text-sm text-gray-500">to</span>
+              <Input
+                type="time"
+                value={quickHours.close}
+                onChange={e => setQuickHours(q => ({ ...q, close: e.target.value }))}
+                className="w-32"
+              />
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyQuickHours(DAYS_OF_WEEK.map(d => d.key))}
+                >
+                  All days
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])}
+                >
+                  Weekdays
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyQuickHours(['saturday', 'sunday'])}
+                >
+                  Weekends
+                </Button>
+              </div>
+            </div>
+            <Separator />
+            {DAYS_OF_WEEK.map(({ key, label }) => (
+              <div key={key}>
+                <div className="flex items-center gap-4">
+                  <div className="w-28 shrink-0">
+                    <Label className="text-sm font-medium">{label}</Label>
+                  </div>
+                  <div className="flex items-center gap-3 flex-1 flex-wrap">
+                    <Checkbox
+                      id={`closed-${key}`}
+                      checked={operatingHours[key]?.closed || false}
+                      onCheckedChange={() => handleDayClosedToggle(key)}
+                    />
+                    <Label
+                      htmlFor={`closed-${key}`}
+                      className="text-sm text-gray-500 cursor-pointer"
+                    >
+                      Closed
+                    </Label>
+                    {!operatingHours[key]?.closed && (
+                      <>
+                        <Input
+                          type="time"
+                          value={operatingHours[key]?.open || '09:00'}
+                          onChange={e => handleHoursChange(key, 'open', e.target.value)}
+                          className="w-32"
+                        />
+                        <span className="text-gray-500 text-sm">to</span>
+                        <Input
+                          type="time"
+                          value={operatingHours[key]?.close || '21:00'}
+                          onChange={e => handleHoursChange(key, 'close', e.target.value)}
+                          className="w-32"
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+                {key !== 'sunday' && <Separator className="mt-3" />}
+              </div>
+            ))}
           </CardContent>
         </Card>
 

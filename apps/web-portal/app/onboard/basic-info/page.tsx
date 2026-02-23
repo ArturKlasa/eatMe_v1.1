@@ -339,6 +339,18 @@ function BasicInfoPageContent() {
     }));
   };
 
+  const [quickHours, setQuickHours] = useState({ open: '09:00', close: '21:00' });
+
+  const applyQuickHours = (days: string[]) => {
+    setOperatingHours(prev => {
+      const next = { ...prev };
+      days.forEach(day => {
+        next[day] = { open: quickHours.open, close: quickHours.close, closed: false };
+      });
+      return next;
+    });
+  };
+
   const handleLocationSelect = useCallback(
     (lat: number, lng: number) => {
       setValue('location_lat', lat.toString());
@@ -626,21 +638,13 @@ function BasicInfoPageContent() {
                   <Label htmlFor="city" className="mb-2 block">
                     City
                   </Label>
-                  <Input
-                    id="city"
-                    {...register('city')}
-                    placeholder="San Francisco"
-                  />
+                  <Input id="city" {...register('city')} placeholder="San Francisco" />
                 </div>
                 <div>
                   <Label htmlFor="postal_code" className="mb-2 block">
                     Postal Code
                   </Label>
-                  <Input
-                    id="postal_code"
-                    {...register('postal_code')}
-                    placeholder="94102"
-                  />
+                  <Input id="postal_code" {...register('postal_code')} placeholder="94102" />
                 </div>
               </div>
 
@@ -649,21 +653,13 @@ function BasicInfoPageContent() {
                   <Label htmlFor="neighbourhood" className="mb-2 block">
                     Neighbourhood
                   </Label>
-                  <Input
-                    id="neighbourhood"
-                    {...register('neighbourhood')}
-                    placeholder="Downtown"
-                  />
+                  <Input id="neighbourhood" {...register('neighbourhood')} placeholder="Downtown" />
                 </div>
                 <div>
                   <Label htmlFor="state" className="mb-2 block">
                     State / Province
                   </Label>
-                  <Input
-                    id="state"
-                    {...register('state')}
-                    placeholder="California"
-                  />
+                  <Input id="state" {...register('state')} placeholder="California" />
                 </div>
               </div>
 
@@ -802,6 +798,50 @@ function BasicInfoPageContent() {
               <CardDescription>When are you open for business?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Quick-fill strip */}
+              <div className="flex flex-wrap items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <span className="text-sm font-medium text-gray-700 shrink-0">Apply to:</span>
+                <Input
+                  type="time"
+                  value={quickHours.open}
+                  onChange={e => setQuickHours(q => ({ ...q, open: e.target.value }))}
+                  className="w-32"
+                />
+                <span className="text-sm text-gray-500">to</span>
+                <Input
+                  type="time"
+                  value={quickHours.close}
+                  onChange={e => setQuickHours(q => ({ ...q, close: e.target.value }))}
+                  className="w-32"
+                />
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyQuickHours(DAYS_OF_WEEK.map(d => d.key))}
+                  >
+                    All days
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])}
+                  >
+                    Weekdays
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyQuickHours(['saturday', 'sunday'])}
+                  >
+                    Weekends
+                  </Button>
+                </div>
+              </div>
+              <Separator />
               {DAYS_OF_WEEK.map(({ key, label }) => (
                 <div key={key} className="flex items-center gap-4">
                   <div className="w-28">

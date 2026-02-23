@@ -511,7 +511,10 @@ export default function EditRestaurantPage() {
             {/* Neighbourhood, State */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="neighbourhood">Neighbourhood</Label>
+                <Label htmlFor="neighbourhood">
+                  Neighbourhood{' '}
+                  <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                </Label>
                 <Input
                   id="neighbourhood"
                   value={formData.neighbourhood}
@@ -706,7 +709,9 @@ export default function EditRestaurantPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])}
+                  onClick={() =>
+                    applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
+                  }
                 >
                   Weekdays
                 </Button>

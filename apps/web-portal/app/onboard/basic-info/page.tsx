@@ -651,7 +651,8 @@ function BasicInfoPageContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="neighbourhood" className="mb-2 block">
-                    Neighbourhood
+                    Neighbourhood{' '}
+                    <span className="text-gray-400 font-normal text-xs">(optional)</span>
                   </Label>
                   <Input id="neighbourhood" {...register('neighbourhood')} placeholder="Downtown" />
                 </div>
@@ -827,7 +828,9 @@ function BasicInfoPageContent() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])}
+                    onClick={() =>
+                      applyQuickHours(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
+                    }
                   >
                     Weekdays
                   </Button>

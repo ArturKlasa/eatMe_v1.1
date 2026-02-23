@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 export interface CanonicalIngredient {
   id: string;
   canonical_name: string;
+  ingredient_family_name?: string;
   is_vegetarian: boolean;
   is_vegan: boolean;
 }
@@ -44,6 +45,7 @@ export interface Ingredient {
   display_name: string; // ingredient_alias.display_name
   canonical_ingredient_id: string;
   canonical_name?: string; // flattened from canonical_ingredient.canonical_name
+  ingredient_family_name?: string; // flattened from canonical_ingredient.ingredient_family_name
   is_vegetarian?: boolean; // flattened from canonical_ingredient.is_vegetarian
   is_vegan?: boolean; // flattened from canonical_ingredient.is_vegan
   quantity?: string; // optional quantity when added to a dish
@@ -71,12 +73,13 @@ export async function searchIngredients(
       canonical_ingredient:canonical_ingredients(
         id,
         canonical_name,
+        ingredient_family_name,
         is_vegetarian,
         is_vegan
       )
     `
     )
-    .ilike('display_name', `${query}%`)
+    .ilike('display_name', `%${query}%`)
     .order('display_name')
     .limit(limit);
 
@@ -86,6 +89,7 @@ export async function searchIngredients(
     display_name: row.display_name,
     canonical_ingredient_id: row.canonical_ingredient_id,
     canonical_name: row.canonical_ingredient?.canonical_name,
+    ingredient_family_name: row.canonical_ingredient?.ingredient_family_name,
     is_vegetarian: row.canonical_ingredient?.is_vegetarian,
     is_vegan: row.canonical_ingredient?.is_vegan,
   }));

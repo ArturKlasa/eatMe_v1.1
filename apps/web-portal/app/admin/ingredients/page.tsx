@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface CanonicalIngredient {
   id: string;
   canonical_name: string;
+  ingredient_family_name?: string;
   is_vegetarian: boolean;
   is_vegan: boolean;
   created_at: string;
@@ -18,6 +20,7 @@ interface IngredientAlias {
   canonical_ingredient_id: string;
   canonical_ingredient?: {
     canonical_name: string;
+    ingredient_family_name?: string;
   };
   created_at: string;
 }
@@ -32,6 +35,7 @@ export default function IngredientsPage() {
   const [showCanonicalForm, setShowCanonicalForm] = useState(false);
   const [canonicalFormData, setCanonicalFormData] = useState({
     canonical_name: '',
+    ingredient_family_name: 'other',
     is_vegetarian: true,
     is_vegan: false,
   });
@@ -65,7 +69,7 @@ export default function IngredientsPage() {
         .select(
           `
           *,
-          canonical_ingredient:canonical_ingredients(canonical_name)
+          canonical_ingredient:canonical_ingredients(canonical_name, ingredient_family_name)
         `
         )
         .order('display_name');
@@ -88,6 +92,7 @@ export default function IngredientsPage() {
     try {
       const { error } = await supabase.from('canonical_ingredients').insert({
         canonical_name: canonicalFormData.canonical_name.toLowerCase().replace(/\s+/g, '_'),
+        ingredient_family_name: canonicalFormData.ingredient_family_name,
         is_vegetarian: canonicalFormData.is_vegetarian,
         is_vegan: canonicalFormData.is_vegan,
       });
@@ -98,6 +103,7 @@ export default function IngredientsPage() {
       setShowCanonicalForm(false);
       setCanonicalFormData({
         canonical_name: '',
+        ingredient_family_name: 'other',
         is_vegetarian: true,
         is_vegan: false,
       });
@@ -165,6 +171,44 @@ export default function IngredientsPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (activeTab === 'canonical') {
+      const rows = [
+        ['canonical_name', 'ingredient_family_name', 'is_vegetarian', 'is_vegan'],
+        ...canonicalIngredients.map(ing => [
+          ing.canonical_name,
+          ing.ingredient_family_name ?? '',
+          ing.is_vegetarian ? 'true' : 'false',
+          ing.is_vegan ? 'true' : 'false',
+        ]),
+      ];
+      downloadCSV(rows, 'canonical_ingredients.csv');
+    } else {
+      const rows = [
+        ['display_name', 'canonical_name', 'ingredient_family_name'],
+        ...aliases.map(a => [
+          a.display_name,
+          a.canonical_ingredient?.canonical_name ?? '',
+          a.canonical_ingredient?.ingredient_family_name ?? '',
+        ]),
+      ];
+      downloadCSV(rows, 'ingredient_aliases.csv');
+    }
+  };
+
+  const downloadCSV = (rows: string[][], filename: string) => {
+    const escape = (val: string) => `"${val.replace(/"/g, '""')}"`;
+    const csv = rows.map(r => r.map(escape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length - 1} rows to ${filename}`);
+  };
+
   const filteredCanonical = canonicalIngredients.filter(ing =>
     ing.canonical_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -172,8 +216,47 @@ export default function IngredientsPage() {
   const filteredAliases = aliases.filter(
     alias =>
       alias.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      alias.canonical_ingredient?.canonical_name.toLowerCase().includes(searchQuery.toLowerCase())
+      alias.canonical_ingredient?.canonical_name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      alias.canonical_ingredient?.ingredient_family_name
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase())
   );
+
+  const FAMILY_COLOURS: Record<string, string> = {
+    fish: 'bg-blue-100 text-blue-800',
+    shellfish: 'bg-cyan-100 text-cyan-800',
+    meat: 'bg-red-100 text-red-800',
+    poultry: 'bg-orange-100 text-orange-800',
+    dairy: 'bg-yellow-100 text-yellow-800',
+    eggs: 'bg-amber-100 text-amber-800',
+    plant_milk: 'bg-lime-100 text-lime-800',
+    vegetable: 'bg-green-100 text-green-800',
+    fruit: 'bg-pink-100 text-pink-800',
+    grain: 'bg-stone-100 text-stone-800',
+    plant_protein: 'bg-teal-100 text-teal-800',
+    nut_seed: 'bg-brown-100 text-yellow-900',
+    spice_herb: 'bg-purple-100 text-purple-800',
+    oil_fat: 'bg-yellow-50 text-yellow-700',
+    condiment: 'bg-rose-100 text-rose-800',
+    sweetener: 'bg-fuchsia-100 text-fuchsia-800',
+    beverage: 'bg-sky-100 text-sky-800',
+    alcohol: 'bg-violet-100 text-violet-800',
+    baking: 'bg-orange-50 text-orange-700',
+    other: 'bg-gray-100 text-gray-600',
+  };
+
+  const FamilyBadge = ({ family }: { family?: string }) => {
+    const f = family ?? 'other';
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${FAMILY_COLOURS[f] ?? FAMILY_COLOURS.other}`}
+      >
+        {f.replace(/_/g, ' ')}
+      </span>
+    );
+  };
 
   if (loading) {
     return (
@@ -229,14 +312,24 @@ export default function IngredientsPage() {
           onChange={e => setSearchQuery(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg w-64"
         />
-        <button
-          onClick={() =>
-            activeTab === 'canonical' ? setShowCanonicalForm(true) : setShowAliasForm(true)
-          }
-          className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
-        >
-          + Add {activeTab === 'canonical' ? 'Canonical' : 'Alias'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
+            title={`Export ${activeTab === 'canonical' ? 'canonical ingredients' : 'aliases'} as CSV`}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={() =>
+              activeTab === 'canonical' ? setShowCanonicalForm(true) : setShowAliasForm(true)
+            }
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+          >
+            + Add {activeTab === 'canonical' ? 'Canonical' : 'Alias'}
+          </button>
+        </div>
       </div>
 
       {/* Canonical Ingredients Tab */}
@@ -247,6 +340,9 @@ export default function IngredientsPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Canonical Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Family
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Vegetarian
@@ -264,6 +360,9 @@ export default function IngredientsPage() {
                 <tr key={ingredient.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {ingredient.canonical_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <FamilyBadge family={ingredient.ingredient_family_name} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {ingredient.is_vegetarian ? '✓' : '✗'}
@@ -300,6 +399,9 @@ export default function IngredientsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   → Canonical Ingredient
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Family
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -313,6 +415,9 @@ export default function IngredientsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {alias.canonical_ingredient?.canonical_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <FamilyBadge family={alias.canonical_ingredient?.ingredient_family_name} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
@@ -352,6 +457,26 @@ export default function IngredientsPage() {
                 <p className="text-xs text-gray-500 mt-1">
                   Will be converted to lowercase with underscores
                 </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Family</label>
+                <select
+                  value={canonicalFormData.ingredient_family_name}
+                  onChange={e =>
+                    setCanonicalFormData({
+                      ...canonicalFormData,
+                      ingredient_family_name: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {Object.keys(FAMILY_COLOURS).map(f => (
+                    <option key={f} value={f}>
+                      {f.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="mb-4">

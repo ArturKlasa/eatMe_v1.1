@@ -302,7 +302,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           </View>
           <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
         </View>
-        {item.description && <Text style={styles.menuItemIngredients}>{item.description}</Text>}
+        {item.description && item.description_visibility !== 'detail' && (
+          <Text style={styles.menuItemIngredients}>{item.description}</Text>
+        )}
+        {item.ingredients_visibility === 'menu' && item.ingredients?.length > 0 && (
+          <Text style={styles.menuItemIngredients}>{item.ingredients.join(', ')}</Text>
+        )}
       </TouchableOpacity>
     );
   };
@@ -536,7 +541,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           }}
           dishId={selectedDish.id}
           dishName={selectedDish.name}
-          dishDescription={selectedDish.description}
+          dishDescription={
+            selectedDish.description_visibility !== 'menu' ? selectedDish.description : undefined
+          }
+          dishIngredients={
+            selectedDish.ingredients_visibility === 'detail' ? selectedDish.ingredients || [] : []
+          }
           dishPrice={selectedDish.price}
           photos={dishPhotos}
           onPhotoAdded={() => {

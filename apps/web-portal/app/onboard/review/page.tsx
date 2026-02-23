@@ -252,6 +252,8 @@ function ReviewPageContent() {
               spice_level: dish.spice_level || null,
               image_url: dish.photo_url || null,
               is_available: dish.is_available !== undefined ? dish.is_available : true,
+              description_visibility: (dish as any).description_visibility ?? 'menu',
+              ingredients_visibility: (dish as any).ingredients_visibility ?? 'detail',
             }));
 
             const { data: insertedDishes, error: dishesError } = await supabase

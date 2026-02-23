@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
@@ -88,6 +89,7 @@ export function DishFormDialog({
     resolver: zodResolver(dishSchema),
     defaultValues: {
       name: '',
+      description: '',
       price: 0,
       calories: undefined,
       dietary_tags: [] as string[],
@@ -97,6 +99,8 @@ export function DishFormDialog({
       photo_url: '',
       is_available: true,
       dish_category_id: null,
+      description_visibility: 'menu' as const,
+      ingredients_visibility: 'detail' as const,
     },
   });
 
@@ -123,6 +127,7 @@ export function DishFormDialog({
     if (dish && isOpen) {
       reset({
         name: dish.name || '',
+        description: dish.description || '',
         price: dish.price || 0,
         calories: dish.calories || undefined,
         dietary_tags: dish.dietary_tags || [],
@@ -132,10 +137,57 @@ export function DishFormDialog({
         photo_url: dish.photo_url || '',
         is_available: dish.is_available !== false,
         dish_category_id: dish.dish_category_id ?? null,
+        description_visibility: (dish as any).description_visibility ?? 'menu',
+        ingredients_visibility: (dish as any).ingredients_visibility ?? 'detail',
       });
+
+      // Load existing dish_ingredients rows so the autocomplete shows them when editing
+      if (dish.id) {
+        supabase
+          .from('dish_ingredients')
+          .select(
+            `
+            ingredient_id,
+            quantity,
+            canonical_ingredient:canonical_ingredients(
+              id,
+              canonical_name,
+              ingredient_family_name,
+              is_vegetarian,
+              is_vegan,
+              ingredient_aliases(id, display_name)
+            )
+          `
+          )
+          .eq('dish_id', dish.id)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              const loaded = data.map((row: any) => {
+                const alias = row.canonical_ingredient?.ingredient_aliases?.[0];
+                return {
+                  id: alias?.id ?? row.ingredient_id,
+                  display_name:
+                    alias?.display_name ?? row.canonical_ingredient?.canonical_name ?? '',
+                  canonical_ingredient_id: row.ingredient_id,
+                  canonical_name: row.canonical_ingredient?.canonical_name,
+                  ingredient_family_name: row.canonical_ingredient?.ingredient_family_name,
+                  is_vegetarian: row.canonical_ingredient?.is_vegetarian,
+                  is_vegan: row.canonical_ingredient?.is_vegan,
+                  quantity: row.quantity ?? undefined,
+                } as Ingredient;
+              });
+              setSelectedIngredients(loaded);
+            } else {
+              setSelectedIngredients([]);
+            }
+          });
+      } else {
+        setSelectedIngredients([]);
+      }
     } else if (!dish && isOpen) {
       reset({
         name: '',
+        description: '',
         price: 0,
         calories: undefined,
         dietary_tags: [],
@@ -145,6 +197,8 @@ export function DishFormDialog({
         photo_url: '',
         is_available: true,
         dish_category_id: null,
+        description_visibility: 'menu',
+        ingredients_visibility: 'detail',
       });
       setSelectedIngredients([]);
     }
@@ -171,6 +225,8 @@ export function DishFormDialog({
         photo_url: data.photo_url,
         is_available: data.is_available !== false,
         dish_category_id: data.dish_category_id ?? null,
+        description_visibility: data.description_visibility ?? 'menu',
+        ingredients_visibility: data.ingredients_visibility ?? 'detail',
         // carry selectedIngredients for linking later during final submission
         ...(selectedIngredients.length > 0 ? { selectedIngredients } : {}),
       } as Dish & { selectedIngredients?: typeof selectedIngredients };
@@ -186,20 +242,60 @@ export function DishFormDialog({
         menu_category_id: menuCategoryId,
         dish_category_id: data.dish_category_id ?? null,
         name: data.name,
-        description: data.description,
+        description: data.description || null,
         price: data.price,
         is_available: data.is_available !== false,
         image_url: data.photo_url,
+        dietary_tags: data.dietary_tags || [],
+        allergens: data.allergens || [],
+        calories: !isNaN(data.calories as number) && data.calories != null ? data.calories : null,
+        spice_level:
+          !isNaN(data.spice_level as number) && data.spice_level != null ? data.spice_level : null,
+        description_visibility: data.description_visibility ?? 'menu',
+        ingredients_visibility: data.ingredients_visibility ?? 'detail',
       };
+
+      let dishId: string;
 
       if (dish?.id) {
         const { error } = await supabase.from('dishes').update(dishData).eq('id', dish.id);
         if (error) throw error;
+        dishId = dish.id;
         toast.success('Dish updated successfully');
       } else {
-        const { error } = await supabase.from('dishes').insert(dishData);
+        const { data: inserted, error } = await supabase
+          .from('dishes')
+          .insert(dishData)
+          .select('id')
+          .single();
         if (error) throw error;
+        dishId = inserted.id;
         toast.success('Dish added successfully');
+      }
+
+      // ── Sync dish_ingredients junction table ────────────────────────────
+      // Delete all existing links first (covers both insert and update paths),
+      // then re-insert the current selection. This keeps the junction table
+      // in sync whenever the user changes ingredients.
+      if (selectedIngredients.length > 0) {
+        await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
+
+        const ingredientRows = selectedIngredients.map(ing => ({
+          dish_id: dishId,
+          ingredient_id: ing.canonical_ingredient_id,
+          quantity: ing.quantity ?? null,
+        }));
+
+        const { error: ingError } = await supabase.from('dish_ingredients').insert(ingredientRows);
+
+        if (ingError) {
+          console.error('[DishForm] Failed to save ingredients:', ingError);
+          // Non-fatal: dish is saved, but warn the user
+          toast.warning('Dish saved, but ingredient links could not be updated.');
+        }
+      } else if (dish?.id) {
+        // If editing and all ingredients were removed, clear the junction table
+        await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
       }
 
       reset();
@@ -411,6 +507,60 @@ export function DishFormDialog({
               <Input id="name" {...register('name')} placeholder="e.g., Margherita Pizza" />
               {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>}
             </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description" className="mb-2 block">
+                Description <span className="text-gray-400 font-normal text-xs">(optional)</span>
+              </Label>
+              <Textarea
+                id="description"
+                {...register('description')}
+                placeholder="e.g., Crispy thin-crust pizza with fresh mozzarella and basil"
+                rows={3}
+                className="resize-none"
+              />
+              {errors.description && (
+                <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
+              )}
+            </div>
+
+            {/* Description Visibility */}
+            <div>
+              <Label className="mb-2 block">Show description in app</Label>
+              <div className="flex gap-4">
+                {(
+                  [
+                    {
+                      value: 'menu',
+                      label: '📋 Menu list',
+                      hint: 'Shown in the restaurant menu row',
+                    },
+                    {
+                      value: 'detail',
+                      label: '🖼️ Dish detail only',
+                      hint: 'Shown when user taps the dish',
+                    },
+                  ] as const
+                ).map(opt => (
+                  <label
+                    key={opt.value}
+                    className="flex items-start gap-2 cursor-pointer flex-1 rounded-lg border p-3 hover:bg-gray-50 has-checked:border-primary has-checked:bg-primary/5"
+                  >
+                    <input
+                      type="radio"
+                      value={opt.value}
+                      {...register('description_visibility')}
+                      className="mt-0.5 accent-primary"
+                    />
+                    <div>
+                      <span className="text-sm font-medium">{opt.label}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
           <Separator />
@@ -510,6 +660,36 @@ export function DishFormDialog({
                 </p>
               </div>
             )}
+
+            {/* Ingredients Visibility */}
+            <div>
+              <Label className="mb-2 block">Show ingredients in app</Label>
+              <div className="flex gap-3">
+                {(
+                  [
+                    { value: 'menu', label: '📋 Menu list', hint: 'Shown in menu row' },
+                    { value: 'detail', label: '🖼️ Dish detail', hint: 'Shown when tapped' },
+                    { value: 'none', label: '🚫 Hidden', hint: 'Not shown to users' },
+                  ] as const
+                ).map(opt => (
+                  <label
+                    key={opt.value}
+                    className="flex items-start gap-2 cursor-pointer flex-1 rounded-lg border p-3 hover:bg-gray-50 has-checked:border-primary has-checked:bg-primary/5"
+                  >
+                    <input
+                      type="radio"
+                      value={opt.value}
+                      {...register('ingredients_visibility')}
+                      className="mt-0.5 accent-primary"
+                    />
+                    <div>
+                      <span className="text-sm font-medium">{opt.label}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
           <Separator />

@@ -29,6 +29,7 @@ interface DishPhotoModalProps {
   dishId: string;
   dishName: string;
   dishDescription?: string;
+  dishIngredients?: string[];
   dishPrice: number;
   photos: DishPhoto[];
   onPhotoAdded?: () => void; // Callback to refresh photos after upload
@@ -40,6 +41,7 @@ export function DishPhotoModal({
   dishId,
   dishName,
   dishDescription,
+  dishIngredients,
   dishPrice,
   photos,
   onPhotoAdded,
@@ -165,6 +167,13 @@ export function DishPhotoModal({
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description</Text>
               <Text style={styles.description}>{dishDescription}</Text>
+            </View>
+          )}
+
+          {dishIngredients && dishIngredients.length > 0 && (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.descriptionLabel}>Ingredients</Text>
+              <Text style={styles.description}>{dishIngredients.join(', ')}</Text>
             </View>
           )}
 

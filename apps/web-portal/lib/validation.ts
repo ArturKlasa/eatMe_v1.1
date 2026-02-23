@@ -60,6 +60,8 @@ export const dishSchema = z.object({
   spice_level: z.number().min(0).max(4).optional().or(z.nan()),
   photo_url: z.string().optional(),
   is_available: z.boolean().optional(),
+  description_visibility: z.enum(['menu', 'detail']).optional(),
+  ingredients_visibility: z.enum(['menu', 'detail', 'none']).optional(),
 });
 
 export const menuSchema = z.object({

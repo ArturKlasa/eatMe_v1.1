@@ -37,6 +37,10 @@ export interface Dish {
   spice_level?: number; // 0-4 scale
   photo_url?: string;
   is_available?: boolean;
+  /** Where the description is shown in the mobile app. Defaults to 'menu'. */
+  description_visibility?: 'menu' | 'detail';
+  /** Where ingredients are shown in the mobile app. Defaults to 'detail'. */
+  ingredients_visibility?: 'menu' | 'detail' | 'none';
 }
 
 export interface Menu {

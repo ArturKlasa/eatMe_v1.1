@@ -4,10 +4,15 @@
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/images/EatMe_icon_v1.png",
     "userInterfaceStyle": "light",
     "scheme": "eatme",
     "android": {
       "package": "com.eatme.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/EatMe_icon_v1.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -30,6 +35,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.eatme.app",
+      "icon": "./assets/images/EatMe_icon_v1.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location to show nearby restaurants and provide personalized recommendations.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to show nearby restaurants and provide personalized recommendations."

@@ -110,3 +110,5 @@ mapbox-token.txt
 build/
 dist/
 out/
+# EAS build config — contains secrets, managed via EAS environment variables
+apps/mobile/eas.json

@@ -288,14 +288,9 @@ serve(async req => {
       console.log(`[Feed] After allergen filter: ${filteredDishes.length}`);
     }
 
-    // Cuisine filter
-    if (filters.cuisines && filters.cuisines.length > 0) {
-      filteredDishes = filteredDishes.filter((d: any) => {
-        const restaurantCuisines = d.restaurant?.cuisine_types || [];
-        return filters.cuisines!.some(cuisine => restaurantCuisines.includes(cuisine));
-      });
-      console.log(`[Feed] After cuisine filter: ${filteredDishes.length}`);
-    }
+    // Cuisine preference — handled as a scoring boost below, not a hard filter.
+    // This ensures that when no matching restaurants are nearby, other restaurants
+    // still appear (matching ones are ranked first via the score bonus).
 
     // 5. Score and rank dishes (with personalization)
     const scoredDishes = filteredDishes.map((dish: any) => {
@@ -423,6 +418,17 @@ function calculateScore(
         : tags.includes('vegetarian') || tags.includes('vegan');
     if (matchesDailyDiet) {
       score += 30; // strong enough to surface above untagged dishes
+    }
+  }
+
+  // === CUISINE PREFERENCE BOOST ===
+  // Dishes from the selected cuisines float to the top; dishes from other
+  // cuisines still appear so the user always sees something nearby.
+  if (filters.cuisines && filters.cuisines.length > 0) {
+    const restaurantCuisines: string[] = dish.restaurant?.cuisine_types || [];
+    const matchesCuisine = filters.cuisines.some((c: string) => restaurantCuisines.includes(c));
+    if (matchesCuisine) {
+      score += 40; // strong boost — matching cuisine clearly ranks first
     }
   }
 

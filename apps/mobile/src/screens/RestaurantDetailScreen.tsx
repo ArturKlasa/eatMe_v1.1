@@ -49,6 +49,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [selectedDish, setSelectedDish] = useState<any>(null);
   const [dishPhotos, setDishPhotos] = useState<any[]>([]);
+  const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
 
@@ -253,23 +254,46 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       imageUrl: dish.photo_url,
     });
 
-    // Fetch photos for this dish
-    try {
-      const { data, error } = await supabase
+    // Fetch photos and ingredients in parallel
+    const [photosResult, ingredientsResult] = await Promise.allSettled([
+      supabase
         .from('dish_photos')
         .select('*')
         .eq('dish_id', dish.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('dish_ingredients')
+        .select('canonical_ingredient:canonical_ingredients(canonical_name)')
+        .eq('dish_id', dish.id),
+    ]);
 
+    // Photos
+    if (photosResult.status === 'fulfilled') {
+      const { data, error } = photosResult.value;
       if (error) {
         console.error('Error fetching dish photos:', error);
         setDishPhotos([]);
       } else {
         setDishPhotos(data || []);
       }
-    } catch (err) {
-      console.error('Error fetching dish photos:', err);
+    } else {
       setDishPhotos([]);
+    }
+
+    // Ingredients from junction table (canonical names)
+    if (ingredientsResult.status === 'fulfilled') {
+      const { data, error } = ingredientsResult.value;
+      if (!error && data && data.length > 0) {
+        const names = data
+          .map((row: any) => row.canonical_ingredient?.canonical_name)
+          .filter(Boolean) as string[];
+        setDishIngredientNames(names);
+      } else {
+        // Fall back to legacy ingredients text array if junction table is empty
+        setDishIngredientNames(dish.ingredients || []);
+      }
+    } else {
+      setDishIngredientNames(dish.ingredients || []);
     }
   };
 
@@ -538,6 +562,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           onClose={() => {
             setSelectedDish(null);
             setDishPhotos([]);
+            setDishIngredientNames([]);
           }}
           dishId={selectedDish.id}
           dishName={selectedDish.name}
@@ -545,7 +570,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             selectedDish.description_visibility !== 'menu' ? selectedDish.description : undefined
           }
           dishIngredients={
-            selectedDish.ingredients_visibility === 'detail' ? selectedDish.ingredients || [] : []
+            selectedDish.ingredients_visibility === 'detail' ? dishIngredientNames : []
           }
           dishPrice={selectedDish.price}
           photos={dishPhotos}

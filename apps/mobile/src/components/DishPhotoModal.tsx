@@ -162,7 +162,11 @@ export function DishPhotoModal({
         )}
 
         {/* Dish Info */}
-        <View style={styles.infoSection}>
+        <ScrollView
+          style={styles.infoSection}
+          contentContainerStyle={styles.infoSectionContent}
+          showsVerticalScrollIndicator={false}
+        >
           {dishDescription && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>Description</Text>
@@ -198,7 +202,7 @@ export function DishPhotoModal({
               {photos.length} photo{photos.length !== 1 ? 's' : ''} from the community
             </Text>
           )}
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -311,6 +315,9 @@ const styles = StyleSheet.create({
   infoSection: {
     flex: 1,
     padding: 16,
+  },
+  infoSectionContent: {
+    paddingBottom: 24,
   },
   descriptionContainer: {
     marginBottom: 16,

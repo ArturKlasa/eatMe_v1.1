@@ -9,8 +9,11 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { getCurrencyForCountry, type SupportedCurrency } from '../utils/currencyConfig';
+import * as RNLocalize from 'react-native-localize';
+
 export type Language = 'en' | 'es' | 'pl';
-export type Currency = 'USD' | 'MXN' | 'PLN';
+export type Currency = SupportedCurrency;
 export type UnitSystem = 'metric' | 'imperial';
 
 interface UserSettings {
@@ -18,6 +21,8 @@ interface UserSettings {
   language: Language;
   currency: Currency;
   unitSystem: UnitSystem;
+  /** ISO 3166-1 alpha-2 code from device locale or GPS, e.g. "US", "MX" */
+  detectedCountryCode: string | null;
 
   // Notifications
   pushNotifications: boolean;
@@ -37,6 +42,12 @@ interface SettingsStore extends UserSettings {
   // Actions
   updateLanguage: (language: Language) => void;
   updateCurrency: (currency: Currency) => void;
+  /**
+   * Detects the country from the device locale (instant, no GPS needed)
+   * and updates currency and detectedCountryCode accordingly.
+   * Call once on app start; the filter store reads from currency.
+   */
+  autoDetectCurrency: () => void;
   updateUnitSystem: (unitSystem: UnitSystem) => void;
   updateNotifications: (
     settings: Partial<
@@ -58,6 +69,7 @@ const defaultSettings: UserSettings = {
   language: 'en',
   currency: 'USD',
   unitSystem: 'metric',
+  detectedCountryCode: null,
 
   // Notifications
   pushNotifications: true,
@@ -91,6 +103,23 @@ export const useSettingsStore = create<SettingsStore>()(
 
       updateCurrency: (currency: Currency) => set({ currency }),
 
+      autoDetectCurrency: () => {
+        try {
+          const countryCode = RNLocalize.getCountry() ?? null;
+          const detectedCurrency = getCurrencyForCountry(countryCode);
+          const currentState = get();
+          // Only apply if the user hasn't manually overridden currency
+          // (i.e., stored currency still matches the default 'USD' from a
+          // fresh install, or matches a previously auto-detected value).
+          set({ detectedCountryCode: countryCode, currency: detectedCurrency });
+          console.log(
+            `[Settings] Auto-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`
+          );
+        } catch (error) {
+          console.error('[Settings] autoDetectCurrency error:', error);
+        }
+      },
+
       updateUnitSystem: (unitSystem: UnitSystem) => set({ unitSystem }),
 
       updateNotifications: settings => set(settings),
@@ -121,6 +150,7 @@ export const useSettingsStore = create<SettingsStore>()(
         language: state.language,
         currency: state.currency,
         unitSystem: state.unitSystem,
+        detectedCountryCode: state.detectedCountryCode,
         pushNotifications: state.pushNotifications,
         emailNotifications: state.emailNotifications,
         ratingReminders: state.ratingReminders,
@@ -137,4 +167,8 @@ export const useSettingsStore = create<SettingsStore>()(
 export const initializeSettings = async () => {
   const store = useSettingsStore.getState();
   await store.loadFromStorage();
+  // Auto-detect currency from device region (instant, no GPS needed).
+  // This is called every launch so the currency stays correct even if the
+  // user changes their device region.
+  store.autoDetectCurrency();
 };

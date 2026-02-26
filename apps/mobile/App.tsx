@@ -7,7 +7,9 @@ import { RootNavigator } from './src/navigation';
 import { ENV } from './src/config/environment';
 import { useSessionStore } from './src/stores/sessionStore';
 import './src/i18n'; // Initialize i18n
-import { initializeSettings } from './src/stores/settingsStore';
+import { initializeSettings, useSettingsStore } from './src/stores/settingsStore';
+import { useFilterStore } from './src/stores/filterStore';
+import { useCountryDetection } from './src/hooks/useCountryDetection';
 import 'react-native-gesture-handler'; // Required for React Navigation
 
 /**
@@ -27,10 +29,33 @@ export default function App(): React.JSX.Element {
     Mapbox.setAccessToken(ENV.mapbox.accessToken);
   }, []);
 
-  // Initialize settings
+  // Initialize settings (auto-detects currency from device locale on every launch)
   useEffect(() => {
     initializeSettings();
   }, []);
+
+  /**
+   * GPS-based country/currency refinement.
+   *
+   * Tier 1 (device locale) runs synchronously inside initializeSettings().
+   * Here we run Tier 2 (GPS reverse geocoding) in the background so the
+   * price-range slider updates to the user's physical location if it differs
+   * from their device region (e.g., a US user currently in Mexico).
+   *
+   * autoRefineWithGPS=true automatically fires when location permission is
+   * already granted; it silently does nothing if permission is denied.
+   */
+  const { currency: detectedCurrency, source: detectionSource } = useCountryDetection(true);
+  const updateCurrency = useSettingsStore(state => state.updateCurrency);
+  const setCurrencyPriceRange = useFilterStore(state => state.setCurrencyPriceRange);
+
+  useEffect(() => {
+    if (detectionSource === 'gps') {
+      // GPS confirmed (or overrode) the device-locale currency — sync both stores
+      updateCurrency(detectedCurrency);
+      setCurrencyPriceRange(detectedCurrency);
+    }
+  }, [detectedCurrency, detectionSource, updateCurrency, setCurrencyPriceRange]);
 
   // Session management - disabled to prevent excessive re-renders
   // TODO: Re-enable with proper debouncing

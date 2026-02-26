@@ -9,6 +9,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import Slider from 'react-native-slider';
 import { useFilterStore, DAILY_FILTER_PRESETS } from '../stores/filterStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { getCurrencyInfo, formatPrice } from '../utils/currencyConfig';
 import { commonStyles, theme, filterComponentsStyles } from '@/styles';
 
 // Available cuisine types - synced with web portal
@@ -95,52 +97,63 @@ const SPICE_LABELS = [
 
 /**
  * Price Range Slider Component
+ *
+ * Displays an actual-price slider (e.g. $10–$50, $100–$500 MXN)
+ * using the currency detected from the device's region / GPS location.
  */
 export const PriceRangeFilter: React.FC = () => {
   const { daily, setDailyPriceRange } = useFilterStore();
-
-  const handlePriceChange = (values: number[]) => {
-    setDailyPriceRange(values[0], values[1]);
-  };
+  const currency = useSettingsStore(state => state.currency);
+  const currencyInfo = getCurrencyInfo(currency);
+  const { step, sliderMax } = currencyInfo.priceRange;
 
   return (
     <View style={filterComponentsStyles.filterSection}>
       <Text style={filterComponentsStyles.filterTitle}>💰 Price Range</Text>
       <View style={filterComponentsStyles.priceRangeContainer}>
         <Text style={filterComponentsStyles.priceLabel}>
-          {PRICE_LABELS[daily.priceRange.min - 1]} - {PRICE_LABELS[daily.priceRange.max - 1]}
+          {formatPrice(daily.priceRange.min, currency)}
+          {' – '}
+          {formatPrice(daily.priceRange.max, currency)}
         </Text>
       </View>
 
-      {/* Custom dual slider implementation */}
+      {/* Min price slider */}
       <View style={filterComponentsStyles.sliderContainer}>
         <View style={filterComponentsStyles.sliderLabels}>
-          {PRICE_LABELS.map((label, index) => (
-            <Text key={index} style={filterComponentsStyles.sliderLabel}>
-              {label}
-            </Text>
-          ))}
+          <Text style={filterComponentsStyles.sliderLabel}>{formatPrice(0, currency)}</Text>
+          <Text style={filterComponentsStyles.sliderLabel}>{formatPrice(sliderMax, currency)}</Text>
         </View>
 
         <View style={filterComponentsStyles.sliderRow}>
           <Slider
             style={filterComponentsStyles.slider}
-            minimumValue={1}
-            maximumValue={4}
+            minimumValue={0}
+            maximumValue={sliderMax}
             value={daily.priceRange.min}
-            onValueChange={value => setDailyPriceRange(Math.round(value), daily.priceRange.max)}
-            step={1}
+            onValueChange={(value: number) =>
+              setDailyPriceRange(
+                Math.round(value / step) * step,
+                Math.max(daily.priceRange.max, Math.round(value / step) * step)
+              )
+            }
+            step={step}
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor={theme.colors.gray200}
             thumbStyle={filterComponentsStyles.sliderThumb}
           />
           <Slider
             style={filterComponentsStyles.slider}
-            minimumValue={1}
-            maximumValue={4}
+            minimumValue={0}
+            maximumValue={sliderMax}
             value={daily.priceRange.max}
-            onValueChange={value => setDailyPriceRange(daily.priceRange.min, Math.round(value))}
-            step={1}
+            onValueChange={(value: number) =>
+              setDailyPriceRange(
+                Math.min(daily.priceRange.min, Math.round(value / step) * step),
+                Math.round(value / step) * step
+              )
+            }
+            step={step}
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor={theme.colors.gray200}
             thumbStyle={filterComponentsStyles.sliderThumb}

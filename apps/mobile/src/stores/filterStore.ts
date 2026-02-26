@@ -15,6 +15,7 @@ import {
   permanentFiltersToDb,
   dbToPermanentFilters,
 } from '../services/userPreferencesService';
+import { getPriceRangeForCurrency, type SupportedCurrency } from '../utils/currencyConfig';
 
 // Daily Filters - Quick, session-based choices
 export interface DailyFilters {
@@ -196,6 +197,13 @@ interface FilterActions {
   resetPermanentFilters: () => void;
   resetAllFilters: () => void;
 
+  /**
+   * Re-initialises the daily price range slider to the correct defaults for
+   * the given currency. Call this after autoDetectCurrency() resolves so the
+   * slider immediately reflects local prices.
+   */
+  setCurrencyPriceRange: (currency: SupportedCurrency) => void;
+
   // Persistence actions
   loadFilters: () => Promise<void>;
   saveFilters: () => Promise<void>;
@@ -212,7 +220,7 @@ interface FilterActions {
   hasPermanentFilters: () => boolean;
 }
 
-// Default daily filters
+// Default daily filters (USD baseline — see getDefaultDailyFilters() for currency-aware defaults)
 export const defaultDailyFilters: DailyFilters = {
   priceRange: {
     min: 10,
@@ -238,6 +246,21 @@ export const defaultDailyFilters: DailyFilters = {
   openNow: false,
   sortBy: 'bestMatch',
 };
+
+/**
+ * Returns a fresh DailyFilters object with the price range initialised
+ * for the given currency code. Falls back to USD defaults.
+ *
+ * Call this instead of spreading `defaultDailyFilters` whenever you want
+ * currency-aware price range defaults (e.g., on reset or first load).
+ */
+export function getDefaultDailyFilters(currency?: SupportedCurrency): DailyFilters {
+  const priceRange = currency ? getPriceRangeForCurrency(currency) : defaultDailyFilters.priceRange;
+  return {
+    ...defaultDailyFilters,
+    priceRange,
+  };
+}
 
 // Default permanent filters
 const defaultPermanentFilters: PermanentFilters = {
@@ -725,10 +748,27 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
   // Reset actions
   resetDailyFilters: () => {
-    set(state => ({
-      daily: { ...defaultDailyFilters },
+    // Use the current currency from settingsStore for sensible price range defaults
+    const currency = (() => {
+      try {
+        return require('./settingsStore').useSettingsStore.getState().currency as SupportedCurrency;
+      } catch {
+        return undefined;
+      }
+    })();
+    set(() => ({
+      daily: getDefaultDailyFilters(currency),
       activePreset: null,
     }));
+    get().saveFilters();
+  },
+
+  setCurrencyPriceRange: (currency: SupportedCurrency) => {
+    const priceRange = getPriceRangeForCurrency(currency);
+    set(state => ({
+      daily: { ...state.daily, priceRange },
+    }));
+    debugLog('[FilterStore] Price range updated for currency:', currency, priceRange);
     get().saveFilters();
   },
 
@@ -756,10 +796,21 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         const parsedPermanent = JSON.parse(permanentStored);
         set(state => ({
           ...state,
-          daily: { ...defaultDailyFilters }, // ensure daily is always reset on load
+          daily: getDefaultDailyFilters(
+            (() => {
+              try {
+                return require('./settingsStore').useSettingsStore.getState()
+                  .currency as SupportedCurrency;
+              } catch {
+                return undefined;
+              }
+            })()
+          ), // ensure daily is always reset on load with correct currency
           permanent: { ...defaultPermanentFilters, ...parsedPermanent },
         }));
-        debugLog('Loaded permanent filters from storage; daily filters reset to defaults');
+        debugLog(
+          'Loaded permanent filters from storage; daily filters reset to currency-aware defaults'
+        );
       } else {
         // No permanent filters saved yet — still reset daily to be safe
         set(state => ({ ...state, daily: { ...defaultDailyFilters } }));

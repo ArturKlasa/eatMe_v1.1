@@ -5,33 +5,27 @@
  */
 
 import { getCurrentLanguage, getSupportedLanguages } from '../i18n';
+import { formatPrice, getCurrencyInfo, type SupportedCurrency } from './currencyConfig';
+import { useSettingsStore } from '../stores/settingsStore';
 
 // Currency formatting
+// Delegates to currencyConfig.formatPrice which uses the correct locale per currency.
 export const formatCurrency = (amount: number, currencyCode?: string): string => {
-  const currentLanguage = getCurrentLanguage();
+  // Prefer explicitly passed code, then settingsStore currency, then language fallback.
+  const storeCurrency = (() => {
+    try {
+      return useSettingsStore.getState().currency as SupportedCurrency;
+    } catch {
+      return undefined;
+    }
+  })();
+
   const supportedLanguages = getSupportedLanguages();
+  const currentLanguage = getCurrentLanguage();
+  const langCurrency = supportedLanguages.find(lang => lang.code === currentLanguage)?.currency;
 
-  // Determine currency based on language if not provided
-  const currency =
-    currencyCode ||
-    supportedLanguages.find(lang => lang.code === currentLanguage)?.currency ||
-    'USD';
-
-  try {
-    return new Intl.NumberFormat(
-      currentLanguage === 'en' ? 'en-US' : currentLanguage === 'es' ? 'es-MX' : 'pl-PL',
-      {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }
-    ).format(amount);
-  } catch (error) {
-    // Fallback to basic formatting
-    const symbols = { USD: '$', MXN: '$', PLN: 'zł' };
-    return `${symbols[currency as keyof typeof symbols] || '$'}${amount}`;
-  }
+  const currency = (currencyCode ?? storeCurrency ?? langCurrency ?? 'USD') as SupportedCurrency;
+  return formatPrice(amount, currency);
 };
 
 // Time formatting based on region
@@ -205,21 +199,18 @@ export const formatNumber = (num: number): string => {
 
 // Get currency symbol
 export const getCurrencySymbol = (currencyCode?: string): string => {
-  const currentLanguage = getCurrentLanguage();
+  const storeCurrency = (() => {
+    try {
+      return useSettingsStore.getState().currency as SupportedCurrency;
+    } catch {
+      return undefined;
+    }
+  })();
   const supportedLanguages = getSupportedLanguages();
-
-  const currency =
-    currencyCode ||
-    supportedLanguages.find(lang => lang.code === currentLanguage)?.currency ||
-    'USD';
-
-  const symbols = {
-    USD: '$',
-    MXN: '$',
-    PLN: 'zł',
-  };
-
-  return symbols[currency as keyof typeof symbols] || '$';
+  const currentLanguage = getCurrentLanguage();
+  const langCurrency = supportedLanguages.find(lang => lang.code === currentLanguage)?.currency;
+  const currency = (currencyCode ?? storeCurrency ?? langCurrency ?? 'USD') as SupportedCurrency;
+  return getCurrencyInfo(currency).symbol;
 };
 
 // Get locale for specific formatting

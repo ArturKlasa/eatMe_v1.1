@@ -5,3 +5,4 @@
 export { useRestaurants } from './useRestaurants';
 export { useDish } from './useDish';
 export { useAllDishes } from './useAllDishes';
+export { useCountryDetection } from './useCountryDetection';

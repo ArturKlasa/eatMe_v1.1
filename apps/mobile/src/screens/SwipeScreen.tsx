@@ -20,7 +20,6 @@ import {
 import { useFilterStore } from '../stores/filterStore';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useAuthStore } from '../stores/authStore';
-import { trackDishInteraction } from '../services/userPreferencesService';
 
 /**
  * SwipeScreen - Demonstration of Edge Functions Integration
@@ -111,7 +110,9 @@ export function SwipeScreen() {
       [direction]: prev[direction] + 1,
     }));
 
-    // Track swipe to Edge Function (fire and forget)
+    // Track swipe to Edge Function (fire and forget).
+    // trackSwipe writes to user_swipes via the Edge Function — that is the
+    // single authoritative record. user_dish_interactions is redundant.
     const userId = user?.id || 'anonymous';
     trackSwipe(
       userId,
@@ -121,16 +122,6 @@ export function SwipeScreen() {
       currentIndex,
       sessionId
     ).catch(err => console.error('[SwipeScreen] Failed to track swipe:', err));
-
-    // Track interaction to database (only if authenticated)
-    if (user?.id) {
-      trackDishInteraction(
-        user.id,
-        currentDish.id,
-        direction === 'right' ? 'liked' : 'disliked',
-        sessionId
-      ).catch(err => console.error('[SwipeScreen] Failed to track interaction:', err));
-    }
 
     // Move to next dish
     setCurrentIndex(prev => prev + 1);

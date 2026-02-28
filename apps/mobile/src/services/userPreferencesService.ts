@@ -6,45 +6,78 @@
 import { supabase } from '../lib/supabase';
 import type { PermanentFilters } from '../stores/filterStore';
 
+// ─── Default values ────────────────────────────────────────────────────────────
+// Used as fallbacks when DB rows were created before the schema stabilised.
+
+const DEFAULT_ALLERGIES: PermanentFilters['allergies'] = {
+  lactose: false,
+  gluten: false,
+  peanuts: false,
+  soy: false,
+  sesame: false,
+  shellfish: false,
+  nuts: false,
+};
+
+const DEFAULT_EXCLUDE: PermanentFilters['exclude'] = {
+  noMeat: false,
+  noFish: false,
+  noSeafood: false,
+  noEggs: false,
+  noDairy: false,
+  noSpicy: false,
+};
+
+const DEFAULT_DIET_TYPES: PermanentFilters['dietTypes'] = {
+  diabetic: false,
+  keto: false,
+  paleo: false,
+  lowCarb: false,
+  pescatarian: false,
+};
+
+const DEFAULT_RELIGIOUS: PermanentFilters['religiousRestrictions'] = {
+  halal: false,
+  hindu: false,
+  kosher: false,
+  jain: false,
+  buddhist: false,
+};
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
 export interface UserPreferencesDB {
   user_id: string;
   diet_preference: 'all' | 'vegetarian' | 'vegan';
-  allergies: {
-    lactose: boolean;
-    gluten: boolean;
-    peanuts: boolean;
-    soy: boolean;
-    sesame: boolean;
-    shellfish: boolean;
-    nuts: boolean;
-  };
-  exclude: {
-    noMeat: boolean;
-    noFish: boolean;
-    noSeafood: boolean;
-    noEggs: boolean;
-    noDairy: boolean;
-    noSpicy: boolean;
-  };
-  diet_types: {
-    diabetic: boolean;
-    keto: boolean;
-    paleo: boolean;
-    lowCarb: boolean;
-    pescatarian: boolean;
-  };
-  religious_restrictions: {
-    halal: boolean;
-    hindu: boolean;
-    kosher: boolean;
-    jain: boolean;
-    buddhist: boolean;
-  };
-  default_price_range: {
-    min: number;
-    max: number;
-  };
+  /**
+   * Stored as JSONB. Older rows use an object {lactose: boolean, ...},
+   * rows created after migration 024 may have an empty array [].
+   * Always normalise with normaliseAllergies() before use.
+   */
+  allergies: PermanentFilters['allergies'] | unknown[] | null;
+  exclude: PermanentFilters['exclude'] | null;
+  diet_types: PermanentFilters['dietTypes'] | null;
+  religious_restrictions: PermanentFilters['religiousRestrictions'] | null;
   default_max_distance: number;
+}
+
+// ─── Normalisers ───────────────────────────────────────────────────────────────
+
+/**
+ * Migration 032 normalised all existing rows to the object format and fixed
+ * the column default. This function is kept as a lightweight safety net for
+ * any dev-environment rows that may have been created in between.
+ */
+function normaliseAllergies(
+  raw: PermanentFilters['allergies'] | unknown[] | null
+): PermanentFilters['allergies'] {
+  if (!raw || Array.isArray(raw)) return { ...DEFAULT_ALLERGIES };
+  return { ...DEFAULT_ALLERGIES, ...(raw as Partial<PermanentFilters['allergies']>) };
+}
+
+function normaliseObject<T extends object>(raw: T | null | undefined, defaults: T): T {
+  if (!raw || Array.isArray(raw)) return { ...defaults };
+  return { ...defaults, ...raw };
 }
 
 /**
@@ -108,7 +141,11 @@ export async function saveUserPreferences(
 }
 
 /**
- * Convert filterStore permanent filters to database format
+ * Convert filterStore permanent filters to database format.
+ *
+ * Note: price range is intentionally excluded — it is session-only state
+ * managed by filterStore as a daily filter and should never be persisted
+ * to the DB (it is currency-dependent and has no safe canonical form).
  */
 export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPreferencesDB> {
   return {
@@ -117,23 +154,24 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
     exclude: filters.exclude,
     diet_types: filters.dietTypes,
     religious_restrictions: filters.religiousRestrictions,
-    default_price_range: filters.defaultPriceRange,
     default_max_distance: 5, // Could make this configurable
   };
 }
 
 /**
- * Convert database preferences to filterStore format
+ * Convert database preferences to filterStore format.
+ *
+ * Applies runtime normalisers to handle rows created by different
+ * migrations (e.g. allergies may be [] or an object depending on age).
+ * Price range is intentionally excluded — see permanentFiltersToDb.
  */
 export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<PermanentFilters> {
   return {
-    dietPreference: dbPrefs.diet_preference,
-    allergies: dbPrefs.allergies,
-    exclude: dbPrefs.exclude,
-    dietTypes: dbPrefs.diet_types,
-    religiousRestrictions: dbPrefs.religious_restrictions,
-    defaultPriceRange: dbPrefs.default_price_range,
-    // Keep other fields from existing state
+    dietPreference: dbPrefs.diet_preference ?? 'all',
+    allergies: normaliseAllergies(dbPrefs.allergies),
+    exclude: normaliseObject(dbPrefs.exclude, DEFAULT_EXCLUDE),
+    dietTypes: normaliseObject(dbPrefs.diet_types, DEFAULT_DIET_TYPES),
+    religiousRestrictions: normaliseObject(dbPrefs.religious_restrictions, DEFAULT_RELIGIOUS),
   };
 }
 

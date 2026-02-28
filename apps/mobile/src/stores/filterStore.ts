@@ -207,6 +207,11 @@ interface FilterActions {
   // Persistence actions
   loadFilters: () => Promise<void>;
   saveFilters: () => Promise<void>;
+  /**
+   * Saves permanent filters to AsyncStorage AND to Supabase if the user is
+   * authenticated. Called by all permanent-filter toggle actions.
+   */
+  savePermanentFilters: () => Promise<void>;
 
   // Database sync actions (for authenticated users)
   loadPreferencesFromDB: (userId: string) => Promise<void>;

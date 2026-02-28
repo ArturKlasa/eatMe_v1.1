@@ -31,8 +31,11 @@ export interface DailyFilters {
   // Meal/dish selection (multiple choice)
   meals: string[];
 
-  // Diet preference (single choice: all, vegetarian, vegan)
-  dietPreference: 'all' | 'vegetarian' | 'vegan';
+  // Diet preference (multi-select: vegetarian, vegan)
+  dietPreference: {
+    vegetarian: boolean;
+    vegan: boolean;
+  };
 
   // Protein types (multiple choice: meat, fish, seafood, egg)
   proteinTypes: {
@@ -40,6 +43,16 @@ export interface DailyFilters {
     fish: boolean;
     seafood: boolean;
     egg: boolean;
+  };
+
+  // Meat sub-types (only relevant when proteinTypes.meat is true)
+  meatTypes: {
+    chicken: boolean;
+    beef: boolean;
+    pork: boolean;
+    lamb: boolean;
+    duck: boolean;
+    other: boolean;
   };
 
   // Spice level (single choice: no spicy, either way, i like spicy)
@@ -157,8 +170,9 @@ interface FilterActions {
   setDailyCuisines: (cuisines: string[]) => void;
   toggleDailyMeal: (meal: string) => void;
   setDailyMeals: (meals: string[]) => void;
-  setDietPreference: (preference: DailyFilters['dietPreference']) => void;
+  setDietPreference: (key: keyof DailyFilters['dietPreference']) => void;
   toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => void;
+  toggleMeatType: (meatType: keyof DailyFilters['meatTypes']) => void;
   setSpiceLevel: (level: DailyFilters['spiceLevel']) => void;
   setHungerLevel: (level: DailyFilters['hungerLevel']) => void;
   setDailyCalorieRange: (min: number, max: number, enabled?: boolean) => void;
@@ -233,12 +247,23 @@ export const defaultDailyFilters: DailyFilters = {
   },
   cuisineTypes: [],
   meals: [],
-  dietPreference: 'all',
+  dietPreference: {
+    vegetarian: false,
+    vegan: false,
+  },
   proteinTypes: {
     meat: false,
     fish: false,
     seafood: false,
     egg: false,
+  },
+  meatTypes: {
+    chicken: false,
+    beef: false,
+    pork: false,
+    lamb: false,
+    duck: false,
+    other: false,
   },
   spiceLevel: 'eitherWay',
   hungerLevel: 'normal',
@@ -446,11 +471,14 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     get().saveFilters();
   },
 
-  setDietPreference: (preference: DailyFilters['dietPreference']) => {
+  setDietPreference: (key: keyof DailyFilters['dietPreference']) => {
     set(state => ({
       daily: {
         ...state.daily,
-        dietPreference: preference,
+        dietPreference: {
+          ...state.daily.dietPreference,
+          [key]: !state.daily.dietPreference[key],
+        },
       },
       activePreset: null,
     }));
@@ -464,6 +492,20 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         proteinTypes: {
           ...state.daily.proteinTypes,
           [protein]: !state.daily.proteinTypes[protein],
+        },
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  toggleMeatType: (meatType: keyof DailyFilters['meatTypes']) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        meatTypes: {
+          ...state.daily.meatTypes,
+          [meatType]: !state.daily.meatTypes[meatType],
         },
       },
       activePreset: null,
@@ -933,8 +975,8 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       count++;
     }
 
-    // Check diet preference (not 'all')
-    if (state.daily.dietPreference !== 'all') {
+    // Check diet preference (any enabled)
+    if (Object.values(state.daily.dietPreference).some(Boolean)) {
       count++;
     }
 

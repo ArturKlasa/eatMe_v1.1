@@ -199,20 +199,19 @@ function applyDailyFilters(
   }
 
   // Diet preference filter
-  if (dailyFilters.dietPreference !== 'all') {
+  const { vegetarian: wantsVegetarian, vegan: wantsVegan } = dailyFilters.dietPreference;
+  if (wantsVegetarian || wantsVegan) {
     filtered = filtered.filter(restaurant => {
-      // Mock logic: filter based on diet preference
-      if (dailyFilters.dietPreference === 'vegetarian') {
-        // Show restaurants with vegetarian options
-        return !['Steakhouse', 'BBQ'].includes(restaurant.cuisine);
-      }
-      if (dailyFilters.dietPreference === 'vegan') {
-        // Show restaurants with vegan options
+      if (wantsVegan) {
         return ['Mediterranean', 'Asian', 'Healthy'].includes(restaurant.cuisine);
+      }
+      if (wantsVegetarian) {
+        return !['Steakhouse', 'BBQ'].includes(restaurant.cuisine);
       }
       return true;
     });
-    filterSummary.push(`Diet: ${dailyFilters.dietPreference}`);
+    const labels = [wantsVegetarian && 'Vegetarian', wantsVegan && 'Vegan'].filter(Boolean);
+    filterSummary.push(`Diet: ${labels.join(', ')}`);
   }
 
   // Protein type filters
@@ -356,9 +355,8 @@ function getDailyFilterCount(dailyFilters: DailyFilters): number {
     count++;
   }
 
-  // Diet toggles (not all enabled)
-  // Check diet preference
-  if (dailyFilters.dietPreference !== 'all') {
+  // Check diet preference (any enabled)
+  if (Object.values(dailyFilters.dietPreference).some(Boolean)) {
     count++;
   }
 
@@ -454,7 +452,7 @@ export function validateFilters(
     errors.push('Minimum calories cannot be higher than maximum calories');
   }
 
-  // Check if diet preferences are valid\n  const hasDietSetting = dailyFilters.dietPreference !== 'all' || \n                         Object.values(dailyFilters.proteinTypes).some(Boolean);\n  // Note: Diet settings are optional, so no validation error needed
+  // Note: Diet settings are optional, so no validation error needed
 
   return {
     isValid: errors.length === 0,

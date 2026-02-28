@@ -112,7 +112,9 @@ export async function getFeed(
       // Permanent diet preference → hard filter (excludes non-matching dishes)
       dietPreference: permanentFilters.dietPreference,
       // Daily diet preference → soft boost (dishes matching get scored higher)
-      preferredDiet: dailyFilters.dietPreference,
+      preferredDiet: Object.entries(dailyFilters.dietPreference)
+        .filter(([_, active]) => active)
+        .map(([key]) => key),
       calorieRange: dailyFilters.calorieRange.enabled
         ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
         : undefined,

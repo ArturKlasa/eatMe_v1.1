@@ -7,19 +7,11 @@
  * - Cuisine selection with grid layout
  * - Hunger level selection (diet/normal/starving)
  *
- * Note: Meat/fish/seafood options are disabled when vegetarian/vegan is selected
+ * Note: Meat sub-types row expands when Meat is selected
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-  Alert,
-  GestureResponderEvent,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, PanResponder } from 'react-native';
 import { useFilterStore, DailyFilters, defaultDailyFilters } from '../../stores/filterStore';
 import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
@@ -49,22 +41,6 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
       setLocalFilters({ ...currentDaily });
     }
   }, [visible]); // intentionally only on open; currentDaily not in deps
-
-  // Helper: which protein buttons should be greyed out given the current local diet choice
-  const isProteinDisabled = (proteinKey: string) => {
-    if (localFilters.dietPreference === 'vegan') {
-      return (
-        proteinKey === 'meat' ||
-        proteinKey === 'fish' ||
-        proteinKey === 'seafood' ||
-        proteinKey === 'egg'
-      );
-    }
-    if (localFilters.dietPreference === 'vegetarian') {
-      return proteinKey === 'meat' || proteinKey === 'fish' || proteinKey === 'seafood';
-    }
-    return false;
-  };
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
@@ -188,12 +164,11 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     { key: 'vegetarian', label: t('filters.proteinTypes.vegetarian') },
                     { key: 'vegan', label: t('filters.proteinTypes.vegan') },
                   ].map(protein => {
-                    const disabled = isProteinDisabled(protein.key);
                     const isSelected =
                       protein.key === 'vegetarian'
-                        ? localFilters.dietPreference === 'vegetarian'
+                        ? localFilters.dietPreference.vegetarian
                         : protein.key === 'vegan'
-                          ? localFilters.dietPreference === 'vegan'
+                          ? localFilters.dietPreference.vegan
                           : localFilters.proteinTypes[
                               protein.key as keyof typeof localFilters.proteinTypes
                             ];
@@ -201,41 +176,64 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     return (
                       <TouchableOpacity
                         key={protein.key}
-                        style={[
-                          modals.option,
-                          isSelected && !disabled && modals.selectedOption,
-                          disabled && { opacity: 0.4 },
-                        ]}
+                        style={[modals.option, isSelected && modals.selectedOption]}
                         onPress={() => {
-                          if (!disabled) {
-                            if (protein.key === 'vegetarian') {
-                              setLocalFilters(prev => ({ ...prev, dietPreference: 'vegetarian' }));
-                            } else if (protein.key === 'vegan') {
-                              setLocalFilters(prev => ({ ...prev, dietPreference: 'vegan' }));
-                            } else {
-                              // Selecting a protein type resets diet to 'all' and toggles the protein
-                              setLocalFilters(prev => ({
-                                ...prev,
-                                dietPreference: 'all',
-                                proteinTypes: {
-                                  ...prev.proteinTypes,
-                                  [protein.key]:
-                                    !prev.proteinTypes[
-                                      protein.key as keyof typeof prev.proteinTypes
-                                    ],
-                                },
-                              }));
-                            }
+                          if (protein.key === 'vegetarian') {
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              dietPreference: {
+                                ...prev.dietPreference,
+                                vegetarian: !prev.dietPreference.vegetarian,
+                              },
+                            }));
+                          } else if (protein.key === 'vegan') {
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              dietPreference: {
+                                ...prev.dietPreference,
+                                vegan: !prev.dietPreference.vegan,
+                              },
+                            }));
+                          } else {
+                            // Selecting a protein type resets diet to 'all' and toggles the protein
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              dietPreference: 'all',
+                              proteinTypes: {
+                                ...prev.proteinTypes,
+                                [protein.key]:
+                                  !prev.proteinTypes[protein.key as keyof typeof prev.proteinTypes],
+                              },
+                              // When selecting Meat: pre-select Chicken, Beef, Pork.
+                              // When deselecting Meat: clear all meat sub-types.
+                              ...(protein.key === 'meat' && {
+                                meatTypes: prev.proteinTypes.meat
+                                  ? {
+                                      chicken: false,
+                                      beef: false,
+                                      pork: false,
+                                      lamb: false,
+                                      duck: false,
+                                      other: false,
+                                    }
+                                  : {
+                                      chicken: true,
+                                      beef: true,
+                                      pork: true,
+                                      lamb: false,
+                                      duck: false,
+                                      other: false,
+                                    },
+                              }),
+                            }));
                           }
                         }}
-                        disabled={disabled}
                       >
                         <Text
                           style={[
                             modals.optionText,
                             modals.darkOptionText,
-                            isSelected && !disabled && modals.selectedText,
-                            disabled && modals.disabledOptionText,
+                            isSelected && modals.selectedText,
                           ]}
                         >
                           {protein.label}
@@ -244,10 +242,51 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                     );
                   })}
                 </View>
+
+                {/* Meat sub-types — shown only when Meat is selected */}
+                {localFilters.proteinTypes.meat && (
+                  <View style={[modals.optionsRow, { marginTop: 8 }]}>
+                    {[
+                      { key: 'chicken', label: t('filters.meatTypes.chicken') },
+                      { key: 'beef', label: t('filters.meatTypes.beef') },
+                      { key: 'pork', label: t('filters.meatTypes.pork') },
+                      { key: 'lamb', label: t('filters.meatTypes.lamb') },
+                      { key: 'duck', label: t('filters.meatTypes.duck') },
+                      { key: 'other', label: t('filters.meatTypes.other') },
+                    ].map(meatType => {
+                      const isSelected =
+                        localFilters.meatTypes[meatType.key as keyof typeof localFilters.meatTypes];
+                      return (
+                        <TouchableOpacity
+                          key={meatType.key}
+                          style={[modals.option, isSelected && modals.selectedOption]}
+                          onPress={() =>
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              meatTypes: {
+                                ...prev.meatTypes,
+                                [meatType.key]:
+                                  !prev.meatTypes[meatType.key as keyof typeof prev.meatTypes],
+                              },
+                            }))
+                          }
+                        >
+                          <Text
+                            style={[
+                              modals.optionText,
+                              modals.darkOptionText,
+                              isSelected && modals.selectedText,
+                            ]}
+                          >
+                            {meatType.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             </View>
-
-            {/* 3. Cuisine Section */}
             <View style={modals.section}>
               <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
                 🍽️ {t('filters.cuisine')}
@@ -735,33 +774,65 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   onValuesChange,
 }) => {
   const [activeThumb, setActiveThumb] = React.useState<'min' | 'max' | null>(null);
-  const sliderWidth = 300;
 
-  const handlePress = (event: GestureResponderEvent) => {
-    const { locationX } = event.nativeEvent;
-    const percentage = Math.max(0, Math.min(1, locationX / sliderWidth));
-    const newValue = Math.round(min + percentage * (max - min));
+  // Measure the actual rendered track width instead of a hardcoded constant
+  const trackWidthRef = React.useRef(0);
 
-    // Determine which thumb to move based on proximity
-    const distToMin = Math.abs(newValue - valueMin);
-    const distToMax = Math.abs(newValue - valueMax);
+  // Keep fresh refs for PanResponder closures so they always see current values
+  const valueMinRef = React.useRef(valueMin);
+  const valueMaxRef = React.useRef(valueMax);
+  React.useEffect(() => {
+    valueMinRef.current = valueMin;
+  }, [valueMin]);
+  React.useEffect(() => {
+    valueMaxRef.current = valueMax;
+  }, [valueMax]);
 
-    if (distToMin < distToMax) {
-      // Move min thumb, but don't exceed max
-      const clampedMin = Math.min(newValue, valueMax - 1);
-      onValuesChange(clampedMin, valueMax);
-    } else {
-      // Move max thumb, but don't go below min
-      const clampedMax = Math.max(newValue, valueMin + 1);
-      onValuesChange(valueMin, clampedMax);
-    }
+  const clamp = (val: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, val));
+
+  // Factory: creates a PanResponder for either the min or max thumb.
+  // Uses a closure-local `startValue` that is captured at gesture start so that
+  // each dx is always relative to where the drag began.
+  const createThumbPanResponder = (thumb: 'min' | 'max') => {
+    let startValue = min;
+    return PanResponder.create({
+      // Claim the gesture immediately on touch-down so the parent ScrollView
+      // cannot steal it.
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startValue = thumb === 'min' ? valueMinRef.current : valueMaxRef.current;
+        setActiveThumb(thumb);
+      },
+      onPanResponderMove: (_evt, gestureState) => {
+        if (trackWidthRef.current === 0) return;
+        const deltaValue = (gestureState.dx / trackWidthRef.current) * (max - min);
+        const newValue = Math.round(clamp(startValue + deltaValue, min, max));
+        if (thumb === 'min') {
+          onValuesChange(clamp(newValue, min, valueMaxRef.current - 1), valueMaxRef.current);
+        } else {
+          onValuesChange(valueMinRef.current, clamp(newValue, valueMinRef.current + 1, max));
+        }
+      },
+      onPanResponderRelease: () => setActiveThumb(null),
+      onPanResponderTerminate: () => setActiveThumb(null),
+    });
   };
+
+  // Create responders once — they read from mutable refs so they stay current
+  const minPanResponder = React.useRef(createThumbPanResponder('min')).current;
+  const maxPanResponder = React.useRef(createThumbPanResponder('max')).current;
 
   const minPosition = ((valueMin - min) / (max - min)) * 100;
   const maxPosition = ((valueMax - min) / (max - min)) * 100;
 
   return (
-    <TouchableOpacity style={modals.priceSliderTrack} onPress={handlePress} activeOpacity={1}>
+    <View
+      style={modals.priceSliderTrack}
+      onLayout={e => {
+        trackWidthRef.current = e.nativeEvent.layout.width;
+      }}
+    >
       {/* Active range highlight */}
       <View
         style={[
@@ -772,7 +843,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
           },
         ]}
       />
-      {/* Min thumb */}
+      {/* Min thumb — attach PanResponder handlers directly */}
       <View
         style={[
           modals.priceSliderThumb,
@@ -781,6 +852,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
             zIndex: activeThumb === 'min' ? 10 : 5,
           },
         ]}
+        {...minPanResponder.panHandlers}
       />
       {/* Max thumb */}
       <View
@@ -791,7 +863,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
             zIndex: activeThumb === 'max' ? 10 : 5,
           },
         ]}
+        {...maxPanResponder.panHandlers}
       />
-    </TouchableOpacity>
+    </View>
   );
 };

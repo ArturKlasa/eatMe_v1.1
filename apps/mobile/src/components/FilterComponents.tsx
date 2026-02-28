@@ -259,14 +259,18 @@ export const DietToggleFilter: React.FC = () => {
             key={option.key}
             style={[
               filterComponentsStyles.toggleItem,
-              daily.dietPreference === option.key && { backgroundColor: theme.colors.primary },
+              daily.dietPreference[option.key as keyof typeof daily.dietPreference] && {
+                backgroundColor: theme.colors.primary,
+              },
             ]}
             onPress={() => setDietPreference(option.key as any)}
           >
             <Text
               style={[
                 filterComponentsStyles.toggleText,
-                daily.dietPreference === option.key && { color: theme.colors.white },
+                daily.dietPreference[option.key as keyof typeof daily.dietPreference] && {
+                  color: theme.colors.white,
+                },
               ]}
             >
               {option.label}

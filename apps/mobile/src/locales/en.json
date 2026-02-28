@@ -78,6 +78,14 @@
       "vegetarian": "🥗 Vegetarian",
       "vegan": "🌱 Vegan"
     },
+    "meatTypes": {
+      "chicken": "🐔 Chicken",
+      "beef": "🐄 Beef",
+      "pork": "🐷 Pork",
+      "lamb": "🐑 Lamb",
+      "duck": "🦆 Duck",
+      "other": "🍖 Other"
+    },
     "cuisines": {
       "afghan": "Afghan",
       "african": "African",

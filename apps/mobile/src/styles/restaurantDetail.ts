@@ -33,7 +33,8 @@ export const restaurantDetailStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.base,
+    paddingTop: spacing.base,
+    paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.darkTertiary,
   },
@@ -67,7 +68,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   cuisineText: {
     fontSize: typography.size.sm,
     color: colors.darkTextMuted,
-    marginBottom: spacing.xs,
+    marginBottom: 0,
   },
 
   // Opening Hours Section
@@ -383,15 +384,127 @@ export const restaurantDetailStyles = StyleSheet.create({
     color: colors.white,
     marginRight: spacing.sm,
   },
+
+  // Tab Bar
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkTertiary,
+    backgroundColor: colors.dark,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: colors.accent,
+  },
+  tabText: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    color: colors.darkTextSecondary,
+  },
+  activeTabText: {
+    color: colors.accent,
+    fontWeight: typography.weight.semibold,
+  },
+  tabLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  tabOpenBadge: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.bold,
+    color: colors.success,
+  },
+  tabClosedBadge: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.bold,
+    color: '#FF5722',
+  },
+
+  // Hours & More Tab
+  hoursTabContent: {
+    paddingBottom: spacing.xl,
+  },
+  hoursMoreSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkTertiary,
+  },
+  hoursMoreSectionTitle: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.darkTextMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: spacing.md,
+  },
+  hoursMoreTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  hoursMoreTitleRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  hoursExpandIcon: {
+    fontSize: 14,
+    color: colors.darkTextSecondary,
+  },
+  hoursMoreAddress: {
+    fontSize: typography.size.base,
+    color: colors.darkText,
+    lineHeight: 22,
+    marginBottom: spacing.md,
+  },
+  hoursMoreActionButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.darkSecondary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.base,
+  },
+  hoursMoreActionButtonText: {
+    fontSize: typography.size.sm,
+    color: colors.accent,
+    fontWeight: typography.weight.semibold,
+  },
+  hoursMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkTertiary,
+  },
+  hoursMoreRowLast: {
+    borderBottomWidth: 0,
+  },
+  hoursMoreRowIcon: {
+    fontSize: 18,
+    width: 32,
+  },
+  hoursMoreRowText: {
+    fontSize: typography.size.base,
+    color: colors.darkText,
+    fontWeight: typography.weight.medium,
+    flex: 1,
+  },
+  hoursMoreRowTextDanger: {
+    color: colors.error,
+  },
   reviews: {
     fontSize: typography.size.sm,
     color: colors.darkTextSecondary,
-    marginRight: spacing.sm,
-  },
-  closedBadge: {
-    fontSize: typography.size.sm,
-    color: colors.error,
-    fontWeight: typography.weight.semibold,
     marginRight: spacing.sm,
   },
   paymentNote: {

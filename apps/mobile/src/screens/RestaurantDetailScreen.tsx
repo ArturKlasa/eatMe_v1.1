@@ -41,12 +41,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const trackDishView = useSessionStore(state => state.trackDishView);
   const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState<'food' | 'hours'>('food');
+  const [hoursExpanded, setHoursExpanded] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
-  const [hoursExpanded, setHoursExpanded] = useState(false);
   const [selectedDish, setSelectedDish] = useState<any>(null);
   const [dishPhotos, setDishPhotos] = useState<any[]>([]);
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
@@ -185,8 +185,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const paymentNote = getPaymentNote();
 
   const handleMenuOption = async (option: string) => {
-    setShowOptionsMenu(false);
-
     switch (option) {
       case 'address':
         // Show custom address modal with dark theme
@@ -362,33 +360,81 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           <RestaurantRatingBadge rating={restaurantRating} showBreakdown={true} />
 
           {/* Cuisine Type */}
-          <Text style={styles.cuisineText}>{restaurant.cuisine}</Text>
+          <Text style={styles.cuisineText}>
+            {restaurant.cuisine_types?.join(', ') || restaurant.cuisine || ''}
+          </Text>
+        </View>
+      </View>
 
-          {/* Opening Hours */}
-          <View style={styles.hoursContainer}>
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'food' && styles.activeTab]}
+          onPress={() => setActiveTab('food')}
+        >
+          <Text style={[styles.tabText, activeTab === 'food' && styles.activeTabText]}>
+            Food & Drinks
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'hours' && styles.activeTab]}
+          onPress={() => setActiveTab('hours')}
+        >
+          <View style={styles.tabLabelRow}>
+            <Text style={[styles.tabText, activeTab === 'hours' && styles.activeTabText]}>
+              Hours & More
+            </Text>
+            <Text style={todayHours ? styles.tabOpenBadge : styles.tabClosedBadge}>
+              {todayHours ? 'Open' : 'Closed'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Food & Drinks Tab */}
+      {activeTab === 'food' && (
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {restaurant.menus?.map((menu: any) => (
+            <View key={menu.id} style={styles.menuSection}>
+              <Text style={styles.menuName}>{menu.name}</Text>
+              {menu.description && <Text style={styles.menuDescription}>{menu.description}</Text>}
+              {menu.menu_categories?.map((category: any) => (
+                <View key={category.id} style={styles.menuCategory}>
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                  {category.dishes?.map(renderMenuItem)}
+                </View>
+              ))}
+            </View>
+          ))}
+          {(!restaurant.menus || restaurant.menus.length === 0) && (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#666' }}>No menu items available</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {/* Hours & More Tab */}
+      {activeTab === 'hours' && (
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.hoursTabContent}
+        >
+          {/* Opening Hours Section */}
+          <View style={styles.hoursMoreSection}>
             <TouchableOpacity
-              style={styles.hoursMainRow}
+              style={styles.hoursMoreTitleRow}
               onPress={() => setHoursExpanded(!hoursExpanded)}
               activeOpacity={0.7}
             >
-              <View style={styles.currentDayInfo}>
-                {todayHours ? (
-                  <>
-                    <Text style={styles.openBadge}>{t('restaurant.openNow')}</Text>
-                    <Text style={styles.todayHoursText}>
-                      {formatOpeningHours(todayHours.open, todayHours.close)}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.closedBadge}>{t('restaurant.closed')}</Text>
-                )}
-              </View>
-              <View style={styles.hoursRightSection}>
-                <Text style={styles.expandIcon}>{hoursExpanded ? '▼' : '▶'}</Text>
-              </View>
+              <Text style={styles.hoursMoreSectionTitle}>Opening Hours</Text>
+              <Text style={styles.hoursExpandIcon}>{hoursExpanded ? '▾' : '▸'}</Text>
             </TouchableOpacity>
-
-            {/* Full Week Hours - Collapsible */}
             {hoursExpanded && (
               <View style={styles.fullWeekHours}>
                 {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(
@@ -415,99 +461,74 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             )}
           </View>
 
-          {/* Payment Row */}
-          <View style={styles.hoursPaymentRow}></View>
-        </View>
-
-        {/* Three-dots menu button */}
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => setShowOptionsMenu(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.menuButtonText}>⋮</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Menu Content */}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {restaurant.menus?.map((menu: any) => (
-          <View key={menu.id} style={styles.menuSection}>
-            <Text style={styles.menuName}>{menu.name}</Text>
-            {menu.description && <Text style={styles.menuDescription}>{menu.description}</Text>}
-            {menu.menu_categories?.map((category: any) => (
-              <View key={category.id} style={styles.menuCategory}>
-                <Text style={styles.categoryName}>{category.name}</Text>
-                {category.dishes?.map(renderMenuItem)}
-              </View>
-            ))}
-          </View>
-        ))}
-        {(!restaurant.menus || restaurant.menus.length === 0) && (
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={{ color: '#666' }}>No menu items available</Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Options Menu Modal */}
-      <Modal
-        visible={showOptionsMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowOptionsMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowOptionsMenu(false)}
-        >
-          <View style={styles.optionsMenu}>
-            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('address')}>
-              <Text style={styles.optionText}>Address</Text>
+          {/* Address Section */}
+          <View style={styles.hoursMoreSection}>
+            <Text style={styles.hoursMoreSectionTitle}>Address</Text>
+            <Text style={styles.hoursMoreAddress}>
+              {restaurant.address}
+              {'\n'}
+              {restaurant.city}
+              {restaurant.postal_code ? `, ${restaurant.postal_code}` : ''}
+            </Text>
+            <TouchableOpacity
+              style={styles.hoursMoreActionButton}
+              onPress={() => setShowAddressModal(true)}
+            >
+              <Text style={styles.hoursMoreActionButtonText}>📍 Open in Maps</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* More Actions Section */}
+          <View style={styles.hoursMoreSection}>
+            <Text style={styles.hoursMoreSectionTitle}>More</Text>
 
             <TouchableOpacity
-              style={styles.optionItem}
+              style={styles.hoursMoreRow}
               onPress={() => handleMenuOption('favorites')}
               disabled={favoriteLoading || !favoritesInitialized}
             >
-              <Text style={styles.optionText}>
+              <Text style={styles.hoursMoreRowIcon}>⭐</Text>
+              <Text style={styles.hoursMoreRowText}>
                 {!favoritesInitialized
                   ? 'Loading...'
                   : favoriteLoading
                     ? 'Updating...'
                     : isFavorite
-                      ? 'Remove from favorites ⭐'
-                      : 'Add to favorites'}
+                      ? 'Remove from Favorites'
+                      : 'Add to Favorites'}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('review')}>
-              <Text style={styles.optionText}>Add review</Text>
+            <TouchableOpacity
+              style={styles.hoursMoreRow}
+              onPress={() => handleMenuOption('review')}
+            >
+              <Text style={styles.hoursMoreRowIcon}>✍️</Text>
+              <Text style={styles.hoursMoreRowText}>Add Review</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('share')}>
-              <Text style={styles.optionText}>Share</Text>
+            <TouchableOpacity style={styles.hoursMoreRow} onPress={() => handleMenuOption('share')}>
+              <Text style={styles.hoursMoreRowIcon}>↗️</Text>
+              <Text style={styles.hoursMoreRowText}>Share</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem} onPress={() => handleMenuOption('call')}>
-              <Text style={styles.optionText}>Call</Text>
+            <TouchableOpacity style={styles.hoursMoreRow} onPress={() => handleMenuOption('call')}>
+              <Text style={styles.hoursMoreRowIcon}>📞</Text>
+              <Text style={styles.hoursMoreRowText}>Call</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.optionItem, styles.optionItemLast]}
+              style={[styles.hoursMoreRow, styles.hoursMoreRowLast]}
               onPress={() => handleMenuOption('report')}
             >
-              <Text style={styles.optionText}>Report misleading info</Text>
+              <Text style={styles.hoursMoreRowIcon}>🚩</Text>
+              <Text style={[styles.hoursMoreRowText, styles.hoursMoreRowTextDanger]}>
+                Report Misleading Info
+              </Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </Modal>
+        </ScrollView>
+      )}
 
       {/* Address Modal */}
       <Modal

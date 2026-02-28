@@ -58,14 +58,6 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onLanguageCh
                 >
                   {language.name}
                 </Text>
-                <Text
-                  style={[
-                    styles.currencyInfo,
-                    currentLanguage === language.code && styles.selectedText,
-                  ]}
-                >
-                  {language.currency}
-                </Text>
               </View>
               {currentLanguage === language.code && (
                 <View style={styles.checkmark}>

@@ -91,14 +91,10 @@ export const useSettingsStore = create<SettingsStore>()(
       ...defaultSettings,
 
       updateLanguage: (language: Language) => {
+        // Update language only. Currency is independent — it is determined
+        // by the user's physical location via autoDetectCurrency() which runs
+        // on every app launch. Changing language must never override it.
         set({ language });
-        // Also update currency based on language
-        const currencyMap: Record<Language, Currency> = {
-          en: 'USD',
-          es: 'MXN',
-          pl: 'PLN',
-        };
-        set({ currency: currencyMap[language] });
       },
 
       updateCurrency: (currency: Currency) => set({ currency }),

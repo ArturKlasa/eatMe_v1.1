@@ -15,20 +15,10 @@ import en from '../locales/en.json';
 import es from '../locales/es.json';
 import pl from '../locales/pl.json';
 
-// Language detection priority: User preference > Device language > Browser language > English
-const getLanguageFromStorage = async (): Promise<string | null> => {
-  try {
-    // First check settings store
-    const settingsStore = (await import('../stores/settingsStore')).useSettingsStore.getState();
-    if (settingsStore.language) {
-      return settingsStore.language;
-    }
-    // Fallback to AsyncStorage
-    return await AsyncStorage.getItem('userLanguage');
-  } catch {
-    return null;
-  }
-};
+// Language detection priority: persisted settingsStore value → AsyncStorage
+// fallback → device locale → English.
+// The full resolution happens in loadSavedLanguage() below which awaits
+// zustand/persist rehydration before reading the store.
 
 const getDeviceLanguage = (): string => {
   const locales = RNLocalize.getLocales();
@@ -69,16 +59,25 @@ i18n.use(initReactI18next).init({
   },
 });
 
-// Async function to load saved language and update
+// Async function to load saved language and update i18n.
+// Waits for zustand/persist to finish rehydrating from AsyncStorage before
+// reading the store, so a language selected on the login screen is not
+// silently overwritten by the default 'en' value that exists before
+// rehydration completes.
 const loadSavedLanguage = async () => {
   try {
-    const savedLanguage = await getLanguageFromStorage();
-    const deviceLanguage = getDeviceLanguage();
-    const initialLanguage = savedLanguage || deviceLanguage;
+    // Give zustand/persist time to rehydrate (it is also async).
+    // useSettingsStore.persist.rehydrate() returns a promise we can await.
+    const { useSettingsStore: getStore } = await import('../stores/settingsStore');
+    await getStore.persist.rehydrate();
 
-    // Only change if needed to avoid unnecessary re-renders
-    if (initialLanguage && i18n.language !== initialLanguage) {
-      await i18n.changeLanguage(initialLanguage);
+    const savedLanguage = getStore.getState().language;
+    // Fallback chain: settingsStore → AsyncStorage key → device locale
+    const language =
+      savedLanguage || (await AsyncStorage.getItem('userLanguage')) || getDeviceLanguage();
+
+    if (language && i18n.language !== language) {
+      await i18n.changeLanguage(language);
     }
   } catch (error) {
     console.error('Failed to load saved language:', error);
@@ -108,9 +107,9 @@ export const changeLanguage = async (language: 'en' | 'es' | 'pl') => {
 export const getCurrentLanguage = (): string => i18n.language;
 
 export const getSupportedLanguages = () => [
-  { code: 'en', name: 'English', flag: '🇺🇸', currency: 'USD' },
-  { code: 'es', name: 'Español', flag: '🇲🇽', currency: 'MXN' },
-  { code: 'pl', name: 'Polski', flag: '🇵🇱', currency: 'PLN' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Español', flag: '🇲🇽' },
+  { code: 'pl', name: 'Polski', flag: '🇵🇱' },
 ];
 
 // Export for use in components

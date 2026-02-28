@@ -114,9 +114,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         >
           {/* Language & Localization */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>
-              {t('settings.language')} & {t('settings.currency')}
-            </Text>
+            <Text style={modalScreenStyles.sectionTitle}>{t('settings.language')}</Text>
 
             <TouchableOpacity
               style={modalScreenStyles.settingItem}

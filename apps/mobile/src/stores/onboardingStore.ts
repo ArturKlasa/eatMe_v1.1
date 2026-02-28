@@ -166,7 +166,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       // Prepare data for Supabase
       const preferencesData = {
         user_id: user.id,
-        diet_type: state.formData.dietType,
+        diet_preference: state.formData.dietType, // canonical column name
         protein_preferences: state.formData.proteinPreferences,
         allergies: state.formData.allergies,
         favorite_cuisines: state.formData.favoriteCuisines,
@@ -240,21 +240,33 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         };
 
         const formData: OnboardingFormData = {
-          dietType: data.diet_type || 'all',
+          // diet_type was dropped in migration 032; diet_preference is the only column
+          dietType: (data.diet_preference || 'all') as OnboardingFormData['dietType'],
           proteinPreferences: ensureArray(data.protein_preferences),
           allergies: ensureArray(data.allergies),
           favoriteCuisines: ensureArray(data.favorite_cuisines),
           favoriteDishes: ensureArray(data.favorite_dishes),
-          spiceTolerance: data.spice_tolerance || 'no',
+          spiceTolerance: (data.spice_tolerance || 'no') as OnboardingFormData['spiceTolerance'],
         };
 
+        // profile_completion_percentage and profile_points are computed locally
+        // by updateProfileStats() — do NOT read them from DB.
+        // last_prompt_shown_at is stored only in AsyncStorage — do NOT read from DB.
         set({
           formData,
           isCompleted: data.onboarding_completed || false,
-          profileCompletion: data.profile_completion_percentage || 0,
-          profilePoints: data.profile_points || 0,
-          lastPromptShown: data.last_prompt_shown_at ? new Date(data.last_prompt_shown_at) : null,
         });
+
+        // Load lastPromptShown from AsyncStorage (its proper home)
+        try {
+          const lastPrompt = await AsyncStorage.getItem(`${STORAGE_KEY}_last_prompt`);
+          if (lastPrompt) set({ lastPromptShown: new Date(lastPrompt) });
+        } catch {
+          // Non-fatal
+        }
+
+        // Recalculate completion stats from local data
+        get().updateProfileStats();
 
         console.log('[Onboarding] Preferences loaded from Supabase');
       }
@@ -292,7 +304,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     try {
       const preferencesData = {
         user_id: userId,
-        diet_type: state.formData.dietType,
+        diet_preference: state.formData.dietType, // canonical column name
         protein_preferences: state.formData.proteinPreferences,
         allergies: state.formData.allergies,
         favorite_cuisines: state.formData.favoriteCuisines,
@@ -334,7 +346,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     // Calculate completion percentage
     let score = 0;
 
-    // Core fields (80 points)
+    // Core fields
     if (data.dietType && data.dietType !== 'all') score += 15;
     if (data.proteinPreferences.length > 0) score += 15;
     if (data.favoriteCuisines.length >= 3) score += 20;
@@ -343,11 +355,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     else if (data.favoriteDishes.length > 0) score += 10;
     if (data.spiceTolerance) score += 10;
 
-    // Optional fields (20 points)
+    // Optional fields
     if (data.allergies.length > 0) score += 5;
-
-    if (data.mealTimes.length > 0) score += 5;
-    if (data.diningOccasions.length > 0) score += 5;
 
     const profileCompletion = Math.min(score, 100);
 
@@ -384,37 +393,23 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   },
 
   dismissPrompt: () => {
-    set({ lastPromptShown: new Date() });
+    const now = new Date();
+    set({ lastPromptShown: now });
 
-    // Save timestamp to Supabase
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase
-          .from('user_preferences')
-          .update({ last_prompt_shown_at: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .then(({ error }) => {
-            if (error) console.error('[Onboarding] Failed to update prompt timestamp:', error);
-          });
-      }
-    });
+    // Persist timestamp locally — this is UI state, not user data
+    AsyncStorage.setItem(`${STORAGE_KEY}_last_prompt`, now.toISOString()).catch(err =>
+      console.error('[Onboarding] Failed to save prompt timestamp:', err)
+    );
   },
 
   recordPromptShown: () => {
-    set({ lastPromptShown: new Date() });
+    const now = new Date();
+    set({ lastPromptShown: now });
 
-    // Save timestamp to Supabase
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase
-          .from('user_preferences')
-          .update({ last_prompt_shown_at: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .then(({ error }) => {
-            if (error) console.error('[Onboarding] Failed to record prompt timestamp:', error);
-          });
-      }
-    });
+    // Persist timestamp locally — this is UI state, not user data
+    AsyncStorage.setItem(`${STORAGE_KEY}_last_prompt`, now.toISOString()).catch(err =>
+      console.error('[Onboarding] Failed to record prompt timestamp:', err)
+    );
   },
 
   // Reset

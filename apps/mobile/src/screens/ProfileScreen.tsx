@@ -58,14 +58,16 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
     }
 
     try {
+      // user_swipes is the canonical swipe record (user_dish_interactions was
+      // a redundant duplicate that is no longer written to).
       const { data, error } = await supabase
-        .from('user_dish_interactions')
-        .select('interaction_type')
+        .from('user_swipes')
+        .select('action')
         .eq('user_id', user.id);
 
       if (!error && data) {
-        const likes = data.filter(i => i.interaction_type === 'liked').length;
-        const dislikes = data.filter(i => i.interaction_type === 'disliked').length;
+        const likes = data.filter(i => i.action === 'right' || i.action === 'super').length;
+        const dislikes = data.filter(i => i.action === 'left').length;
         setStats({
           interactions: data.length,
           likes,

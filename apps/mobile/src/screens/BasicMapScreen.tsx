@@ -146,7 +146,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           name: r.name,
           coordinates: [r.location.lng, r.location.lat] as [number, number],
           cuisine: r.cuisine_types?.[0] || 'Unknown',
-          rating: r.rating || 4.5,
+          rating: r.rating || 0,
           priceRange,
           address: r.address,
           description: '',
@@ -188,7 +188,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           name: r.name,
           coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
           cuisine: r.cuisine_types?.[0] || 'Unknown',
-          rating: 4.5, // TODO: Add rating to database
+          rating: r.rating || 0, // 0 = unrated; updated by trigger after first opinion
           priceRange,
           address: r.address,
           description: r.description || '',
@@ -234,8 +234,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
           description: d.description || '',
           imageUrl: d.image_url || undefined,
-          rating: 4.5, // TODO: Add rating to database
-          isAvailable: d.is_available,
+          rating: d.restaurant?.rating || 0, // updated by trigger after first opinion
           // Include diet/allergen fields for filtering
           dietary_tags: d.dietary_tags || [],
           allergens: d.allergens || [],

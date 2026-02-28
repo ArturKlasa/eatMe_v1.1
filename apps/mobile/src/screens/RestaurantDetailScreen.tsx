@@ -346,11 +346,16 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             <Text style={styles.restaurantName} numberOfLines={1}>
               {restaurant.name}
             </Text>
-            <View style={styles.ratingBadge}>
-              <Text style={styles.ratingText}>
-                ⭐ {restaurant.rating} ({restaurant.reviewCount})
-              </Text>
-            </View>
+            {/* Use live community rating from restaurant_ratings_summary.
+                Falls back to the restaurants.rating column (updated by trigger)
+                once opinions exist; shows nothing while unrated. */}
+            {(restaurantRating?.overallPercentage ?? 0) > 0 && (
+              <View style={styles.ratingBadge}>
+                <Text style={styles.ratingText}>
+                  ⭐ {(restaurantRating!.overallPercentage / 20).toFixed(1)}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Restaurant Rating Badges - Right below name */}

@@ -54,6 +54,7 @@ export interface Restaurant {
   website: string | null;
   cuisine_types: string[];
   price_range: number;
+  rating: number;
   delivery_available: boolean;
   takeout_available: boolean;
   dine_in_available: boolean;

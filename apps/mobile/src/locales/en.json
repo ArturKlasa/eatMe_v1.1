@@ -34,7 +34,8 @@
     "goBack": "Go Back",
     "signInRequired": "Sign In Required",
     "emailAddress": "Email Address",
-    "somethingWrong": "Something went wrong"
+    "somethingWrong": "Something went wrong",
+    "other": "Other"
   },
   "navigation": {
     "home": "Home",

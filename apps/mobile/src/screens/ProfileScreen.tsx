@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ProfileScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
@@ -28,6 +29,7 @@ import { supabase } from '../lib/supabase';
  */
 export function ProfileScreen({ navigation }: ProfileScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   // Use shallow selectors to prevent re-renders
   const user = useAuthStore(state => state.user);
@@ -312,7 +314,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
             </View>
           </View>
 
-          <View style={modalScreenStyles.bottomSpacer} />
+          <View style={{ height: Math.max(40, insets.bottom + 20) }} />
         </ScrollView>
       </Animated.View>
     </View>

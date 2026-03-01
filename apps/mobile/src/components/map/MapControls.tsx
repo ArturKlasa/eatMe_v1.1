@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { commonStyles, mapComponentStyles } from '@/styles';
 
 interface MapControlsProps {
@@ -19,6 +20,9 @@ export const MapControls: React.FC<MapControlsProps> = ({
   onMenuPress,
   locationLoading,
 }) => {
+  const insets = useSafeAreaInsets();
+  const bottomOffset = insets.bottom;
+
   return (
     <>
       {/* Menu FAB - Above Location FAB */}
@@ -26,11 +30,11 @@ export const MapControls: React.FC<MapControlsProps> = ({
         style={[
           commonStyles.mapStyles.locationButton,
           {
-            bottom: 390, // Moved up by 20px (was 370, now 390)
-            right: 20, // Same right alignment as location FAB
+            bottom: 390 + bottomOffset,
+            right: 20,
             zIndex: 1000,
             elevation: 10,
-            backgroundColor: '#E0E0E0', // Even less bright (darker light gray)
+            backgroundColor: '#E0E0E0',
           },
         ]}
         onPress={onMenuPress}
@@ -43,10 +47,10 @@ export const MapControls: React.FC<MapControlsProps> = ({
         style={[
           commonStyles.mapStyles.locationButton,
           {
-            bottom: 330, // Moved back up (was 300, now 330)
-            zIndex: 1000, // Ensure it's above everything
-            elevation: 10, // Android shadow/elevation
-            backgroundColor: '#E0E0E0', // Even less bright (darker light gray)
+            bottom: 330 + bottomOffset,
+            zIndex: 1000,
+            elevation: 10,
+            backgroundColor: '#E0E0E0',
           },
         ]}
         onPress={onLocationPress}

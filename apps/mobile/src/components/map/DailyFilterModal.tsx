@@ -18,6 +18,25 @@ import { modals } from '@/styles';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/i18nUtils';
 
+/**
+ * Converts a display name like "Comfort Food" or "Fish & Chips" to the
+ * camelCase locale key used in the JSON files ("comfortFood", "fishAndChips").
+ */
+const toLocaleKey = (str: string): string => {
+  const normalized = str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip accents: Café → Cafe
+    .replace(/&/g, 'And');            // Fish & Chips → Fish And Chips
+  const words = normalized.trim().split(/\s+/);
+  return (
+    words[0].toLowerCase() +
+    words
+      .slice(1)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join('')
+  );
+};
+
 interface DailyFilterModalProps {
   visible: boolean;
   onClose: () => void;
@@ -316,7 +335,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                           localFilters.cuisineTypes.includes(cuisine) && modals.selectedText,
                         ]}
                       >
-                        {t(`filters.cuisines.${cuisine.toLowerCase()}`)}
+                        {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}}
                       </Text>
                     </TouchableOpacity>
                   )
@@ -373,7 +392,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                         localFilters.meals.includes(meal) && modals.selectedText,
                       ]}
                     >
-                      {t(`filters.meals.${meal.toLowerCase().replace(/\s+/g, '')}`)}
+                      {t(`filters.meals.${toLocaleKey(meal)}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -601,7 +620,7 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
                       selectedMeals.includes(meal) && modals.selectedText,
                     ]}
                   >
-                    {t(`filters.meals.${meal.toLowerCase().replace(/\s+/g, '')}`)}
+                    {t(`filters.meals.${toLocaleKey(meal)}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -741,7 +760,7 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
                       selectedCuisines.includes(cuisine) && modals.selectedText,
                     ]}
                   >
-                    {t(`filters.cuisines.${cuisine.toLowerCase().replace(/\s+/g, '')}`)}
+                    {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}
                   </Text>
                 </TouchableOpacity>
               ))}

@@ -34,7 +34,8 @@
     "goBack": "Wróć",
     "signInRequired": "Wymagane Logowanie",
     "emailAddress": "Adres Email",
-    "somethingWrong": "Coś poszło nie tak"
+    "somethingWrong": "Coś poszło nie tak",
+    "other": "Inne"
   },
   "navigation": {
     "home": "Strona główna",

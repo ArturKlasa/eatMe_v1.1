@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SettingsScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -25,6 +26,7 @@ import { getSupportedLanguages } from '@/i18n';
  */
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   const { language, pushNotifications, locationServices, updateNotifications, updatePrivacy } =
@@ -213,7 +215,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             </View>
           </View>
 
-          <View style={modalScreenStyles.bottomSpacer} />
+          <View style={{ height: Math.max(40, insets.bottom + 20) }} />
         </ScrollView>
 
         {/* Language Selector Modal */}
@@ -240,7 +242,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                 backgroundColor: '#1E1E1E',
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
-                paddingBottom: 40,
+                paddingBottom: Math.max(40, insets.bottom + 20),
               }}
             >
               <LanguageSelector onLanguageChange={handleLanguageChange} />

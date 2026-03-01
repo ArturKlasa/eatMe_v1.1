@@ -11,6 +11,7 @@ import { useFilterStore } from '../stores/filterStore';
 import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
 import { getFeed, ServerDish } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
@@ -42,6 +43,7 @@ import { DishRatingInput, RestaurantFeedbackInput } from '../types/rating';
 export function BasicMapScreen({ navigation }: MapScreenProps) {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
 
+  const insets = useSafeAreaInsets();
   // Get the root stack navigation for navigating to RestaurantDetail
   const rootNavigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
@@ -269,31 +271,53 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
 
-  // Map edge-function ServerDish results into the shape MapFooter expects
+  // Map edge-function ServerDish results into the shape MapFooter expects.
+  // Limit to 5 dishes, at most one per restaurant.
   const recommendedDishes = useMemo(() => {
-    return feedDishes.map(dish => {
-      let priceRange: '$' | '$$' | '$$$' | '$$$$';
-      if (dish.price < 10) priceRange = '$';
-      else if (dish.price < 20) priceRange = '$$';
-      else if (dish.price < 40) priceRange = '$$$';
-      else priceRange = '$$$$';
+    const seen = new Set<string>();
+    const result: ReturnType<typeof buildDish>[] = [];
 
-      return {
-        id: dish.id,
-        name: dish.name,
-        restaurantId: dish.restaurant_id,
-        restaurantName: dish.restaurant?.name || 'Unknown Restaurant',
-        price: dish.price,
-        priceRange,
-        cuisine: dish.restaurant?.cuisine_types?.[0] || 'Unknown',
-        imageUrl: dish.image_url || undefined,
-        rating: dish.restaurant?.rating || 0,
-        isAvailable: dish.is_available,
-        dietary_tags: dish.dietary_tags || [],
-        allergens: dish.allergens || [],
-      };
-    });
+    for (const dish of feedDishes ?? []) {
+      if (result.length >= 5) break;
+      if (seen.has(dish.restaurant_id)) continue;
+      seen.add(dish.restaurant_id);
+      result.push(buildDish(dish));
+    }
+    return result;
   }, [feedDishes]);
+
+  function buildDish(dish: ServerDish) {
+    let priceRange: '$' | '$$' | '$$$' | '$$$$';
+    if (dish.price < 10) priceRange = '$';
+    else if (dish.price < 20) priceRange = '$$';
+    else if (dish.price < 40) priceRange = '$$$';
+    else priceRange = '$$$$';
+    return {
+      id: dish.id,
+      name: dish.name,
+      restaurantId: dish.restaurant_id,
+      restaurantName: dish.restaurant?.name || 'Unknown Restaurant',
+      price: dish.price,
+      priceRange,
+      cuisine: dish.restaurant?.cuisine_types?.[0] || 'Unknown',
+      imageUrl: dish.image_url || undefined,
+      rating: dish.restaurant?.rating || 0,
+      isAvailable: dish.is_available,
+      dietary_tags: dish.dietary_tags || [],
+      allergens: dish.allergens || [],
+    };
+  }
+
+  // For the map pins, show only one pin per restaurant that has a recommended dish
+  const pinnedRestaurants = useMemo(() => {
+    const recommendedIds = new Set(recommendedDishes.map(d => d.restaurantId));
+    const seen = new Set<string>();
+    return (displayedRestaurants ?? []).filter(r => {
+      if (!recommendedIds.has(r.id) || seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+  }, [displayedRestaurants, recommendedDishes]);
 
   // Debug logging
   console.log('=== SUPABASE DATA DEBUG ===');
@@ -685,7 +709,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
         {/* Conditional markers based on view mode */}
         {mode === 'restaurant' ? (
-          <RestaurantMarkers restaurants={displayedRestaurants} onMarkerPress={handleMarkerPress} />
+          <RestaurantMarkers restaurants={pinnedRestaurants} onMarkerPress={handleMarkerPress} />
         ) : (
           <DishMarkers dishes={dishes} onMarkerPress={handleDishPress} />
         )}
@@ -708,7 +732,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         <View
           style={{
             position: 'absolute',
-            top: 60,
+            top: insets.top + 16,
             left: 0,
             right: 0,
             alignItems: 'center',
@@ -756,7 +780,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         <View
           style={{
             position: 'absolute',
-            top: 16,
+            top: insets.top + 16,
             left: 16,
             right: 16,
             zIndex: 1000,

@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
-import { StyleSheet, AppState, AppStateStatus } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
 import { RootNavigator } from './src/navigation';
@@ -89,9 +89,9 @@ export default function App(): React.JSX.Element {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <RootNavigator />
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -100,6 +100,6 @@ export default function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#121212',
   },
 });

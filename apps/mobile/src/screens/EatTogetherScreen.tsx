@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EatTogetherScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
 import { useAuthStore } from '../stores/authStore';
@@ -22,6 +23,7 @@ import { useAuthStore } from '../stores/authStore';
  */
 export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
   const user = useAuthStore(state => state.user);
@@ -187,7 +189,7 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
             </View>
           </View>
 
-          <View style={modalScreenStyles.bottomSpacer} />
+          <View style={{ height: Math.max(40, insets.bottom + 20) }} />
         </ScrollView>
       </Animated.View>
     </View>

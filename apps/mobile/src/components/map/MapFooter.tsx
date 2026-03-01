@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mapFooterStyles } from '@/styles';
 
 // Dish type from mobile hooks
@@ -29,6 +30,8 @@ export const MapFooter: React.FC<MapFooterProps> = ({
   onDishPress,
   onFilterPress,
 }) => {
+  const insets = useSafeAreaInsets();
+
   const getEmoji = (cuisine: string) => {
     if (cuisine.includes('Mexican')) return '🌮';
     if (cuisine.includes('Italian')) return '🍝';
@@ -38,7 +41,9 @@ export const MapFooter: React.FC<MapFooterProps> = ({
   };
 
   return (
-    <View style={mapFooterStyles.container}>
+    <View
+      style={[mapFooterStyles.container, insets.bottom > 0 && { paddingBottom: insets.bottom + 8 }]}
+    >
       <View style={mapFooterStyles.header}>
         <Text style={mapFooterStyles.headerTitle}>🎯 Based on your preferences</Text>
       </View>

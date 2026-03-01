@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
 import { supabase } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
@@ -35,6 +36,7 @@ type Props = RootStackScreenProps<'RestaurantDetail'>;
 
 export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { restaurantId } = route.params;
   const user = useAuthStore(state => state.user);
   const trackRestaurantView = useSessionStore(state => state.trackRestaurantView);
@@ -337,7 +339,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       {/* Compact Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, insets.top > 0 && { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerContent}>
           {/* Restaurant Name and Rating on same row */}
           <View style={styles.nameRatingRow}>

@@ -13,10 +13,15 @@ import { mapFooterStyles } from '@/styles';
 interface Dish {
   id: string;
   name: string;
+  restaurantId: string;
   restaurantName: string;
   price: number;
-  priceRange: string;
+  cuisine: string;
   imageUrl?: string;
+  rating: number;
+  isAvailable: boolean;
+  dietary_tags: string[];
+  allergens: string[];
 }
 
 interface MapFooterProps {

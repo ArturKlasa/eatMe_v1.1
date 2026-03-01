@@ -13,6 +13,7 @@ import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
+import type { FilterResult } from '../services/filterService';
 import { getFeed, ServerDish } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
@@ -33,6 +34,40 @@ import { ProfileCompletionBanner } from '../components/ProfileCompletionBanner';
 import { useAuthStore } from '../stores/authStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { DishRatingInput, RestaurantFeedbackInput } from '../types/rating';
+
+/** Local Restaurant shape built from DB data and passed to marker/filter components */
+interface Restaurant {
+  id: string;
+  name: string;
+  coordinates: [number, number];
+  cuisine: string;
+  rating: number;
+  /** Estimated average price in local currency (e.g. 20 = ~$20) */
+  avgPrice: number;
+  address: string;
+  description: string;
+  imageUrl?: string;
+  phone?: string;
+  isOpen: boolean;
+  openingHours: { open: string; close: string };
+  distance?: string;
+}
+
+/** Local Dish shape used when converting DB dishes for map display */
+interface Dish {
+  id: string;
+  name: string;
+  restaurantId: string;
+  restaurantName: string;
+  price: number;
+  cuisine: string;
+  coordinates: [number, number];
+  description: string;
+  imageUrl?: string;
+  rating: number;
+  dietary_tags: string[];
+  allergens: string[];
+}
 
 /**
  * BasicMapScreen Component
@@ -136,20 +171,13 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     if (nearbyRestaurants && nearbyRestaurants.length > 0) {
       debugLog(`Using ${nearbyRestaurants.length} nearby restaurants from geospatial search`);
       return nearbyRestaurants.map(r => {
-        const priceSymbols = ['$', '$$', '$$$', '$$$$'];
-        const priceRange = priceSymbols[Math.min((r.price_level || 1) - 1, 3)] as
-          | '$'
-          | '$$'
-          | '$$$'
-          | '$$$$';
-
         return {
           id: r.id,
           name: r.name,
           coordinates: [r.location.lng, r.location.lat] as [number, number],
           cuisine: r.cuisine_types?.[0] || 'Unknown',
           rating: r.rating || 0,
-          priceRange,
+          avgPrice: 20, // price_range not returned by geospatial endpoint; use mid-range default
           address: r.address,
           description: '',
           imageUrl: undefined,
@@ -177,13 +205,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         const location = parseLocation(r.location);
         if (!location) return null;
 
-        // Convert price_range number to $ symbols
-        const priceSymbols = ['$', '$$', '$$$', '$$$$'];
-        const priceRange = priceSymbols[Math.min(r.price_range - 1, 3)] as
-          | '$'
-          | '$$'
-          | '$$$'
-          | '$$$$';
+        // Map DB price_range (1–4) to estimated average price in local currency
+        const avgPriceByLevel = [12, 22, 38, 55];
+        const avgPrice = avgPriceByLevel[Math.min((r.price_range ?? 2) - 1, 3)];
 
         return {
           id: r.id,
@@ -191,7 +215,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
           cuisine: r.cuisine_types?.[0] || 'Unknown',
           rating: r.rating || 0, // 0 = unrated; updated by trigger after first opinion
-          priceRange,
+          avgPrice,
           address: r.address,
           description: r.description || '',
           imageUrl: undefined,
@@ -218,20 +242,12 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         const location = parseLocation(d.restaurant.location);
         if (!location) return null;
 
-        // Determine price range from price
-        let priceRange: '$' | '$$' | '$$$' | '$$$$';
-        if (d.price < 10) priceRange = '$';
-        else if (d.price < 20) priceRange = '$$';
-        else if (d.price < 40) priceRange = '$$$';
-        else priceRange = '$$$$';
-
         return {
           id: d.id,
           name: d.name,
           restaurantId: d.restaurant_id,
           restaurantName: d.restaurant.name,
           price: d.price,
-          priceRange,
           cuisine: d.restaurant.cuisine_types?.[0] || 'Unknown',
           coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
           description: d.description || '',
@@ -287,18 +303,12 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   }, [feedDishes]);
 
   function buildDish(dish: ServerDish) {
-    let priceRange: '$' | '$$' | '$$$' | '$$$$';
-    if (dish.price < 10) priceRange = '$';
-    else if (dish.price < 20) priceRange = '$$';
-    else if (dish.price < 40) priceRange = '$$$';
-    else priceRange = '$$$$';
     return {
       id: dish.id,
       name: dish.name,
       restaurantId: dish.restaurant_id,
       restaurantName: dish.restaurant?.name || 'Unknown Restaurant',
       price: dish.price,
-      priceRange,
       cuisine: dish.restaurant?.cuisine_types?.[0] || 'Unknown',
       imageUrl: dish.image_url || undefined,
       rating: dish.restaurant?.rating || 0,
@@ -445,13 +455,39 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   }, [isMapReady, hasPermission, hasAutocentered]);
 
   // Handler functions
-  const handleMarkerPress = (restaurant: Restaurant) => {
-    // Navigate to restaurant detail screen
+  const handleMarkerPress = (restaurant: {
+    id: string;
+    name: string;
+    coordinates: [number, number];
+    isOpen: boolean;
+  }) => {
     rootNavigation.navigate('RestaurantDetail', { restaurantId: restaurant.id });
   };
 
-  const handleDishPress = (dish: Dish) => {
-    // Navigate to restaurant detail screen
+  // Called from DishMarkers — navigates to the dish's restaurant, not the dish itself
+  const handleDishMarkerPress = (dish: {
+    id: string;
+    name: string;
+    coordinates: [number, number];
+    price: number;
+    restaurantId: string;
+  }) => {
+    rootNavigation.navigate('RestaurantDetail', { restaurantId: dish.restaurantId });
+  };
+
+  // Called from MapFooter recommended dishes (has restaurantId, no coordinates)
+  const handleDishPress = (dish: {
+    id: string;
+    restaurantId: string;
+    name: string;
+    price: number;
+    cuisine: string;
+    imageUrl?: string;
+    rating: number;
+    isAvailable: boolean;
+    dietary_tags: string[];
+    allergens: string[];
+  }) => {
     rootNavigation.navigate('RestaurantDetail', { restaurantId: dish.restaurantId });
   };
 
@@ -592,7 +628,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     if (hasPermission && userLocation) {
       try {
         await loadNearbyRestaurantsFromCurrentLocation(
-          getLocationWithPermission,
+          async () => {
+            const loc = await getLocationWithPermission();
+            if (!loc) throw new Error('Location unavailable');
+            return { latitude: loc.latitude, longitude: loc.longitude };
+          },
           5, // 5km radius
           daily,
           permanent
@@ -711,7 +751,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         {mode === 'restaurant' ? (
           <RestaurantMarkers restaurants={pinnedRestaurants} onMarkerPress={handleMarkerPress} />
         ) : (
-          <DishMarkers dishes={dishes} onMarkerPress={handleDishPress} />
+          <DishMarkers dishes={dishes} onMarkerPress={handleDishMarkerPress} />
         )}
       </MapView>
 
@@ -772,7 +812,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
       {/* Onboarding Banner - Gentle prompt to complete profile */}
       {showOnboardingBanner && (
-        <ProfileCompletionBanner onPress={() => rootNavigation.navigate('OnboardingStep1')} />
+        <ProfileCompletionBanner
+          onStartOnboarding={() => rootNavigation.navigate('OnboardingStep1')}
+        />
       )}
 
       {/* Rating Banner - Only show when user has viewed restaurants */}

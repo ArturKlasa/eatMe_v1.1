@@ -26,7 +26,7 @@ const toLocaleKey = (str: string): string => {
   const normalized = str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // strip accents: Café → Cafe
-    .replace(/&/g, 'And');            // Fish & Chips → Fish And Chips
+    .replace(/&/g, 'And'); // Fish & Chips → Fish And Chips
   const words = normalized.trim().split(/\s+/);
   return (
     words[0].toLowerCase() +
@@ -214,10 +214,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                               },
                             }));
                           } else {
-                            // Selecting a protein type resets diet to 'all' and toggles the protein
+                            // Selecting a protein type resets diet preferences and toggles the protein
                             setLocalFilters(prev => ({
                               ...prev,
-                              dietPreference: 'all',
+                              dietPreference: { vegetarian: false, vegan: false },
                               proteinTypes: {
                                 ...prev.proteinTypes,
                                 [protein.key]:
@@ -335,7 +335,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                           localFilters.cuisineTypes.includes(cuisine) && modals.selectedText,
                         ]}
                       >
-                        {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}}
+                        {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}
                       </Text>
                     </TouchableOpacity>
                   )

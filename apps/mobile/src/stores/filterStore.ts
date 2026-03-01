@@ -337,8 +337,8 @@ const defaultPermanentFilters: PermanentFilters = {
   ingredientExclusions: [],
   dislikedIngredients: [],
   defaultPriceRange: {
-    min: 1,
-    max: 4,
+    min: 10,
+    max: 50,
   },
   cuisinePreferences: [],
   defaultNutrition: {
@@ -373,7 +373,7 @@ const DAILY_FILTER_PRESETS = {
   cheapEats: {
     name: 'Cheap Eats',
     filters: {
-      priceRange: { min: 1, max: 2 },
+      priceRange: { min: 10, max: 20 },
       maxDistance: 5,
     },
   },

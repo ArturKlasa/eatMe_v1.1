@@ -8,11 +8,12 @@
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
 
 // Restaurant type used by filter service
-interface Restaurant {
+export interface Restaurant {
   id: string;
   name: string;
   cuisine: string;
-  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  /** Estimated average price in local currency */
+  avgPrice: number;
   rating: number;
   coordinates: [number, number];
   address: string;
@@ -178,16 +179,14 @@ function applyDailyFilters(
 ): Restaurant[] {
   let filtered = restaurants;
 
-  // Price range filter
-  if (dailyFilters.priceRange.min > 1 || dailyFilters.priceRange.max < 4) {
-    filtered = filtered.filter(restaurant => {
-      const priceLevel = getPriceLevel(restaurant.priceRange);
-      return priceLevel >= dailyFilters.priceRange.min && priceLevel <= dailyFilters.priceRange.max;
-    });
-
-    const minPrice = '$'.repeat(dailyFilters.priceRange.min);
-    const maxPrice = '$'.repeat(dailyFilters.priceRange.max);
-    filterSummary.push(`Price: ${minPrice} to ${maxPrice}`);
+  // Price range filter — compare estimated restaurant avgPrice against slider values (10–50)
+  if (dailyFilters.priceRange.min > 10 || dailyFilters.priceRange.max < 50) {
+    filtered = filtered.filter(
+      restaurant =>
+        restaurant.avgPrice >= dailyFilters.priceRange.min &&
+        restaurant.avgPrice <= dailyFilters.priceRange.max
+    );
+    filterSummary.push(`Price: ${dailyFilters.priceRange.min}–${dailyFilters.priceRange.max}`);
   }
 
   // Cuisine types filter
@@ -322,31 +321,13 @@ function sortRestaurants(restaurants: Restaurant[], sortBy: DailyFilters['sortBy
 }
 
 /**
- * Convert price range string to numeric level
- */
-function getPriceLevel(priceRange: string): number {
-  switch (priceRange) {
-    case '$':
-      return 1;
-    case '$$':
-      return 2;
-    case '$$$':
-      return 3;
-    case '$$$$':
-      return 4;
-    default:
-      return 2;
-  }
-}
-
-/**
  * Count active daily filters
  */
 function getDailyFilterCount(dailyFilters: DailyFilters): number {
   let count = 0;
 
-  // Price range (not default)
-  if (dailyFilters.priceRange.min !== 1 || dailyFilters.priceRange.max !== 4) {
+  // Price range (not default: 10–50)
+  if (dailyFilters.priceRange.min !== 10 || dailyFilters.priceRange.max !== 50) {
     count++;
   }
 

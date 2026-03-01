@@ -12,7 +12,7 @@ interface Dish {
   name: string;
   coordinates: [number, number];
   price: number;
-  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  restaurantId: string;
 }
 
 interface DishMarkersProps {

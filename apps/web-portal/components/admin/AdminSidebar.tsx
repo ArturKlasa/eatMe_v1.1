@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Leaf,
   Tag,
+  ScanLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,11 @@ const navigation = [
     name: 'Dish Categories',
     href: '/admin/dish-categories',
     icon: Tag,
+  },
+  {
+    name: 'Menu Scan',
+    href: '/admin/menu-scan',
+    icon: ScanLine,
   },
   {
     name: 'Audit Logs',

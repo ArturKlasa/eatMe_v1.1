@@ -130,63 +130,180 @@ async function extractMenuFromImage(
 }
 
 // ---------------------------------------------------------------------------
-// Match raw ingredient strings against ingredient_aliases in the DB
+// Query helper — exact then partial ilike against ingredient_aliases
+// ---------------------------------------------------------------------------
+
+type AliasRow = {
+  canonical_ingredient_id: string;
+  display_name: string;
+  canonical_ingredient: { canonical_name: string } | null;
+};
+
+async function queryAlias(
+  term: string,
+  supabase: ReturnType<typeof createServerSupabaseClient>
+): Promise<AliasRow | null> {
+  const SELECT =
+    'id, display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
+
+  // Exact match
+  const { data: exact } = await supabase
+    .from('ingredient_aliases')
+    .select(SELECT)
+    .ilike('display_name', term)
+    .limit(1);
+
+  if (exact && exact.length > 0) return exact[0] as unknown as AliasRow;
+
+  // Partial match
+  const { data: partial } = await supabase
+    .from('ingredient_aliases')
+    .select(SELECT)
+    .ilike('display_name', `%${term}%`)
+    .limit(1);
+
+  return partial && partial.length > 0 ? (partial[0] as unknown as AliasRow) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Batch-translate non-English ingredient names using GPT-4o-mini.
+// Returns a map of original → English translation.
+// Only called when terms remain unmatched after the DB lookup.
+// ---------------------------------------------------------------------------
+
+async function translateIngredients(
+  terms: string[],
+  openai: OpenAI
+): Promise<Record<string, string>> {
+  if (terms.length === 0) return {};
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a culinary ingredient translator. Given a JSON array of food ingredient names (which may be in any language, primarily Spanish), return a JSON object mapping each original name to its standard English culinary name. Keep the output minimal: only ingredient names, no explanations. If a name is already English or has no translation, return it unchanged.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify(terms),
+        },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 512,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return {};
+
+    // GPT returns { "original": "english", ... } — wrap in a container key if needed
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    // Handle both { "translations": {...} } and flat { "original": "english" }
+    const translations =
+      typeof parsed.translations === 'object' && parsed.translations !== null
+        ? (parsed.translations as Record<string, string>)
+        : (parsed as Record<string, string>);
+
+    return Object.fromEntries(
+      Object.entries(translations).map(([k, v]) => [k, typeof v === 'string' ? v : k])
+    );
+  } catch (err) {
+    console.error('[MenuScan] Translation fallback failed:', err);
+    return {};
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Persist newly discovered (translated) aliases so future scans find them
+// directly in the DB without calling the AI again.
+// ---------------------------------------------------------------------------
+
+async function saveNewAlias(
+  displayName: string,
+  language: string,
+  canonicalIngredientId: string,
+  supabase: ReturnType<typeof createServerSupabaseClient>
+): Promise<void> {
+  try {
+    await supabase
+      .from('ingredient_aliases')
+      .insert({
+        display_name: displayName,
+        language,
+        canonical_ingredient_id: canonicalIngredientId,
+      })
+      .select()
+      .single();
+  } catch {
+    // ON CONFLICT — alias already exists; not an error
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Match raw ingredient strings against ingredient_aliases in the DB.
+// Falls back to AI batch-translation for unmatched terms, then saves
+// new aliases so the DB grows over time and AI is called less often.
 // ---------------------------------------------------------------------------
 
 async function matchIngredients(
   rawIngredients: string[],
-  supabase: ReturnType<typeof createServerSupabaseClient>
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  openai: OpenAI
 ): Promise<MatchedIngredient[]> {
   if (!rawIngredients || rawIngredients.length === 0) return [];
 
   const results: MatchedIngredient[] = [];
+  const needsTranslation: string[] = [];
 
+  // ---- Pass 1: DB lookup ----
   for (const raw of rawIngredients) {
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
-    // Try exact match first, then partial
-    const { data: exact } = await supabase
-      .from('ingredient_aliases')
-      .select(
-        'id, display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)'
-      )
-      .ilike('display_name', trimmed)
-      .limit(1);
-
-    if (exact && exact.length > 0) {
-      const m = exact[0] as any;
+    const alias = await queryAlias(trimmed, supabase);
+    if (alias) {
       results.push({
         raw_text: raw,
         status: 'matched',
-        canonical_ingredient_id: m.canonical_ingredient_id,
-        canonical_name: m.canonical_ingredient?.canonical_name,
-        display_name: m.display_name,
-      });
-      continue;
-    }
-
-    // Partial match
-    const { data: partial } = await supabase
-      .from('ingredient_aliases')
-      .select(
-        'id, display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)'
-      )
-      .ilike('display_name', `%${trimmed}%`)
-      .limit(1);
-
-    if (partial && partial.length > 0) {
-      const m = partial[0] as any;
-      results.push({
-        raw_text: raw,
-        status: 'matched',
-        canonical_ingredient_id: m.canonical_ingredient_id,
-        canonical_name: m.canonical_ingredient?.canonical_name,
-        display_name: m.display_name,
+        canonical_ingredient_id: alias.canonical_ingredient_id,
+        canonical_name: alias.canonical_ingredient?.canonical_name,
+        display_name: alias.display_name,
       });
     } else {
       results.push({ raw_text: raw, status: 'unmatched' });
+      needsTranslation.push(trimmed);
     }
+  }
+
+  if (needsTranslation.length === 0) return results;
+
+  // ---- Pass 2: translate unmatched terms in one batch AI call ----
+  const translations = await translateIngredients(needsTranslation, openai);
+
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status !== 'unmatched') continue;
+
+    const trimmed = r.raw_text.trim();
+    const englishName = translations[trimmed];
+    if (!englishName || englishName === trimmed) continue; // no useful translation
+
+    const alias = await queryAlias(englishName, supabase);
+    if (alias) {
+      results[i] = {
+        raw_text: r.raw_text,
+        status: 'matched',
+        canonical_ingredient_id: alias.canonical_ingredient_id,
+        canonical_name: alias.canonical_ingredient?.canonical_name,
+        display_name: alias.display_name,
+      };
+
+      // Persist the original (non-English) term as a new alias so next time
+      // it's found directly in the DB without calling the AI.
+      void saveNewAlias(trimmed, 'es', alias.canonical_ingredient_id, supabase);
+    }
+    // If still no match after translation: leave as 'unmatched' — user resolves manually
   }
 
   return results;
@@ -198,7 +315,8 @@ async function matchIngredients(
 
 async function enrichResult(
   raw: RawExtractionResult,
-  supabase: ReturnType<typeof createServerSupabaseClient>
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  openai: OpenAI
 ): Promise<Pick<EnrichedResult, 'menus'>> {
   const enrichedMenus: EnrichedMenu[] = [];
 
@@ -209,7 +327,7 @@ async function enrichResult(
       const enrichedDishes: EnrichedDish[] = [];
 
       for (const dish of cat.dishes) {
-        const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase);
+        const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai);
 
         enrichedDishes.push({
           ...dish,
@@ -333,7 +451,7 @@ export async function POST(request: NextRequest) {
     const merged = mergeExtractionResults(rawResults);
 
     // 7. Enrich with ingredient matches + dietary tag codes
-    const { menus: enrichedMenus } = await enrichResult(merged, supabase);
+    const { menus: enrichedMenus } = await enrichResult(merged, supabase, openai);
 
     const fullResult: EnrichedResult = { menus: enrichedMenus, currency };
 

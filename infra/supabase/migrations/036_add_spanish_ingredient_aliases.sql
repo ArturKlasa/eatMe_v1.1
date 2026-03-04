@@ -184,7 +184,8 @@ IF v IS NOT NULL THEN INSERT INTO ingredient_aliases (display_name, language, ca
   ('Aguayón', 'es', v), ('Rib eye', 'es', v), ('T-bone', 'es', v),
   ('Bistec de res', 'es', v), ('Retazo de res', 'es', v), ('Carne asada', 'es', v),
   ('Barbacoa de res', 'es', v), ('Lengua de res', 'es', v), ('Tripa', 'es', v),
-  ('Birria', 'es', v), ('Birria de res', 'es', v), ('Suadero', 'es', v)
+  ('Birria', 'es', v), ('Birria de res', 'es', v), ('Suadero', 'es', v),
+  ('Milanesa', 'es', v), ('Milanesa de res', 'es', v)
   ON CONFLICT (display_name) DO NOTHING; END IF;
 
 SELECT id INTO v FROM canonical_ingredients WHERE canonical_name = 'pork';
@@ -252,7 +253,8 @@ IF v IS NOT NULL THEN INSERT INTO ingredient_aliases (display_name, language, ca
   ('Pierna de pollo', 'es', v), ('Ala de pollo', 'es', v),
   ('Pollo asado', 'es', v), ('Pollo rostizado', 'es', v), ('Pollo deshebrado', 'es', v),
   ('Caldo de pollo', 'es', v), ('Pollo molido', 'es', v), ('Filete de pollo', 'es', v),
-  ('Pollo empanizado', 'es', v), ('Pollo a la plancha', 'es', v)
+  ('Pollo empanizado', 'es', v), ('Pollo a la plancha', 'es', v),
+  ('Milanesa de pollo', 'es', v), ('Escalope de pollo', 'es', v)
   ON CONFLICT (display_name) DO NOTHING; END IF;
 
 SELECT id INTO v FROM canonical_ingredients WHERE canonical_name = 'eggs';

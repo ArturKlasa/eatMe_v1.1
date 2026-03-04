@@ -1,7 +1,10 @@
 # Backend Implementation Plan - EatMe
 
-**Last Updated:** January 26, 2026  
-**Status:** Analysis & Planning Phase
+**Originally written:** January 26, 2026  
+**Last updated:** March 3, 2026  
+**Status:** ✅ Core backend implemented — Mobile integration in progress
+
+> **Update (March 2026):** All four Edge Functions (`feed`, `nearby-restaurants`, `swipe`, `group-recommendations`) are deployed. The analysis below remains valid; items marked 🟢 are now complete. Items still pending are in [TODO_LIST.md](./TODO_LIST.md).
 
 ## Executive Summary
 
@@ -11,22 +14,28 @@ This document analyzes the backend requirements for EatMe based on the current m
 
 ---
 
-## Current Architecture Status
+## Current Architecture Status (March 2026)
 
-### ✅ What's Already Built
+### ✅ What's Built
 
-**Database (Supabase PostgreSQL)**
+**Database (Supabase PostgreSQL) — 40 migrations applied**
 
-- ✅ Core tables: restaurants, menus, dishes
+- ✅ Core tables: restaurants, menus, dishes, dish_categories
 - ✅ PostGIS extension for geospatial queries
-- ✅ Row Level Security (RLS) policies
-- ✅ Authentication (Supabase Auth with OAuth)
-- ✅ Admin role system
+- ✅ Row Level Security (RLS) policies on all tables
+- ✅ Authentication (Supabase Auth with email + OAuth)
+- ✅ Admin role system + audit log
+- ✅ Ingredient system with allergen/dietary triggers
+- ✅ Rating system (`dish_opinions` → `restaurants.rating` trigger)
+- ✅ Eat Together tables (sessions, participants, votes)
+- ✅ User preferences + behavior profiles
+- ✅ Menu scan jobs table
 
 **Web Portal (Next.js)**
 
 - ✅ Restaurant owner onboarding
 - ✅ Admin CRUD for restaurants/menus/dishes
+- ✅ Admin: ingredient management, dish categories, menu scan
 - ✅ OAuth callback handling
 - ✅ Direct Supabase client integration
 
@@ -611,24 +620,27 @@ Supabase Storage (Images)
 
 ## Migration Strategy
 
-### **Step 1: Replace Mock Data (Week 1-2)**
+### **Step 1: Replace Mock Data** — ⏳ In Progress
 
-- ✅ Add Supabase client to mobile app
-- ✅ Create `nearby-restaurants` Edge Function
-- ✅ Replace `restaurantStore` mock data with API calls
-- ✅ Update `filterService` to call Edge Functions
+- ⏳ Add Supabase client to mobile app (`apps/mobile/src/lib/supabase.ts`)
+- ✅ Create `nearby-restaurants` Edge Function (deployed)
+- ✅ Create `feed` Edge Function (deployed)
+- ⏳ Replace `restaurantStore` mock data with real API calls
+- ⏳ Update `filterService` to call Edge Functions
 
-### **Step 2: Add Reviews & Favorites (Week 3)**
+### **Step 2: Reviews & Ratings** — ✅ DB complete, mobile pending
 
-- ✅ Implement review submission
-- ✅ Add Postgres trigger for rating updates
-- ✅ Build favorites API
+- ✅ `dish_opinions` table with `liked | okay | disliked`
+- ✅ Postgres trigger: `dish_opinions` → `restaurants.rating`
+- ✅ `swipe` Edge Function deployed
+- ⏳ Mobile SwipeScreen wired to `swipe` Edge Function
 
-### **Step 3: Search & Daily Menus (Week 4)**
+### **Step 3: Personalization** — ⏳ Pending mobile integration
 
-- ✅ Full-text search Edge Function
-- ✅ Time-based menu filtering
-- ✅ Polish UI with real data
+- ✅ `user_preferences` table (migration 022)
+- ✅ `user_behavior_profiles` table (migration 013)
+- ⏳ User preferences onboarding screens in mobile
+- ⏳ Feed personalisation using `user_id`
 
 ---
 

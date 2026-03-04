@@ -1,8 +1,18 @@
 # Server-Side Filtering Architecture with Supabase Edge Functions
 
-**Date:** January 28, 2026  
-**Status:** Proposed Design  
+**Originally written:** January 28, 2026  
+**Last updated:** March 3, 2026  
+**Status:** ✅ Implemented — all four Edge Functions deployed  
 **Goal:** Move filtering from mobile client to server-side for better performance and scalability
+
+> **Update (March 2026):** The architecture proposed here has been implemented. The four deployed functions are:
+> - `infra/supabase/functions/feed/` — personalised dish feed
+> - `infra/supabase/functions/nearby-restaurants/` — PostGIS radius search
+> - `infra/supabase/functions/swipe/` — records `dish_opinions`
+> - `infra/supabase/functions/group-recommendations/` — Eat Together suggestions
+>
+> Redis (Upstash) caching is **not yet implemented** — treat that section as a future optimisation.
+> Mobile app is **not yet wired** to these functions — see [TODO_LIST.md](./TODO_LIST.md).
 
 ---
 

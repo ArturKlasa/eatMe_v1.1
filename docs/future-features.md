@@ -1,5 +1,7 @@
 # Future Features & Enhancements
 
+_Last updated: March 3, 2026_
+
 This document tracks features and fields that were removed from the initial MVP but should be considered for future phases.
 
 ## Database Schema Enhancements
@@ -159,26 +161,30 @@ ON restaurants USING GIN(local_cuisine_tags);
 
 ---
 
-## Future Phases
+## Current Phase Status
 
-### Phase 2: Advanced Features
+### Phase 2: Advanced Features — ✅ Mostly Complete
 
-- [ ] User reviews system
-- [ ] Master data tables (cuisines, allergens, ingredients)
-- [ ] Auto-allergen tagging via ingredient_allergens junction table
-- [ ] Restaurant operating hours sync
-- [ ] Multi-language support
-- [ ] `learned_preferences` for basic recommendations
+- [x] User opinions / swipe system (`dish_opinions` table, migration 007)
+- [x] Master data tables — ingredients, allergens, dietary tags (migrations 010–015)
+- [x] Auto-allergen tagging via `dish_ingredients` trigger
+- [x] Multi-language ingredient aliases (EN/ES/Latin American/Polish, migrations 035–040)
+- [x] `user_preferences` for basic personalisation (migration 022)
+- [ ] Restaurant operating hours sync (still manual entry)
+- [ ] Full multi-language UI support (ingredients multi-language done; UI strings not yet)
 
-### Phase 3: Intelligence & Gamification
+### Phase 3: Intelligence & Gamification — ⏳ Partially Started
 
-- [ ] `reward_points` and full gamification system
-- [ ] Advanced ML recommendations using learned_preferences
-- [ ] `popularity_score` calculation algorithm
-- [ ] User engagement metrics and analytics
-- [ ] Achievements and badges system
+- [x] Rating system — `dish_opinions` → `restaurants.rating` trigger (migration 033)
+- [x] Eat Together (group dining) — DB + Edge Function (migration 018)
+- [x] User behavior profiles — `user_behavior_profiles` table (migration 013)
+- [x] Feed personalisation — `feed` Edge Function deployed
+- [ ] `reward_points` / gamification system — deferred
+- [ ] Advanced ML recommendations — deferred
+- [ ] `popularity_score` algorithm — deferred
+- [ ] Achievements and badges — deferred
 
-### Phase 4: Data Enrichment
+### Phase 4: Data Enrichment — ⏳ Not Started
 
 - [ ] `cultural_significance` field for dishes
 - [ ] `preparation_methods` array for filtering
@@ -186,6 +192,14 @@ ON restaurants USING GIN(local_cuisine_tags);
 - [ ] Integration with nutrition APIs
 - [ ] `cuisine_region` for regional filtering
 - [ ] `local_cuisine_tags` for authenticity scoring
+
+### Phase 5: AI-Powered Menu Entry — ⏳ In Progress (new)
+
+- [x] `menu_scan_jobs` table (migration 034)
+- [x] `/admin/menu-scan` upload UI
+- [x] GPT-4o Vision extraction (see [menu-scan-ai-design.md](./menu-scan-ai-design.md))
+- [ ] Admin review UI for confirming extracted dishes
+- [ ] Bulk dish insert from `result_json`
 
 ---
 

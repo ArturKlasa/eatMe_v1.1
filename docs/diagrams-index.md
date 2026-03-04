@@ -1,291 +1,166 @@
-# Restaurant Schema Diagrams - Index
+# EatMe — Diagrams Index
 
-This document contains links to all database schema diagrams.
+_Last updated: March 3, 2026_
 
-## 📊 All Diagrams in One File
-
-**Main File**: [`restaurant-schema-diagram.md`](./restaurant-schema-diagram.md)
-
-Contains all 8 diagrams with descriptions. Best viewed in:
-
-- ✅ GitHub (auto-renders Mermaid)
-- ✅ VS Code with "Markdown Preview Mermaid Support" extension
-- ✅ Any Markdown viewer with Mermaid support
+> **Note:** The schema diagrams in `restaurant-schema-diagram.md` were written early in the project when only 3 tables existed. The authoritative, up-to-date schema is in **[schema-erd.md](./schema-erd.md)**, which covers all tables across 40 migrations.
 
 ---
 
-## 🎯 Individual Diagrams (Copy-Paste Ready)
+## Current Architecture Diagrams
 
-### 1. Entity Relationship Diagram (ERD)
-
-Shows complete table structure with all columns and data types.
-
-```mermaid
-erDiagram
-    RESTAURANTS {
-        uuid id PK "Primary Key"
-        text name "NOT NULL"
-        text restaurant_type "cafe, restaurant, fine_dining, etc."
-        geography location "PostGIS POINT(lng, lat) NOT NULL"
-        text address "NOT NULL"
-        text country_code "US, CA, MX, PL"
-        text city
-        text postal_code
-        text phone
-        text website
-        text_array cuisine_types "Array of cuisines"
-        jsonb open_hours "Operating hours by day"
-        boolean delivery_available "Default: true"
-        boolean takeout_available "Default: true"
-        boolean dine_in_available "Default: true"
-        boolean accepts_reservations "Default: false"
-        integer average_prep_time_minutes "Default: 30"
-        smallint price_level "1-4 ($-$$$$)"
-        numeric rating "0.00-5.00"
-        text image_url
-        text description
-        timestamptz created_at "Auto-generated"
-        timestamptz updated_at "Auto-updated"
-    }
-```
-
----
-
-### 2. Data Flow Diagram
-
-Complete submission flow from form to database.
-
-```mermaid
-flowchart TD
-    A[Web Portal Form] -->|User Input| B[LocalStorage]
-    B -->|Auto-save| B
-    B -->|Review Page| C{Validate Data}
-    C -->|Invalid| D[Show Errors]
-    D --> A
-    C -->|Valid| E[Transform Data]
-    E -->|Format Location| F[POINT lng lat]
-    E -->|Filter Hours| G[Remove Closed Days]
-    E -->|Prepare Payload| H[RestaurantInsert]
-    H -->|HTTP POST| I[Supabase API]
-    I -->|Insert Query| J[(Restaurants Table)]
-    J -->|Success| K[Clear LocalStorage]
-    K --> L[Redirect to Dashboard]
-    J -->|Error| M[Show Error Toast]
-    M --> A
-```
-
----
-
-### 3. Data Transformation Flow
-
-How portal data converts to Supabase format.
-
-```mermaid
-flowchart LR
-    subgraph Portal["Web Portal Data"]
-        A1[basicInfo.name]
-        A2[basicInfo.location<br/>{lat lng}]
-        A3[basicInfo.cuisines<br/>Array]
-        A4[operations.operating_hours<br/>{day: {open close closed}}]
-    end
-
-    subgraph Transform["Transformation Layer"]
-        B1[Direct Copy]
-        B2[formatLocationForSupabase]
-        B3[Array Passthrough]
-        B4[formatOperatingHours]
-    end
-
-    subgraph Supabase["Supabase Format"]
-        C1[name: TEXT]
-        C2[location: GEOGRAPHY<br/>POINT lng lat]
-        C3[cuisine_types: TEXT]
-        C4[open_hours: JSONB<br/>{day: {open close}}]
-    end
-
-    A1 --> B1 --> C1
-    A2 --> B2 --> C2
-    A3 --> B3 --> C3
-    A4 --> B4 --> C4
-```
-
----
-
-### 4. Row Level Security Policies
-
-Permission flow for different user roles.
-
-```mermaid
-flowchart TD
-    subgraph "Restaurants Table RLS"
-        TABLE[Restaurants Table<br/>RLS ENABLED]
-    end
-
-    subgraph "Roles"
-        ANON[anon<br/>Anonymous Users]
-        AUTH[authenticated<br/>Logged-in Users]
-    end
-
-    subgraph "Operations"
-        SELECT[SELECT<br/>Read Data]
-        INSERT[INSERT<br/>Submit Restaurant]
-        UPDATE[UPDATE<br/>Edit Restaurant]
-    end
-
-    subgraph "Policies"
-        P1["Public read access<br/>USING true"]
-        P2["Public insert access<br/>WITH CHECK true"]
-        P3["Authenticated update access<br/>USING true"]
-    end
-
-    ANON -->|Allowed| SELECT
-    AUTH -->|Allowed| SELECT
-    SELECT --> P1 --> TABLE
-
-    ANON -->|Allowed| INSERT
-    AUTH -->|Allowed| INSERT
-    INSERT --> P2 --> TABLE
-
-    AUTH -->|Allowed| UPDATE
-    UPDATE --> P3 --> TABLE
-
-    style P1 fill:#90EE90
-    style P2 fill:#90EE90
-    style P3 fill:#FFD700
-```
-
----
-
-### 5. Trigger Workflow
-
-Sequence diagram showing auto-update timestamp.
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Supabase
-    participant Trigger
-    participant Function
-    participant Table
-
-    Client->>Supabase: UPDATE restaurants SET name = 'New Name'
-    Supabase->>Trigger: BEFORE UPDATE trigger fires
-    Trigger->>Function: Execute update_updated_at_column()
-    Function->>Function: NEW.updated_at = NOW()
-    Function-->>Trigger: Return NEW row
-    Trigger->>Table: Apply UPDATE with new timestamp
-    Table-->>Supabase: Confirm update
-    Supabase-->>Client: Return updated row
-
-    Note over Function,Table: updated_at is automatically<br/>set to current timestamp
-```
-
----
-
-### 6. Complete System Architecture
-
-End-to-end architecture from frontend to database.
+### System Architecture (March 2026)
 
 ```mermaid
 graph TB
-    subgraph "Frontend"
-        FORM[Restaurant Form]
-        STORAGE[LocalStorage]
-        REVIEW[Review Page]
+    subgraph "Web Portal (Next.js)"
+        OWNER[Restaurant Owner]
+        ONBOARD[Onboarding Wizard]
+        ADMIN[Admin Dashboard]
+        PORTAL_AUTH[Supabase Auth]
     end
 
-    subgraph "API Layer"
-        CLIENT[Supabase Client]
-        TRANSFORM[Data Transformers]
+    subgraph "Mobile App (React Native + Expo)"
+        CONSUMER[Consumer]
+        SWIPE[SwipeScreen]
+        MAP[BasicMapScreen]
+        EAT[EatTogetherScreen]
+        MOBILE_AUTH[Supabase Auth ⏳]
     end
 
-    subgraph "Backend"
-        API[Supabase API]
-        AUTH[Auth]
+    subgraph "Supabase Edge Functions"
+        FEED[/feed]
+        NEARBY[/nearby-restaurants]
+        SWIPE_FN[/swipe]
+        GROUP[/group-recommendations]
     end
 
-    subgraph "Database"
-        TABLE[(Restaurants)]
-        POSTGIS[PostGIS]
-        RLS[RLS]
-        TRIGGERS[Triggers]
+    subgraph "Supabase (PostgreSQL + PostGIS)"
+        DB[(Database\n40 migrations)]
+        STORAGE[(Storage\nmenu-scans, photos)]
+        AUTH_SVC[Auth Service]
+        RLS[Row Level Security]
     end
 
-    FORM -->|Auto-save| STORAGE
-    STORAGE -->|Load| REVIEW
-    REVIEW -->|Submit| CLIENT
-    CLIENT --> TRANSFORM
-    TRANSFORM -->|POST| API
-    API --> AUTH
-    AUTH --> RLS
-    RLS --> TABLE
-    TABLE --> POSTGIS
-    TABLE --> TRIGGERS
+    OWNER --> ONBOARD --> DB
+    OWNER --> ADMIN --> DB
+    PORTAL_AUTH --> AUTH_SVC
 
-    style FORM fill:#FFE4B5
-    style TABLE fill:#98FB98
-    style API fill:#87CEEB
+    CONSUMER --> MAP --> NEARBY --> DB
+    CONSUMER --> SWIPE --> FEED --> DB
+    CONSUMER --> SWIPE_FN --> DB
+    CONSUMER --> EAT --> GROUP --> DB
+
+    DB --- RLS
+    MOBILE_AUTH -.->|"⏳ not yet wired"| AUTH_SVC
 ```
 
 ---
 
-## 📝 Quick Reference
+### Data Flow: Restaurant Onboarding
 
-| Diagram                 | Purpose                  | Best For                        |
-| ----------------------- | ------------------------ | ------------------------------- |
-| **ERD**                 | Complete table structure | Database design, documentation  |
-| **Data Flow**           | Submission process       | Understanding user flow         |
-| **Transformation**      | Data conversion          | Debugging data format issues    |
-| **RLS Policies**        | Security permissions     | Understanding access control    |
-| **Trigger Workflow**    | Auto-update mechanism    | Understanding database triggers |
-| **System Architecture** | Full stack overview      | High-level understanding        |
-
----
-
-## 🛠️ How to Use These Diagrams
-
-### Option 1: View in GitHub
-
-1. Push to GitHub
-2. Open this file
-3. Diagrams render automatically
-
-### Option 2: VS Code
-
-1. Install extension: "Markdown Preview Mermaid Support"
-2. Open this file
-3. Press `Ctrl+Shift+V` (or `Cmd+Shift+V` on Mac)
-4. View rendered diagrams
-
-### Option 3: Online Viewer
-
-1. Go to https://mermaid.live
-2. Copy one diagram at a time (including ```mermaid markers)
-3. Paste into editor
-4. View rendered diagram
-
-### Option 4: Export Images
-
-1. Use mermaid.live
-2. Paste diagram
-3. Click "Actions" → "Export" → "PNG/SVG"
-4. Save image for presentations
+```mermaid
+flowchart TD
+    A[Owner fills form\n/onboard/basic-info] -->|auto-save| B[(LocalStorage)]
+    B --> C[/onboard/menu — add menus + dishes]
+    C -->|auto-save| B
+    B --> D[/onboard/review — final check]
+    D -->|submit| E{Validate}
+    E -->|invalid| F[Show errors]
+    F --> A
+    E -->|valid| G[Transform data\nPOINT lng lat\nfilter closed hours]
+    G --> H[Supabase INSERT\nrestaurants + menus + dishes]
+    H --> I{DB Triggers}
+    I --> J[allergens + dietary_tags\nrecalculated]
+    H -->|success| K[Clear LocalStorage\nRedirect /dashboard]
+    H -->|error| L[Toast error\nKeep LocalStorage]
+```
 
 ---
 
-## 📊 Schema Quick Stats
+### Data Flow: Consumer Swipe Feed
 
-- **Columns**: 21 total (3 required, 18 optional)
-- **Indexes**: 7 (1 GIST spatial, 1 GIN array, 5 BTREE)
-- **RLS Policies**: 3 (SELECT, INSERT, UPDATE)
-- **Triggers**: 1 (auto-update timestamp)
-- **Extensions**: 2 (uuid-ossp, postgis)
+```mermaid
+flowchart TD
+    A[Consumer opens app] --> B[Grant location]
+    B --> C[Edge Function: /nearby-restaurants\nPostGIS ST_DWithin]
+    C --> D[Edge Function: /feed\nfiltered + personalised]
+    D --> E[SwipeScreen shows 20 dishes]
+    E -->|swipe right/left/super| F[Edge Function: /swipe\nINSERT into dish_opinions]
+    F --> G[DB Trigger\nrecalculate restaurants.rating]
+    E -->|after N swipes| H[Feed refreshes\nnext batch]
+```
+
+---
+
+### Ingredient & Allergen Trigger Flow
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Web
+    participant DB
+    participant Trigger
+
+    Admin->>Web: Select ingredients for dish
+    Web->>DB: INSERT dish_ingredients (dish_id, ingredient_id)
+    DB->>Trigger: AFTER INSERT on dish_ingredients
+    Trigger->>DB: SELECT allergen_tags FROM ingredients_master
+    Trigger->>DB: UPDATE dishes SET allergens = [...], dietary_tags = [...]
+    DB-->>Web: Confirm
+    Web-->>Admin: Allergen badges update in UI
+```
+
+---
+
+### RLS Security Model
+
+```mermaid
+flowchart LR
+    subgraph "Role: anon"
+        ANON_SEL[SELECT restaurants\nSELECT dishes\nSELECT menus]
+    end
+
+    subgraph "Role: authenticated (owner)"
+        OWN_SEL[SELECT own restaurants]
+        OWN_INS[INSERT restaurants\nINSERT menus\nINSERT dishes]
+        OWN_UPD[UPDATE own rows\nDELETE own rows]
+    end
+
+    subgraph "Role: authenticated (admin)"
+        ADM_SEL[SELECT ALL]
+        ADM_UPD[UPDATE any restaurant]
+        ADM_DEL[DELETE any restaurant]
+        ADM_SUS[SUSPEND restaurants]
+    end
+
+    subgraph "Tables — RLS enabled"
+        R[(restaurants\nowner_id FK)]
+        M[(menus\nowner_id FK)]
+        D[(dishes\nowner_id FK)]
+        LOG[(admin_audit_log\nappend-only)]
+    end
+
+    ANON_SEL --> R
+    ANON_SEL --> D
+    OWN_INS --> R & M & D
+    OWN_UPD --> R & M & D
+    ADM_SEL --> R & M & D
+    ADM_UPD --> R
+    ADM_DEL --> R
+    ADM_SUS --> R
+    ADM_UPD --> LOG
+```
+
+---
+
+## Legacy Diagrams
+
+The file `restaurant-schema-diagram.md` contains 8 diagrams written in December 2025 when the schema had only 3 tables. It is kept for historical reference but should not be used for current development.
 
 ---
 
 ## 🔗 Related Documentation
 
-- [Quick Start Guide](./quick-start-supabase.md)
-- [Integration Status](./supabase-integration-status.md)
-- [Full Setup Guide](./supabase-setup.md)
-- [Migration File](../infra/supabase/migrations/003_restaurant_portal_safe.sql)
+- [schema-erd.md](./schema-erd.md) — **authoritative** current schema (all 40 migrations)
+- [supabase-integration-status.md](./supabase-integration-status.md) — current integration state
+- [EDGE_FUNCTIONS_ARCHITECTURE.md](./EDGE_FUNCTIONS_ARCHITECTURE.md) — Edge Function details

@@ -80,53 +80,151 @@ function getOpenAIClient(): OpenAI {
 // Call GPT-4o Vision for a single base64-encoded image
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Attempt to repair JSON that was truncated mid-stream (finish_reason=length).
+// Strategy: find the last complete dish object, close all open arrays/objects.
+// ---------------------------------------------------------------------------
+
+function repairTruncatedJson(raw: string): string {
+  // Try progressively shorter substrings until we get valid JSON
+  // Work backwards from the end, closing at array/object boundaries
+  let s = raw.trimEnd();
+
+  // Remove trailing incomplete key-value (e.g. `,"name":`)
+  s = s.replace(/,\s*"[^"]*"\s*:\s*$/, '');
+  s = s.replace(/,\s*"[^"]*"\s*$/, '');
+
+  // Count open brackets to determine how many closers we need
+  const stack: string[] = [];
+  let inString = false;
+  let escape = false;
+
+  for (const ch of s) {
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === '{' || ch === '[') stack.push(ch);
+    else if (ch === '}' || ch === ']') stack.pop();
+  }
+
+  // Remove trailing comma before we close
+  s = s.replace(/,\s*$/, '');
+
+  // Close all open structures in reverse order
+  for (let i = stack.length - 1; i >= 0; i--) {
+    s += stack[i] === '{' ? '}' : ']';
+  }
+
+  return s;
+}
+
+// ---------------------------------------------------------------------------
+// Parse the raw GPT string, attempting repair if needed.
+// Returns null if unparseable after repair.
+// ---------------------------------------------------------------------------
+
+function parseGptResponse(raw: string): RawExtractionResult | null {
+  // Strip markdown code fences
+  const stripped = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  // Attempt 1: parse as-is
+  try {
+    const parsed = JSON.parse(stripped);
+    if (Array.isArray(parsed.menus)) return parsed as RawExtractionResult;
+    // GPT wrapped the array in a different key
+    const firstArray = Object.values(parsed).find(Array.isArray);
+    if (firstArray) return { menus: firstArray as RawExtractionResult['menus'] };
+    return { menus: [] };
+  } catch {
+    // fall through to repair
+  }
+
+  // Attempt 2: repair truncated JSON
+  try {
+    const repaired = repairTruncatedJson(stripped);
+    const parsed = JSON.parse(repaired);
+    if (Array.isArray(parsed.menus)) return parsed as RawExtractionResult;
+    const firstArray = Object.values(parsed).find(Array.isArray);
+    if (firstArray) return { menus: firstArray as RawExtractionResult['menus'] };
+    return { menus: [] };
+  } catch {
+    return null;
+  }
+}
+
 async function extractMenuFromImage(
   openai: OpenAI,
   base64Data: string,
   mimeType: string
 ): Promise<RawExtractionResult> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      {
-        role: 'system',
-        content: SYSTEM_PROMPT,
-      },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mimeType};base64,${base64Data}`,
-              detail: 'high',
+  const callApi = (maxTokens: number) =>
+    openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:${mimeType};base64,${base64Data}`, detail: 'high' },
             },
-          },
-          {
-            type: 'text',
-            text: 'Extract all dishes from this menu image. Return only the JSON.',
-          },
-        ],
-      },
-    ],
-    response_format: { type: 'json_object' },
-    max_tokens: 4096,
-  });
+            {
+              type: 'text',
+              text: 'Extract all dishes from this menu image. Return only the JSON.',
+            },
+          ],
+        },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: maxTokens,
+    });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error('Empty response from GPT-4o');
+  // First attempt with full token budget
+  let completion = await callApi(16384);
+  let choice = completion.choices[0];
+  let content = choice?.message?.content ?? '';
 
-  try {
-    const parsed = JSON.parse(content);
-    // Ensure the structure has a menus array
-    if (!Array.isArray(parsed.menus)) {
-      return { menus: [] };
-    }
-    return parsed as RawExtractionResult;
-  } catch {
-    console.error('[MenuScan] Failed to parse GPT-4o response:', content.slice(0, 500));
+  if (choice.finish_reason === 'length') {
+    console.warn('[MenuScan] GPT-4o truncated (finish_reason=length) — attempting repair');
+  }
+
+  let result = parseGptResponse(content);
+
+  // If still null, retry once with reduced detail to get a shorter response
+  if (!result) {
+    console.warn('[MenuScan] Parse failed on first attempt — retrying with lower detail');
+    completion = await callApi(16384);
+    choice = completion.choices[0];
+    content = choice?.message?.content ?? '';
+    result = parseGptResponse(content);
+  }
+
+  if (!result) {
+    console.error(
+      '[MenuScan] Both attempts failed. finish_reason:',
+      choice.finish_reason,
+      '— raw (first 1000):',
+      content.slice(0, 1000)
+    );
     throw new Error('GPT-4o returned invalid JSON');
   }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Plus, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Plus, Loader2, Search, Link2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { searchIngredients, type Ingredient } from '@/lib/ingredients';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import type { EditableIngredient } from '@/lib/menu-scan';
 
 // ---------------------------------------------------------------------------
@@ -21,13 +23,15 @@ interface Allergen {
 }
 
 interface AddIngredientPanelProps {
-  /** The raw text extracted from the menu (pre-fills the name field) */
+  /** The raw text extracted from the menu (pre-fills the search field) */
   rawText: string;
-  /** Called when the ingredient is successfully created, with the resolved ingredient data */
+  /** Called when an ingredient is resolved (linked or newly created) */
   onSuccess: (ingredient: EditableIngredient) => void;
   /** Called when the panel is dismissed without saving */
   onClose: () => void;
 }
+
+type Mode = 'search' | 'add-new';
 
 const FAMILY_OPTIONS = [
   { value: 'vegetable', label: 'Vegetable' },
@@ -44,11 +48,25 @@ const FAMILY_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
+// Family label helper
+function familyLabel(family?: string) {
+  return FAMILY_OPTIONS.find(o => o.value === family)?.label ?? family ?? '';
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredientPanelProps) {
+  const [mode, setMode] = useState<Mode>('search');
+
+  // ── Search mode state ──────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState(rawText.trim());
+  const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Add-new mode state ─────────────────────────────────────────────────
   const [canonicalName, setCanonicalName] = useState(rawText.toLowerCase().trim());
   const [familyName, setFamilyName] = useState('other');
   const [isVegetarian, setIsVegetarian] = useState(true);
@@ -58,8 +76,12 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
   const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // Load allergens list on mount
+  // ── Seed an initial search on open ────────────────────────────────────
   useEffect(() => {
+    if (rawText.trim().length >= 2) {
+      runSearch(rawText.trim());
+    }
+    // Load allergens for the add-new form
     supabase
       .from('allergens')
       .select('id, code, name, icon')
@@ -67,14 +89,46 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
       .then(({ data }) => {
         if (data) setAllergens(data as Allergen[]);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-uncheck vegan when vegetarian is unchecked (vegan implies vegetarian)
+  // ── Debounced search on query change ──────────────────────────────────
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(() => runSearch(searchQuery.trim()), 250);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchQuery]);
+
+  async function runSearch(q: string) {
+    setSearching(true);
+    const { data } = await searchIngredients(q, 20);
+    setSearchResults(data);
+    setSearching(false);
+  }
+
+  // ── Link an existing ingredient ───────────────────────────────────────
+  function handleLinkExisting(ingredient: Ingredient) {
+    toast.success(`Linked to "${ingredient.display_name}"`);
+    onSuccess({
+      raw_text: rawText,
+      status: 'matched',
+      canonical_ingredient_id: ingredient.canonical_ingredient_id,
+      canonical_name: ingredient.canonical_name,
+      display_name: ingredient.display_name,
+    });
+  }
+
+  // ── Auto-uncheck vegan when vegetarian is unchecked ───────────────────
   useEffect(() => {
     if (!isVegetarian) setIsVegan(false);
   }, [isVegetarian]);
 
-  // Auto-check vegetarian when vegan is checked
   useEffect(() => {
     if (isVegan) setIsVegetarian(true);
   }, [isVegan]);
@@ -85,6 +139,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
     );
   };
 
+  // ── Create new ingredient ─────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!canonicalName.trim()) {
       toast.error('Ingredient name is required');
@@ -126,8 +181,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
 
       if (!response.ok) {
         if (response.status === 409 && data.existing) {
-          // Already exists — treat as success so the dish can be linked
-          toast.info(`"${data.existing.canonical_name}" already exists, linking it.`);
+          toast.info(`"${data.existing.canonical_name}" already exists — linking it.`);
           onSuccess({
             raw_text: rawText,
             status: 'matched',
@@ -141,7 +195,6 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
       }
 
       toast.success(`Added "${data.ingredient.canonical_name}" to ingredients`);
-
       onSuccess({
         raw_text: rawText,
         status: 'matched',
@@ -149,164 +202,273 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
         canonical_name: data.ingredient.canonical_name,
         display_name: data.alias?.display_name ?? data.ingredient.canonical_name,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[AddIngredientPanel] Error:', error);
-      toast.error(error.message || 'Failed to add ingredient');
+      toast.error(error instanceof Error ? error.message : 'Failed to add ingredient');
     } finally {
       setSaving(false);
     }
   };
 
+  // ── Deduplicate results by canonical_ingredient_id ────────────────────
+  // Show at most one alias per canonical, with the closest display_name first
+  const deduped = searchResults.reduce<Ingredient[]>((acc, item) => {
+    if (!acc.find(x => x.canonical_ingredient_id === item.canonical_ingredient_id)) {
+      acc.push(item);
+    }
+    return acc;
+  }, []);
+
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
-    // Backdrop
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
-      {/* Panel */}
       <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-orange-50">
-          <div>
-            <h3 className="font-semibold text-gray-900 text-lg">Add New Ingredient</h3>
-            <p className="text-sm text-gray-500 mt-0.5">
-              From menu: <span className="italic text-gray-700">"{rawText}"</span>
-            </p>
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-orange-50">
+          <div className="flex items-center gap-2 min-w-0">
+            {mode === 'add-new' && (
+              <button
+                onClick={() => setMode('search')}
+                className="p-1 rounded text-gray-500 hover:text-gray-700 hover:bg-white/60 shrink-0"
+                title="Back to search"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <div className="min-w-0">
+              <h3 className="font-semibold text-gray-900">
+                {mode === 'search' ? 'Link Ingredient' : 'Add New Ingredient'}
+              </h3>
+              <p className="text-xs text-gray-500 truncate">
+                From menu: <span className="italic text-gray-700">"{rawText}"</span>
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors shrink-0"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Canonical name */}
-          <div>
-            <Label htmlFor="canonical_name" className="text-sm font-medium">
-              Canonical Name <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="canonical_name"
-              value={canonicalName}
-              onChange={e => setCanonicalName(e.target.value)}
-              placeholder="e.g. olive oil"
-              className="mt-1"
-              autoFocus
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Lowercase, singular. This is the unique ID-like name in the database.
-            </p>
-          </div>
+        {/* ── SEARCH MODE ────────────────────────────────────────────── */}
+        {mode === 'search' && (
+          <>
+            <div className="p-4 space-y-3">
+              {/* Editable search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search ingredient name…"
+                  className="pl-9 pr-9"
+                />
+                {searching && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+                )}
+              </div>
 
-          {/* Family / category */}
-          <div>
-            <Label htmlFor="family" className="text-sm font-medium">
-              Category
-            </Label>
-            <select
-              id="family"
-              value={familyName}
-              onChange={e => setFamilyName(e.target.value)}
-              className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
-            >
-              {FAMILY_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Vegetarian / vegan toggles */}
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isVegetarian}
-                onChange={e => setIsVegetarian(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">🥗 Vegetarian</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isVegan}
-                onChange={e => setIsVegan(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-700">🌱 Vegan</span>
-            </label>
-          </div>
-
-          {/* Allergens */}
-          {allergens.length > 0 && (
-            <div>
-              <Label className="text-sm font-medium">Allergens</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {allergens.map(allergen => {
-                  const selected = selectedAllergenCodes.includes(allergen.code);
-                  return (
-                    <button
-                      key={allergen.code}
-                      type="button"
-                      onClick={() => toggleAllergen(allergen.code)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        selected
-                          ? 'bg-red-100 border-red-300 text-red-800'
-                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      {allergen.icon && <span>{allergen.icon}</span>}
-                      {allergen.name}
-                    </button>
-                  );
-                })}
+              {/* Results list */}
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
+                {!searching && searchQuery.trim().length >= 2 && deduped.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-6">
+                    No matches for &ldquo;{searchQuery}&rdquo;
+                  </p>
+                )}
+                {searchQuery.trim().length < 2 && (
+                  <p className="text-sm text-gray-400 text-center py-6">
+                    Type at least 2 characters to search
+                  </p>
+                )}
+                {deduped.map(item => (
+                  <button
+                    key={item.canonical_ingredient_id}
+                    type="button"
+                    onClick={() => handleLinkExisting(item)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-orange-50 transition-colors text-left group"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {item.display_name}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">
+                        {item.canonical_name}
+                        {item.ingredient_family_name && (
+                          <span className="ml-1.5 text-gray-300">·</span>
+                        )}
+                        {item.ingredient_family_name && (
+                          <span className="ml-1 text-gray-400">
+                            {familyLabel(item.ingredient_family_name)}
+                          </span>
+                        )}
+                        {item.is_vegan && <span className="ml-1.5 text-green-600">🌱</span>}
+                        {!item.is_vegan && item.is_vegetarian && (
+                          <span className="ml-1.5 text-green-600">🥗</span>
+                        )}
+                      </p>
+                    </div>
+                    <Link2 className="h-4 w-4 text-gray-300 group-hover:text-orange-500 shrink-0 ml-2 transition-colors" />
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-          {/* Extra aliases */}
-          <div>
-            <Label htmlFor="aliases" className="text-sm font-medium">
-              Additional Names / Aliases
-            </Label>
-            <Input
-              id="aliases"
-              value={extraAliases}
-              onChange={e => setExtraAliases(e.target.value)}
-              placeholder="e.g. aceite de oliva, EVOO"
-              className="mt-1"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Comma-separated. The canonical name is always added automatically.
-            </p>
-          </div>
-        </div>
+            {/* Footer */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
+              <p className="text-xs text-gray-400">Not in the list?</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setCanonicalName(searchQuery.toLowerCase().trim());
+                  setMode('add-new');
+                }}
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add as new
+              </Button>
+            </div>
+          </>
+        )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={saving || !canonicalName.trim()}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Adding...
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" />
-                Add Ingredient
-              </>
-            )}
-          </Button>
-        </div>
+        {/* ── ADD-NEW MODE ───────────────────────────────────────────── */}
+        {mode === 'add-new' && (
+          <>
+            <div className="p-4 space-y-4 max-h-[65vh] overflow-y-auto">
+              {/* Canonical name */}
+              <div>
+                <Label htmlFor="canonical_name" className="text-sm font-medium">
+                  Canonical Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="canonical_name"
+                  value={canonicalName}
+                  onChange={e => setCanonicalName(e.target.value)}
+                  placeholder="e.g. olive oil"
+                  className="mt-1"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Lowercase, singular. Unique DB identifier.
+                </p>
+              </div>
+
+              {/* Family / category */}
+              <div>
+                <Label htmlFor="family" className="text-sm font-medium">
+                  Category
+                </Label>
+                <select
+                  id="family"
+                  value={familyName}
+                  onChange={e => setFamilyName(e.target.value)}
+                  className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+                >
+                  {FAMILY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Vegetarian / vegan toggles */}
+              <div className="flex gap-6">
+                <label className={cn('flex items-center gap-2 cursor-pointer')}>
+                  <input
+                    type="checkbox"
+                    checked={isVegetarian}
+                    onChange={e => setIsVegetarian(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">🥗 Vegetarian</span>
+                </label>
+                <label className={cn('flex items-center gap-2 cursor-pointer')}>
+                  <input
+                    type="checkbox"
+                    checked={isVegan}
+                    onChange={e => setIsVegan(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">🌱 Vegan</span>
+                </label>
+              </div>
+
+              {/* Allergens */}
+              {allergens.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Allergens</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {allergens.map(allergen => {
+                      const selected = selectedAllergenCodes.includes(allergen.code);
+                      return (
+                        <button
+                          key={allergen.code}
+                          type="button"
+                          onClick={() => toggleAllergen(allergen.code)}
+                          className={cn(
+                            'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+                            selected
+                              ? 'bg-red-100 border-red-300 text-red-800'
+                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
+                          )}
+                        >
+                          {allergen.icon && <span>{allergen.icon}</span>}
+                          {allergen.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Extra aliases */}
+              <div>
+                <Label htmlFor="aliases" className="text-sm font-medium">
+                  Additional Names / Aliases
+                </Label>
+                <Input
+                  id="aliases"
+                  value={extraAliases}
+                  onChange={e => setExtraAliases(e.target.value)}
+                  placeholder="e.g. aceite de oliva, EVOO"
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Comma-separated. Canonical name is always added automatically.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-100 bg-gray-50">
+              <Button variant="outline" onClick={onClose} disabled={saving}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={saving || !canonicalName.trim()}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Adding…
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Add Ingredient
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

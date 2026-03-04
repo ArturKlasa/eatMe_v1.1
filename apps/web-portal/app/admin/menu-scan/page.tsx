@@ -19,6 +19,7 @@ import {
   Store,
   ZoomIn,
   MapPin,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -1451,13 +1452,23 @@ export default function MenuScanPage() {
                                         {dish.ingredients.map((ing, ingIdx) => {
                                           const matched = ing.status === 'matched';
                                           return matched ? (
-                                            <span
+                                            <button
                                               key={ingIdx}
-                                              className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full"
-                                              title={ing.canonical_name}
+                                              type="button"
+                                              title={`Re-link: ${ing.canonical_name}`}
+                                              onClick={() =>
+                                                setAddIngredientTarget({
+                                                  menuIdx: mIdx,
+                                                  catIdx: cIdx,
+                                                  dishIdx: dIdx,
+                                                  rawText: ing.display_name || ing.raw_text,
+                                                })
+                                              }
+                                              className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full hover:bg-gray-200 flex items-center gap-1 group"
                                             >
                                               {ing.display_name || ing.raw_text}
-                                            </span>
+                                              <Pencil className="h-2.5 w-2.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
                                           ) : (
                                             <button
                                               key={ingIdx}

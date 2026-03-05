@@ -57,7 +57,10 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           *,
           menus (
             *,
-            dishes (*)
+            menu_categories (
+              *,
+              dishes (*)
+            )
           )
         `
         )

@@ -102,7 +102,7 @@ export async function loadUserPreferences(
       return { data: null, error: new Error(error.message) };
     }
 
-    return { data, error: null };
+    return { data: data as unknown as UserPreferencesDB, error: null };
   } catch (err) {
     console.error('[UserPreferences] Unexpected error:', err);
     return { data: null, error: err as Error };
@@ -117,7 +117,7 @@ export async function saveUserPreferences(
   preferences: Partial<UserPreferencesDB>
 ): Promise<{ error: Error | null }> {
   try {
-    const { error } = await supabase.from('user_preferences').upsert(
+    const { error } = await (supabase.from('user_preferences') as any).upsert(
       {
         user_id: userId,
         ...preferences,

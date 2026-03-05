@@ -9,11 +9,11 @@ export interface EatTogetherSession {
   id: string;
   host_id: string;
   session_code: string;
-  status: 'waiting' | 'recommending' | 'voting' | 'decided' | 'cancelled' | 'expired';
-  location_mode: 'host_location' | 'midpoint' | 'max_radius';
+  status: 'waiting' | 'recommending' | 'voting' | 'decided' | 'cancelled' | 'expired' | null;
+  location_mode: 'host_location' | 'midpoint' | 'max_radius' | null;
   selected_restaurant_id: string | null;
-  created_at: string;
-  expires_at: string;
+  created_at: string | null;
+  expires_at: string | null;
   closed_at: string | null;
 }
 
@@ -38,6 +38,17 @@ export interface RestaurantRecommendation {
   total_members: number;
   dietary_compatibility: any;
   restaurant?: any; // Full restaurant details
+}
+
+/** Alias — screens import this name */
+export type SessionRecommendation = RestaurantRecommendation;
+
+/** Vote result row returned by get_vote_results RPC */
+export interface VoteResult {
+  restaurant_id: string;
+  restaurant_name: string;
+  vote_count: number;
+  [key: string]: unknown;
 }
 
 export interface Vote {
@@ -302,7 +313,7 @@ export async function getRecommendations(
       return { data: null, error: new Error(error.message) };
     }
 
-    return { data, error: null };
+    return { data: data as unknown as RestaurantRecommendation[], error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -375,7 +386,7 @@ export async function getVotes(
       return { data: null, error: new Error(error.message) };
     }
 
-    return { data, error: null };
+    return { data: data as unknown as Vote[], error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }

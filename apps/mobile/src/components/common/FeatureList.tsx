@@ -23,7 +23,7 @@ export const FeatureList: React.FC<FeatureListProps> = ({ title, features, custo
     <View style={[commonStyles.containers.section, customStyles.container]}>
       <Text style={[commonStyles.text.h3, customStyles.title]}>{title}</Text>
       {features.map((feature, index) => (
-        <Text key={index} style={[commonStyles.text.featureItem, customStyles.item]}>
+        <Text key={index} style={[commonStyles.text.body, customStyles.item]}>
           • {feature}
         </Text>
       ))}

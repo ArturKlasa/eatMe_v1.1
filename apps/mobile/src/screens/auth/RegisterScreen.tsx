@@ -575,9 +575,4 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
   },
-  checkmark: {
-    color: '#FF9800',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
 });

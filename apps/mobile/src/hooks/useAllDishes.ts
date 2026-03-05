@@ -67,7 +67,7 @@ export function useAllDishes(options: UseAllDishesOptions = {}): UseAllDishesRes
       let filteredDishes = (data as DishWithRelations[]) || [];
       if (cuisines && cuisines.length > 0) {
         filteredDishes = filteredDishes.filter(dish =>
-          dish.restaurant.cuisine_types.some(cuisine => cuisines.includes(cuisine))
+          dish.restaurant.cuisine_types?.some(cuisine => cuisines.includes(cuisine))
         );
       }
 

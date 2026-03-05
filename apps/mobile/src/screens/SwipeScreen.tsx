@@ -211,7 +211,7 @@ export function SwipeScreen() {
       </View>
 
       {/* Personalization Banner */}
-      {feedMetadata?.personalized && feedMetadata?.userInteractions > 0 && (
+      {feedMetadata?.personalized && (feedMetadata?.userInteractions ?? 0) > 0 && (
         <View style={styles.personalizationBanner}>
           <Text style={styles.bannerText}>
             ✨ {t('swipe.personalizedBanner', { count: feedMetadata.userInteractions })}

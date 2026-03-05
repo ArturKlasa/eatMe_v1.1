@@ -32,7 +32,7 @@ export async function getRestaurantRating(restaurantId: string): Promise<Restaur
     }
 
     return {
-      restaurantId: data.restaurant_id,
+      restaurantId: data.restaurant_id ?? '',
       overallPercentage: data.overall_percentage || 0,
       foodScore: Math.round((data.food_score || 0.5) * 100),
       serviceScore: Math.round((data.service_score || 0.5) * 100),
@@ -67,7 +67,8 @@ export async function getRestaurantRatingsBatch(
     }
 
     data.forEach(rating => {
-      ratingsMap.set(rating.restaurant_id, {
+      if (!rating.restaurant_id) return;
+      ratingsMap.set(rating.restaurant_id ?? '', {
         restaurantId: rating.restaurant_id,
         overallPercentage: rating.overall_percentage || 0,
         foodScore: Math.round((rating.food_score || 0.5) * 100),

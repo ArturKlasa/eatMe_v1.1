@@ -8,12 +8,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { MainStackParamList } from '@/types/navigation';
 import { useFilterStore } from '../stores/filterStore';
-import { theme, filterFABStyles } from '@/styles';
-import type { DrawerNavigationProp } from '@react-navigation/drawer';
-import type { DrawerParamList } from '@/types/navigation';
+import { filterFABStyles } from '@/styles';
 
-type NavigationProp = DrawerNavigationProp<DrawerParamList>;
+type NavigationProp = StackNavigationProp<MainStackParamList>;
 
 /**
  * Filter FAB Component

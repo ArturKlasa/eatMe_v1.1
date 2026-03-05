@@ -17,7 +17,7 @@ import {
   getSessionMembers,
   leaveSession,
   updateMemberLocation,
-  generateRecommendations,
+  getRecommendations,
   type EatTogetherSession,
   type SessionMember,
 } from '../../services/eatTogetherService';
@@ -59,7 +59,7 @@ export function SessionLobbyScreen() {
   // Update user location when it changes
   useEffect(() => {
     if (user && location) {
-      updateMemberLocation(sessionId, user.id, location.latitude, location.longitude);
+      updateMemberLocation(sessionId, user.id, { lat: location.latitude, lng: location.longitude });
     }
   }, [location]);
 
@@ -133,14 +133,14 @@ export function SessionLobbyScreen() {
 
     setGenerating(true);
     try {
-      const { data, error } = await generateRecommendations(sessionId, locationMode, 5);
+      const { data, error } = await getRecommendations(sessionId);
 
       if (error) {
         Alert.alert(t('common.error'), error.message || t('common.somethingWrong'));
         return;
       }
 
-      if (data && data.recommendations.length > 0) {
+      if (data && data.length > 0) {
         navigation.navigate('Recommendations' as any, { sessionId });
       } else {
         Alert.alert(t('sessionLobby.noRestaurants'), t('sessionLobby.noRestaurantsMessage'));

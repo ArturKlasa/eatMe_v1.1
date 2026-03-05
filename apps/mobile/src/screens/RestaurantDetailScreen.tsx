@@ -167,7 +167,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const getCurrentDayHours = () => {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const today = days[new Date().getDay()];
-    const hours = restaurant.open_hours;
+    const hours = restaurant.open_hours as Record<string, { open: string; close: string }> | null;
     return hours?.[today] || null;
   };
 

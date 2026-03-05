@@ -54,7 +54,7 @@ export function SupabaseTestScreen() {
           <View style={styles.card}>
             <Text style={styles.restaurantName}>{item.name}</Text>
             <Text style={styles.restaurantAddress}>{item.address}</Text>
-            <Text style={styles.restaurantCuisines}>{item.cuisine_types.join(', ')}</Text>
+            <Text style={styles.restaurantCuisines}>{(item.cuisine_types ?? []).join(', ')}</Text>
             <Text style={styles.menuCount}>
               {item.menus?.length || 0} menus •
               {item.menus?.reduce(

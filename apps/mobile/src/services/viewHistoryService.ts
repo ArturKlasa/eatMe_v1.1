@@ -64,8 +64,8 @@ export async function getViewedRestaurants(
         id: restaurant.id,
         name: restaurant.name,
         cuisine: restaurant.cuisine_types?.[0] || 'Restaurant',
-        imageUrl: restaurant.image_url,
-        viewedAt: new Date(view.viewed_at),
+        imageUrl: (restaurant as any).image_url,
+        viewedAt: new Date(view.viewed_at ?? Date.now()),
       });
 
       // Stop after we have enough unique restaurants

@@ -120,8 +120,8 @@ export function VotingResultsScreen() {
             <Text style={styles.crownEmoji}>👑</Text>
           </View>
           <Text style={styles.winnerLabel}>{t('votingResults.winner')}</Text>
-          <Text style={styles.winnerName}>{winner.restaurant?.name}</Text>
-          <Text style={styles.winnerAddress}>{winner.restaurant?.address}</Text>
+          <Text style={styles.winnerName}>{(winner as any).restaurant?.name}</Text>
+          <Text style={styles.winnerAddress}>{(winner as any).restaurant?.address}</Text>
 
           <View style={styles.winnerStats}>
             <View style={styles.statItem}>
@@ -129,7 +129,7 @@ export function VotingResultsScreen() {
               <Text style={styles.statLabel}>{t('votingResults.votes')}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{winner.percentage?.toFixed(0)}%</Text>
+              <Text style={styles.statValue}>{(winner as any).percentage?.toFixed(0)}%</Text>
               <Text style={styles.statLabel}>{t('votingResults.majority')}</Text>
             </View>
           </View>

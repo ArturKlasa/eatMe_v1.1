@@ -36,6 +36,7 @@ export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string
 
     // Build map
     data?.forEach(rating => {
+      if (!rating.dish_id) return;
       ratingsMap.set(rating.dish_id, {
         dishId: rating.dish_id,
         likePercentage: rating.like_percentage,
@@ -67,7 +68,7 @@ export async function getDishRating(dishId: string): Promise<DishRating | null> 
     }
 
     return {
-      dishId: data.dish_id,
+      dishId: data.dish_id ?? '',
       likePercentage: data.like_percentage,
       totalRatings: data.total_ratings || 0,
       topTags: data.top_tags || [],

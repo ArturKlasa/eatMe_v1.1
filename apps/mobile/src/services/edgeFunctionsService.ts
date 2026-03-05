@@ -108,13 +108,13 @@ export async function getFeed(
     location,
     radius,
     filters: {
-      priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max],
+      priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as any,
       // Permanent diet preference → hard filter (excludes non-matching dishes)
       dietPreference: permanentFilters.dietPreference,
       // Daily diet preference → soft boost (dishes matching get scored higher)
       preferredDiet: Object.entries(dailyFilters.dietPreference)
         .filter(([_, active]) => active)
-        .map(([key]) => key),
+        .map(([key]) => key) as any,
       calorieRange: dailyFilters.calorieRange.enabled
         ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
         : undefined,

@@ -339,7 +339,7 @@ export const restaurantDetailStyles = StyleSheet.create({
     padding: spacing.xl,
     width: '80%',
     maxWidth: 400,
-    ...shadows.medium,
+    ...shadows.md,
   },
   addressModalTitle: {
     fontSize: typography.size.xl,

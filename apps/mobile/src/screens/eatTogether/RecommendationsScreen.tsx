@@ -14,8 +14,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import {
-  getSessionRecommendations,
-  castVote,
+  getRecommendations,
+  submitVote,
   getVoteResults,
   type SessionRecommendation,
   type VoteResult,
@@ -53,7 +53,7 @@ export function RecommendationsScreen() {
 
   async function loadRecommendations() {
     try {
-      const { data, error } = await getSessionRecommendations(sessionId);
+      const { data, error } = await getRecommendations(sessionId);
 
       if (error) {
         console.error('[Recommendations] Error loading:', error);
@@ -61,7 +61,7 @@ export function RecommendationsScreen() {
       }
 
       if (data) {
-        setRecommendations(data);
+        setRecommendations(data as any);
       }
     } catch (error) {
       console.error('[Recommendations] Unexpected error:', error);
@@ -132,7 +132,7 @@ export function RecommendationsScreen() {
 
     setVoting(true);
     try {
-      const { error } = await castVote(sessionId, user.id, restaurantId);
+      const { error } = await submitVote(sessionId, user.id, restaurantId);
 
       if (error) {
         Alert.alert(t('common.error'), error.message || t('sessionVoting.voteFailed'));
@@ -156,7 +156,7 @@ export function RecommendationsScreen() {
 
   function getVotePercentage(restaurantId: string): number {
     const result = voteResults.find((v: any) => v.restaurant_id === restaurantId);
-    return result ? result.percentage || 0 : 0;
+    return result ? Number(result.percentage) || 0 : 0;
   }
 
   const totalVotes = voteResults.reduce((sum: number, v: any) => sum + (v.vote_count || 0), 0);
@@ -232,7 +232,7 @@ export function RecommendationsScreen() {
                 <View style={styles.scoreRow}>
                   <View style={styles.scoreItem}>
                     <Text style={styles.scoreLabel}>{t('sessionVoting.match')}</Text>
-                    <Text style={styles.scoreValue}>{rec.compatibility_score}/100</Text>
+                    <Text style={styles.scoreValue}>{Math.round(rec.compatibility_score ?? 0)}/100</Text>
                   </View>
                   <View style={styles.scoreItem}>
                     <Text style={styles.scoreLabel}>{t('sessionVoting.members')}</Text>

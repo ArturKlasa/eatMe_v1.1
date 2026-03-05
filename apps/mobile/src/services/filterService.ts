@@ -499,16 +499,7 @@ export class FilterEngine {
       cuisineIndex.get(restaurant.cuisine)!.push(restaurant);
     });
 
-    // Index by price range
-    const priceIndex = new Map<string, Restaurant[]>();
-    restaurants.forEach(restaurant => {
-      if (!priceIndex.has(restaurant.priceRange)) {
-        priceIndex.set(restaurant.priceRange, []);
-      }
-      priceIndex.get(restaurant.priceRange)!.push(restaurant);
-    });
-
-    // Index by open status
+    // Price range filtering done server-side via Edge Functions
     const openIndex = new Map<boolean, Restaurant[]>();
     restaurants.forEach(restaurant => {
       if (!openIndex.has(restaurant.isOpen)) {
@@ -518,7 +509,6 @@ export class FilterEngine {
     });
 
     this.indexedRestaurants.set('cuisine', [...cuisineIndex.values()].flat());
-    this.indexedRestaurants.set('price', [...priceIndex.values()].flat());
     this.indexedRestaurants.set('open', [...openIndex.values()].flat());
   }
 

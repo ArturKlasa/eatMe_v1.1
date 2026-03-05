@@ -1,13 +1,21 @@
 /**
  * @eatme/database
  *
- * Shared Supabase database client and data access layer for EatMe monorepo.
- * Used by both mobile app and web portal.
+ * Shared Supabase client factory and generated types for the EatMe monorepo.
+ *
+ * Each app creates its own client:
+ *   Web:    const supabase = getWebClient();
+ *   Mobile: const supabase = getMobileClient(AsyncStorage);
  */
 
-// Export Supabase client
-export { supabase, getSupabaseClient, getSupabaseConfig, resetSupabaseClient } from './client';
+// Client factories
+export { getWebClient, getMobileClient } from './client';
 
-// Export types
+// Generated database types (from: supabase gen types typescript --project-id <id>)
 export type { Database, Json } from './types';
-export type { SupabaseConfig } from './client';
+
+// Generated helper types for ergonomic table access
+export type { Tables, TablesInsert, TablesUpdate, Enums } from './types';
+
+// Generated enum constants (runtime values)
+export { Constants } from './types';

@@ -1,129 +1,86 @@
 /**
- * Supabase Client Configuration
+ * Supabase Client Factory
  *
- * Platform-agnostic Supabase client that works in:
- * - React Native (Expo)
- * - Next.js (Web Portal)
- * - Node.js (Edge Functions, if needed)
+ * Platform-agnostic Supabase client factory for the EatMe monorepo.
+ * Each app creates its own typed client with platform-specific auth options,
+ * passing in the URL and anon key explicitly.
  *
- * Environment Variables Required:
- * - EXPO_PUBLIC_SUPABASE_URL (mobile)
- * - NEXT_PUBLIC_SUPABASE_URL (web)
- * - SUPABASE_URL (server-side)
+ * WHY explicit params instead of reading process.env here:
+ * Next.js and Expo/Metro replace NEXT_PUBLIC_* / EXPO_PUBLIC_* env vars at
+ * build time via static analysis on LITERAL keys only. Computed key access
+ * (e.g. process.env[`NEXT_PUBLIC_${key}`]) evaluates to undefined at runtime.
+ * Each app must read its own env vars with literal keys and pass them in.
  *
- * - EXPO_PUBLIC_SUPABASE_ANON_KEY (mobile)
- * - NEXT_PUBLIC_SUPABASE_ANON_KEY (web)
- * - SUPABASE_ANON_KEY (server-side)
+ * Usage — web portal (Next.js):
+ *   import { getWebClient } from '@eatme/database';
+ *   export const supabase = getWebClient(
+ *     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+ *     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+ *   );
+ *
+ * Usage — mobile (Expo / React Native):
+ *   import { getMobileClient } from '@eatme/database';
+ *   import AsyncStorage from '@react-native-async-storage/async-storage';
+ *   export const supabase = getMobileClient(
+ *     process.env.EXPO_PUBLIC_SUPABASE_URL!,
+ *     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+ *     AsyncStorage
+ *   );
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 /**
- * Get environment variable based on platform
+ * Create a typed Supabase client configured for **Next.js / web portal**.
+ *
+ * Auth: implicit flow preserved until A8 migrates to PKCE + @supabase/ssr.
  */
-function getEnvVar(key: string): string | undefined {
-  // Check for Expo (React Native) environment variables
-  if (typeof process !== 'undefined' && process.env) {
-    // Expo uses EXPO_PUBLIC_ prefix
-    const expoVar = process.env[`EXPO_PUBLIC_${key}`];
-    if (expoVar) return expoVar;
-
-    // Next.js uses NEXT_PUBLIC_ prefix
-    const nextVar = process.env[`NEXT_PUBLIC_${key}`];
-    if (nextVar) return nextVar;
-
-    // Server-side or plain environment variable
-    const plainVar = process.env[key];
-    if (plainVar) return plainVar;
-  }
-
-  return undefined;
-}
-
-/**
- * Supabase configuration
- */
-export interface SupabaseConfig {
-  url: string;
-  anonKey: string;
-  options?: {
-    auth?: {
-      persistSession?: boolean;
-      autoRefreshToken?: boolean;
-      detectSessionInUrl?: boolean;
-      storage?: any;
-    };
-  };
-}
-
-/**
- * Get Supabase configuration from environment
- */
-export function getSupabaseConfig(): SupabaseConfig {
-  const url = getEnvVar('SUPABASE_URL');
-  const anonKey = getEnvVar('SUPABASE_ANON_KEY');
-
-  if (!url) {
+export function getWebClient(url: string, anonKey: string): SupabaseClient<Database> {
+  if (!url || !anonKey) {
     throw new Error(
-      'Missing Supabase URL. Please set EXPO_PUBLIC_SUPABASE_URL (mobile) or NEXT_PUBLIC_SUPABASE_URL (web) in your .env file'
+      '[eatme/database] getWebClient: url and anonKey are required. ' +
+        'Pass process.env.NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
     );
   }
-
-  if (!anonKey) {
-    throw new Error(
-      'Missing Supabase Anon Key. Please set EXPO_PUBLIC_SUPABASE_ANON_KEY (mobile) or NEXT_PUBLIC_SUPABASE_ANON_KEY (web) in your .env file'
-    );
-  }
-
-  return {
-    url,
-    anonKey,
-    options: {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
+  return createClient<Database>(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      // Keep implicit until A8 migrates to PKCE + @supabase/ssr
+      flowType: 'implicit',
     },
-  };
+  });
 }
 
 /**
- * Singleton Supabase client instance
- */
-let supabaseInstance: SupabaseClient<Database> | null = null;
-
-/**
- * Get or create Supabase client instance
+ * Create a typed Supabase client configured for **React Native / Expo**.
  *
- * @returns Typed Supabase client
+ * @param storage - AsyncStorage instance injected by the caller so the shared
+ *   package has no native dependency.
  */
-export function getSupabaseClient(): SupabaseClient<Database> {
-  if (supabaseInstance) {
-    return supabaseInstance;
+export function getMobileClient(
+  url: string,
+  anonKey: string,
+  storage: {
+    getItem(key: string): Promise<string | null>;
+    setItem(key: string, value: string): Promise<void>;
+    removeItem(key: string): Promise<void>;
   }
-
-  const config = getSupabaseConfig();
-  supabaseInstance = createClient<Database>(config.url, config.anonKey, config.options);
-
-  return supabaseInstance;
-}
-
-/**
- * Export the client instance for convenience
- *
- * Usage:
- * ```ts
- * import { supabase } from '@eatme/database';
- * const { data, error } = await supabase.from('restaurants').select('*');
- * ```
- */
-export const supabase = getSupabaseClient();
-
-/**
- * Reset the client instance (useful for testing)
- */
-export function resetSupabaseClient(): void {
-  supabaseInstance = null;
+): SupabaseClient<Database> {
+  if (!url || !anonKey) {
+    throw new Error(
+      '[eatme/database] getMobileClient: url and anonKey are required. ' +
+        'Pass process.env.EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.'
+    );
+  }
+  return createClient<Database>(url, anonKey, {
+    auth: {
+      storage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
 }

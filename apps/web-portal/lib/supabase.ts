@@ -1,24 +1,20 @@
-import { createClient } from '@supabase/supabase-js';
+import { getWebClient } from '@eatme/database';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error(
-    'Missing Supabase environment variables. Please check .env.local file:\n' +
-      '- NEXT_PUBLIC_SUPABASE_URL\n' +
-      '- NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    'Missing Supabase environment variables. Check .env.local:\n' +
+      '  NEXT_PUBLIC_SUPABASE_URL\n' +
+      '  NEXT_PUBLIC_SUPABASE_ANON_KEY'
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true, // Enable session persistence
-    autoRefreshToken: true, // Auto refresh tokens
-    detectSessionInUrl: true, // Detect session from URL hash
-    flowType: 'implicit', // Use implicit flow to avoid PKCE verifier issues in dev
-  },
-});
+// Typed Supabase client — auth config in packages/database/src/client.ts
+// Env vars read here with literal keys so Next.js static analysis can replace them.
+// Auth: implicit flow preserved until A8 migrates to PKCE + @supabase/ssr
+export const supabase = getWebClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 // ============================================================================
 // TypeScript Types for Database

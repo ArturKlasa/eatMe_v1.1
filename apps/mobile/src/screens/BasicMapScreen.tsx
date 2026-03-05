@@ -608,7 +608,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           id: dish.id,
           name: dish.name,
           price: dish.price,
-          imageUrl: dish.photo_url,
+          imageUrl: dish.image_url ?? undefined,
           viewedAt: new Date(),
         })) || []
       );

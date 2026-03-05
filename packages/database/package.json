@@ -2,8 +2,14 @@
   "name": "@eatme/database",
   "version": "0.1.0",
   "description": "Shared Supabase database client and repositories for EatMe",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

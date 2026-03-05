@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { loadRestaurantData, clearRestaurantData } from '@/lib/storage';
-import { FormProgress, Menu } from '@/types/restaurant';
+import { FormProgress, Menu, RestaurantType } from '@/types/restaurant';
+import type { Location as AppLocation } from '@/types/restaurant';
 import { basicInfoSchema } from '@/lib/validation';
 import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -49,24 +50,26 @@ function ReviewPageContent() {
             restaurant_id: restaurant.id,
             basicInfo: {
               name: restaurant.name,
-              restaurant_type: restaurant.restaurant_type,
-              description: restaurant.description,
-              country: restaurant.country,
+              restaurant_type: (restaurant.restaurant_type as RestaurantType) ?? undefined,
+              description: restaurant.description ?? undefined,
+              country: restaurant.country_code ?? undefined,
               address: restaurant.address,
-              location: restaurant.location,
-              phone: restaurant.phone,
-              website: restaurant.website,
+              location: restaurant.location as unknown as AppLocation | undefined,
+              phone: restaurant.phone ?? undefined,
+              website: restaurant.website ?? undefined,
               cuisines: restaurant.cuisine_types || [],
             },
             operations: {
-              operating_hours: restaurant.operating_hours,
-              delivery_available: restaurant.delivery_available,
-              takeout_available: restaurant.takeout_available,
-              dine_in_available: restaurant.dine_in_available,
-              service_speed: restaurant.service_speed,
-              accepts_reservations: restaurant.accepts_reservations,
+              operating_hours:
+                (restaurant.open_hours as Record<string, { open: string; close: string }>) ??
+                undefined,
+              delivery_available: restaurant.delivery_available ?? undefined,
+              takeout_available: restaurant.takeout_available ?? undefined,
+              dine_in_available: restaurant.dine_in_available ?? undefined,
+              service_speed: (restaurant.service_speed as 'fast-food' | 'regular') ?? undefined,
+              accepts_reservations: restaurant.accepts_reservations ?? undefined,
             },
-            menus: restaurant.menus || [],
+            menus: (restaurant.menus || []) as unknown as Menu[],
             dishes: restaurant.menus?.flatMap((m: any) => m.dishes || []) || [],
             currentStep: 3,
           });

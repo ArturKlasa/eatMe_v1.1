@@ -164,16 +164,6 @@ export const SPICE_LEVELS = [
   { value: 1, label: 'Spicy', icon: '🌶️' },
 ] as const;
 
-export const DAYS_OF_WEEK = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-  'sunday',
-] as const;
-
 export const WIZARD_STEPS = [
   { id: 1, title: 'Basic Information', path: '/onboard/basic-info' },
   { id: 2, title: 'Operations', path: '/onboard/operations' },

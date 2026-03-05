@@ -132,7 +132,7 @@ function BasicInfoPageContent() {
       };
     }
 
-    const savedData = loadRestaurantData(user.id);
+    const savedData = loadRestaurantData(user?.id ?? '');
     if (savedData?.operations?.operating_hours) {
       const hours: Record<string, { open: string; close: string; closed: boolean }> = {};
       DAYS_OF_WEEK.forEach(({ key }) => {
@@ -259,8 +259,8 @@ function BasicInfoPageContent() {
         postal_code: currentValues.postal_code || undefined,
         address: currentValues.address,
         location: {
-          lat: parseFloat(currentValues.location_lat) || 0,
-          lng: parseFloat(currentValues.location_lng) || 0,
+          lat: parseFloat(currentValues.location_lat ?? '0') || 0,
+          lng: parseFloat(currentValues.location_lng ?? '0') || 0,
         },
         phone: currentValues.phone || undefined,
         website: currentValues.website || undefined,

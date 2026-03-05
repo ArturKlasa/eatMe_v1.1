@@ -24,7 +24,7 @@ import { spacing } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useTranslation } from 'react-i18next';
-import { formatTime, formatOpeningHours, getCurrentDayName } from '../utils/i18nUtils';
+import { formatTime, formatOpeningHours } from '../utils/i18nUtils';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
 import { DishRatingBadge } from '../components/DishRatingBadge';
@@ -79,7 +79,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         if (error) throw error;
 
         if (data) {
-          const typed = data as RestaurantWithMenus;
+          const typed = data as unknown as RestaurantWithMenus;
           setRestaurant(typed);
 
           // Track restaurant view

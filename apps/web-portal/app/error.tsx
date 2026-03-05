@@ -37,12 +37,10 @@ export default function RootError({
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-sm text-gray-600">
-            An unexpected error occurred. Your data has not been lost — you can try again or
-            refresh the page.
+            An unexpected error occurred. Your data has not been lost — you can try again or refresh
+            the page.
           </p>
-          {error.digest && (
-            <p className="text-xs text-gray-400">Error ID: {error.digest}</p>
-          )}
+          {error.digest && <p className="text-xs text-gray-400">Error ID: {error.digest}</p>}
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => window.location.reload()}>
               Refresh page

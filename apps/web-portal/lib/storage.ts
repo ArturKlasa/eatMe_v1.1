@@ -60,16 +60,30 @@ export const hasSavedData = (userId: string): boolean => {
 };
 
 /**
- * Debounced auto-save function
+ * Debounced auto-save function.
+ * Use this inside watch() subscriptions or other high-frequency change handlers.
+ * Call cancelAutoSave() in the effect cleanup to avoid writes after unmount.
  */
 let saveTimeout: NodeJS.Timeout | null = null;
 
-export const autoSave = (data: FormProgress): void => {
+export const autoSave = (userId: string, data: FormProgress): void => {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
 
   saveTimeout = setTimeout(() => {
-    saveRestaurantData(data);
+    saveRestaurantData(userId, data);
+    saveTimeout = null;
   }, AUTO_SAVE_DEBOUNCE);
+};
+
+/**
+ * Cancel any pending debounced auto-save.
+ * Call this in the cleanup of the effect that calls autoSave.
+ */
+export const cancelAutoSave = (): void => {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
 };

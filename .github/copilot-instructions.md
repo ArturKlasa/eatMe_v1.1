@@ -5,10 +5,11 @@
 **EatMe** is a food discovery platform combining map-based restaurant discovery with swipe-based preference learning. Three main components:
 
 - **Mobile App** (`apps/mobile`): React Native 0.81 + Expo Bare with Mapbox & Zustand, consumers discover & rate restaurants/dishes
-- **Web Portal** (`apps/web-portal`): Next.js 14 with shadcn/ui, restaurant partners manage menus & ingredients  
+- **Web Portal** (`apps/web-portal`): Next.js 14 with shadcn/ui, restaurant partners manage menus & ingredients
 - **Backend**: Supabase (PostgreSQL + PostGIS), RLS-enforced data ownership, ingredient/allergen system
 
 **pnpm + Turborepo monorepo**. Shared packages:
+
 - `packages/database`: Planned Supabase client (web-portal currently has own at `lib/supabase.ts`)
 - `packages/ui`: React components (minimal use)
 - `packages/typescript-config`: TypeScript configs
@@ -21,7 +22,7 @@
 1. **Restaurant Onboarding** → LocalStorage draft auto-save at each form step → Final submission to Supabase all-at-once. Avoids partial incomplete states. Pattern: `apps/web-portal/app/onboard/{basic-info,menu,review}/page.tsx` + `lib/storage.ts`
 
 2. **Ingredient System** (NEW - Feb 2026): Master ingredients table with auto-calculated allergens/dietary tags via Postgres triggers on dish creation. Workflow:
-   - User selects ingredients via `IngredientAutocomplete` component 
+   - User selects ingredients via `IngredientAutocomplete` component
    - Selected ingredients array stored temporarily in form state
    - On dish save: link to `ingredients_master`, trigger fires to populate `dishes.allergens` and `dishes.dietary_tags`
    - Components: `lib/ingredients.ts` (API), `AllergenWarnings.tsx`, `DietaryTagBadges.tsx`
@@ -33,13 +34,14 @@
 5. **Mobile State**: Zustand stores (`apps/mobile/src/stores/`) for UI state, auth via Supabase (async storage for session persistence - planned/in-progress).
 
 ### Data Flow Example: Restaurant Creation
+
 ```
-Web Portal Form (LocalStorage draft) 
-  → User clicks Submit 
+Web Portal Form (LocalStorage draft)
+  → User clicks Submit
   → review/page.tsx validates & transforms
   → Supabase: INSERT restaurants, menus, dishes (with ingredient_ids)
   → DB triggers calculate allergens/dietary tags
-  → Clear LocalStorage 
+  → Clear LocalStorage
   → Redirect to dashboard
 ```
 
@@ -69,6 +71,7 @@ pnpm build && pnpm start  # Production
 ```
 
 **Key URLs during dev:**
+
 - Onboarding: `/onboard/basic-info` → `/onboard/menu` → `/onboard/review`
 - Auth: `/auth/login`, `/auth/signup`, `/auth/callback` (OAuth redirect)
 - Admin: `/admin/*` (if implemented)
@@ -86,7 +89,7 @@ npx expo run:android       # Build + run dev client on Android
 
 # After first build:
 pnpm start                 # Start Metro bundler
-pnpm android               # Run on Android emulator/device  
+pnpm android               # Run on Android emulator/device
 pnpm ios                   # iOS (macOS + Xcode only)
 
 # For production builds:
@@ -97,8 +100,8 @@ eas build --platform android  # Cloud build via EAS
 
 ### Database / Supabase
 
-- **Migrations**: `infra/supabase/migrations/*.sql` (sequential 001-023)
-- **Naming**: `00X_descriptive_name.sql`
+- **Migrations**: `infra/supabase/migrations/*.sql` (sequential 001–040, next is 041)
+- **Naming**: `NNN_descriptive_name.sql`. If two migrations logically belong to the same slot, use `NNNa_` and `NNNb_` suffixes (e.g. `016a_fix_geospatial_functions.sql`, `016b_restructure_menu_system.sql`). Never reuse the same number prefix without a letter suffix.
 - **Test locally**: Supabase Dashboard SQL Editor before committing
 - **RLS**: Always enable on new tables, test policies thoroughly
 
@@ -124,9 +127,10 @@ turbo clean               # Clear Turbo cache (if builds behave oddly)
 **Tables**: `ingredients_master`, `allergens`, `dietary_tags`, `dish_ingredients`
 
 **Flow**:
+
 1. `IngredientAutocomplete.tsx` - User selects from `ingredients_master` with search
 2. Selected ingredients stored in component state (array of ingredient IDs + quantities)
-3. On form submit → dish saved with `ingredient_ids` 
+3. On form submit → dish saved with `ingredient_ids`
 4. **Postgres trigger** fires: calculates allergens from ingredients → populates `dishes.allergens` JSON column
 5. Display via `AllergenWarnings.tsx` (⚠️ icons) and `DietaryTagBadges.tsx` (🏷️ tags)
 
@@ -134,17 +138,19 @@ turbo clean               # Clear Turbo cache (if builds behave oddly)
 
 ### Database & RLS
 
-**Location**: `infra/supabase/migrations/` (numbered 001-023, latest adds currency/preferences)
+**Location**: `infra/supabase/migrations/` (numbered 001–040, with `a`/`b` suffixes for parallel tracks at 006–017)
 
 **Every table needs**:
+
 - ✅ RLS enabled (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY`)
 - ✅ Policy for `owner_id` FK check (users see/edit only own data)
 - ✅ Service role bypass for system operations (with `security_invoker` note)
 
 **Conditional DDL Pattern**:
+
 ```sql
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                  WHERE table_name = 'dishes' AND column_name = 'allergens') THEN
     ALTER TABLE dishes ADD COLUMN allergens JSONB DEFAULT '[]';
   END IF;
@@ -177,13 +183,14 @@ END $$;
 
 - **Web**: Mapbox GL JS (vanilla JavaScript, not React wrapper)
 - **Mobile**: `@rnmapbox/maps` v10.1.45 (React Native Mapbox - different API!)
-- **Setup guides**: 
+- **Setup guides**:
   - Mobile: `apps/mobile/MAPBOX_RESTORATION.md`
   - Web: `docs/mapbox-setup.md`
 
 ## Testing & Validation
 
 **Ingredient System Test** (from `INTEGRATION_COMPLETE_SUMMARY.md`):
+
 1. Go to `/onboard/menu` → Create menu → Add dish
 2. Search ingredients: "cheese", "lettuce", "eggs"
 3. Watch allergen warnings appear (⚠️ Milk, Eggs)
@@ -293,21 +300,24 @@ When connecting mobile app to Supabase:
 - **Supabase Client**: `apps/web-portal/lib/supabase.ts` (web), not yet created for mobile
 - **Auth Logic**: Web portal auth pages in `apps/web-portal/app/auth/`
 - **Restaurant Onboarding**: Multi-step wizard in `apps/web-portal/app/onboard/` (basic-info, menu, review)
-- **Database Schema**: Full ERD documented in `docs/schema-erd.md`
+- **Database Schema (authoritative)**: `infra/supabase/migrations/database_schema.sql` — read this first when you need to know the actual DB schema. It is a snapshot of the live database and is far more reliable than the individual migration files (many of which are duplicated or superseded). Do NOT run it; apply changes via numbered migration files.
+- **Database ERD**: `docs/schema-erd.md`
 - **Mapbox Setup**: Mobile guide at `apps/mobile/MAPBOX_RESTORATION.md`
 - **Migration Status**: Current state in `docs/supabase-integration-status.md`
 
 ## Current Development Phase
 
-**Status as of February 2026**: 
+**Status as of February 2026**:
+
 - ✅ Web Portal: Live with Supabase integration, ingredient system with allergen triggers complete
 - ⏳ Mobile: Mapbox setup done, Supabase connection planned
 - 📋 Next: Mobile dish/restaurant browsing UI, swipe interface, user preferences
 
 **Key Files by Phase**:
+
 - Restaurant Onboarding: `apps/web-portal/app/onboard/*/page.tsx`
 - Ingredient System: `apps/web-portal/lib/ingredients.ts` + `IngredientAutocomplete.tsx`
-- DB Schema: `infra/supabase/migrations/023_fix_profile_completion_function.sql` (latest)
+- DB Schema: `infra/supabase/migrations/040_add_polish_aliases.sql` (latest)
 - Mobile Foundation: `apps/mobile/src/screens/`, `apps/mobile/src/stores/`
 
 ## Testing Strategy

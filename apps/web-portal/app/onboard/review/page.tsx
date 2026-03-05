@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { loadRestaurantData } from '@/lib/storage';
+import { loadRestaurantData, clearRestaurantData } from '@/lib/storage';
 import { Menu } from '@/types/restaurant';
 import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -175,6 +175,9 @@ function ReviewPageContent() {
       // Step 1: Check if we're updating an existing restaurant
       const existingRestaurantId = restaurantData.restaurant_id;
       let restaurant;
+      // IDs of menus that existed before this update. Populated on the update path and
+      // used in Step 3 to delete old data only after new data is safely inserted.
+      let oldMenuIds: string[] = [];
 
       if (existingRestaurantId) {
         // Update existing restaurant
@@ -191,11 +194,15 @@ function ReviewPageContent() {
         }
 
         restaurant = data;
-        console.log('Restaurant updated successfully:', restaurant);
 
-        // Delete existing menus and dishes (will be recreated)
-        await supabase.from('menus').delete().eq('restaurant_id', existingRestaurantId);
-        // Dishes will be automatically deleted due to CASCADE DELETE
+        // Capture the current menu IDs BEFORE inserting new data.
+        // We delete these only after the new menus + dishes are confirmed safe,
+        // so the restaurant is never left with zero menus if a later insert fails.
+        const { data: existingMenuData } = await supabase
+          .from('menus')
+          .select('id')
+          .eq('restaurant_id', existingRestaurantId);
+        oldMenuIds = existingMenuData?.map(m => m.id) ?? [];
       } else {
         // Create new restaurant
         const { data, error: restaurantError } = await supabase
@@ -213,17 +220,19 @@ function ReviewPageContent() {
         console.log('Restaurant created successfully:', restaurant);
       }
 
-      // Step 2: Submit menus and dishes if they exist
+      // Step 2: Insert new menus, a default menu_category per menu, and dishes.
+      // The DB schema requires dishes → menu_categories → menus (no direct dish→menu FK).
+      // We create one default category per menu since the portal UI has no category level.
       if (restaurantData.menus && restaurantData.menus.length > 0) {
         for (const menu of restaurantData.menus) {
-          // Insert menu
+          // 2a. Insert menu
           const { data: insertedMenu, error: menuError } = await supabase
             .from('menus')
             .insert({
               restaurant_id: restaurant.id,
               name: menu.name,
-              description: menu.description,
-              category: menu.category || null,
+              description: menu.description || null,
+              menu_type: menu.menu_type || 'food',
               display_order: menu.display_order || 0,
               is_active: menu.is_active !== undefined ? menu.is_active : true,
             })
@@ -231,17 +240,34 @@ function ReviewPageContent() {
             .single();
 
           if (menuError) {
-            console.error('Menu insert error:', menuError);
             throw new Error(`Failed to insert menu "${menu.name}": ${menuError.message}`);
           }
 
-          console.log('Menu submitted successfully:', insertedMenu);
+          // 2b. Insert a default menu_category for this menu.
+          // dishes.menu_category_id is a FK to menu_categories, not to menus directly.
+          const { data: insertedCategory, error: categoryError } = await supabase
+            .from('menu_categories')
+            .insert({
+              restaurant_id: restaurant.id,
+              menu_id: insertedMenu.id,
+              name: menu.name,
+              display_order: 0,
+              is_active: true,
+            })
+            .select()
+            .single();
 
-          // Insert dishes for this menu
+          if (categoryError) {
+            throw new Error(
+              `Failed to insert category for menu "${menu.name}": ${categoryError.message}`
+            );
+          }
+
+          // 2c. Insert dishes for this menu
           if (menu.dishes && menu.dishes.length > 0) {
             const dishesPayload = menu.dishes.map(dish => ({
               restaurant_id: restaurant.id,
-              menu_id: insertedMenu.id,
+              menu_category_id: insertedCategory.id,
               name: dish.name,
               description: dish.description || null,
               price: dish.price,
@@ -252,24 +278,62 @@ function ReviewPageContent() {
               spice_level: dish.spice_level || null,
               image_url: dish.photo_url || null,
               is_available: dish.is_available !== undefined ? dish.is_available : true,
-              description_visibility: (dish as any).description_visibility ?? 'menu',
-              ingredients_visibility: (dish as any).ingredients_visibility ?? 'detail',
+              description_visibility: dish.description_visibility ?? 'menu',
+              ingredients_visibility: dish.ingredients_visibility ?? 'detail',
             }));
 
-            const { data: insertedDishes, error: dishesError } = await supabase
-              .from('dishes')
-              .insert(dishesPayload)
-              .select();
+            const { error: dishesError } = await supabase.from('dishes').insert(dishesPayload);
 
             if (dishesError) {
-              console.error('Dishes insert error:', dishesError);
               throw new Error(
                 `Failed to insert dishes for menu "${menu.name}": ${dishesError.message}`
               );
             }
-
-            console.log(`${insertedDishes.length} dishes submitted for menu "${menu.name}"`);
           }
+        }
+      }
+
+      // Step 3: Delete old menus (update path only) — runs only after new data is safely created.
+      // Must delete in dependency order: dishes → menu_categories → menus.
+      // The dishes FK to menu_categories has no ON DELETE CASCADE, so we clear manually.
+      // This step is intentionally non-fatal: if it fails the restaurant has duplicate
+      // menus, but all correct data is intact. Resubmitting will clean it up.
+      if (existingRestaurantId && oldMenuIds.length > 0) {
+        // 3a. Find old menu_categories (post-fix data that references old menus)
+        const { data: oldCategoryRows } = await supabase
+          .from('menu_categories')
+          .select('id')
+          .in('menu_id', oldMenuIds);
+        const oldCategoryIds = oldCategoryRows?.map(c => c.id) ?? [];
+
+        // 3b. Delete dishes referencing old categories
+        if (oldCategoryIds.length > 0) {
+          await supabase.from('dishes').delete().in('menu_category_id', oldCategoryIds);
+        }
+
+        // 3c. Delete legacy dishes that had no category (pre-fix data, menu_category_id was NULL)
+        await supabase
+          .from('dishes')
+          .delete()
+          .eq('restaurant_id', existingRestaurantId)
+          .is('menu_category_id', null);
+
+        // 3d. Delete old menu_categories (now unblocked)
+        if (oldCategoryIds.length > 0) {
+          await supabase.from('menu_categories').delete().in('id', oldCategoryIds);
+        }
+
+        // 3e. Delete old menus (cascades to any remaining menu_categories)
+        const { error: deleteMenusError } = await supabase
+          .from('menus')
+          .delete()
+          .in('id', oldMenuIds);
+
+        if (deleteMenusError) {
+          console.warn(
+            '[Submit] Could not fully remove old menus. The restaurant may show duplicate menus. Resubmitting will fix this.',
+            deleteMenusError
+          );
         }
       }
 
@@ -281,7 +345,7 @@ function ReviewPageContent() {
 
       // Clear user-specific draft data after successful submission
       if (user?.id) {
-        localStorage.removeItem(`eatme_draft_${user.id}`);
+        clearRestaurantData(user.id);
       }
 
       // Redirect to dashboard

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
+import { loadRestaurantData, saveRestaurantData, autoSave, cancelAutoSave } from '@/lib/storage';
 import type { ParsedLocationDetails } from '@/lib/parseAddress';
 import {
   CUISINES,
@@ -300,10 +300,13 @@ function BasicInfoPageContent() {
         currentStep: savedData?.currentStep ?? 1,
       };
 
-      saveRestaurantData(user.id, updatedData);
+      autoSave(user.id, updatedData);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      cancelAutoSave();
+    };
   }, [watch, user?.id, selectedCuisines, operatingHours]);
 
   // Remove the useEffect that sets values, as we're now using async defaultValues

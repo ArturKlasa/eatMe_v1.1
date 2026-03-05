@@ -126,14 +126,17 @@ Restaurants aren't hard-deleted, they're suspended:
 ### 5. ✅ Additional Admin Pages (post-January 2026)
 
 **Ingredient Management** — `/admin/ingredients`
+
 - Browse and edit `ingredients_master` records
 - Manage `ingredient_aliases` across EN/ES/PL
 
 **Dish Categories** — `/admin/dish-categories`
+
 - Create and manage `dish_categories` (cross-restaurant)
 - Mark categories as food vs drink (`is_drink`)
 
 **Menu Scan** — `/admin/menu-scan`
+
 - Upload 1–N menu photos per restaurant
 - AI extraction (GPT-4o Vision) populates `menu_scan_jobs.result_json`
 - ⏳ Review UI (`/admin/menu-scan/[jobId]`) — **in progress**, see [TODO_LIST.md](./TODO_LIST.md)

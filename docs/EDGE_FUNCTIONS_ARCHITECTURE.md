@@ -6,6 +6,7 @@
 **Goal:** Move filtering from mobile client to server-side for better performance and scalability
 
 > **Update (March 2026):** The architecture proposed here has been implemented. The four deployed functions are:
+>
 > - `infra/supabase/functions/feed/` — personalised dish feed
 > - `infra/supabase/functions/nearby-restaurants/` — PostGIS radius search
 > - `infra/supabase/functions/swipe/` — records `dish_opinions`

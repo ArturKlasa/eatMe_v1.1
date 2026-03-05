@@ -353,26 +353,26 @@ erDiagram
 
 ## Relationship Summary
 
-| Relationship | Type | Cascade |
-|---|---|---|
-| `restaurants` → `menus` | 1:many | DELETE restaurant → delete menus |
-| `restaurants` → `dishes` | 1:many | DELETE restaurant → delete dishes |
-| `menus` → `dishes` | 1:many | DELETE menu → SET NULL on dishes |
-| `dishes` → `dish_photos` | 1:many | DELETE dish → delete photos |
-| `dishes` → `dish_ingredients` | 1:many | DELETE dish → delete links |
-| `ingredients_master` → `ingredient_aliases` | 1:many | DELETE ingredient → delete aliases |
-| `users` → `user_preferences` | 1:1 | DELETE user → delete prefs |
-| `users` → `dish_opinions` | 1:many | DELETE user → delete opinions |
-| `users` → `eat_together_sessions` | 1:many (host) | DELETE user → delete sessions |
+| Relationship                                | Type          | Cascade                            |
+| ------------------------------------------- | ------------- | ---------------------------------- |
+| `restaurants` → `menus`                     | 1:many        | DELETE restaurant → delete menus   |
+| `restaurants` → `dishes`                    | 1:many        | DELETE restaurant → delete dishes  |
+| `menus` → `dishes`                          | 1:many        | DELETE menu → SET NULL on dishes   |
+| `dishes` → `dish_photos`                    | 1:many        | DELETE dish → delete photos        |
+| `dishes` → `dish_ingredients`               | 1:many        | DELETE dish → delete links         |
+| `ingredients_master` → `ingredient_aliases` | 1:many        | DELETE ingredient → delete aliases |
+| `users` → `user_preferences`                | 1:1           | DELETE user → delete prefs         |
+| `users` → `dish_opinions`                   | 1:many        | DELETE user → delete opinions      |
+| `users` → `eat_together_sessions`           | 1:many (host) | DELETE user → delete sessions      |
 
 ---
 
 ## Materialized Views
 
-| View | Purpose |
-|---|---|
+| View                         | Purpose                                          |
+| ---------------------------- | ------------------------------------------------ |
 | `restaurant_ratings_summary` | Aggregated food/experience scores per restaurant |
-| `dish_ratings_summary` | Aggregated opinion counts per dish |
+| `dish_ratings_summary`       | Aggregated opinion counts per dish               |
 
 ---
 

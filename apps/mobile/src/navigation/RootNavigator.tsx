@@ -26,6 +26,7 @@ import {
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
 import { SupabaseTestScreen } from '../screens/SupabaseTestScreen';
 import { useAuthStore } from '../stores/authStore';
+import { initStoreBindings } from '../stores/storeBindings';
 import type {
   RootStackParamList,
   AuthStackParamList,
@@ -238,11 +239,15 @@ export const RootNavigator: React.FC = () => {
   // Track if we've already started initialization
   const hasInitialized = useRef(false);
 
-  // Initialize auth on mount - only once
+  // Initialize auth on mount - only once, and wire store-to-store subscriptions
   useEffect(() => {
     if (!hasInitialized.current) {
       hasInitialized.current = true;
+      // Wire reactive subscriptions BEFORE initialize() so the initial session
+      // load also triggers filter/onboarding sync if a session already exists.
+      const cleanup = initStoreBindings();
       initialize();
+      return cleanup;
     }
   }, []); // Empty deps - only run once
 

@@ -9,8 +9,6 @@ import { create } from 'zustand';
 import { supabase, getOAuthRedirectUrl } from '../lib/supabase';
 import { Session, User, AuthError, Subscription } from '@supabase/supabase-js';
 import { debugLog } from '../config/environment';
-import { useFilterStore } from './filterStore';
-import { useOnboardingStore } from './onboardingStore';
 import * as WebBrowser from 'expo-web-browser';
 
 // Track if auth listener is already set up (prevents duplicate listeners)
@@ -112,12 +110,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isInitialized: true,
       });
 
-      // Sync user preferences from database if logged in (don't await to not block)
-      if (session?.user) {
-        useFilterStore.getState().syncWithDatabase(session.user.id);
-        useOnboardingStore.getState().loadUserPreferences(session.user.id);
-      }
-
       // Set up auth state change listener ONLY ONCE
       if (!authListenerSubscription) {
         debugLog('[Auth] Setting up auth state listener...');
@@ -132,11 +124,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             user: session?.user ?? null,
           });
 
-          // Sync preferences on sign in (don't await)
-          if (event === 'SIGNED_IN' && session?.user) {
-            useFilterStore.getState().syncWithDatabase(session.user.id);
-            useOnboardingStore.getState().loadUserPreferences(session.user.id);
-          }
+          // Preference sync on SIGNED_IN is handled reactively by storeBindings.ts
         });
         authListenerSubscription = subscription;
       }
@@ -174,11 +162,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isLoading: false,
       });
 
-      // Sync user preferences from database
-      if (data.user) {
-        useFilterStore.getState().syncWithDatabase(data.user.id);
-        useOnboardingStore.getState().loadUserPreferences(data.user.id);
-      }
+      // Preference sync is handled reactively by storeBindings.ts
 
       return { error: null };
     } catch (err) {
@@ -415,11 +399,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             isLoading: false,
           });
 
-          // Sync user preferences from database
-          if (sessionData.user) {
-            useFilterStore.getState().syncWithDatabase(sessionData.user.id);
-            useOnboardingStore.getState().loadUserPreferences(sessionData.user.id);
-          }
+          // Preference sync is handled reactively by storeBindings.ts
 
           return { error: null };
         } else {

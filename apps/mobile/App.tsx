@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
 import { RootNavigator } from './src/navigation';
 import { ENV } from './src/config/environment';
+import { ErrorBoundary } from './src/components/common/ErrorBoundary';
 import { useSessionStore } from './src/stores/sessionStore';
 import './src/i18n'; // Initialize i18n
 import { initializeSettings, useSettingsStore } from './src/stores/settingsStore';
@@ -90,7 +91,9 @@ export default function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <RootNavigator />
+        <ErrorBoundary>
+          <RootNavigator />
+        </ErrorBoundary>
         <StatusBar style="light" />
       </SafeAreaView>
     </SafeAreaProvider>

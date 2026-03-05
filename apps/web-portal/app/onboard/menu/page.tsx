@@ -20,7 +20,7 @@ import { DishCard } from '@/components/forms/DishCard';
 import { DishFormDialog } from '@/components/forms/DishFormDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { toast } from 'sonner';
-import { Dish, Menu } from '@/types/restaurant';
+import { Dish, Menu, SelectedIngredient } from '@/types/restaurant';
 import { menuSchema } from '@/lib/validation';
 import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
@@ -371,13 +371,10 @@ function MenuPageContent() {
               const insertedDish = insertedDishes[i];
 
               // Check if dish has selectedIngredients from the new autocomplete
-              if (
-                (dish as any).selectedIngredients &&
-                (dish as any).selectedIngredients.length > 0
-              ) {
+              if (dish.selectedIngredients && dish.selectedIngredients.length > 0) {
                 const { error: ingredientsError } = await addDishIngredients(
                   insertedDish.id,
-                  (dish as any).selectedIngredients.map((ing: any) => ({
+                  dish.selectedIngredients.map((ing: SelectedIngredient) => ({
                     ingredient_id: ing.id,
                     quantity: ing.quantity || null,
                   }))

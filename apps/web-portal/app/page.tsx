@@ -23,10 +23,16 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+type DashboardRestaurant = {
+  id: string;
+  name: string;
+  menus?: Array<{ id: string; name: string; dishes?: Array<{ id: string }> }>;
+};
+
 function DashboardContent() {
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const [userRestaurant, setUserRestaurant] = useState<any>(null);
+  const [userRestaurant, setUserRestaurant] = useState<DashboardRestaurant | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load user's restaurant from database
@@ -79,10 +85,7 @@ function DashboardContent() {
 
   // Calculate total dishes and menus from database or draft
   const totalDishes =
-    userRestaurant?.menus?.reduce(
-      (acc: number, menu: any) => acc + (menu.dishes?.length || 0),
-      0
-    ) ||
+    userRestaurant?.menus?.reduce((acc, menu) => acc + (menu.dishes?.length || 0), 0) ||
     savedData?.dishes?.length ||
     0;
   const totalMenus = userRestaurant?.menus?.length || savedData?.menus?.length || 0;

@@ -16,6 +16,7 @@ import {
   trackSwipe,
   generateSessionId,
   ServerDish,
+  type FeedResponse,
 } from '../services/edgeFunctionsService';
 import { useFilterStore } from '../stores/filterStore';
 import { useUserLocation } from '../hooks/useUserLocation';
@@ -42,7 +43,7 @@ export function SwipeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [swipeStats, setSwipeStats] = useState({ right: 0, left: 0 });
-  const [feedMetadata, setFeedMetadata] = useState<any>(null);
+  const [feedMetadata, setFeedMetadata] = useState<FeedResponse['metadata'] | null>(null);
 
   // Stable session ID that doesn't change on re-render
   const sessionIdRef = useRef(generateSessionId());

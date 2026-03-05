@@ -3,6 +3,12 @@ export interface Location {
   lng: number;
 }
 
+/** UI-only: ingredients selected via IngredientAutocomplete, linked to DB on save. */
+export interface SelectedIngredient {
+  id: string; // ingredient alias ID
+  quantity?: string | null;
+}
+
 export interface OperatingHours {
   monday?: { open: string; close: string };
   tuesday?: { open: string; close: string };
@@ -41,6 +47,8 @@ export interface Dish {
   description_visibility?: 'menu' | 'detail';
   /** Where ingredients are shown in the mobile app. Defaults to 'detail'. */
   ingredients_visibility?: 'menu' | 'detail' | 'none';
+  /** UI-only: canonical ingredients selected via autocomplete; not persisted on this object. */
+  selectedIngredients?: SelectedIngredient[];
 }
 
 export interface Menu {

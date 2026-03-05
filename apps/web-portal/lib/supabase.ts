@@ -31,7 +31,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export interface RestaurantInsert {
   // Required fields
   name: string;
-  location: string; // PostGIS format: "POINT(lng lat)"
+  location: string | { lat: number; lng: number }; // DB column is JSONB; use formatLocationForSupabase() to build the value
   address: string;
 
   // Optional basic info

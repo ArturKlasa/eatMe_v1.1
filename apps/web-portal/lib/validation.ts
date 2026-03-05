@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 export const basicInfoSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  description: z
+    .string()
+    .min(10, 'Description must be at least 10 characters')
+    .optional()
+    .or(z.literal('')),
+
   address: z.string().min(5, 'Please enter a valid address'),
   location: z.object({
     lat: z.number().min(-90).max(90),
@@ -10,11 +15,11 @@ export const basicInfoSchema = z.object({
   }),
   phone: z
     .string()
-    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number (e.g., +1234567890)'),
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number (e.g., +1234567890)')
+    .optional()
+    .or(z.literal('')),
+
   website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  price_range: z.enum(['$', '$$', '$$$', '$$$$'], {
-    message: 'Please select a price range',
-  }),
   cuisines: z.array(z.string()).min(1, 'Please select at least one cuisine'),
 });
 
@@ -36,10 +41,6 @@ export const operationsSchema = z.object({
   delivery_available: z.boolean(),
   takeout_available: z.boolean(),
   dine_in_available: z.boolean(),
-  average_prep_time_minutes: z
-    .number()
-    .min(5, 'Prep time must be at least 5 minutes')
-    .max(180, 'Prep time must be less than 180 minutes'),
   accepts_reservations: z.boolean(),
 });
 

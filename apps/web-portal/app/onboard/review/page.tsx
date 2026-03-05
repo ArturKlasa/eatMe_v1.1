@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { loadRestaurantData, clearRestaurantData } from '@/lib/storage';
-import { Menu } from '@/types/restaurant';
+import { FormProgress, Menu } from '@/types/restaurant';
+import { basicInfoSchema } from '@/lib/validation';
 import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -23,7 +24,7 @@ function ReviewPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [restaurantData, setRestaurantData] = useState<any>(null);
+  const [restaurantData, setRestaurantData] = useState<FormProgress | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load restaurant data from database or localStorage
@@ -67,6 +68,7 @@ function ReviewPageContent() {
             },
             menus: restaurant.menus || [],
             dishes: restaurant.menus?.flatMap((m: any) => m.dishes || []) || [],
+            currentStep: 3,
           });
         } else {
           const savedData = loadRestaurantData(user.id);
@@ -105,36 +107,26 @@ function ReviewPageContent() {
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
+      // Validate required fields via Zod schema
       const basicInfo = restaurantData.basicInfo;
-      if (!basicInfo.name || !basicInfo.address) {
-        toast.error('Restaurant name and address are required');
+      const validation = basicInfoSchema.safeParse(basicInfo);
+      if (!validation.success) {
+        toast.error(validation.error.issues[0]?.message ?? 'Please check your restaurant details');
         setIsSubmitting(false);
         return;
       }
 
-      if (!basicInfo.location?.lat || !basicInfo.location?.lng) {
-        toast.error('Location coordinates are required. Please select location on the map.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!basicInfo.cuisines || basicInfo.cuisines.length === 0) {
-        toast.error('At least one cuisine type is required');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Transform data for Supabase
+      // Transform data for Supabase — use validated (non-optional) values for required fields
+      const { name, address, location, cuisines } = validation.data;
       const restaurantPayload: RestaurantInsert & { owner_id?: string } = {
         // Link to authenticated user
         owner_id: user?.id,
 
-        // Required fields
-        name: basicInfo.name,
-        location: formatLocationForSupabase(basicInfo.location.lat, basicInfo.location.lng),
-        address: basicInfo.address,
-        cuisine_types: basicInfo.cuisines,
+        // Required fields (sourced from validated data — never undefined)
+        name,
+        location: formatLocationForSupabase(location.lat, location.lng),
+        address,
+        cuisine_types: cuisines,
 
         // Optional basic info
         restaurant_type: basicInfo.restaurant_type,

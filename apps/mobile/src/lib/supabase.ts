@@ -61,6 +61,10 @@ export interface Restaurant {
   service_speed: 'fast-food' | 'regular' | null;
   accepts_reservations: boolean;
   operating_hours: Record<string, { open: string; close: string; closed: boolean }>;
+  open_hours?: Record<string, { open: string; close: string }> | null; // actual DB column name
+  image_url?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
   created_at: string;
   updated_at: string;
   menus?: Menu[];
@@ -108,6 +112,8 @@ export interface Dish {
   calories: number | null;
   spice_level: number | null;
   is_available: boolean;
+  description_visibility?: 'menu' | 'detail';
+  ingredients_visibility?: 'menu' | 'detail' | 'none';
   created_at: string;
   updated_at: string;
 }

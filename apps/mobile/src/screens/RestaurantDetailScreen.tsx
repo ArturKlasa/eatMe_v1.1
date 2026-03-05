@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
-import { supabase } from '../lib/supabase';
+import { supabase, type RestaurantWithMenus, type Dish } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { spacing } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
@@ -41,7 +41,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const user = useAuthStore(state => state.user);
   const trackRestaurantView = useSessionStore(state => state.trackRestaurantView);
   const trackDishView = useSessionStore(state => state.trackDishView);
-  const [restaurant, setRestaurant] = useState<any>(null);
+  const [restaurant, setRestaurant] = useState<RestaurantWithMenus | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'food' | 'hours'>('food');
   const [hoursExpanded, setHoursExpanded] = useState(false);
@@ -49,7 +49,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
-  const [selectedDish, setSelectedDish] = useState<any>(null);
+  const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [dishPhotos, setDishPhotos] = useState<any[]>([]);
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
@@ -79,21 +79,22 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         if (error) throw error;
 
         if (data) {
-          setRestaurant(data);
+          const typed = data as RestaurantWithMenus;
+          setRestaurant(typed);
 
           // Track restaurant view
           trackRestaurantView({
-            id: data.id,
-            name: data.name,
-            cuisine: data.cuisine_types?.[0] || 'Restaurant',
-            imageUrl: data.image_url,
+            id: typed.id,
+            name: typed.name,
+            cuisine: typed.cuisine_types?.[0] || 'Restaurant',
+            imageUrl: typed.image_url ?? undefined,
           });
 
           // Fetch ratings for all dishes
           const allDishIds: string[] = [];
-          data.menus?.forEach((menu: any) => {
-            menu.menu_categories?.forEach((category: any) => {
-              category.dishes?.forEach((dish: any) => {
+          typed.menus?.forEach(menu => {
+            menu.menu_categories?.forEach(category => {
+              category.dishes?.forEach(dish => {
                 allDishIds.push(dish.id);
               });
             });
@@ -362,9 +363,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           <RestaurantRatingBadge rating={restaurantRating} showBreakdown={true} />
 
           {/* Cuisine Type */}
-          <Text style={styles.cuisineText}>
-            {restaurant.cuisine_types?.join(', ') || restaurant.cuisine || ''}
-          </Text>
+          <Text style={styles.cuisineText}>{restaurant.cuisine_types?.join(', ') || ''}</Text>
         </View>
       </View>
 
@@ -595,7 +594,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           dishId={selectedDish.id}
           dishName={selectedDish.name}
           dishDescription={
-            selectedDish.description_visibility !== 'menu' ? selectedDish.description : undefined
+            selectedDish.description_visibility !== 'menu'
+              ? (selectedDish.description ?? undefined)
+              : undefined
           }
           dishIngredients={
             selectedDish.ingredients_visibility === 'detail' ? dishIngredientNames : []

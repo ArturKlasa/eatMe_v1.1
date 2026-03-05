@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, PanResponder, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import type { FavoritesScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
+import { useSwipeToClose } from '../hooks';
 
 /**
  * FavoritesScreen Component
@@ -15,58 +16,15 @@ import { modalScreenStyles } from '@/styles';
  */
 export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
   const { t } = useTranslation();
-  const translateY = useRef(new Animated.Value(0)).current;
-  const scrollOffsetY = useRef(0);
+  const handleClose = () => navigation.navigate('Map');
+  const { translateY, panResponder, handleScroll } = useSwipeToClose(handleClose);
 
   // Reset animation when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       translateY.setValue(0);
-      scrollOffsetY.current = 0;
     }, [translateY])
   );
-
-  const handleClose = () => {
-    navigation.navigate('Map');
-  };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond if scrolled to top and dragging down
-        return scrollOffsetY.current <= 0 && gestureState.dy > 5;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        // Only allow downward drag
-        if (gestureState.dy > 0) {
-          translateY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        // If dragged more than 100px down, close the modal
-        if (gestureState.dy > 100) {
-          Animated.timing(translateY, {
-            toValue: 1000,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            handleClose();
-          });
-        } else {
-          // Otherwise, snap back to original position
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
-  const handleScroll = (event: any) => {
-    scrollOffsetY.current = event.nativeEvent.contentOffset.y;
-  };
 
   const comingSoonFeatures = [
     t('favorites.feature1'),

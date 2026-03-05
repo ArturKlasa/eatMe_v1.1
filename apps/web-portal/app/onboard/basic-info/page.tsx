@@ -27,6 +27,7 @@ import {
   COUNTRIES,
   POPULAR_CUISINES,
   SERVICE_SPEED_OPTIONS,
+  DAYS_OF_WEEK,
 } from '@/lib/constants';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,16 +70,6 @@ interface FormData {
   service_speed?: 'fast-food' | 'regular';
   accepts_reservations: boolean;
 }
-
-const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Monday' },
-  { key: 'tuesday', label: 'Tuesday' },
-  { key: 'wednesday', label: 'Wednesday' },
-  { key: 'thursday', label: 'Thursday' },
-  { key: 'friday', label: 'Friday' },
-  { key: 'saturday', label: 'Saturday' },
-  { key: 'sunday', label: 'Sunday' },
-];
 
 function BasicInfoPageContent() {
   const router = useRouter();

@@ -35,8 +35,8 @@ import { useAuthStore } from '../stores/authStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { DishRatingInput, RestaurantFeedbackInput } from '../types/rating';
 
-/** Local Restaurant shape built from DB data and passed to marker/filter components */
-interface Restaurant {
+/** Map-display view model built from DB data. Not the same as the DB Restaurant type — includes pre-computed map fields (coordinates, isOpen, etc.). */
+interface MapRestaurant {
   id: string;
   name: string;
   coordinates: [number, number];
@@ -53,8 +53,8 @@ interface Restaurant {
   distance?: string;
 }
 
-/** Local Dish shape used when converting DB dishes for map display */
-interface Dish {
+/** Map-display view model for dishes. Not the same as the DB Dish type — includes pre-computed map fields (coordinates, restaurantName, etc.). */
+interface MapDish {
   id: string;
   name: string;
   restaurantId: string;
@@ -165,7 +165,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return null;
   };
 
-  // Convert Supabase data to match existing Restaurant/Dish types
+  // Convert Supabase data to match existing MapRestaurant/MapDish types
   const restaurants = useMemo(() => {
     // Prefer geospatial search results if available
     if (nearbyRestaurants && nearbyRestaurants.length > 0) {
@@ -189,7 +189,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           },
           distance: formatDistance(r.distance), // Add distance from geospatial search
         };
-      }) as Restaurant[];
+      }) as MapRestaurant[];
     }
 
     // Fallback to old method if geospatial search hasn't loaded yet
@@ -227,7 +227,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           }, // TODO: Parse from operating_hours
         };
       })
-      .filter(r => r !== null) as Restaurant[];
+      .filter(r => r !== null) as MapRestaurant[];
   }, [dbRestaurants, nearbyRestaurants]);
 
   const dishes = useMemo(() => {
@@ -258,7 +258,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           allergens: d.allergens || [],
         };
       })
-      .filter(d => d !== null) as Dish[];
+      .filter(d => d !== null) as MapDish[];
   }, [dbDishes]);
 
   // Apply filters to restaurants with performance optimization

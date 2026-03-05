@@ -1,5 +1,17 @@
 import { RestaurantType } from '@/types/restaurant';
 
+export const DAYS_OF_WEEK = [
+  { key: 'monday', label: 'Monday' },
+  { key: 'tuesday', label: 'Tuesday' },
+  { key: 'wednesday', label: 'Wednesday' },
+  { key: 'thursday', label: 'Thursday' },
+  { key: 'friday', label: 'Friday' },
+  { key: 'saturday', label: 'Saturday' },
+  { key: 'sunday', label: 'Sunday' },
+] as const;
+
+export type DayKey = (typeof DAYS_OF_WEEK)[number]['key'];
+
 export const COUNTRIES = [
   { value: 'US', label: 'United States' },
   { value: 'CA', label: 'Canada' },

@@ -40,8 +40,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       if (userRole !== 'admin') {
         console.warn('[SECURITY] Non-admin user blocked from admin layout:', {
-          userId: user.id,
-          email: user.email,
+          userId: session.user.id,
+          email: session.user.email,
           role: userRole || 'none',
           timestamp: new Date().toISOString(),
         });

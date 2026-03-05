@@ -17,4 +17,12 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// Polyfill Node built-ins that some packages (e.g. react-native-svg) import.
+// React Native's runtime doesn't include Node's standard library, so Metro
+// must redirect these to browser-compatible npm packages.
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  buffer: path.resolve(projectRoot, 'node_modules/buffer'),
+};
+
 module.exports = config;

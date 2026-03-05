@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '20mb',
     },
   },
+
+  turbopack: {
+    // Explicitly set the monorepo root so Turbopack doesn't infer it
+    // incorrectly when multiple lockfiles are present.
+    root: '../../',
+  },
 };
 
 export default nextConfig;

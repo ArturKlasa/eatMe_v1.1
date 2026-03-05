@@ -1,5 +1,8 @@
-import { getWebClient } from '@eatme/database';
-import type { Tables, TablesInsert } from '@eatme/database';
+import { createBrowserClient } from '@supabase/ssr';
+import type { Database, Tables, TablesInsert } from '@eatme/database';
+
+// Re-export types for convenience — callers keep their existing imports
+export type { Tables, TablesInsert };
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error(
@@ -9,10 +12,17 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
   );
 }
 
-// Typed Supabase client — auth config in packages/database/src/client.ts
-// Env vars read here with literal keys so Next.js static analysis can replace them.
-// Auth: implicit flow preserved until A8 migrates to PKCE + @supabase/ssr
-export const supabase = getWebClient(
+/**
+ * Browser-side Supabase client (PKCE, cookie-based session).
+ *
+ * Uses @supabase/ssr's createBrowserClient which:
+ * - Stores the session in cookies (not localStorage) so the proxy can read it
+ * - Uses PKCE flow by default (replaces deprecated implicit/hash flow)
+ *
+ * For server-side usage, import createSupabaseSessionClient from
+ * @/lib/supabase-server instead.
+ */
+export const supabase = createBrowserClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );

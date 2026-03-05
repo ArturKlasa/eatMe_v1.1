@@ -1,5 +1,69 @@
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import type { Database } from '@eatme/database';
+
+/**
+ * Cookie-based Supabase client for Server Components and Route Handlers.
+ *
+ * Reads/writes the session via HTTP cookies so the server (and proxy) can
+ * verify authentication without touching localStorage.
+ *
+ * Do NOT use in Client Components — import `supabase` from `@/lib/supabase`.
+ */
+export async function createSupabaseSessionClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Called from a Server Component — cookie writes are a no-op.
+            // The proxy refreshes the session cookie on every request.
+          }
+        },
+      },
+    }
+  );
+}
+
+/**
+ * Creates a Supabase client for use inside proxy.ts.
+ *
+ * Reads the session from request cookies and writes any refreshed tokens
+ * back to the response cookies, keeping the session alive transparently.
+ */
+export function createMiddlewareClient(request: NextRequest, response: NextResponse) {
+  const client = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+  return { client, response };
+}
 
 /**
  * Creates a Supabase admin client using the service role key.

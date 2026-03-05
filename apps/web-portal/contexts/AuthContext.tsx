@@ -88,22 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOAuth = async (provider: 'google' | 'facebook') => {
     try {
-      console.log(`[OAuth] Initiating ${provider} sign in...`);
-      console.log(`[OAuth] Redirect URL: ${window.location.origin}/auth/callback`);
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
+          // PKCE flow: Supabase sends ?code= to this URL; the Route Handler
+          // at app/auth/callback/route.ts exchanges it for a cookie session.
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
-      if (error) {
-        console.error('[OAuth] Error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('[OAuth] Success, redirecting...', data);
       return { error: null };
     } catch (error) {
       console.error('[OAuth] Exception:', error);

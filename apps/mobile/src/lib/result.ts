@@ -45,10 +45,7 @@ export function err(error: string | Error): Err {
  * const { data, error } = await supabase.from('...').select('*').single();
  * return fromSupabase(data, error);
  */
-export function fromSupabase<T>(
-  data: T | null,
-  error: { message: string } | null
-): Result<T> {
+export function fromSupabase<T>(data: T | null, error: { message: string } | null): Result<T> {
   if (error) return err(error.message);
   if (data === null) return err('No data returned');
   return ok(data);

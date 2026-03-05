@@ -200,11 +200,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         }
         setFavoriteLoading(true);
         try {
-          const result = await toggleFavorite(
-            user.id,
-            'restaurant',
-            restaurantId
-          );
+          const result = await toggleFavorite(user.id, 'restaurant', restaurantId);
           if (!result.ok) {
             Alert.alert(t('common.error'), t('favorites.updateFailed'));
           } else {

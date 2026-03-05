@@ -72,7 +72,7 @@ function MenuPageContent() {
         // First, try to load from database
         const { data: restaurant, error } = await supabase
           .from('restaurants')
-          .select('id, menus(*)')
+          .select('id, menus(*, menu_categories(*, dishes(*)))')
           .eq('owner_id', user.id)
           .maybeSingle();
 
@@ -82,6 +82,7 @@ function MenuPageContent() {
 
         if (restaurant?.menus && restaurant.menus.length > 0) {
           // Load from database — map DB row shape to local Menu type
+          // Dishes live under menu_categories, flatten them back onto the menu
           const dbMenus: Menu[] = (restaurant.menus ?? []).map(menu => ({
             id: menu.id,
             name: menu.name,
@@ -89,7 +90,9 @@ function MenuPageContent() {
             menu_type: (menu.menu_type ?? 'food') as 'food' | 'drink',
             is_active: menu.is_active ?? true,
             display_order: menu.display_order ?? 0,
-            dishes: [],
+            dishes: (menu.menu_categories ?? []).flatMap(
+              (cat: { dishes?: unknown[] }) => (cat.dishes ?? []) as Dish[]
+            ),
           }));
           setMenus(dbMenus);
           setActiveMenuId(dbMenus[0].id);

@@ -28,7 +28,11 @@ type DashboardRestaurant = {
   name: string;
   address: string | null;
   cuisine_types: string[] | null;
-  menus?: Array<{ id: string; name: string; dishes?: Array<{ id: string }> }>;
+  menus?: Array<{
+    id: string;
+    name: string;
+    menu_categories?: Array<{ id: string; dishes?: Array<{ id: string }> }>;
+  }>;
 };
 
 function DashboardContent() {
@@ -47,7 +51,7 @@ function DashboardContent() {
 
         const { data, error } = await supabase
           .from('restaurants')
-          .select('id, name, address, cuisine_types, menus(id, name)')
+          .select('id, name, address, cuisine_types, menus(id, name, menu_categories(id, dishes(id)))')
           .eq('owner_id', user.id)
           .maybeSingle();
 
@@ -87,7 +91,12 @@ function DashboardContent() {
 
   // Calculate total dishes and menus from database or draft
   const totalDishes =
-    userRestaurant?.menus?.reduce((acc, menu) => acc + (menu.dishes?.length || 0), 0) ||
+    userRestaurant?.menus?.reduce(
+      (acc, menu) =>
+        acc +
+        (menu.menu_categories?.reduce((a, cat) => a + (cat.dishes?.length ?? 0), 0) ?? 0),
+      0
+    ) ||
     savedData?.dishes?.length ||
     0;
   const totalMenus = userRestaurant?.menus?.length || savedData?.menus?.length || 0;

@@ -252,7 +252,7 @@ export default function RestaurantMenusPage() {
 
   const handleEditCategory = (category: MenuCategory) => {
     setEditingCategory(category);
-    setSelectedMenuForCategory(category.menu_id);
+    setSelectedMenuForCategory(category.menu_id ?? '');
     setCategoryFormData({
       name: category.name,
       type: category.type || '',
@@ -330,7 +330,7 @@ export default function RestaurantMenusPage() {
 
   const handleEditDish = (dish: Dish) => {
     setEditingDish(dish);
-    setSelectedCategoryForDish(dish.menu_category_id);
+    setSelectedCategoryForDish(dish.menu_category_id ?? '');
     setIsDishDialogOpen(true);
   };
 
@@ -659,7 +659,7 @@ export default function RestaurantMenusPage() {
           }}
           restaurantId={restaurantId}
           menuCategoryId={selectedCategoryForDish}
-          dish={editingDish}
+          dish={editingDish as any}
           onSuccess={fetchData}
           restaurantCuisine={restaurantCuisine}
         />

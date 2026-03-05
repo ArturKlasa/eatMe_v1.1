@@ -26,6 +26,8 @@ import { toast } from 'sonner';
 type DashboardRestaurant = {
   id: string;
   name: string;
+  address: string | null;
+  cuisine_types: string[] | null;
   menus?: Array<{ id: string; name: string; dishes?: Array<{ id: string }> }>;
 };
 
@@ -45,7 +47,7 @@ function DashboardContent() {
 
         const { data, error } = await supabase
           .from('restaurants')
-          .select('*, menus(*, dishes(*))')
+          .select('id, name, address, cuisine_types, menus(id, name)')
           .eq('owner_id', user.id)
           .maybeSingle();
 

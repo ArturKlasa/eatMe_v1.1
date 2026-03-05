@@ -97,12 +97,13 @@ function EditRestaurantContent() {
           setValue('website', data.website || '');
 
           // Load operating hours
-          if (data.operating_hours) {
+          if (data.open_hours) {
+            const openHours = data.open_hours as Record<string, { open: string; close: string }>;
             const hours: Record<string, { open: string; close: string; closed: boolean }> = {};
             DAYS_OF_WEEK.forEach(({ key }) => {
-              const dayHours = data.operating_hours[key];
+              const dayHours = openHours[key];
               if (dayHours) {
-                hours[key] = { ...dayHours, closed: dayHours.closed || false };
+                hours[key] = { open: dayHours.open, close: dayHours.close, closed: false };
               } else {
                 hours[key] = { open: '09:00', close: '21:00', closed: true };
               }

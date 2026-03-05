@@ -8,17 +8,15 @@ import type { PostgrestError } from '@supabase/supabase-js';
 export interface DishCategory {
   id: string;
   name: string;
-  slug: string;
   parent_category_id?: string | null;
   is_drink: boolean;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface DishCategoryInsert {
   name: string;
-  slug?: string; // Auto-generated from name if not provided
   parent_category_id?: string | null;
   is_drink?: boolean;
   is_active?: boolean;

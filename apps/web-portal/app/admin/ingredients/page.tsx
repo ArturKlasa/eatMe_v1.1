@@ -9,9 +9,9 @@ interface CanonicalIngredient {
   id: string;
   canonical_name: string;
   ingredient_family_name?: string;
-  is_vegetarian: boolean;
-  is_vegan: boolean;
-  created_at: string;
+  is_vegetarian: boolean | null;
+  is_vegan: boolean | null;
+  created_at: string | null;
 }
 
 interface IngredientAlias {
@@ -22,7 +22,7 @@ interface IngredientAlias {
     canonical_name: string;
     ingredient_family_name?: string;
   };
-  created_at: string;
+  created_at: string | null;
 }
 
 export default function IngredientsPage() {

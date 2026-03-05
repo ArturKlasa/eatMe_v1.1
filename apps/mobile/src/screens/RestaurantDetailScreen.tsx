@@ -167,7 +167,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const getCurrentDayHours = () => {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const today = days[new Date().getDay()];
-    const hours = restaurant.operating_hours || restaurant.open_hours;
+    const hours = restaurant.open_hours;
     return hours?.[today] || null;
   };
 
@@ -440,7 +440,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               <View style={styles.fullWeekHours}>
                 {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(
                   day => {
-                    const hours = (restaurant.operating_hours || restaurant.open_hours || {})[day];
+                    const hours = (
+                      restaurant.open_hours as Record<
+                        string,
+                        { open: string; close: string }
+                      > | null
+                    )?.[day];
                     const isToday = day === getCurrentDayName().toLowerCase();
                     return (
                       <View key={day} style={styles.weekDayRow}>

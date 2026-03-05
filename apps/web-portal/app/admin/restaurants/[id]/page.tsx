@@ -3,34 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { Restaurant } from '@/lib/supabase';
 import { ArrowLeft, Edit, Ban, CheckCircle, Loader2, MapPin, Phone, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-
-interface Restaurant {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  postal_code: string;
-  country_code: string;
-  phone: string;
-  website: string;
-  restaurant_type: string;
-  cuisine_types: string[];
-  location: { lat: number; lng: number };
-  delivery_available: boolean;
-  takeout_available: boolean;
-  dine_in_available: boolean;
-  accepts_reservations: boolean;
-  is_active: boolean;
-  suspended_at: string | null;
-  suspended_by: string | null;
-  suspension_reason: string | null;
-  created_at: string;
-  updated_at: string;
-  owner_id: string;
-}
 
 export default function RestaurantDetailsPage() {
   const router = useRouter();
@@ -152,7 +128,7 @@ export default function RestaurantDetailsPage() {
               <div className="col-span-2">
                 <dt className="text-sm font-medium text-gray-500">Cuisine Types</dt>
                 <dd className="mt-2 flex flex-wrap gap-2">
-                  {restaurant.cuisine_types.map(cuisine => (
+                  {(restaurant.cuisine_types ?? []).map(cuisine => (
                     <span
                       key={cuisine}
                       className="px-3 py-1 bg-orange-100 text-orange-800 text-sm rounded-full"
@@ -183,7 +159,8 @@ export default function RestaurantDetailsPage() {
               <div className="pt-3 border-t border-gray-200">
                 <p className="text-xs text-gray-500">Coordinates</p>
                 <p className="text-sm text-gray-900 mt-1">
-                  {restaurant.location?.lat?.toFixed(6)}, {restaurant.location?.lng?.toFixed(6)}
+                  {(restaurant.location as { lat?: number; lng?: number } | null)?.lat?.toFixed(6)},{' '}
+                  {(restaurant.location as { lat?: number; lng?: number } | null)?.lng?.toFixed(6)}
                 </p>
               </div>
             </div>
@@ -282,13 +259,13 @@ export default function RestaurantDetailsPage() {
               <div>
                 <dt className="text-gray-500">Created</dt>
                 <dd className="text-gray-900 mt-1">
-                  {new Date(restaurant.created_at).toLocaleString()}
+                  {restaurant.created_at ? new Date(restaurant.created_at).toLocaleString() : '-'}
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-500">Last Updated</dt>
                 <dd className="text-gray-900 mt-1">
-                  {new Date(restaurant.updated_at).toLocaleString()}
+                  {restaurant.updated_at ? new Date(restaurant.updated_at).toLocaleString() : '-'}
                 </dd>
               </div>
               <div>

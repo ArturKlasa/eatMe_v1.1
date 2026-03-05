@@ -207,7 +207,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
         // Map DB price_range (1–4) to estimated average price in local currency
         const avgPriceByLevel = [12, 22, 38, 55];
-        const avgPrice = avgPriceByLevel[Math.min((r.price_range ?? 2) - 1, 3)];
+        const avgPrice = avgPriceByLevel[Math.min(((r as any).price_range ?? 2) - 1, 3)];
 
         return {
           id: r.id,

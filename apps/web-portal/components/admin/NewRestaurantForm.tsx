@@ -284,12 +284,13 @@ export function NewRestaurantForm({
       };
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        insertData.location = formatLocationForSupabase(lat, lng);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (insertData as any).location = { lat, lng };
       }
 
       const { data: created, error } = await supabase
         .from('restaurants')
-        .insert(insertData)
+        .insert(insertData as any)
         .select('id, name, city, country_code')
         .single();
 

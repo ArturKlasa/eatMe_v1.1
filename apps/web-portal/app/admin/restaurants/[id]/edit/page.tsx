@@ -115,8 +115,10 @@ export default function EditRestaurantPage() {
             description: data.description || '',
             restaurant_type: data.restaurant_type || 'restaurant',
             cuisine_types: data.cuisine_types || [],
-            latitude: data.location?.lat?.toString() || '',
-            longitude: data.location?.lng?.toString() || '',
+            latitude:
+              (data.location as { lat?: number; lng?: number } | null)?.lat?.toString() || '',
+            longitude:
+              (data.location as { lat?: number; lng?: number } | null)?.lng?.toString() || '',
             delivery_available: data.delivery_available || false,
             takeout_available: data.takeout_available || false,
             dine_in_available: data.dine_in_available !== false,
@@ -128,7 +130,9 @@ export default function EditRestaurantPage() {
             setOperatingHours(prev => {
               const next = { ...prev };
               DAYS_OF_WEEK.forEach(({ key }) => {
-                const saved = data.open_hours?.[key];
+                const saved = (
+                  data.open_hours as Record<string, { open: string; close: string }> | null
+                )?.[key];
                 next[key] = saved
                   ? { open: saved.open, close: saved.close, closed: false }
                   : { ...prev[key], closed: true };

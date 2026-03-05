@@ -32,9 +32,11 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 /**
- * Create a typed Supabase client configured for **Next.js / web portal**.
+ * Create a typed Supabase client configured for **React Native / Expo only**.
  *
- * Auth: implicit flow preserved until A8 migrates to PKCE + @supabase/ssr.
+ * NOTE: The web portal no longer uses this — it uses createBrowserClient() from
+ * @supabase/ssr directly so the session lives in cookies and the proxy can read it.
+ * This function remains for mobile where cookie-based sessions aren't applicable.
  */
 export function getWebClient(url: string, anonKey: string): SupabaseClient<Database> {
   if (!url || !anonKey) {
@@ -48,8 +50,6 @@ export function getWebClient(url: string, anonKey: string): SupabaseClient<Datab
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      // Keep implicit until A8 migrates to PKCE + @supabase/ssr
-      flowType: 'implicit',
     },
   });
 }

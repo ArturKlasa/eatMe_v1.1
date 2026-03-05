@@ -76,7 +76,7 @@ export const exportAsCSV = (dishes: Dish[], restaurantName: string): void => {
 
     const rows = dishes.map(dish => [
       escapeCSV(dish.name),
-      escapeCSV(dish.description),
+      escapeCSV(dish.description ?? ''),
       dish.price.toFixed(2),
       escapeCSV(dish.dietary_tags.join('; ')),
       escapeCSV(dish.allergens.join('; ')),

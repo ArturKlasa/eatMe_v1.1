@@ -143,11 +143,11 @@ export async function getDietaryTags() {
  */
 export async function addDishIngredients(
   dishId: string,
-  ingredients: Array<{ canonical_ingredient_id: string; quantity?: string }>
+  ingredients: Array<{ ingredient_id: string; quantity?: string | null }>
 ) {
   const dishIngredients = ingredients.map(ing => ({
     dish_id: dishId,
-    canonical_ingredient_id: ing.canonical_ingredient_id,
+    ingredient_id: ing.ingredient_id,
     quantity: ing.quantity || null,
   }));
 

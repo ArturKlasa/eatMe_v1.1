@@ -13,11 +13,9 @@ import { basicInfoSchema } from '@/lib/validation';
 import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  supabase,
-  formatLocationForSupabase,
-  formatOperatingHours,
-  RestaurantInsert,
-} from '@/lib/supabase';
+  getRestaurantFull,
+  submitRestaurantProfile,
+} from '@/lib/restaurantService';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
@@ -32,61 +30,15 @@ function ReviewPageContent() {
   useEffect(() => {
     const loadData = async () => {
       if (!user?.id) return;
-
       try {
-        // Try to load from database first
-        const { data: restaurant, error } = await supabase
-          .from('restaurants')
-          .select('*, menus(*, dishes(*))')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error loading restaurant:', error);
-        }
-
-        if (restaurant) {
-          setRestaurantData({
-            restaurant_id: restaurant.id,
-            basicInfo: {
-              name: restaurant.name,
-              restaurant_type: (restaurant.restaurant_type as RestaurantType) ?? undefined,
-              description: restaurant.description ?? undefined,
-              country: restaurant.country_code ?? undefined,
-              address: restaurant.address,
-              location: restaurant.location as unknown as AppLocation | undefined,
-              phone: restaurant.phone ?? undefined,
-              website: restaurant.website ?? undefined,
-              cuisines: restaurant.cuisine_types || [],
-            },
-            operations: {
-              operating_hours:
-                (restaurant.open_hours as Record<string, { open: string; close: string }>) ??
-                undefined,
-              delivery_available: restaurant.delivery_available ?? undefined,
-              takeout_available: restaurant.takeout_available ?? undefined,
-              dine_in_available: restaurant.dine_in_available ?? undefined,
-              service_speed: (restaurant.service_speed as 'fast-food' | 'regular') ?? undefined,
-              accepts_reservations: restaurant.accepts_reservations ?? undefined,
-            },
-            menus: (restaurant.menus || []) as unknown as Menu[],
-            dishes: restaurant.menus?.flatMap((m: any) => m.dishes || []) || [],
-            currentStep: 3,
-          });
-        } else {
-          const savedData = loadRestaurantData(user.id);
-          setRestaurantData(savedData);
-        }
-      } catch (err) {
-        console.error('Failed to load data:', err);
-        // Fall back to localStorage
-        const savedData = loadRestaurantData(user.id);
-        setRestaurantData(savedData);
+        const fromDb = await getRestaurantFull(user.id);
+        setRestaurantData(fromDb ?? loadRestaurantData(user.id));
+      } catch {
+        setRestaurantData(loadRestaurantData(user.id));
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, [user?.id]);
 
@@ -110,245 +62,25 @@ function ReviewPageContent() {
     setIsSubmitting(true);
 
     try {
-      // Validate required fields via Zod schema
-      const basicInfo = restaurantData.basicInfo;
-      const validation = basicInfoSchema.safeParse(basicInfo);
+      // Validate required fields via Zod schema (UI-level check before hitting the DB)
+      const validation = basicInfoSchema.safeParse(restaurantData.basicInfo);
       if (!validation.success) {
         toast.error(validation.error.issues[0]?.message ?? 'Please check your restaurant details');
         setIsSubmitting(false);
         return;
       }
 
-      // Transform data for Supabase — use validated (non-optional) values for required fields
-      const { name, address, location, cuisines } = validation.data;
-      const restaurantPayload: RestaurantInsert & { owner_id?: string } = {
-        // Link to authenticated user
-        owner_id: user?.id,
+      await submitRestaurantProfile(restaurantData, user!.id);
 
-        // Required fields (sourced from validated data — never undefined)
-        name,
-        location: formatLocationForSupabase(location.lat, location.lng),
-        address,
-        cuisine_types: cuisines,
-
-        // Optional basic info
-        restaurant_type: basicInfo.restaurant_type,
-        country_code: basicInfo.country,
-        city: basicInfo.city,
-        neighbourhood: basicInfo.neighbourhood,
-        state: basicInfo.state,
-        postal_code: basicInfo.postal_code,
-
-        // Contact
-        phone: basicInfo.phone,
-        website: basicInfo.website,
-
-        // Operating hours (filter out closed days)
-        open_hours: restaurantData.operations?.operating_hours
-          ? formatOperatingHours(
-              restaurantData.operations.operating_hours as Record<
-                string,
-                { open: string; close: string; closed: boolean }
-              >
-            )
-          : {},
-
-        // Service options
-        delivery_available: restaurantData.operations?.delivery_available ?? true,
-        takeout_available: restaurantData.operations?.takeout_available ?? true,
-        dine_in_available: restaurantData.operations?.dine_in_available ?? true,
-        accepts_reservations: restaurantData.operations?.accepts_reservations ?? false,
-        service_speed: restaurantData.operations?.service_speed as
-          | 'fast-food'
-          | 'regular'
-          | undefined,
-
-        // Optional fields
-        description: basicInfo.description,
-      };
-
-      // Step 1: Check if we're updating an existing restaurant
-      const existingRestaurantId = restaurantData.restaurant_id;
-      let restaurant;
-      // IDs of menus that existed before this update. Populated on the update path and
-      // used in Step 3 to delete old data only after new data is safely inserted.
-      let oldMenuIds: string[] = [];
-
-      if (existingRestaurantId) {
-        // Update existing restaurant
-        const { data, error: restaurantError } = await supabase
-          .from('restaurants')
-          .update(restaurantPayload)
-          .eq('id', existingRestaurantId)
-          .select()
-          .single();
-
-        if (restaurantError) {
-          console.error('Supabase restaurant update error:', restaurantError);
-          throw new Error(restaurantError.message);
-        }
-
-        restaurant = data;
-
-        // Capture the current menu IDs BEFORE inserting new data.
-        // We delete these only after the new menus + dishes are confirmed safe,
-        // so the restaurant is never left with zero menus if a later insert fails.
-        const { data: existingMenuData } = await supabase
-          .from('menus')
-          .select('id')
-          .eq('restaurant_id', existingRestaurantId);
-        oldMenuIds = existingMenuData?.map(m => m.id) ?? [];
-      } else {
-        // Create new restaurant
-        const { data, error: restaurantError } = await supabase
-          .from('restaurants')
-          .insert(restaurantPayload)
-          .select()
-          .single();
-
-        if (restaurantError) {
-          console.error('Supabase restaurant error:', restaurantError);
-          throw new Error(restaurantError.message);
-        }
-
-        restaurant = data;
-        console.log('Restaurant created successfully:', restaurant);
-      }
-
-      // Step 2: Insert new menus, a default menu_category per menu, and dishes.
-      // The DB schema requires dishes → menu_categories → menus (no direct dish→menu FK).
-      // We create one default category per menu since the portal UI has no category level.
-      if (restaurantData.menus && restaurantData.menus.length > 0) {
-        for (const menu of restaurantData.menus) {
-          // 2a. Insert menu
-          const { data: insertedMenu, error: menuError } = await supabase
-            .from('menus')
-            .insert({
-              restaurant_id: restaurant.id,
-              name: menu.name,
-              description: menu.description || null,
-              menu_type: menu.menu_type || 'food',
-              display_order: menu.display_order || 0,
-              is_active: menu.is_active !== undefined ? menu.is_active : true,
-            })
-            .select()
-            .single();
-
-          if (menuError) {
-            throw new Error(`Failed to insert menu "${menu.name}": ${menuError.message}`);
-          }
-
-          // 2b. Insert a default menu_category for this menu.
-          // dishes.menu_category_id is a FK to menu_categories, not to menus directly.
-          const { data: insertedCategory, error: categoryError } = await supabase
-            .from('menu_categories')
-            .insert({
-              restaurant_id: restaurant.id,
-              menu_id: insertedMenu.id,
-              name: menu.name,
-              display_order: 0,
-              is_active: true,
-            })
-            .select()
-            .single();
-
-          if (categoryError) {
-            throw new Error(
-              `Failed to insert category for menu "${menu.name}": ${categoryError.message}`
-            );
-          }
-
-          // 2c. Insert dishes for this menu
-          if (menu.dishes && menu.dishes.length > 0) {
-            const dishesPayload = menu.dishes.map(dish => ({
-              restaurant_id: restaurant.id,
-              menu_category_id: insertedCategory.id,
-              name: dish.name,
-              description: dish.description || null,
-              price: dish.price,
-              dietary_tags: dish.dietary_tags || [],
-              allergens: dish.allergens || [],
-              ingredients: dish.ingredients || [],
-              calories: dish.calories || null,
-              spice_level: dish.spice_level || null,
-              image_url: dish.photo_url || null,
-              is_available: dish.is_available !== undefined ? dish.is_available : true,
-              description_visibility: dish.description_visibility ?? 'menu',
-              ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-            }));
-
-            const { error: dishesError } = await supabase.from('dishes').insert(dishesPayload);
-
-            if (dishesError) {
-              throw new Error(
-                `Failed to insert dishes for menu "${menu.name}": ${dishesError.message}`
-              );
-            }
-          }
-        }
-      }
-
-      // Step 3: Delete old menus (update path only) — runs only after new data is safely created.
-      // Must delete in dependency order: dishes → menu_categories → menus.
-      // The dishes FK to menu_categories has no ON DELETE CASCADE, so we clear manually.
-      // This step is intentionally non-fatal: if it fails the restaurant has duplicate
-      // menus, but all correct data is intact. Resubmitting will clean it up.
-      if (existingRestaurantId && oldMenuIds.length > 0) {
-        // 3a. Find old menu_categories (post-fix data that references old menus)
-        const { data: oldCategoryRows } = await supabase
-          .from('menu_categories')
-          .select('id')
-          .in('menu_id', oldMenuIds);
-        const oldCategoryIds = oldCategoryRows?.map(c => c.id) ?? [];
-
-        // 3b. Delete dishes referencing old categories
-        if (oldCategoryIds.length > 0) {
-          await supabase.from('dishes').delete().in('menu_category_id', oldCategoryIds);
-        }
-
-        // 3c. Delete legacy dishes that had no category (pre-fix data, menu_category_id was NULL)
-        await supabase
-          .from('dishes')
-          .delete()
-          .eq('restaurant_id', existingRestaurantId)
-          .is('menu_category_id', null);
-
-        // 3d. Delete old menu_categories (now unblocked)
-        if (oldCategoryIds.length > 0) {
-          await supabase.from('menu_categories').delete().in('id', oldCategoryIds);
-        }
-
-        // 3e. Delete old menus (cascades to any remaining menu_categories)
-        const { error: deleteMenusError } = await supabase
-          .from('menus')
-          .delete()
-          .in('id', oldMenuIds);
-
-        if (deleteMenusError) {
-          console.warn(
-            '[Submit] Could not fully remove old menus. The restaurant may show duplicate menus. Resubmitting will fix this.',
-            deleteMenusError
-          );
-        }
-      }
-
-      // Success!
-      const action = existingRestaurantId ? 'updated' : 'created';
+      const action = restaurantData.restaurant_id ? 'updated' : 'created';
       toast.success(
         `Restaurant ${action} successfully with ${restaurantData.menus?.length || 0} menus!`
       );
 
-      // Clear user-specific draft data after successful submission
-      if (user?.id) {
-        clearRestaurantData(user.id);
-      }
-
-      // Redirect to dashboard
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
+      if (user?.id) clearRestaurantData(user.id);
+      setTimeout(() => router.push('/'), 2000);
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('[Review] Submission error:', error);
       toast.error(
         error instanceof Error
           ? `Failed to submit: ${error.message}`

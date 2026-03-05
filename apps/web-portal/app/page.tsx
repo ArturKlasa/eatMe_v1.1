@@ -20,20 +20,11 @@ import { loadRestaurantData } from '@/lib/storage';
 import { FormProgress } from '@/types/restaurant';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { supabase } from '@/lib/supabase';
+import {
+  getRestaurantSummary,
+  type DashboardRestaurant,
+} from '@/lib/restaurantService';
 import { toast } from 'sonner';
-
-type DashboardRestaurant = {
-  id: string;
-  name: string;
-  address: string | null;
-  cuisine_types: string[] | null;
-  menus?: Array<{
-    id: string;
-    name: string;
-    menu_categories?: Array<{ id: string; dishes?: Array<{ id: string }> }>;
-  }>;
-};
 
 function DashboardContent() {
   const { user, signOut } = useAuth();
@@ -45,34 +36,14 @@ function DashboardContent() {
   useEffect(() => {
     const loadUserRestaurant = async () => {
       if (!user) return;
-
       try {
-        console.log('[Dashboard] Loading restaurant for user:', user.id);
-
-        const { data, error } = await supabase
-          .from('restaurants')
-          .select(
-            'id, name, address, cuisine_types, menus(id, name, menu_categories(id, dishes(id)))'
-          )
-          .eq('owner_id', user.id)
-          .maybeSingle();
-
-        console.log('[Dashboard] Query result:', { data, error });
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error loading restaurant:', error);
-          console.error('Error details:', JSON.stringify(error));
-        } else {
-          console.log('[Dashboard] Restaurant loaded:', data);
-          setUserRestaurant(data);
-        }
+        setUserRestaurant(await getRestaurantSummary(user.id));
       } catch (err) {
-        console.error('Failed to load restaurant:', err);
+        console.error('[Dashboard] Failed to load restaurant:', err);
       } finally {
         setLoading(false);
       }
     };
-
     loadUserRestaurant();
   }, [user]);
 

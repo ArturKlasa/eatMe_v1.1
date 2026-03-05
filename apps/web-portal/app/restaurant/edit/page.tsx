@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import {
+  getRestaurantForEdit,
+  updateRestaurantInfo,
+} from '@/lib/restaurantService';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,47 +81,31 @@ function EditRestaurantContent() {
   useEffect(() => {
     const loadRestaurant = async () => {
       if (!user?.id) return;
-
       try {
-        const { data, error } = await supabase
-          .from('restaurants')
-          .select('*')
-          .eq('owner_id', user.id)
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          setRestaurantId(data.id);
-          setValue('name', data.name);
-          setValue('description', data.description || '');
-          setValue('address', data.address);
-          setValue('phone', data.phone || '');
-          setValue('website', data.website || '');
-
-          // Load operating hours
-          if (data.open_hours) {
-            const openHours = data.open_hours as Record<string, { open: string; close: string }>;
-            const hours: Record<string, { open: string; close: string; closed: boolean }> = {};
-            DAYS_OF_WEEK.forEach(({ key }) => {
-              const dayHours = openHours[key];
-              if (dayHours) {
-                hours[key] = { open: dayHours.open, close: dayHours.close, closed: false };
-              } else {
-                hours[key] = { open: '09:00', close: '21:00', closed: true };
-              }
-            });
-            setOperatingHours(hours);
-          }
+        const data = await getRestaurantForEdit(user.id);
+        setRestaurantId(data.id);
+        setValue('name', data.name);
+        setValue('description', data.description || '');
+        setValue('address', data.address);
+        setValue('phone', data.phone || '');
+        setValue('website', data.website || '');
+        if (data.open_hours) {
+          const hours: Record<string, { open: string; close: string; closed: boolean }> = {};
+          DAYS_OF_WEEK.forEach(({ key }) => {
+            const dayHours = data.open_hours?.[key];
+            hours[key] = dayHours
+              ? { open: dayHours.open, close: dayHours.close, closed: false }
+              : { open: '09:00', close: '21:00', closed: true };
+          });
+          setOperatingHours(hours);
         }
       } catch (err) {
-        console.error('Failed to load restaurant:', err);
+        console.error('[EditRestaurant] Failed to load restaurant:', err);
         toast.error('Failed to load restaurant data');
       } finally {
         setLoading(false);
       }
     };
-
     loadRestaurant();
   }, [user, setValue]);
 
@@ -127,54 +114,14 @@ function EditRestaurantContent() {
       toast.error('No restaurant found');
       return;
     }
-
     setSaving(true);
-
     try {
-      // Build operating hours (exclude closed days)
-      const operating_hours_to_save: Record<string, { open: string; close: string }> = {};
-      DAYS_OF_WEEK.forEach(({ key }) => {
-        if (!operatingHours[key]?.closed) {
-          operating_hours_to_save[key] = {
-            open: operatingHours[key].open,
-            close: operatingHours[key].close,
-          };
-        }
-      });
-
-      console.log('Updating restaurant with data:', {
-        name: data.name,
-        description: data.description,
-        address: data.address,
-        phone: data.phone,
-        website: data.website,
-        operating_hours: operating_hours_to_save,
-      });
-
-      const { error } = await supabase
-        .from('restaurants')
-        .update({
-          name: data.name,
-          description: data.description,
-          address: data.address,
-          phone: data.phone,
-          website: data.website,
-          operating_hours: operating_hours_to_save,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', restaurantId);
-
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
-
+      await updateRestaurantInfo(restaurantId, data, operatingHours);
       toast.success('Restaurant information updated successfully!');
       router.push('/');
     } catch (err) {
-      console.error('Failed to update restaurant:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to update restaurant: ${errorMessage}`);
+      console.error('[EditRestaurant] Failed to update restaurant:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update restaurant');
     } finally {
       setSaving(false);
     }

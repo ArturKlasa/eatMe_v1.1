@@ -22,10 +22,12 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { toast } from 'sonner';
 import { Dish, Menu, SelectedIngredient } from '@/types/restaurant';
 import { menuSchema } from '@/lib/validation';
-import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
+import { loadRestaurantData, saveRestaurantData, clearRestaurantData } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
-import { addDishIngredients } from '@/lib/ingredients';
+import {
+  getRestaurantWithMenus,
+  saveMenus,
+} from '@/lib/restaurantService';
 import {
   PlusCircle,
   ArrowLeft,
@@ -55,50 +57,27 @@ function MenuPageContent() {
   const [menuType, setMenuType] = useState<'food' | 'drink'>('food');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [restaurantCuisine, setRestaurantCuisine] = useState<string>('');
 
   // Load menus from database
   useEffect(() => {
     const loadMenus = async () => {
       if (!user?.id) return;
-
       try {
-        // Load restaurant basic info for cuisine
+        // Load cuisine from localStorage draft for dish category suggestions
         const savedData = loadRestaurantData(user.id);
-        if (savedData?.basicInfo?.cuisines && savedData.basicInfo.cuisines.length > 0) {
-          setRestaurantCuisine(savedData.basicInfo.cuisines[0]); // Use first cuisine
+        if (savedData?.basicInfo?.cuisines?.[0]) {
+          setRestaurantCuisine(savedData.basicInfo.cuisines[0]);
         }
 
-        // First, try to load from database
-        const { data: restaurant, error } = await supabase
-          .from('restaurants')
-          .select('id, menus(*, menu_categories(*, dishes(*)))')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error loading menus:', error);
-        }
-
-        if (restaurant?.menus && restaurant.menus.length > 0) {
-          // Load from database — map DB row shape to local Menu type
-          // Dishes live under menu_categories, flatten them back onto the menu
-          const dbMenus: Menu[] = (restaurant.menus ?? []).map(menu => ({
-            id: menu.id,
-            name: menu.name,
-            description: menu.description ?? undefined,
-            menu_type: (menu.menu_type ?? 'food') as 'food' | 'drink',
-            is_active: menu.is_active ?? true,
-            display_order: menu.display_order ?? 0,
-            dishes: (menu.menu_categories ?? []).flatMap(
-              (cat: { dishes?: unknown[] }) => (cat.dishes ?? []) as Dish[]
-            ),
-          }));
-          setMenus(dbMenus);
-          setActiveMenuId(dbMenus[0].id);
+        const result = await getRestaurantWithMenus(user.id);
+        if (result?.menus?.length) {
+          setRestaurantId(result.id);
+          setMenus(result.menus);
+          setActiveMenuId(result.menus[0].id);
         } else {
           // Fall back to localStorage drafts
-          const savedData = loadRestaurantData(user.id);
           if (savedData?.menus && savedData.menus.length > 0) {
             setMenus(savedData.menus);
             setActiveMenuId(savedData.menus[0].id);
@@ -115,7 +94,6 @@ function MenuPageContent() {
             setMenus([defaultMenu]);
             setActiveMenuId(defaultMenu.id);
           } else {
-            // Create default menu
             const defaultMenu = {
               id: crypto.randomUUID(),
               name: 'Main Menu',
@@ -129,12 +107,11 @@ function MenuPageContent() {
           }
         }
       } catch (err) {
-        console.error('Failed to load menus:', err);
+        console.error('[Menu] Failed to load menus:', err);
       } finally {
         setLoading(false);
       }
     };
-
     loadMenus();
   }, [user?.id]);
 
@@ -308,107 +285,18 @@ function MenuPageContent() {
     setSaving(true);
 
     try {
-      // Get restaurant ID
-      const { data: restaurant, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single();
-
-      if (restaurantError || !restaurant) {
+      if (!restaurantId) {
         toast.error('Restaurant not found. Please create restaurant information first.');
         setSaving(false);
         return;
       }
 
-      // Delete existing menus and dishes (will cascade delete dishes)
-      await supabase.from('menus').delete().eq('restaurant_id', restaurant.id);
-
-      // Insert new menus and dishes
-      for (const menu of menus) {
-        const { data: insertedMenu, error: menuError } = await supabase
-          .from('menus')
-          .insert({
-            restaurant_id: restaurant.id,
-            name: menu.name,
-            description: menu.description || null,
-            is_active: menu.is_active !== undefined ? menu.is_active : true,
-            display_order: menu.display_order || 1,
-            menu_type: menu.menu_type ?? 'food',
-          })
-          .select()
-          .single();
-
-        if (menuError) {
-          console.error('Menu insert error:', menuError);
-          throw new Error(`Failed to save menu "${menu.name}"`);
-        }
-
-        // Insert dishes for this menu
-        if (menu.dishes && menu.dishes.length > 0) {
-          const dishesPayload = menu.dishes.map((dish: any) => ({
-            restaurant_id: restaurant.id,
-            menu_id: insertedMenu.id,
-            name: dish.name,
-            description: dish.description || null,
-            price: dish.price,
-            dietary_tags: dish.dietary_tags || [],
-            allergens: dish.allergens || [],
-            ingredients: dish.ingredients || [],
-            calories: dish.calories || null,
-            spice_level: dish.spice_level || null,
-            image_url: dish.photo_url || null,
-            is_available: dish.is_available !== undefined ? dish.is_available : true,
-            dish_category_id: dish.dish_category_id ?? null,
-          }));
-
-          const { data: insertedDishes, error: dishesError } = await supabase
-            .from('dishes')
-            .insert(dishesPayload)
-            .select();
-
-          if (dishesError) {
-            console.error('Dishes insert error:', dishesError);
-            throw new Error(`Failed to save dishes for menu "${menu.name}"`);
-          }
-
-          // ✨ NEW: Link ingredients to dishes
-          if (insertedDishes) {
-            for (let i = 0; i < insertedDishes.length; i++) {
-              const dish = menu.dishes[i];
-              const insertedDish = insertedDishes[i];
-
-              // Check if dish has selectedIngredients from the new autocomplete
-              if (dish.selectedIngredients && dish.selectedIngredients.length > 0) {
-                const { error: ingredientsError } = await addDishIngredients(
-                  insertedDish.id,
-                  dish.selectedIngredients.map((ing: SelectedIngredient) => ({
-                    ingredient_id: ing.id,
-                    quantity: ing.quantity || null,
-                  }))
-                );
-
-                if (ingredientsError) {
-                  console.error(
-                    'Failed to link ingredients for dish:',
-                    dish.name,
-                    ingredientsError
-                  );
-                  // Don't throw error - ingredients are optional, dish creation succeeded
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Clear localStorage draft after successful save
-      localStorage.removeItem(`eatme_draft_${user.id}`);
-
+      await saveMenus(restaurantId, menus);
+      clearRestaurantData(user.id); // B3: use storage helper instead of localStorage.removeItem
       toast.success('Menus and dishes saved successfully!');
       router.push('/');
     } catch (error) {
-      console.error('Save error:', error);
+      console.error('[Menu] Save error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save menus');
     } finally {
       setSaving(false);

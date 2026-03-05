@@ -53,9 +53,7 @@ export type EditableRestaurant = {
  * Dashboard: minimal restaurant row with menu/dish counts.
  * Throws on unexpected DB error; returns null if the user has no restaurant yet.
  */
-export async function getRestaurantSummary(
-  ownerId: string
-): Promise<DashboardRestaurant | null> {
+export async function getRestaurantSummary(ownerId: string): Promise<DashboardRestaurant | null> {
   const { data, error } = await supabase
     .from('restaurants')
     .select('id, name, address, cuisine_types, menus(id, name, menu_categories(id, dishes(id)))')
@@ -387,9 +385,7 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
       .insert(dishesPayload)
       .select('id');
     if (dishesError)
-      throw new Error(
-        `Failed to insert dishes for menu "${menu.name}": ${dishesError.message}`
-      );
+      throw new Error(`Failed to insert dishes for menu "${menu.name}": ${dishesError.message}`);
 
     // Link canonical ingredients via dish_ingredients join table (optional — non-fatal)
     if (insertedDishes) {
@@ -442,10 +438,7 @@ async function _deleteOldMenuData(restaurantId: string, oldMenuIds: string[]): P
     await supabase.from('menu_categories').delete().in('id', oldCategoryIds);
   }
 
-  const { error: deleteMenusError } = await supabase
-    .from('menus')
-    .delete()
-    .in('id', oldMenuIds);
+  const { error: deleteMenusError } = await supabase.from('menus').delete().in('id', oldMenuIds);
 
   if (deleteMenusError) {
     console.warn(

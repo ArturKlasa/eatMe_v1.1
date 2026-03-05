@@ -12,10 +12,7 @@ import type { Location as AppLocation } from '@/types/restaurant';
 import { basicInfoSchema } from '@/lib/validation';
 import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  getRestaurantFull,
-  submitRestaurantProfile,
-} from '@/lib/restaurantService';
+import { getRestaurantFull, submitRestaurantProfile } from '@/lib/restaurantService';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 

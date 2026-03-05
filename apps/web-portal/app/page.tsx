@@ -20,10 +20,7 @@ import { loadRestaurantData } from '@/lib/storage';
 import { FormProgress } from '@/types/restaurant';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import {
-  getRestaurantSummary,
-  type DashboardRestaurant,
-} from '@/lib/restaurantService';
+import { getRestaurantSummary, type DashboardRestaurant } from '@/lib/restaurantService';
 import { toast } from 'sonner';
 
 function DashboardContent() {

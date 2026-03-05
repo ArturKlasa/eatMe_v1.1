@@ -24,10 +24,7 @@ import { Dish, Menu, SelectedIngredient } from '@/types/restaurant';
 import { menuSchema } from '@/lib/validation';
 import { loadRestaurantData, saveRestaurantData, clearRestaurantData } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  getRestaurantWithMenus,
-  saveMenus,
-} from '@/lib/restaurantService';
+import { getRestaurantWithMenus, saveMenus } from '@/lib/restaurantService';
 import {
   PlusCircle,
   ArrowLeft,

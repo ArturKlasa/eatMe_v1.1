@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  getRestaurantForEdit,
-  updateRestaurantInfo,
-} from '@/lib/restaurantService';
+import { getRestaurantForEdit, updateRestaurantInfo } from '@/lib/restaurantService';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

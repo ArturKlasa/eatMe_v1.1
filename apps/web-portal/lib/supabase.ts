@@ -1,4 +1,5 @@
 import { getWebClient } from '@eatme/database';
+import type { Tables, TablesInsert } from '@eatme/database';
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error(
@@ -17,159 +18,34 @@ export const supabase = getWebClient(
 );
 
 // ============================================================================
-// TypeScript Types for Database
+// DATABASE TYPES — derived from generated @eatme/database types
+// Single source of truth: packages/database/src/types.ts (auto-generated).
+// Run `supabase gen types typescript --project-id <id> > packages/database/src/types.ts`
+// after every schema migration to keep these in sync.
 // ============================================================================
 
-/**
- * Restaurant data structure for insertion into Supabase
- * Matches the schema in 002_restaurant_portal_schema.sql
- */
-export interface RestaurantInsert {
-  // Required fields
-  name: string;
-  location: string | { lat: number; lng: number }; // DB column is JSONB; use formatLocationForSupabase() to build the value
-  address: string;
+/** Row returned from `restaurants` */
+export type Restaurant = Tables<'restaurants'>;
+/** Insert payload for `restaurants` */
+export type RestaurantInsert = TablesInsert<'restaurants'>;
 
-  // Optional basic info
-  restaurant_type?: string;
-  country_code?: string;
-  city?: string;
-  postal_code?: string;
-  neighbourhood?: string;
-  state?: string;
+/** Row returned from `menus` */
+export type Menu = Tables<'menus'>;
+/** Insert payload for `menus` */
+export type MenuInsert = TablesInsert<'menus'>;
 
-  // Contact
-  phone?: string;
-  website?: string;
+/** Row returned from `menu_categories` */
+export type MenuCategory = Tables<'menu_categories'>;
+/** Insert payload for `menu_categories` */
+export type MenuCategoryInsert = TablesInsert<'menu_categories'>;
 
-  // Cuisine
-  cuisine_types: string[];
+/** Row returned from `dishes` */
+export type Dish = Tables<'dishes'>;
+/** Insert payload for `dishes` */
+export type DishInsert = TablesInsert<'dishes'>;
 
-  // Operating hours (only days that are open)
-  open_hours: Record<string, { open: string; close: string }>;
-
-  // Service options
-  delivery_available?: boolean;
-  takeout_available?: boolean;
-  dine_in_available?: boolean;
-  accepts_reservations?: boolean;
-  service_speed?: 'fast-food' | 'regular';
-
-  // Currency support for internationalization
-  primary_currency?: string;
-  secondary_currency?: string;
-
-  // Future fields
-  description?: string;
-  image_url?: string;
-}
-
-/**
- * Restaurant data returned from Supabase
- */
-export interface Restaurant extends RestaurantInsert {
-  id: string;
-  rating: number;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Menu (meal period/occasion) - e.g., Breakfast, Lunch, Dinner, Christmas
- */
-export interface Menu {
-  id: string;
-  restaurant_id: string;
-  name: string;
-  description?: string;
-  display_order: number;
-  is_active: boolean;
-  menu_type: 'food' | 'drink'; // food menu vs drink/beverage menu
-  available_start_time?: string;
-  available_end_time?: string;
-  available_days?: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MenuInsert {
-  restaurant_id: string;
-  name: string;
-  description?: string;
-  display_order?: number;
-  is_active?: boolean;
-  menu_type?: 'food' | 'drink';
-  available_start_time?: string;
-  available_end_time?: string;
-  available_days?: string[];
-}
-
-/**
- * Canonical Dish Category - e.g., Pizza, Pasta, Cocktails
- */
-export interface DishCategory {
-  id: string;
-  name: string;
-  parent_category_id?: string | null;
-  is_drink: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Menu Category - e.g., Appetizers, Entrees, Soups, Drinks
- */
-export interface MenuCategory {
-  id: string;
-  restaurant_id: string;
-  menu_id: string;
-  name: string;
-  type?: string;
-  display_order: number;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MenuCategoryInsert {
-  restaurant_id: string;
-  menu_id: string;
-  name: string;
-  type?: string;
-  display_order?: number;
-  description?: string;
-}
-
-/**
- * Dish
- */
-export interface Dish {
-  id: string;
-  restaurant_id: string;
-  menu_category_id: string;
-  dish_category_id?: string | null; // Canonical category FK (e.g. Pizza, Pasta)
-  name: string;
-  description?: string;
-  price: number;
-  image_url?: string;
-  is_available: boolean;
-  display_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DishInsert {
-  restaurant_id: string;
-  menu_category_id: string;
-  dish_category_id?: string | null; // Canonical category FK
-  name: string;
-  description?: string;
-  price: number;
-  image_url?: string;
-  is_available?: boolean;
-  display_order?: number;
-}
+/** Row returned from `dish_categories` */
+export type DishCategory = Tables<'dish_categories'>;
 
 // ============================================================================
 // Helper Functions

@@ -1,4 +1,5 @@
 import { getMobileClient } from '@eatme/database';
+import type { Tables } from '@eatme/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -23,91 +24,26 @@ export const getOAuthRedirectUrl = () => {
 };
 
 // ============================================================================
-// DATABASE TYPES
+// DATABASE TYPES — derived from generated @eatme/database types
+// Single source of truth: packages/database/src/types.ts (auto-generated).
+// Run `supabase gen types typescript --project-id <id> > packages/database/src/types.ts`
+// after every schema migration to keep these in sync.
 // ============================================================================
 
-export interface Restaurant {
-  id: string;
-  owner_id: string;
-  name: string;
-  description: string | null;
-  restaurant_type: string;
-  address: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  country: string;
-  phone: string | null;
-  website: string | null;
-  cuisine_types: string[];
-  price_range: number;
-  rating: number;
-  delivery_available: boolean;
-  takeout_available: boolean;
-  dine_in_available: boolean;
-  service_speed: 'fast-food' | 'regular' | null;
-  accepts_reservations: boolean;
-  operating_hours: Record<string, { open: string; close: string; closed: boolean }>;
-  open_hours?: Record<string, { open: string; close: string }> | null; // actual DB column name
-  image_url?: string | null;
-  city?: string | null;
-  postal_code?: string | null;
-  created_at: string;
-  updated_at: string;
-  menus?: Menu[];
-}
+/** Raw row from the `restaurants` table */
+export type Restaurant = Tables<'restaurants'>;
 
-export interface Menu {
-  id: string;
-  restaurant_id: string;
-  name: string;
-  description: string | null;
-  is_active: boolean;
-  display_order: number;
-  available_start_time?: string | null;
-  available_end_time?: string | null;
-  available_days?: string[] | null;
-  created_at: string;
-  updated_at: string;
-  menu_categories?: MenuCategory[];
-}
+/** Raw row from the `menus` table */
+export type Menu = Tables<'menus'>;
 
-export interface MenuCategory {
-  id: string;
-  restaurant_id: string;
-  menu_id: string;
-  name: string;
-  type?: string | null;
-  description?: string | null;
-  display_order: number;
-  created_at: string;
-  updated_at: string;
-  dishes?: Dish[];
-}
+/** Raw row from the `menu_categories` table */
+export type MenuCategory = Tables<'menu_categories'>;
 
-export interface Dish {
-  id: string;
-  restaurant_id: string;
-  menu_category_id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  image_url: string | null;
-  dietary_tags: string[];
-  allergens: string[];
-  ingredients: string[];
-  calories: number | null;
-  spice_level: number | null;
-  is_available: boolean;
-  description_visibility?: 'menu' | 'detail';
-  ingredients_visibility?: 'menu' | 'detail' | 'none';
-  created_at: string;
-  updated_at: string;
-}
+/** Raw row from the `dishes` table */
+export type Dish = Tables<'dishes'>;
 
 // ============================================================================
-// HELPER TYPES FOR QUERIES
+// COMPOUND QUERY SHAPES — Supabase .select() results with joined relations
 // ============================================================================
 
 export interface DishWithRelations extends Dish {

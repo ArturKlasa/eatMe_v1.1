@@ -27,15 +27,14 @@ export async function addToFavorites(
   subjectId: string
 ): Promise<{ data: Favorite | null; error: Error | null }> {
   try {
-    const { data, error } = await (supabase
-      .from('favorites') as any)
+    const { data, error } = (await (supabase.from('favorites') as any)
       .insert({
         user_id: userId,
         subject_type: subjectType,
         subject_id: subjectId,
       })
       .select()
-      .single() as { data: any; error: any };
+      .single()) as { data: any; error: any };
 
     if (error) {
       // Check if it's a duplicate error (already favorited)
@@ -60,12 +59,11 @@ export async function removeFromFavorites(
   subjectId: string
 ): Promise<{ error: Error | null }> {
   try {
-    const { error } = await (supabase
-      .from('favorites') as any)
+    const { error } = (await (supabase.from('favorites') as any)
       .delete()
       .eq('user_id', userId)
       .eq('subject_type', subjectType)
-      .eq('subject_id', subjectId) as { error: any };
+      .eq('subject_id', subjectId)) as { error: any };
 
     if (error) {
       return { error: new Error(error.message) };
@@ -86,8 +84,7 @@ export async function isFavorited(
   subjectId: string
 ): Promise<{ isFavorited: boolean; error: Error | null }> {
   try {
-    const { data, error } = await (supabase
-      .from('favorites') as any)
+    const { data, error } = await (supabase.from('favorites') as any)
       .select('id')
       .eq('user_id', userId)
       .eq('subject_type', subjectType)
@@ -116,13 +113,18 @@ export async function getUserFavorites(
   subjectType?: FavoriteSubjectType
 ): Promise<{ data: Favorite[] | null; error: Error | null }> {
   try {
-    let query = (supabase.from('favorites') as any).select('id, user_id, subject_type, subject_id, created_at').eq('user_id', userId);
+    let query = (supabase.from('favorites') as any)
+      .select('id, user_id, subject_type, subject_id, created_at')
+      .eq('user_id', userId);
 
     if (subjectType) {
       query = query.eq('subject_type', subjectType);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false }) as { data: any; error: any };
+    const { data, error } = (await query.order('created_at', { ascending: false })) as {
+      data: any;
+      error: any;
+    };
 
     if (error) {
       return { data: null, error: new Error(error.message) };

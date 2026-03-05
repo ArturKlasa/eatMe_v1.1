@@ -6,7 +6,6 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { supabase } from '../lib/supabase';
 import { ENV, debugLog } from '../config/environment';
 import { useUserLocation } from '../hooks/useUserLocation';
-import { useRestaurants, useAllDishes } from '../hooks';
 import { useFilterStore } from '../stores/filterStore';
 import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
@@ -90,14 +89,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     loadNearbyRestaurantsFromCurrentLocation,
   } = useRestaurantStore();
 
-  // Fallback to old data hooks if needed
-  const {
-    restaurants: dbRestaurants,
-    loading: restaurantsLoading,
-    error: restaurantsError,
-  } = useRestaurants();
-  const { dishes: dbDishes, loading: dishesLoading, error: dishesError } = useAllDishes();
-
   const cameraRef = useRef<Camera>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const [hasAutocentered, setHasAutocentered] = useState(false);
@@ -165,105 +156,57 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return null;
   };
 
-  // Convert Supabase data to match existing MapRestaurant/MapDish types
+  // Convert geospatial results to the MapRestaurant shape used by markers.
+  // This is now the single authoritative source — no fallback DB query.
   const restaurants = useMemo(() => {
-    // Prefer geospatial search results if available
-    if (nearbyRestaurants && nearbyRestaurants.length > 0) {
-      debugLog(`Using ${nearbyRestaurants.length} nearby restaurants from geospatial search`);
-      return nearbyRestaurants.map(r => {
-        return {
-          id: r.id,
-          name: r.name,
-          coordinates: [r.location.lng, r.location.lat] as [number, number],
-          cuisine: r.cuisine_types?.[0] || 'Unknown',
-          rating: r.rating || 0,
-          avgPrice: 20, // price_range not returned by geospatial endpoint; use mid-range default
-          address: r.address,
-          description: '',
-          imageUrl: undefined,
-          phone: r.phone || undefined,
-          isOpen: true,
-          openingHours: {
-            open: '09:00',
-            close: '22:00',
-          },
-          distance: formatDistance(r.distance), // Add distance from geospatial search
-        };
-      }) as MapRestaurant[];
-    }
+    return nearbyRestaurants.map(r => ({
+      id: r.id,
+      name: r.name,
+      coordinates: [r.location.lng, r.location.lat] as [number, number],
+      cuisine: r.cuisine_types?.[0] || 'Unknown',
+      rating: r.rating || 0,
+      avgPrice: 20, // price_range not returned by geospatial endpoint; use mid-range default
+      address: r.address,
+      description: '',
+      imageUrl: undefined,
+      phone: r.phone || undefined,
+      isOpen: true,
+      openingHours: { open: '09:00', close: '22:00' },
+      distance: formatDistance(r.distance),
+    })) as MapRestaurant[];
+  }, [nearbyRestaurants]);
 
-    // Fallback to old method if geospatial search hasn't loaded yet
-    debugLog('Falling back to dbRestaurants');
-    return dbRestaurants
-      .map(r => {
-        // Guard against null/undefined location
-        if (!r || !r.location) {
-          console.warn('Restaurant missing location data:', r?.id);
-          return null;
-        }
-
-        const location = parseLocation(r.location);
-        if (!location) return null;
-
-        // Map DB price_range (1–4) to estimated average price in local currency
-        const avgPriceByLevel = [12, 22, 38, 55];
-        const avgPrice = avgPriceByLevel[Math.min(((r as any).price_range ?? 2) - 1, 3)];
-
-        return {
-          id: r.id,
-          name: r.name,
-          coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
-          cuisine: r.cuisine_types?.[0] || 'Unknown',
-          rating: r.rating || 0, // 0 = unrated; updated by trigger after first opinion
-          avgPrice,
-          address: r.address,
-          description: r.description || '',
-          imageUrl: undefined,
-          phone: r.phone || undefined,
-          isOpen: true, // TODO: Calculate from operating_hours
-          openingHours: {
-            open: '09:00',
-            close: '22:00',
-          }, // TODO: Parse from operating_hours
-        };
-      })
-      .filter(r => r !== null) as MapRestaurant[];
-  }, [dbRestaurants, nearbyRestaurants]);
-
+  // Extract dish pins from the geospatial restaurant results.
+  // Dishes are nested inside menus → menu_categories → dishes from the nearby-restaurants Edge Function.
   const dishes = useMemo(() => {
-    return dbDishes
-      .map(d => {
-        // Guard against null/undefined restaurant or location
-        if (!d || !d.restaurant || !d.restaurant.location) {
-          console.warn('Dish missing restaurant location data:', d?.id);
-          return null;
+    const result: MapDish[] = [];
+    for (const r of nearbyRestaurants) {
+      const coords: [number, number] = [r.location.lng, r.location.lat];
+      for (const menu of r.menus ?? []) {
+        for (const dish of (menu as any).dishes ?? []) {
+          result.push({
+            id: dish.id,
+            name: dish.name,
+            restaurantId: r.id,
+            restaurantName: r.name,
+            price: dish.price,
+            cuisine: r.cuisine_types?.[0] || 'Unknown',
+            coordinates: coords,
+            description: '',
+            imageUrl: dish.image_url || undefined,
+            rating: r.rating || 0,
+            dietary_tags: dish.dietary_tags || [],
+            allergens: dish.allergens || [],
+          });
         }
-
-        const location = parseLocation(d.restaurant.location);
-        if (!location) return null;
-
-        return {
-          id: d.id,
-          name: d.name,
-          restaurantId: d.restaurant_id,
-          restaurantName: d.restaurant.name,
-          price: d.price,
-          cuisine: d.restaurant.cuisine_types?.[0] || 'Unknown',
-          coordinates: [location.lng, location.lat] as [number, number], // GeoJSON format
-          description: d.description || '',
-          imageUrl: d.image_url || undefined,
-          rating: d.restaurant?.rating || 0, // updated by trigger after first opinion
-          // Include diet/allergen fields for filtering
-          dietary_tags: d.dietary_tags || [],
-          allergens: d.allergens || [],
-        };
-      })
-      .filter(d => d !== null) as MapDish[];
-  }, [dbDishes]);
+      }
+    }
+    return result;
+  }, [nearbyRestaurants]);
 
   // Apply filters to restaurants with performance optimization
   const filteredResults = useMemo(() => {
-    if (restaurantsLoading) return { restaurants: [], dishes: [] };
+    if (geoLoading) return { restaurants: [], dishes: [] };
 
     debugLog('Applying filters to restaurants...');
     const result = applyFilters(restaurants, daily, permanent);
@@ -282,7 +225,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
 
     return result;
-  }, [restaurants, daily, permanent, restaurantsLoading]);
+  }, [restaurants, daily, permanent, geoLoading]);
 
   // Extract restaurants for easy access
   const displayedRestaurants = filteredResults.restaurants;
@@ -328,25 +271,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       return true;
     });
   }, [displayedRestaurants, recommendedDishes]);
-
-  // Debug logging
-  console.log('=== SUPABASE DATA DEBUG ===');
-  console.log('Raw DB restaurants:', dbRestaurants.length);
-  console.log('First restaurant raw:', dbRestaurants[0]);
-  console.log('Restaurants from DB:', restaurants.length);
-  console.log('First restaurant parsed:', restaurants[0]);
-  console.log('Dishes from DB:', dishes.length);
-  console.log('First dish dietary_tags:', dishes[0]?.dietary_tags);
-  console.log('Recommended dishes after filter:', recommendedDishes.length);
-  console.log('Restaurants after filtering:', displayedRestaurants.length);
-  console.log('Filter state - daily:', daily);
-  console.log('Filter state - permanent:', permanent);
-  console.log('First restaurant coordinates:', displayedRestaurants[0]?.coordinates);
-  console.log('Map center:', [
-    ENV.mapbox.defaultLocation.longitude,
-    ENV.mapbox.defaultLocation.latitude,
-  ]);
-  console.log('========================');
 
   const {
     location: userLocation,
@@ -644,10 +568,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
   };
 
-  // Show loading state while fetching data
-  const isLoading = restaurantsLoading || dishesLoading || geoLoading;
+  // Single loading signal — geospatial store + location permission
+  const isLoading = geoLoading;
 
-  if (isLoading && nearbyRestaurants.length === 0 && restaurants.length === 0) {
+  if (isLoading && nearbyRestaurants.length === 0) {
     return (
       <View
         style={[commonStyles.containers.screen, { justifyContent: 'center', alignItems: 'center' }]}
@@ -666,7 +590,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   }
 
   // Show error state if geospatial search failed (but allow fallback)
-  if (geoError && nearbyRestaurants.length === 0 && restaurants.length === 0) {
+  if (geoError && nearbyRestaurants.length === 0) {
     return (
       <View
         style={[
@@ -680,28 +604,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>{geoError.message}</Text>
         <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>
           Please check your location permission and internet connection
-        </Text>
-      </View>
-    );
-  }
-
-  // Show error state if data fetch failed
-  if (restaurantsError || dishesError) {
-    return (
-      <View
-        style={[
-          commonStyles.containers.screen,
-          { justifyContent: 'center', alignItems: 'center', padding: 20 },
-        ]}
-      >
-        <Text style={{ fontSize: 18, color: '#FF3B30', marginBottom: 8, textAlign: 'center' }}>
-          Failed to load data
-        </Text>
-        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
-          {restaurantsError?.message || dishesError?.message}
-        </Text>
-        <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>
-          Please check your internet connection and Supabase configuration
         </Text>
       </View>
     );
@@ -768,7 +670,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       />
 
       {/* Loading indicator overlay when refreshing in background */}
-      {isLoading && restaurants.length > 0 && (
+      {isLoading && nearbyRestaurants.length > 0 && (
         <View
           style={{
             position: 'absolute',

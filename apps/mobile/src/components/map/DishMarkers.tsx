@@ -38,7 +38,11 @@ export const DishMarkers: React.FC<DishMarkersProps> = ({ dishes, onMarkerPress 
           onSelected={() => onMarkerPress(dish)}
         >
           <View style={styles.marker}>
-            <Text style={styles.emoji}>{getEmoji((dish as any).cuisine ?? (dish as any).restaurant?.cuisine_types?.[0] ?? '')}</Text>
+            <Text style={styles.emoji}>
+              {getEmoji(
+                (dish as any).cuisine ?? (dish as any).restaurant?.cuisine_types?.[0] ?? ''
+              )}
+            </Text>
           </View>
         </PointAnnotation>
       ))}

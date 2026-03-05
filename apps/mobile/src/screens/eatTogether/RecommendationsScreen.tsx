@@ -232,7 +232,9 @@ export function RecommendationsScreen() {
                 <View style={styles.scoreRow}>
                   <View style={styles.scoreItem}>
                     <Text style={styles.scoreLabel}>{t('sessionVoting.match')}</Text>
-                    <Text style={styles.scoreValue}>{Math.round(rec.compatibility_score ?? 0)}/100</Text>
+                    <Text style={styles.scoreValue}>
+                      {Math.round(rec.compatibility_score ?? 0)}/100
+                    </Text>
                   </View>
                   <View style={styles.scoreItem}>
                     <Text style={styles.scoreLabel}>{t('sessionVoting.members')}</Text>

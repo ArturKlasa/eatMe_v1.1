@@ -51,7 +51,9 @@ function DashboardContent() {
 
         const { data, error } = await supabase
           .from('restaurants')
-          .select('id, name, address, cuisine_types, menus(id, name, menu_categories(id, dishes(id)))')
+          .select(
+            'id, name, address, cuisine_types, menus(id, name, menu_categories(id, dishes(id)))'
+          )
           .eq('owner_id', user.id)
           .maybeSingle();
 
@@ -93,8 +95,7 @@ function DashboardContent() {
   const totalDishes =
     userRestaurant?.menus?.reduce(
       (acc, menu) =>
-        acc +
-        (menu.menu_categories?.reduce((a, cat) => a + (cat.dishes?.length ?? 0), 0) ?? 0),
+        acc + (menu.menu_categories?.reduce((a, cat) => a + (cat.dishes?.length ?? 0), 0) ?? 0),
       0
     ) ||
     savedData?.dishes?.length ||

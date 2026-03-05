@@ -58,8 +58,8 @@ export function ProfileEditScreen() {
     try {
       // Update profile name if changed
       if (profileName !== user.user_metadata?.profile_name) {
-        const { error: nameError } = await updateProfileName(user.id, profileName);
-        if (nameError) {
+        const result = await updateProfileName(user.id, profileName);
+        if (!result.ok) {
           Alert.alert(t('common.error'), t('profileEdit.updateFailed'));
           setIsSaving(false);
           return;

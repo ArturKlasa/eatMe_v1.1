@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { type Result, ok, err } from '../lib/result';
 import type { PermanentFilters } from '../stores/filterStore';
 
 // ─── Default values ────────────────────────────────────────────────────────────
@@ -81,11 +82,12 @@ function normaliseObject<T extends object>(raw: T | null | undefined, defaults: 
 }
 
 /**
- * Load user preferences from database
+ * Load user preferences from database.
+ * Returns ok(null) when the user has no preferences yet (first-time user) — not an error.
  */
 export async function loadUserPreferences(
   userId: string
-): Promise<{ data: UserPreferencesDB | null; error: Error | null }> {
+): Promise<Result<UserPreferencesDB | null>> {
   try {
     const { data, error } = await supabase
       .from('user_preferences')
@@ -94,18 +96,16 @@ export async function loadUserPreferences(
       .single();
 
     if (error) {
-      // If no preferences exist yet, return null (not an error)
-      if (error.code === 'PGRST116') {
-        return { data: null, error: null };
-      }
+      // PGRST116 = no rows returned → first-time user, not an error
+      if (error.code === 'PGRST116') return ok(null);
       console.error('[UserPreferences] Error loading preferences:', error);
-      return { data: null, error: new Error(error.message) };
+      return err(error.message);
     }
 
-    return { data: data as unknown as UserPreferencesDB, error: null };
-  } catch (err) {
-    console.error('[UserPreferences] Unexpected error:', err);
-    return { data: null, error: err as Error };
+    return ok(data as unknown as UserPreferencesDB);
+  } catch (e) {
+    console.error('[UserPreferences] Unexpected error:', e);
+    return err(e as Error);
   }
 }
 
@@ -115,7 +115,7 @@ export async function loadUserPreferences(
 export async function saveUserPreferences(
   userId: string,
   preferences: Partial<UserPreferencesDB>
-): Promise<{ error: Error | null }> {
+): Promise<Result<void>> {
   try {
     const { error } = await (supabase.from('user_preferences') as any).upsert(
       {
@@ -123,20 +123,18 @@ export async function saveUserPreferences(
         ...preferences,
         updated_at: new Date().toISOString(),
       },
-      {
-        onConflict: 'user_id',
-      }
+      { onConflict: 'user_id' }
     );
 
     if (error) {
       console.error('[UserPreferences] Error saving preferences:', error);
-      return { error: new Error(error.message) };
+      return err(error.message);
     }
 
-    return { error: null };
-  } catch (err) {
-    console.error('[UserPreferences] Unexpected error:', err);
-    return { error: err as Error };
+    return ok(undefined);
+  } catch (e) {
+    console.error('[UserPreferences] Unexpected error:', e);
+    return err(e as Error);
   }
 }
 
@@ -183,7 +181,7 @@ export async function trackDishInteraction(
   dishId: string,
   interactionType: 'viewed' | 'liked' | 'disliked' | 'ordered' | 'saved',
   sessionId?: string
-): Promise<{ error: Error | null }> {
+): Promise<Result<void>> {
   try {
     const { error } = await supabase.from('user_dish_interactions').insert({
       user_id: userId,
@@ -194,13 +192,13 @@ export async function trackDishInteraction(
 
     if (error) {
       console.error('[UserPreferences] Error tracking interaction:', error);
-      return { error: new Error(error.message) };
+      return err(error.message);
     }
 
-    return { error: null };
-  } catch (err) {
-    console.error('[UserPreferences] Unexpected error:', err);
-    return { error: err as Error };
+    return ok(undefined);
+  } catch (e) {
+    console.error('[UserPreferences] Unexpected error:', e);
+    return err(e as Error);
   }
 }
 
@@ -210,7 +208,7 @@ export async function trackDishInteraction(
 export async function updateProfileName(
   userId: string,
   profileName: string
-): Promise<{ error: Error | null }> {
+): Promise<Result<void>> {
   try {
     const { error } = await supabase
       .from('users')
@@ -219,12 +217,12 @@ export async function updateProfileName(
 
     if (error) {
       console.error('[UserPreferences] Error updating profile name:', error);
-      return { error: new Error(error.message) };
+      return err(error.message);
     }
 
-    return { error: null };
-  } catch (err) {
-    console.error('[UserPreferences] Unexpected error:', err);
-    return { error: err as Error };
+    return ok(undefined);
+  } catch (e) {
+    console.error('[UserPreferences] Unexpected error:', e);
+    return err(e as Error);
   }
 }

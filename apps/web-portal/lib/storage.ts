@@ -60,6 +60,39 @@ export const hasSavedData = (userId: string): boolean => {
 };
 
 /**
+ * Clear the draft for a user if it is older than `maxAgeDays` days.
+ *
+ * Called on login so stale drafts from abandoned onboarding sessions are
+ * cleaned up automatically. Uses the `lastSaved` timestamp that
+ * `saveRestaurantData` writes on every save.
+ *
+ * @returns true if the draft was cleared, false if it was kept or absent.
+ */
+export const clearIfStale = (userId: string, maxAgeDays = 7): boolean => {
+  try {
+    const raw = localStorage.getItem(getStorageKey(userId));
+    if (!raw) return false;
+
+    const parsed = JSON.parse(raw) as FormProgress;
+    if (!parsed.lastSaved) return false;
+
+    const ageMs = Date.now() - new Date(parsed.lastSaved).getTime();
+    const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+
+    if (ageMs > maxAgeMs) {
+      localStorage.removeItem(getStorageKey(userId));
+      console.log(`[Storage] Cleared stale draft for user (age: ${Math.round(ageMs / 86400000)}d)`);
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('[Storage] Failed to check draft staleness:', error);
+    return false;
+  }
+};
+
+/**
  * Debounced auto-save function.
  * Use this inside watch() subscriptions or other high-frequency change handlers.
  * Call cancelAutoSave() in the effect cleanup to avoid writes after unmount.

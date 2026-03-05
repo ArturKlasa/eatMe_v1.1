@@ -123,8 +123,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         return;
       }
 
-      const { isFavorited: favorited } = await isFavorited(user.id, 'restaurant', restaurantId);
-      setIsFavorite(favorited);
+      const result = await isFavorited(user.id, 'restaurant', restaurantId);
+      setIsFavorite(result.ok ? result.data : false);
       setFavoritesInitialized(true);
     };
 
@@ -200,18 +200,18 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         }
         setFavoriteLoading(true);
         try {
-          const { isFavorited: newStatus, error } = await toggleFavorite(
+          const result = await toggleFavorite(
             user.id,
             'restaurant',
             restaurantId
           );
-          if (error) {
+          if (!result.ok) {
             Alert.alert(t('common.error'), t('favorites.updateFailed'));
           } else {
-            setIsFavorite(newStatus);
+            setIsFavorite(result.data);
             Alert.alert(
               t('common.success'),
-              newStatus ? t('favorites.addedToFavorites') : t('favorites.removedFromFavorites')
+              result.data ? t('favorites.addedToFavorites') : t('favorites.removedFromFavorites')
             );
           }
         } catch (err) {

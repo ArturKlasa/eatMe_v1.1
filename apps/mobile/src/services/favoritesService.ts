@@ -4,6 +4,7 @@
  */
 
 import { supabase as _supabase } from '../lib/supabase';
+import { type Result, ok, err } from '../lib/result';
 // favorites table is not yet in the generated DB types — use untyped client
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
@@ -25,7 +26,7 @@ export async function addToFavorites(
   userId: string,
   subjectType: FavoriteSubjectType,
   subjectId: string
-): Promise<{ data: Favorite | null; error: Error | null }> {
+): Promise<Result<Favorite>> {
   try {
     const { data, error } = (await (supabase.from('favorites') as any)
       .insert({
@@ -37,16 +38,13 @@ export async function addToFavorites(
       .single()) as { data: any; error: any };
 
     if (error) {
-      // Check if it's a duplicate error (already favorited)
-      if (error.code === '23505') {
-        return { data: null, error: new Error('Already in favorites') };
-      }
-      return { data: null, error: new Error(error.message) };
+      if (error.code === '23505') return err('Already in favorites');
+      return err(error.message);
     }
 
-    return { data: data as unknown as Favorite, error: null };
-  } catch (err) {
-    return { data: null, error: err as Error };
+    return ok(data as Favorite);
+  } catch (e) {
+    return err(e as Error);
   }
 }
 
@@ -57,7 +55,7 @@ export async function removeFromFavorites(
   userId: string,
   subjectType: FavoriteSubjectType,
   subjectId: string
-): Promise<{ error: Error | null }> {
+): Promise<Result<void>> {
   try {
     const { error } = (await (supabase.from('favorites') as any)
       .delete()
@@ -65,24 +63,22 @@ export async function removeFromFavorites(
       .eq('subject_type', subjectType)
       .eq('subject_id', subjectId)) as { error: any };
 
-    if (error) {
-      return { error: new Error(error.message) };
-    }
-
-    return { error: null };
-  } catch (err) {
-    return { error: err as Error };
+    if (error) return err(error.message);
+    return ok(undefined);
+  } catch (e) {
+    return err(e as Error);
   }
 }
 
 /**
- * Check if item is favorited
+ * Check if item is favorited.
+ * Returns ok(true) if favorited, ok(false) if not, err(...) on DB failure.
  */
 export async function isFavorited(
   userId: string,
   subjectType: FavoriteSubjectType,
   subjectId: string
-): Promise<{ isFavorited: boolean; error: Error | null }> {
+): Promise<Result<boolean>> {
   try {
     const { data, error } = await (supabase.from('favorites') as any)
       .select('id')
@@ -92,16 +88,14 @@ export async function isFavorited(
       .single();
 
     if (error) {
-      // PGRST116 means no rows returned (not favorited)
-      if (error.code === 'PGRST116') {
-        return { isFavorited: false, error: null };
-      }
-      return { isFavorited: false, error: new Error(error.message) };
+      // PGRST116 = no rows returned → not favorited (not an error)
+      if (error.code === 'PGRST116') return ok(false);
+      return err(error.message);
     }
 
-    return { isFavorited: !!data, error: null };
-  } catch (err) {
-    return { isFavorited: false, error: err as Error };
+    return ok(!!data);
+  } catch (e) {
+    return err(e as Error);
   }
 }
 
@@ -111,7 +105,7 @@ export async function isFavorited(
 export async function getUserFavorites(
   userId: string,
   subjectType?: FavoriteSubjectType
-): Promise<{ data: Favorite[] | null; error: Error | null }> {
+): Promise<Result<Favorite[]>> {
   try {
     let query = (supabase.from('favorites') as any)
       .select('id, user_id, subject_type, subject_id, created_at')
@@ -126,42 +120,36 @@ export async function getUserFavorites(
       error: any;
     };
 
-    if (error) {
-      return { data: null, error: new Error(error.message) };
-    }
-
-    return { data: data as unknown as Favorite[], error: null };
-  } catch (err) {
-    return { data: null, error: err as Error };
+    if (error) return err(error.message);
+    return ok(data as Favorite[]);
+  } catch (e) {
+    return err(e as Error);
   }
 }
 
 /**
- * Toggle favorite (add if not favorited, remove if already favorited)
+ * Toggle favorite (add if not favorited, remove if already favorited).
+ * Returns ok(true) if now favorited, ok(false) if now unfavorited.
  */
 export async function toggleFavorite(
   userId: string,
   subjectType: FavoriteSubjectType,
   subjectId: string
-): Promise<{ isFavorited: boolean; error: Error | null }> {
+): Promise<Result<boolean>> {
   try {
-    // Check current status
-    const { isFavorited: currentlyFavorited } = await isFavorited(userId, subjectType, subjectId);
+    const checkResult = await isFavorited(userId, subjectType, subjectId);
+    if (!checkResult.ok) return checkResult;
 
-    if (currentlyFavorited) {
-      // Remove from favorites
-      const { error } = await removeFromFavorites(userId, subjectType, subjectId);
-      if (error) return { isFavorited: true, error };
-      return { isFavorited: false, error: null };
+    if (checkResult.data) {
+      const removeResult = await removeFromFavorites(userId, subjectType, subjectId);
+      if (!removeResult.ok) return removeResult;
+      return ok(false);
     } else {
-      // Add to favorites
-      const { error } = await addToFavorites(userId, subjectType, subjectId);
-      if (error && error.message !== 'Already in favorites') {
-        return { isFavorited: false, error };
-      }
-      return { isFavorited: true, error: null };
+      const addResult = await addToFavorites(userId, subjectType, subjectId);
+      if (!addResult.ok && addResult.error !== 'Already in favorites') return addResult;
+      return ok(true);
     }
-  } catch (err) {
-    return { isFavorited: false, error: err as Error };
+  } catch (e) {
+    return err(e as Error);
   }
 }

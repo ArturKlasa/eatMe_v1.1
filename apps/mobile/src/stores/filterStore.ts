@@ -882,16 +882,16 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
   loadPreferencesFromDB: async (userId: string) => {
     try {
       debugLog('[FilterStore] Loading preferences from database...');
-      const { data, error } = await loadUserPreferences(userId);
+      const result = await loadUserPreferences(userId);
 
-      if (error) {
-        console.error('[FilterStore] Failed to load preferences from DB:', error);
+      if (!result.ok) {
+        console.error('[FilterStore] Failed to load preferences from DB:', result.error);
         return;
       }
 
-      if (data) {
+      if (result.data) {
         // Convert DB format to filterStore format and merge with current state
-        const dbFilters = dbToPermanentFilters(data);
+        const dbFilters = dbToPermanentFilters(result.data);
         set(state => ({
           permanent: {
             ...state.permanent,
@@ -913,10 +913,10 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       const currentState = get();
       const dbPrefs = permanentFiltersToDb(currentState.permanent);
 
-      const { error } = await saveUserPreferences(userId, dbPrefs);
+      const result = await saveUserPreferences(userId, dbPrefs);
 
-      if (error) {
-        console.error('[FilterStore] Failed to save preferences to DB:', error);
+      if (!result.ok) {
+        console.error('[FilterStore] Failed to save preferences to DB:', result.error);
         return;
       }
 

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { clearIfStale } from '@/lib/storage';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Clear any draft that hasn't been touched in >7 days (A7)
+      if (session?.user?.id) clearIfStale(session.user.id);
     });
 
     // Listen for auth changes

@@ -7,8 +7,7 @@ export default function OnboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to menu page for now (we can change this to basic-info when that's ready)
-    router.push('/onboard/menu');
+    router.push('/onboard/basic-info');
   }, [router]);
 
   return (

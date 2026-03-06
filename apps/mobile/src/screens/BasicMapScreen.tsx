@@ -11,7 +11,12 @@ import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { applyFilters, validateFilters, getFilterSuggestions, estimateAvgPrice } from '../services/filterService';
+import {
+  applyFilters,
+  validateFilters,
+  getFilterSuggestions,
+  estimateAvgPrice,
+} from '../services/filterService';
 import type { FilterResult } from '../services/filterService';
 import { getFeed, ServerDish } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
@@ -118,44 +123,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const daily = useFilterStore(state => state.daily);
   const permanent = useFilterStore(state => state.permanent);
   const mode = useViewModeStore(state => state.mode);
-
-  // Helper function to parse location data
-  const parseLocation = (location: any): { lat: number; lng: number } | null => {
-    if (!location) return null;
-
-    // If it's already an object with lat/lng
-    if (typeof location === 'object' && location.lat && location.lng) {
-      return { lat: location.lat, lng: location.lng };
-    }
-
-    // If it's a PostGIS point string like "POINT(-122.084 37.422)"
-    if (typeof location === 'string') {
-      if (location.startsWith('POINT')) {
-        const match = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-        if (match) {
-          return { lat: parseFloat(match[2]), lng: parseFloat(match[1]) };
-        }
-      }
-
-      // If it's WKB hexadecimal format from PostGIS
-      // Format: 0101000020E6... (starts with 0101)
-      if (location.match(/^0101/)) {
-        // WKB format - we need to decode the binary
-        // For now, log and skip - we'll handle this with a better query
-        console.warn(
-          'WKB location format detected, needs proper parsing:',
-          location.substring(0, 40) + '...'
-        );
-        return null;
-      }
-    }
-
-    console.warn(
-      'Unable to parse location:',
-      typeof location === 'string' ? location.substring(0, 60) : location
-    );
-    return null;
-  };
 
   // Convert geospatial results to the MapRestaurant shape used by markers.
   // This is now the single authoritative source — no fallback DB query.

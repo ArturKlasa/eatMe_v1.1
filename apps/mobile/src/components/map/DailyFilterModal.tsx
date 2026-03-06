@@ -312,35 +312,33 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                 🍽️ {t('filters.cuisine')}
               </Text>
               <View style={modals.cuisineGrid}>
-                {POPULAR_CUISINES.map(
-                  cuisine => (
-                    <TouchableOpacity
-                      key={cuisine}
+                {POPULAR_CUISINES.map(cuisine => (
+                  <TouchableOpacity
+                    key={cuisine}
+                    style={[
+                      modals.cuisineOption,
+                      localFilters.cuisineTypes.includes(cuisine) && modals.selectedOption,
+                    ]}
+                    onPress={() =>
+                      setLocalFilters(prev => ({
+                        ...prev,
+                        cuisineTypes: prev.cuisineTypes.includes(cuisine)
+                          ? prev.cuisineTypes.filter(c => c !== cuisine)
+                          : [...prev.cuisineTypes, cuisine],
+                      }))
+                    }
+                  >
+                    <Text
                       style={[
-                        modals.cuisineOption,
-                        localFilters.cuisineTypes.includes(cuisine) && modals.selectedOption,
+                        modals.cuisineText,
+                        modals.darkCuisineText,
+                        localFilters.cuisineTypes.includes(cuisine) && modals.selectedText,
                       ]}
-                      onPress={() =>
-                        setLocalFilters(prev => ({
-                          ...prev,
-                          cuisineTypes: prev.cuisineTypes.includes(cuisine)
-                            ? prev.cuisineTypes.filter(c => c !== cuisine)
-                            : [...prev.cuisineTypes, cuisine],
-                        }))
-                      }
                     >
-                      <Text
-                        style={[
-                          modals.cuisineText,
-                          modals.darkCuisineText,
-                          localFilters.cuisineTypes.includes(cuisine) && modals.selectedText,
-                        ]}
-                      >
-                        {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                )}
+                      {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
                 <TouchableOpacity
                   style={modals.cuisineOption}
                   onPress={() => setCuisineModalVisible(true)}

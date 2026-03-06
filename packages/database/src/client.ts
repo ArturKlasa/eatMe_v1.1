@@ -32,7 +32,15 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 /**
- * Create a typed Supabase client configured for **React Native / Expo only**.
+ * @deprecated The web portal has migrated to `createBrowserClient` from
+ * `@supabase/ssr` (cookie-based PKCE session for SSR proxy compatibility).
+ * This function is no longer used by any consumer in the monorepo.
+ *
+ * For web (Next.js):
+ *   import { createBrowserClient } from '@supabase/ssr';
+ *   export const supabase = createBrowserClient<Database>(url, anonKey);
+ *
+ * For mobile (Expo / React Native), use `getMobileClient` below instead.
  *
  * NOTE: The web portal no longer uses this — it uses createBrowserClient() from
  * @supabase/ssr directly so the session lives in cookies and the proxy can read it.

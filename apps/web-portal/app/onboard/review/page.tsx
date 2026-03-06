@@ -90,10 +90,6 @@ function ReviewPageContent() {
     router.push('/');
   };
 
-  const handleEditRestaurantInfo = () => {
-    router.push('/');
-  };
-
   const handleEditMenu = () => {
     router.push('/onboard/menu');
   };
@@ -134,7 +130,7 @@ function ReviewPageContent() {
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-2xl">Restaurant Information</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleEditRestaurantInfo}>
+            <Button variant="outline" size="sm" onClick={handleBack}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>

@@ -4,7 +4,7 @@
  * Shared Supabase client factory and generated types for the EatMe monorepo.
  *
  * Each app creates its own client:
- *   Web:    const supabase = getWebClient();
+ *   Web:    createBrowserClient() from @supabase/ssr (PKCE, cookie-based)
  *   Mobile: const supabase = getMobileClient(AsyncStorage);
  */
 

@@ -1,3 +1,14 @@
+/**
+ * Restaurant Data Export Utilities
+ *
+ * These functions are complete and working but are NOT YET wired to any UI button.
+ * They are intended for a future "Export" feature on the restaurant dashboard.
+ *
+ * To use, import the desired function and call it from a button onClick handler, e.g.:
+ *   import { exportAsCSV } from '@/lib/export';
+ *   <Button onClick={() => exportAsCSV(dishes, restaurant.name)}>Export CSV</Button>
+ */
+
 import { RestaurantData, Dish } from '@/types/restaurant';
 
 /**

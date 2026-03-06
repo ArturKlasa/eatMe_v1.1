@@ -29,10 +29,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const loadStats = async () => {
-      console.log('[Admin] Loading stats from admin_dashboard_stats view...');
       const { data, error } = await supabase.from('admin_dashboard_stats').select('*').single();
-
-      console.log('[Admin] Stats query result:', { data, error });
 
       if (error) {
         console.error('[Admin] Failed to load stats:', {

@@ -44,7 +44,6 @@ function ReviewPageContent() {
       !loading &&
       (!restaurantData || !restaurantData.menus || restaurantData.menus.length === 0)
     ) {
-      console.log('[Review] Validation failed - redirecting to menu page');
       toast.error('No restaurant data found. Please add at least one menu first.');
       router.push('/onboard/menu');
     }

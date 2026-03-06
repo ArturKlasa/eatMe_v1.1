@@ -32,7 +32,7 @@ export type MainStackParamList = {
   VotingResults: { sessionId: string };
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };
-  SupabaseTest: undefined;
+
   OnboardingStep1: undefined;
   OnboardingStep2: undefined;
 };

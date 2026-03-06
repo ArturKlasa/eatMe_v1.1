@@ -24,7 +24,6 @@ import {
   VotingResultsScreen,
 } from '@/screens/eatTogether';
 import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
-import { SupabaseTestScreen } from '../screens/SupabaseTestScreen';
 import { useAuthStore } from '../stores/authStore';
 import { initStoreBindings } from '../stores/storeBindings';
 import type {
@@ -71,15 +70,7 @@ function MainNavigator() {
         component={SwipeScreen}
         options={{
           headerShown: true,
-          title: 'Swipe Demo',
-        }}
-      />
-      <MainStack.Screen
-        name="SupabaseTest"
-        component={SupabaseTestScreen}
-        options={{
-          headerShown: true,
-          title: 'Supabase Connection Test',
+          title: 'Swipe',
         }}
       />
       <MainStack.Screen

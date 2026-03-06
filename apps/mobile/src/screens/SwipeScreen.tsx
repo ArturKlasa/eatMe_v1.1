@@ -24,7 +24,7 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { useAuthStore } from '../stores/authStore';
 
 /**
- * SwipeScreen - Demonstration of Edge Functions Integration
+ * SwipeScreen - Dish feed with personalised Edge Functions integration
  *
  * This screen shows how to use the Edge Functions (getFeed and trackSwipe)
  * to get server-filtered dishes and track user interactions.

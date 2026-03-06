@@ -17,6 +17,7 @@ import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/i18nUtils';
+import { POPULAR_CUISINES, ALL_CUISINES } from '../../constants';
 
 /**
  * Converts a display name like "Comfort Food" or "Fish & Chips" to the
@@ -311,7 +312,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                 🍽️ {t('filters.cuisine')}
               </Text>
               <View style={modals.cuisineGrid}>
-                {['Mexican', 'Italian', 'Chinese', 'Japanese', 'American', 'Indian', 'Thai'].map(
+                {POPULAR_CUISINES.map(
                   cuisine => (
                     <TouchableOpacity
                       key={cuisine}
@@ -643,76 +644,6 @@ interface CuisineSelectionModalProps {
   selectedCuisines: string[];
   onToggleCuisine: (cuisine: string) => void;
 }
-
-// All available cuisines
-const ALL_CUISINES = [
-  'Afghan',
-  'African',
-  'American',
-  'Argentine',
-  'Asian',
-  'BBQ',
-  'Bakery',
-  'Brazilian',
-  'British',
-  'Café',
-  'Cajun',
-  'Caribbean',
-  'Chinese',
-  'Colombian',
-  'Comfort Food',
-  'Cuban',
-  'Deli',
-  'Ethiopian',
-  'Fast Food',
-  'Filipino',
-  'Fine Dining',
-  'French',
-  'Fusion',
-  'German',
-  'Greek',
-  'Halal',
-  'Hawaiian',
-  'Healthy',
-  'Indian',
-  'Indonesian',
-  'International',
-  'Irish',
-  'Italian',
-  'Jamaican',
-  'Japanese',
-  'Korean',
-  'Kosher',
-  'Latin American',
-  'Lebanese',
-  'Malaysian',
-  'Mediterranean',
-  'Mexican',
-  'Middle Eastern',
-  'Moroccan',
-  'Nepalese',
-  'Pakistani',
-  'Peruvian',
-  'Pizza',
-  'Polish',
-  'Portuguese',
-  'Russian',
-  'Salad',
-  'Sandwiches',
-  'Seafood',
-  'Soul Food',
-  'Southern',
-  'Spanish',
-  'Steakhouse',
-  'Sushi',
-  'Tapas',
-  'Thai',
-  'Turkish',
-  'Vegan',
-  'Vegetarian',
-  'Vietnamese',
-  'Other',
-];
 
 const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
   visible,

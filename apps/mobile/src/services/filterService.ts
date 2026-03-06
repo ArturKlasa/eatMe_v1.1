@@ -7,6 +7,36 @@
 
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
 
+/**
+ * Estimate an average spend (in the user's local currency) for a restaurant
+ * when no explicit price_range data is available in the DB.
+ *
+ * The mapping is based on `service_speed` (primary signal) and
+ * `restaurant_type` (secondary signal). Values are intentionally mid-range
+ * so they sit inside the filter slider's default 10–50 window.
+ *
+ * @returns A number in the same currency unit used by the price-range filter.
+ */
+export function estimateAvgPrice(
+  serviceSpeed?: string | null,
+  restaurantType?: string | null
+): number {
+  if (serviceSpeed === 'fast-food') return 12;
+  switch (restaurantType) {
+    case 'fine_dining':
+      return 55;
+    case 'cafe':
+    case 'bakery':
+    case 'food_stall':
+    case 'food_truck':
+      return 15;
+    case 'buffet':
+      return 22;
+    default:
+      return 25; // restaurant / self_service / ghost_kitchen / other
+  }
+}
+
 // Restaurant type used by filter service
 export interface Restaurant {
   id: string;

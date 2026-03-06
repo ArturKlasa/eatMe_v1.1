@@ -11,19 +11,20 @@
  * 7. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { useFilterStore } from '../stores/filterStore';
 import { drawerFiltersStyles } from '@/styles';
+import { fetchIngredientNames } from '../services/ingredientService';
 
 interface DrawerFiltersProps {
   onClose?: () => void;
   onScroll?: (event: any) => void;
 }
 
-// TODO: Replace with API call to fetch ingredients from Supabase ingredients_master table
-// Common ingredients list for user preference filtering
-const COMMON_INGREDIENTS = [
+// Shown immediately while the live fetch is in progress, and used as a permanent
+// fallback if the Supabase query fails (e.g. no network).
+const FALLBACK_INGREDIENTS = [
   'Cilantro',
   'Mushrooms',
   'Onions',
@@ -47,6 +48,15 @@ const COMMON_INGREDIENTS = [
 ];
 
 export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll }) => {
+  // Ingredient list — starts with the fallback, replaced with live DB data once loaded.
+  const [ingredients, setIngredients] = useState<string[]>(FALLBACK_INGREDIENTS);
+
+  useEffect(() => {
+    fetchIngredientNames().then(names => {
+      if (names.length > 0) setIngredients(names);
+    });
+  }, []);
+
   const {
     permanent,
     setPermanentDietPreference,
@@ -345,7 +355,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
             <View style={drawerFiltersStyles.modalContent}>
               <ScrollView showsVerticalScrollIndicator={true}>
                 <View style={drawerFiltersStyles.ingredientsList}>
-                  {COMMON_INGREDIENTS.map(ingredient => (
+                  {ingredients.map(ingredient => (
                     <TouchableOpacity
                       key={ingredient}
                       style={drawerFiltersStyles.ingredientListItem}

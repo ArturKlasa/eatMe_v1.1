@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ArrowLeft, Save, Clock } from 'lucide-react';
+import { DAYS_OF_WEEK } from '@/lib/constants';
 
 interface RestaurantFormData {
   name: string;
@@ -22,16 +23,6 @@ interface RestaurantFormData {
   phone: string;
   website: string;
 }
-
-const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Monday' },
-  { key: 'tuesday', label: 'Tuesday' },
-  { key: 'wednesday', label: 'Wednesday' },
-  { key: 'thursday', label: 'Thursday' },
-  { key: 'friday', label: 'Friday' },
-  { key: 'saturday', label: 'Saturday' },
-  { key: 'sunday', label: 'Sunday' },
-];
 
 function EditRestaurantContent() {
   const router = useRouter();

@@ -11,7 +11,7 @@ import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { applyFilters, validateFilters, getFilterSuggestions } from '../services/filterService';
+import { applyFilters, validateFilters, getFilterSuggestions, estimateAvgPrice } from '../services/filterService';
 import type { FilterResult } from '../services/filterService';
 import { getFeed, ServerDish } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
@@ -171,7 +171,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         coordinates: [r.location.lng, r.location.lat] as [number, number],
         cuisine: r.cuisine_types?.[0] || 'Unknown',
         rating: r.rating || 0,
-        avgPrice: 20, // price_range not returned by geospatial endpoint; use mid-range default
+        avgPrice: estimateAvgPrice(r.service_speed, r.restaurant_type),
         address: r.address,
         description: '',
         imageUrl: undefined,

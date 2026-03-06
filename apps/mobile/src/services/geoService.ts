@@ -7,6 +7,7 @@
 
 import { supabase } from '../lib/supabase';
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
+import { debugLog } from '../config/environment';
 
 export interface NearbyRestaurantsRequest {
   latitude: number;
@@ -161,7 +162,7 @@ export async function fetchNearbyRestaurants(
       throw new Error('No data returned from Edge Function');
     }
 
-    console.log(`[GeoService] Found ${data.totalCount} restaurants within ${radiusKm}km`);
+    debugLog(`[GeoService] Found ${data.totalCount} restaurants within ${radiusKm}km`);
 
     return data as NearbyRestaurantsResponse;
   } catch (err) {

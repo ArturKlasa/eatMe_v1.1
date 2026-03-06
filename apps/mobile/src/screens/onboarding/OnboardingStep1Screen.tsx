@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
+import { debugLog } from '../../config/environment';
 
 const DIET_TYPES = [
   { value: 'all', key: 'dietEverything', emoji: '🍽️' },
@@ -45,14 +46,14 @@ export function OnboardingStep1Screen() {
   }
 
   // Additional type validation
-  console.log('[OnboardingStep1] formData:', formData);
-  console.log(
+  debugLog('[OnboardingStep1] formData:', formData);
+  debugLog(
     '[OnboardingStep1] allergies type:',
     typeof formData.allergies,
     'isArray:',
     Array.isArray(formData.allergies)
   );
-  console.log('[OnboardingStep1] allergies value:', formData.allergies);
+  debugLog('[OnboardingStep1] allergies value:', formData.allergies);
 
   // Helper to safely get array values
   const safeArrayValue = (value: any): string[] => {

@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { debugLog } from '../config/environment';
 
 import { getCurrencyForCountry, type SupportedCurrency } from '../utils/currencyConfig';
 import * as RNLocalize from 'react-native-localize';
@@ -108,9 +109,7 @@ export const useSettingsStore = create<SettingsStore>()(
           // (i.e., stored currency still matches the default 'USD' from a
           // fresh install, or matches a previously auto-detected value).
           set({ detectedCountryCode: countryCode, currency: detectedCurrency });
-          console.log(
-            `[Settings] Auto-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`
-          );
+          debugLog(`[Settings] Auto-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`);
         } catch (error) {
           console.error('[Settings] autoDetectCurrency error:', error);
         }

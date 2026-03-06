@@ -20,7 +20,10 @@ interface DishMarkersProps {
   onMarkerPress: (dish: Dish) => void;
 }
 
-export const DishMarkers = React.memo<DishMarkersProps>(function DishMarkers({ dishes, onMarkerPress }) {
+export const DishMarkers = React.memo<DishMarkersProps>(function DishMarkers({
+  dishes,
+  onMarkerPress,
+}) {
   const getEmoji = (cuisine: string) => {
     if (cuisine.includes('Mexican')) return '🌮';
     if (cuisine.includes('Italian')) return '🍝';

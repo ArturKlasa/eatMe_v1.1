@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase, type RestaurantWithMenus, type DishWithRelations } from '../lib/supabase';
+import { debugLog } from '../config/environment';
 import {
   fetchNearbyRestaurants,
   fetchNearbyRestaurantsFromCurrentLocation,
@@ -140,7 +141,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
         loading: false,
       });
 
-      console.log(`[RestaurantStore] Loaded ${response.totalCount} nearby restaurants`);
+      debugLog(`[RestaurantStore] Loaded ${response.totalCount} nearby restaurants`);
     } catch (err) {
       const error = err as Error;
       console.error('[RestaurantStore] Failed to load nearby restaurants:', error);
@@ -172,9 +173,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
         loading: false,
       });
 
-      console.log(
-        `[RestaurantStore] Loaded ${response.totalCount} nearby restaurants from current location`
-      );
+      debugLog(`[RestaurantStore] Loaded ${response.totalCount} nearby restaurants from current location`);
     } catch (err) {
       const error = err as Error;
       console.error(

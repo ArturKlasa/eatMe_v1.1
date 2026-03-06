@@ -132,7 +132,6 @@ export async function testSupabaseConnection(): Promise<boolean> {
       return false;
     }
 
-    console.log('✅ Supabase connection successful!');
     return true;
   } catch (error) {
     console.error('❌ Unexpected error:', error);

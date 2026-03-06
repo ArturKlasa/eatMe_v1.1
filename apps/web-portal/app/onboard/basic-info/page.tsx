@@ -203,7 +203,6 @@ function BasicInfoPageContent() {
 
       // Load saved data directly into defaultValues
       const savedData = loadRestaurantData(user.id);
-      console.log('[BasicInfo] Initializing defaultValues from storage:', savedData);
 
       if (savedData) {
         return {
@@ -369,7 +368,6 @@ function BasicInfoPageContent() {
 
   const handleAddressSelect = useCallback(
     (address: string) => {
-      console.log('[BasicInfo] Address received from reverse geocoding:', address);
       setValue('address', address);
     },
     [setValue]
@@ -381,8 +379,6 @@ function BasicInfoPageContent() {
    */
   const handleLocationDetails = useCallback(
     (details: ParsedLocationDetails) => {
-      console.log('[BasicInfo] Location details from reverse geocoding:', details);
-
       if (details.city) setValue('city', details.city);
       if (details.neighbourhood) setValue('neighbourhood', details.neighbourhood);
       if (details.state) setValue('state', details.state);
@@ -401,8 +397,6 @@ function BasicInfoPageContent() {
   );
 
   const onSubmit = (data: FormData) => {
-    console.log('[BasicInfo] onSubmit fired');
-    console.log('[BasicInfo] onSubmit data snapshot:', data);
     // Validate required fields
     if (!data.name || !data.address) {
       toast.error('Please fill in all required fields');

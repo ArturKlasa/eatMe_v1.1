@@ -3,6 +3,7 @@ import type { Tables } from '@eatme/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { debugLog } from '../config/environment';
 
 // Warm up the browser for faster OAuth flows
 WebBrowser.maybeCompleteAuthSession();
@@ -19,7 +20,7 @@ export const supabase = getMobileClient(
 export const getOAuthRedirectUrl = () => {
   // Use expo-linking to get the app's deep link URL
   const redirectUrl = Linking.createURL('auth/callback');
-  console.log('[OAuth] Redirect URL:', redirectUrl);
+  debugLog('[OAuth] Redirect URL:', redirectUrl);
   return redirectUrl;
 };
 

@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { debugLog } from '../config/environment';
 
 export interface OnboardingFormData {
   // Step 1: Dietary & Allergies
@@ -182,7 +183,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
       if (error) throw error;
 
-      console.log('[Onboarding] Preferences saved to Supabase');
+        debugLog('[Onboarding] Preferences saved to Supabase');
     } catch (error) {
       console.error('[Onboarding] Failed to save to Supabase:', error);
       throw error; // Re-throw to show error in UI
@@ -224,7 +225,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       if (error) {
         // If no preferences exist yet (PGRST116), that's okay
         if (error.code === 'PGRST116') {
-          console.log('[Onboarding] No preferences found for user');
+            debugLog('[Onboarding] No preferences found for user');
           return;
         }
         throw error;
@@ -268,7 +269,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         // Recalculate completion stats from local data
         get().updateProfileStats();
 
-        console.log('[Onboarding] Preferences loaded from Supabase');
+          debugLog('[Onboarding] Preferences loaded from Supabase');
       }
     } catch (error) {
       console.error('[Onboarding] Failed to load from Supabase:', error);
@@ -319,7 +320,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
       if (error) throw error;
 
-      console.log('[Onboarding] Preferences saved to Supabase');
+      debugLog('[Onboarding] Preferences saved to Supabase');
     } catch (error) {
       console.error('[Onboarding] Failed to save to Supabase:', error);
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { debugLog } from '../config/environment';
 import {
   View,
   Text,
@@ -88,11 +89,11 @@ export function SwipeScreen() {
 
       setDishes(response.dishes);
       setFeedMetadata(response.metadata);
-      console.log(`[SwipeScreen] Loaded ${response.dishes.length} dishes from Edge Function`);
-      console.log(`[SwipeScreen] Total available: ${response.metadata.totalAvailable}`);
-      console.log(`[SwipeScreen] Personalized: ${response.metadata.personalized}`);
-      console.log(`[SwipeScreen] User interactions: ${response.metadata.userInteractions}`);
-      console.log(`[SwipeScreen] From cache: ${response.metadata.cached}`);
+      debugLog(`[SwipeScreen] Loaded ${response.dishes.length} dishes from Edge Function`);
+      debugLog(`[SwipeScreen] Total available: ${response.metadata.totalAvailable}`);
+      debugLog(`[SwipeScreen] Personalized: ${response.metadata.personalized}`);
+      debugLog(`[SwipeScreen] User interactions: ${response.metadata.userInteractions}`);
+      debugLog(`[SwipeScreen] From cache: ${response.metadata.cached}`);
     } catch (err) {
       console.error('[SwipeScreen] Failed to load dishes:', err);
       setError(err instanceof Error ? err.message : 'Failed to load dishes');

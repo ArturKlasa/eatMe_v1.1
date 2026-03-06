@@ -55,24 +55,33 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // ── Security headers for sensitive routes ─────────────────────────────────
-  if (path.startsWith('/admin') || path.startsWith('/onboard')) {
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set(
-      'Content-Security-Policy',
-      [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https:",
-        "font-src 'self' data:",
-        "connect-src 'self' https://*.supabase.co https://nominatim.openstreetmap.org",
-      ].join('; ')
-    );
-  }
+  // ── Security headers — applied globally ──────────────────────────────────
+  // X-Frame-Options is kept for legacy browser compatibility alongside
+  // the CSP frame-ancestors directive.
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+  response.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      // 'unsafe-inline' is required by Next.js App Router for hydration scripts.
+      // 'unsafe-eval' has been intentionally removed — it is only needed by
+      // certain bundler dev modes and is not required in production.
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.mapbox.com https://events.mapbox.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests",
+    ].join('; ')
+  );
 
   return response;
 }

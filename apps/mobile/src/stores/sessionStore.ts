@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { SessionView, RecentlyViewedRestaurant, RecentlyViewedDish } from '../types/rating';
+import { debugLog } from '../config/environment';
 
 const SESSION_STORAGE_KEY = 'eatme_session_views';
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour (session ends after 1 hour of inactivity)
@@ -69,7 +70,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        console.log('[Session] No user, skipping session start');
+        debugLog('[Session] No user, skipping session start');
         return;
       }
 
@@ -85,7 +86,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       if (activeSessions && activeSessions.length > 0) {
         // Use existing active session
         set({ currentSessionId: activeSessions[0].id });
-        console.log('[Session] Using existing session:', activeSessions[0].id);
+        debugLog('[Session] Using existing session:', activeSessions[0].id);
         return;
       }
 
@@ -105,7 +106,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       }
 
       set({ currentSessionId: newSession.id });
-      console.log('[Session] Started new session:', newSession.id);
+      debugLog('[Session] Started new session:', newSession.id);
     } catch (error) {
       console.error('[Session] Error in startSession:', error);
     }
@@ -130,7 +131,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       }
 
       set({ currentSessionId: null });
-      console.log('[Session] Ended session:', currentSessionId);
+      debugLog('[Session] Ended session:', currentSessionId);
     } catch (error) {
       console.error('[Session] Error in endSession:', error);
     }
@@ -166,7 +167,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           viewed_at: new Date().toISOString(),
         });
 
-        console.log('[Session] Tracked view:', { entityType, entityId });
+        debugLog('[Session] Tracked view:', { entityType, entityId });
       } catch (error) {
         console.error('[Session] Error tracking view:', error);
       }

@@ -302,7 +302,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         );
         if (!cancelled) {
           setFeedDishes(response.dishes);
-          console.log(
+          debugLog(
             `[BasicMapScreen] Feed loaded: ${response.dishes.length} dishes (personalized: ${response.metadata.personalized})`
           );
         }

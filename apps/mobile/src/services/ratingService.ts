@@ -11,6 +11,7 @@
 
 import { supabase } from '../lib/supabase';
 import { DishRatingInput, RestaurantFeedbackInput, PointsEarned } from '../types/rating';
+import { debugLog } from '../config/environment';
 
 /**
  * Upload a photo to Supabase Storage
@@ -166,10 +167,7 @@ export async function saveRestaurantFeedback(
     }
 
     // Save restaurant experience response
-    console.log(
-      '[RatingService] Saving restaurant feedback with questionType:',
-      feedback.questionType
-    );
+    debugLog('[RatingService] Saving restaurant feedback with questionType:', feedback.questionType);
 
     const { error } = await supabase.from('restaurant_experience_responses').insert({
       user_id: userId,
@@ -347,21 +345,21 @@ export async function submitRating(
   pointsEarned: PointsEarned
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log('[RatingService] Starting rating submission...');
+    debugLog('[RatingService] Starting rating submission...');
 
     // 1. Create visit record
     const visitId = await createUserVisit(userId, restaurantId, sessionId);
     if (!visitId) {
       return { success: false, error: 'Failed to create visit record' };
     }
-    console.log('[RatingService] Created visit:', visitId);
+    debugLog('[RatingService] Created visit:', visitId);
 
     // 2. Save dish opinions
     const { success: dishSuccess } = await saveDishOpinions(userId, dishRatings, visitId);
     if (!dishSuccess) {
       return { success: false, error: 'Failed to save dish ratings' };
     }
-    console.log('[RatingService] Saved dish opinions');
+    debugLog('[RatingService] Saved dish opinions');
 
     // 3. Save restaurant feedback if provided
     if (restaurantFeedback) {
@@ -382,7 +380,7 @@ export async function submitRating(
       console.warn('[RatingService] Failed to award points (non-fatal)');
     }
 
-    console.log('[RatingService] Rating submission complete!');
+    debugLog('[RatingService] Rating submission complete!');
     return { success: true };
   } catch (error) {
     console.error('[RatingService] Error in submitRating:', error);

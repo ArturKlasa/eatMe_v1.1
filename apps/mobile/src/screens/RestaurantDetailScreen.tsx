@@ -118,8 +118,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
           // Dish ratings need restaurant data first — fire immediately after
           const allDishIds =
-            typed.menus?.flatMap(m =>
-              m.menu_categories?.flatMap(c => c.dishes?.map(d => d.id) ?? []) ?? []
+            typed.menus?.flatMap(
+              m => m.menu_categories?.flatMap(c => c.dishes?.map(d => d.id) ?? []) ?? []
             ) ?? [];
 
           if (allDishIds.length > 0) {

@@ -7,6 +7,7 @@
 import { supabase } from '../lib/supabase';
 import { uploadPhoto } from './ratingService';
 import * as ImagePicker from 'expo-image-picker';
+import { debugLog } from '../config/environment';
 
 export interface DishPhoto {
   id: string;
@@ -32,7 +33,7 @@ export async function pickImage(): Promise<string | null> {
   try {
     const hasPermission = await requestPhotoPermissions();
     if (!hasPermission) {
-      console.log('[DishPhoto] Permission denied');
+      debugLog('[DishPhoto] Permission denied');
       return null;
     }
 
@@ -61,7 +62,7 @@ export async function takePhoto(): Promise<string | null> {
   try {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      console.log('[DishPhoto] Camera permission denied');
+      debugLog('[DishPhoto] Camera permission denied');
       return null;
     }
 
@@ -91,7 +92,7 @@ export async function uploadDishPhoto(
   photoUri: string
 ): Promise<{ success: boolean; photoId?: string; photoUrl?: string }> {
   try {
-    console.log('[DishPhoto] Uploading photo for dish:', dishId);
+    debugLog('[DishPhoto] Uploading photo for dish:', dishId);
 
     // Upload to Supabase Storage
     const photoUrl = await uploadPhoto(photoUri, 'dish', userId);
@@ -99,7 +100,7 @@ export async function uploadDishPhoto(
       return { success: false };
     }
 
-    console.log('[DishPhoto] Photo uploaded to storage:', photoUrl);
+    debugLog('[DishPhoto] Photo uploaded to storage:', photoUrl);
 
     // Save to database
     const { data, error } = await supabase
@@ -117,7 +118,7 @@ export async function uploadDishPhoto(
       return { success: false };
     }
 
-    console.log('[DishPhoto] Photo saved to database:', data.id);
+    debugLog('[DishPhoto] Photo saved to database:', data.id);
     return { success: true, photoId: data.id, photoUrl };
   } catch (error) {
     console.error('[DishPhoto] Error in uploadDishPhoto:', error);

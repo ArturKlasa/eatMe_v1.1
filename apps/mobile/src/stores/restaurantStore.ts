@@ -173,7 +173,9 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
         loading: false,
       });
 
-      debugLog(`[RestaurantStore] Loaded ${response.totalCount} nearby restaurants from current location`);
+      debugLog(
+        `[RestaurantStore] Loaded ${response.totalCount} nearby restaurants from current location`
+      );
     } catch (err) {
       const error = err as Error;
       console.error(

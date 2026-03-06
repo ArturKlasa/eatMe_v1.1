@@ -109,7 +109,9 @@ export const useSettingsStore = create<SettingsStore>()(
           // (i.e., stored currency still matches the default 'USD' from a
           // fresh install, or matches a previously auto-detected value).
           set({ detectedCountryCode: countryCode, currency: detectedCurrency });
-          debugLog(`[Settings] Auto-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`);
+          debugLog(
+            `[Settings] Auto-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`
+          );
         } catch (error) {
           console.error('[Settings] autoDetectCurrency error:', error);
         }

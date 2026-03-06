@@ -103,7 +103,7 @@
 ## 8. Security
 
 | #   | Area                                      | Issue                                                                                                                                                                                       | Priority |
-| --- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------- |
 | S1  | **Admin routes not server-protected**     | See A2 above — middleware is security-header-only. A malicious actor can call admin-facing API routes directly.                                                                             | 🔴       | ✅ this session |
 | S2  | **CSP `unsafe-inline` and `unsafe-eval`** | The Content Security Policy in `middleware.ts` allows `unsafe-inline` scripts and `unsafe-eval`. This significantly weakens XSS protections.                                                | 🟡       | ✅ this session |
 | S3  | **Debug info in console**                 | Multiple `console.log` calls log `user.id`, query results, and internal state to the browser console in production paths (see X4–X7).                                                       | 🟡       | ✅ this session |

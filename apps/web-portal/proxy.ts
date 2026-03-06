@@ -79,7 +79,7 @@ export async function proxy(req: NextRequest) {
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "upgrade-insecure-requests",
+      'upgrade-insecure-requests',
     ].join('; ')
   );
 

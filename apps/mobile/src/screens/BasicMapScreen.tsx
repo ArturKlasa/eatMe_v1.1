@@ -15,6 +15,7 @@ import { applyFilters, validateFilters, getFilterSuggestions } from '../services
 import type { FilterResult } from '../services/filterService';
 import { getFeed, ServerDish } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
+import { isRestaurantOpenNow } from '../utils/i18nUtils';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
 import { commonStyles, mapComponentStyles } from '@/styles';
 import { colors, typography, spacing } from '@/styles/theme';
@@ -159,21 +160,27 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Convert geospatial results to the MapRestaurant shape used by markers.
   // This is now the single authoritative source — no fallback DB query.
   const restaurants = useMemo(() => {
-    return nearbyRestaurants.map(r => ({
-      id: r.id,
-      name: r.name,
-      coordinates: [r.location.lng, r.location.lat] as [number, number],
-      cuisine: r.cuisine_types?.[0] || 'Unknown',
-      rating: r.rating || 0,
-      avgPrice: 20, // price_range not returned by geospatial endpoint; use mid-range default
-      address: r.address,
-      description: '',
-      imageUrl: undefined,
-      phone: r.phone || undefined,
-      isOpen: true,
-      openingHours: { open: '09:00', close: '22:00' },
-      distance: formatDistance(r.distance),
-    })) as MapRestaurant[];
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = days[new Date().getDay()];
+    return nearbyRestaurants.map(r => {
+      const openHours = r.open_hours ?? null;
+      const todayEntry = openHours?.[today] ?? null;
+      return {
+        id: r.id,
+        name: r.name,
+        coordinates: [r.location.lng, r.location.lat] as [number, number],
+        cuisine: r.cuisine_types?.[0] || 'Unknown',
+        rating: r.rating || 0,
+        avgPrice: 20, // price_range not returned by geospatial endpoint; use mid-range default
+        address: r.address,
+        description: '',
+        imageUrl: undefined,
+        phone: r.phone || undefined,
+        isOpen: isRestaurantOpenNow(openHours),
+        openingHours: todayEntry ?? { open: '09:00', close: '22:00' },
+        distance: formatDistance(r.distance),
+      };
+    }) as MapRestaurant[];
   }, [nearbyRestaurants]);
 
   // Extract dish pins from the geospatial restaurant results.

@@ -24,7 +24,7 @@ import { spacing } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useTranslation } from 'react-i18next';
-import { formatTime, formatOpeningHours } from '../utils/i18nUtils';
+import { formatTime, formatOpeningHours, isRestaurantOpenNow } from '../utils/i18nUtils';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
 import { DishRatingBadge } from '../components/DishRatingBadge';
@@ -173,7 +173,11 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   };
 
   const todayHours = getCurrentDayHours();
-  const isOpenNow = true; // TODO: Calculate based on current time and hours
+  const isOpenNow =
+    todayHours !== null &&
+    isRestaurantOpenNow(
+      restaurant.open_hours as Record<string, { open: string; close: string }> | null
+    );
 
   // Determine payment note
   const getPaymentNote = () => {
@@ -377,8 +381,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             <Text style={[styles.tabText, activeTab === 'hours' && styles.activeTabText]}>
               Hours & More
             </Text>
-            <Text style={todayHours ? styles.tabOpenBadge : styles.tabClosedBadge}>
-              {todayHours ? 'Open' : 'Closed'}
+            <Text style={isOpenNow ? styles.tabOpenBadge : styles.tabClosedBadge}>
+              {isOpenNow ? 'Open' : 'Closed'}
             </Text>
           </View>
         </TouchableOpacity>

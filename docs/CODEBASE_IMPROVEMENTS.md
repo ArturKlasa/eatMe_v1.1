@@ -1,8 +1,139 @@
-# EatMe — Codebase Improvement Backlog
+# EatMe — Codebase Improvements Audit
 
-> **Purpose**: A living catalogue of improvements, refactors, and gaps identified across the full monorepo. Intended for pre-launch cleanup and future sprints.  
-> **Last reviewed**: March 2026  
+> **Date:** March 5, 2026  
+> **Scope:** Full monorepo scan — web portal, mobile app, shared packages, database migrations, infrastructure.  
+> **Status:** Identification only. No code has been changed.  
 > **Legend**: 🔴 High priority (blocks launch quality) · 🟡 Medium (tech debt) · 🟢 Low / Future
+
+---
+
+## New Findings (March 5, 2026 audit)
+
+The sections below document issues found in a fresh deep-dive of the full codebase that were **not covered** in the original backlog above.
+
+---
+
+## N1. Dead / Unused Code
+
+| #    | Priority | Location                                                 | Issue                                                                                                                                                                                                                                                            |
+| ---- | -------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N1.1 | 🟡       | `apps/web-portal/lib/export.ts`                          | `exportAsJSON`, `exportAsCSV`, and `downloadCSVTemplate` are defined but **never imported anywhere** in the portal. The download feature was designed but never wired up to any UI button. Either delete or connect to the dashboard.                            |
+| N1.2 | 🟢       | `packages/database/src/client.ts` → `getWebClient()`     | The JSDoc says _"The web portal no longer uses this"_, yet the function is still exported. The web portal uses `createBrowserClient` from `@supabase/ssr` directly. `getWebClient` is dead code in the shared package.                                           |
+| N1.3 | 🟢       | `packages/database/src/repositories/`                    | Directory exists but is completely **empty**. Either seed it with the planned repository pattern or remove the directory.                                                                                                                                        |
+| N1.4 | 🟢       | `apps/mobile/src/data/`                                  | Directory exists but is completely **empty**. Remove or document its intended purpose.                                                                                                                                                                           |
+| N1.5 | 🟡       | `apps/web-portal/app/onboard/page.tsx`                   | Redirect sends users to `/onboard/menu` with a stale comment _"we can change this to basic-info when that's ready"_. The basic-info step has been ready for a long time. The intended flow is `basic-info → menu → review`; this redirect silently skips step 1. |
+| N1.6 | 🟡       | `apps/mobile/src/hooks/useRestaurants.ts`                | Generic `.select('*')` hook with a `// TODO: sort by distance` that was never implemented, functionally superseded by `restaurantStore.loadNearbyRestaurants`. Verify it is still used; remove if not.                                                           |
+| N1.7 | 🟡       | `apps/mobile/src/screens/BasicMapScreen.tsx` (line ~122) | `parseLocation()` is defined inline but **never called** — the restaurants from the geospatial Edge Function already have a structured `{ lat, lng }` object. Dead code within the file.                                                                         |
+| N1.8 | 🟢       | `apps/web-portal/app/onboard/review/page.tsx`            | `handleBack()` and `handleEditRestaurantInfo()` are two separate handler functions that both execute `router.push('/')`. Merge into one.                                                                                                                         |
+
+---
+
+## N2. Hardcoded Values That Should Be Dynamic
+
+| #    | Priority | Location                                                  | Issue                                                                                                                                                                                                   |
+| ---- | -------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N2.1 | ✅       | `apps/mobile/src/screens/BasicMapScreen.tsx`              | **Fixed.** Added `open_hours` to `RestaurantWithDistance` and computed `isOpen` via `isRestaurantOpenNow()` utility. Also computes `openingHours` from today's actual hours.                            |
+| N2.2 | ✅       | `apps/mobile/src/screens/RestaurantDetailScreen.tsx`      | **Fixed.** `isOpenNow` now calls `isRestaurantOpenNow()` which checks the current time against `open_hours`. Tab badge updated to use `isOpenNow` instead of the presence-only `todayHours` check.      |
+| N2.3 | 🟡       | `apps/mobile/src/screens/BasicMapScreen.tsx` (line ~170)  | `avgPrice: 20` hardcoded as mid-range default because `price_range` is not returned by the geospatial endpoint. Mark clearly as placeholder or add to Edge Function response.                           |
+| N2.4 | 🟡       | `apps/mobile/src/components/map/DailyFilterModal.tsx`     | Cuisine list `['Mexican', 'Italian', ...]` is a hardcoded inline array. Should reference the same source as `lib/constants.ts` (`POPULAR_CUISINES`).                                                    |
+| N2.5 | 🟡       | `apps/mobile/src/components/DrawerFilters.tsx` (line 24)  | `COMMON_INGREDIENTS` is a hardcoded local array with an explicit `// TODO: Replace with API call to fetch ingredients from Supabase`. This drives the ingredient-avoidance feature; it needs live data. |
+| N2.6 | 🟡       | `apps/web-portal/app/restaurant/edit/page.tsx`            | `DAYS_OF_WEEK` constant is **redefined locally** (identical copy) instead of importing from `lib/constants.ts`.                                                                                         |
+| N2.7 | 🟡       | `apps/mobile/src/utils/i18nUtils.ts` → `formatCurrency()` | Accesses Zustand settings store **outside a React component** via `useSettingsStore.getState()` wrapped in a try/catch — an anti-pattern. Pass currency as a parameter instead.                         |
+| N2.8 | 🟢       | `apps/web-portal/components/LocationPicker.tsx`           | Default fallback location when geolocation fails is hardcoded to New York (`40.7128, -74.006`). For a product targeting MX/PL/CA markets this is a poor default.                                        |
+
+---
+
+## N3. Debug / Logging Leftovers in Production Code
+
+| #    | Priority | Location                                         | Issue                                                                                                                                                                                     |
+| ---- | -------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N3.1 | 🟡       | `apps/web-portal/components/LocationPicker.tsx`  | **9 `console.log` statements** covering component render, mount/unmount, geocoding URL, response status, response data, and address callback. Will print to every user's browser console. |
+| N3.2 | 🟡       | `apps/web-portal/app/admin/restaurants/page.tsx` | `console.log('[Admin] Starting restaurant fetch...')` and `console.log('[Admin] Mapped restaurants:', ...)` are debug logs that should be removed or gated.                               |
+
+---
+
+## N4. TypeScript Type Safety Gaps
+
+| #    | Priority | Location                                              | Issue                                                                                                                                                                  |
+| ---- | -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| N4.1 | 🟡       | `apps/web-portal/lib/restaurantService.ts`            | Multiple `(menu: any)`, `(cat: any)`, `(m: any)` casts for Supabase join results. Should use generated `Tables<'menus'>` / `Tables<'menu_categories'>` types.          |
+| N4.2 | 🟡       | `apps/web-portal/lib/ingredients.ts` (line ~87)       | `(data ?? []).map((row: any) => {...})` — cast to `any` instead of a typed interface matching the select shape.                                                        |
+| N4.3 | 🟡       | `apps/mobile/src/services/favoritesService.ts`        | Entire client re-cast as `any` because the `favorites` table is missing from generated DB types. Types need regenerating after the migration that added this table.    |
+| N4.4 | 🟡       | `apps/mobile/src/components/common/` (multiple files) | Style props typed as `any` in `EmptyState`, `FeatureList`, `SectionContainer`, `SettingItem`. Use `StyleProp<ViewStyle>` / `StyleProp<TextStyle>` from `react-native`. |
+| N4.5 | 🟡       | `apps/mobile/src/screens/BasicMapScreen.tsx`          | `(menu as any).dishes` cast in the `dishes` useMemo — the menu structure is known; type it properly.                                                                   |
+| N4.6 | 🟢       | `apps/web-portal/lib/supabase-server.ts` (line ~123)  | `return { user: user as any, error: null }` — user should be typed as `User                                                                                            | null`from`@supabase/supabase-js`. |
+
+---
+
+## N5. Disabled / Commented-Out Features (Require Decision)
+
+| #    | Priority | Location                                                               | Issue                                                                                                                                                                                                                                          |
+| ---- | -------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N5.1 | 🔴       | `apps/mobile/App.tsx` (lines 73–74)                                    | AppState listener for session end is **commented out** (`// Disabled: AppState listener causes too many re-renders / TODO: Add debouncing`). Sessions are never ended when the app goes to background, breaking the "rate after visit" prompt. |
+| N5.2 | 🔴       | `apps/mobile/src/screens/BasicMapScreen.tsx` (line 323)                | A comment marks an Edge Function path as `// DISABLED: Edge function is failing`. Needs investigation and fix before launch.                                                                                                                   |
+| N5.3 | 🟡       | `apps/mobile/src/components/map/DailyFilterModal.tsx` (lines 410, 438) | Spice Level (section 4) and Hunger Level (section 5) are `{/* TEMPORARILY HIDDEN */}`. Decide: ship, formally remove, or track in a backlog issue.                                                                                             |
+| N5.4 | 🟡       | `apps/mobile/src/components/FilterComponents.tsx` (line 307)           | `// Temporarily disabled - spice level not part of daily filters` — but `DailyFilters` in `filterStore.ts` _does_ have a `spiceLevel` field. Data model and UI are inconsistent.                                                               |
+| N5.5 | 🟡       | `apps/web-portal/components/admin/RestaurantTable.tsx` (line 48)       | `// TODO: Implement suspend/activate API call with audit logging` — the suspend/activate button exists in the UI but the database operation is not implemented.                                                                                |
+
+---
+
+## N6. Duplicated Infrastructure
+
+| #    | Priority | Location                                                      | Issue                                                                                                                                                                                                                                              |
+| ---- | -------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N6.1 | 🔴       | `supabase/functions/` (root) vs `infra/supabase/functions/`   | Edge function source code exists in **two places**. `feed/`, `group-recommendations/`, `nearby-restaurants/`, `swipe/` appear in both the root `supabase/` directory and under `infra/supabase/functions/`. Only one location should be canonical. |
+| N6.2 | 🟡       | `supabase/migrations/` (root) vs `infra/supabase/migrations/` | Same duplication for migrations. Consolidate and remove the root-level copy.                                                                                                                                                                       |
+
+---
+
+## N7. Code-Quality Patterns
+
+| #    | Priority | Location                                       | Issue                                                                                                                                                                                                                                             |
+| ---- | -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N7.1 | 🟡       | `apps/mobile/src/stores/authStore.ts`          | Module-level `let authListenerSubscription: Subscription \| null = null` is declared to prevent duplicate listeners, but `initialize()` sets up a listener without assigning to that variable. The de-duplication guard exists but is incomplete. |
+| N7.2 | 🟡       | `apps/mobile/src/screens/SwipeScreen.tsx`      | `loadDishes` is defined inside the component and referenced in two `useEffect` hooks. It should be wrapped in `useCallback` to make the dependency relationship explicit.                                                                         |
+| N7.3 | 🟡       | `apps/web-portal/app/onboard/review/page.tsx`  | After submit, `clearRestaurantData()` is called then `setTimeout(() => router.push('/'), 2000)`. If the component unmounts before the timeout fires, the push executes on an unmounted component. Cancel the timeout in a cleanup function.       |
+| N7.4 | 🟡       | `apps/mobile/src/screens/BasicMapScreen.tsx`   | `feedLoading` state is set `true`/`false` during the Edge Function fetch but **never read** in the JSX — no loading indicator is shown for the recommended dishes footer. Either use it or remove it.                                             |
+| N7.5 | 🟢       | `apps/web-portal/app/admin/page.tsx`           | `statsData` is stored as a state object, then immediately destructured into 6 individual `const` variables in the render. The intermediate variables are redundant — use `statsData.*` directly.                                                  |
+| N7.6 | 🟢       | `apps/mobile/src/components/DrawerFilters.tsx` | `formatLabel` and `formatCamelCase` are two nearly-identical camelCase-to-readable-string functions in the same file. Consolidate into one.                                                                                                       |
+| N7.7 | 🟢       | `apps/web-portal/lib/supabase-server.ts`       | Uses `!` non-null assertions for env vars inside `createServerSupabaseClient()` rather than the validated startup check pattern used in `lib/supabase.ts`. Inconsistent within the same codebase.                                                 |
+
+---
+
+## N8. Ingredient / Schema Maintenance Debt
+
+| #    | Priority | Issue                                                                                                                                                                                                                                |
+| ---- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| N8.1 | 🟡       | Generated DB types are out of sync. `favoritesService.ts` casts `supabase` to `any` because the `favorites` table is not in the generated types. Running `supabase gen types typescript` after the latest migrations would fix this. |
+| N8.2 | 🟢       | Ingredient data is scattered across **8+ migration files** (013a, 015b, 027, 028, 029, 035–040), making it very hard to audit what's in the master list. A single managed seed script or CSV would be more maintainable.             |
+| N8.3 | 🟢       | `infra/supabase/migrations/ingredient_aliases.csv` — exists in the migrations folder but it's unclear if it is actively used or a leftover from an import attempt.                                                                   |
+
+---
+
+## N9. Missing Infrastructure
+
+| #    | Priority | Improvement                                                                                                                                                                                          |
+| ---- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N9.1 | 🔴       | **No error monitoring.** No Sentry, Bugsnag, or equivalent. Production crashes and API errors are invisible unless a user reports them.                                                              |
+| N9.2 | 🟡       | **No `.env.example` at monorepo root.** Mobile required env vars (`EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`, etc.) are only documented in markdown guides. Add root and `apps/mobile/` `.env.example` files. |
+| N9.3 | 🟢       | **No CI pipeline.** No GitHub Actions workflows to run type checks, lint, or builds on PRs. `turbo run check-types` and `pnpm lint` would catch many issues automatically.                           |
+
+---
+
+## N10. Quick Wins (< 1 hour each)
+
+| #     | File                                            | Action                                                              |
+| ----- | ----------------------------------------------- | ------------------------------------------------------------------- |
+| QW-1  | `apps/web-portal/components/LocationPicker.tsx` | Remove all 9 debug `console.log` calls                              |
+| QW-2  | `apps/web-portal/app/restaurant/edit/page.tsx`  | Replace local `DAYS_OF_WEEK` with import from `lib/constants.ts`    |
+| QW-3  | `apps/web-portal/app/onboard/review/page.tsx`   | Merge `handleBack` and `handleEditRestaurantInfo` into one          |
+| QW-4  | `apps/web-portal/app/onboard/page.tsx`          | Fix redirect to `/onboard/basic-info` (not `/onboard/menu`)         |
+| QW-5  | `packages/database/src/repositories/`           | Delete the empty directory                                          |
+| QW-6  | `apps/mobile/src/data/`                         | Delete the empty directory                                          |
+| QW-7  | `apps/mobile/src/screens/BasicMapScreen.tsx`    | Remove the unused inline `parseLocation()` function                 |
+| QW-8  | `apps/mobile/src/screens/BasicMapScreen.tsx`    | Either render `feedLoading` in the JSX or remove the state variable |
+| QW-9  | `apps/web-portal/app/admin/page.tsx`            | Remove the 6 redundant intermediate `const` variables               |
+| QW-10 | `apps/mobile/src/components/DrawerFilters.tsx`  | Merge `formatLabel` and `formatCamelCase` into one function         |
 
 ---
 

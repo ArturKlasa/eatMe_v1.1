@@ -22,7 +22,8 @@ export const formatCurrency = (amount: number, currencyCode?: string): string =>
 
   const supportedLanguages = getSupportedLanguages();
   const currentLanguage = getCurrentLanguage();
-  const langCurrency = (supportedLanguages.find(lang => lang.code === currentLanguage) as any)?.currency;
+  const langCurrency = (supportedLanguages.find(lang => lang.code === currentLanguage) as any)
+    ?.currency;
 
   const currency = (currencyCode ?? storeCurrency ?? langCurrency ?? 'USD') as SupportedCurrency;
   return formatPrice(amount, currency);
@@ -77,6 +78,42 @@ export const formatDate = (date: Date): string => {
     // Fallback to basic formatting
     return date.toLocaleDateString();
   }
+};
+
+/**
+ * Determine whether a restaurant is currently open.
+ *
+ * @param openHours - Keyed by lowercase day name (e.g. "monday"). Absent days are treated
+ *   as closed. Values are { open: "HH:MM", close: "HH:MM" } in the restaurant's local time.
+ *   The device's local clock is used as a reasonable approximation for nearby restaurants.
+ * @returns true if the current device time falls within today's opening window.
+ */
+export const isRestaurantOpenNow = (
+  openHours: Record<string, { open: string; close: string }> | null | undefined
+): boolean => {
+  if (!openHours) return false;
+
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[new Date().getDay()];
+  const todayEntry = openHours[today];
+
+  if (!todayEntry) return false;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const [openH, openM] = todayEntry.open.split(':').map(Number);
+  const [closeH, closeM] = todayEntry.close.split(':').map(Number);
+
+  const openMinutes = openH * 60 + openM;
+  const closeMinutes = closeH * 60 + closeM;
+
+  // Handle overnight hours (e.g. open: "22:00", close: "02:00")
+  if (closeMinutes < openMinutes) {
+    return currentMinutes >= openMinutes || currentMinutes < closeMinutes;
+  }
+
+  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 };
 
 // Opening hours formatting
@@ -208,7 +245,8 @@ export const getCurrencySymbol = (currencyCode?: string): string => {
   })();
   const supportedLanguages = getSupportedLanguages();
   const currentLanguage = getCurrentLanguage();
-  const langCurrency = (supportedLanguages.find(lang => lang.code === currentLanguage) as any)?.currency;
+  const langCurrency = (supportedLanguages.find(lang => lang.code === currentLanguage) as any)
+    ?.currency;
   const currency = (currencyCode ?? storeCurrency ?? langCurrency ?? 'USD') as SupportedCurrency;
   return getCurrencyInfo(currency).symbol;
 };

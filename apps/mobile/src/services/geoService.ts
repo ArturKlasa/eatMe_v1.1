@@ -41,6 +41,12 @@ export interface RestaurantWithDistance {
   takeout_available: boolean;
   dine_in_available: boolean;
   service_speed?: string;
+  /**
+   * Operating hours keyed by lowercase day name (e.g. "monday").
+   * Absent days are treated as closed.
+   * Returned by the nearby-restaurants Edge Function via select('*').
+   */
+  open_hours?: Record<string, { open: string; close: string }> | null;
   distance: number;
   menus?: Array<{
     id: string;

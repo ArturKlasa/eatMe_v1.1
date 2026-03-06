@@ -329,86 +329,97 @@ export async function updateRestaurantInfo(
  * category-level concept.
  */
 async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Promise<void> {
-  for (const menu of menus) {
-    const { data: insertedMenu, error: menuError } = await supabase
-      .from('menus')
-      .insert({
+  if (!menus.length) return;
+
+  // ── Step 1: Batch insert all menus in a single round-trip ─────────────────
+  const { data: insertedMenus, error: menuError } = await supabase
+    .from('menus')
+    .insert(
+      menus.map(menu => ({
         restaurant_id: restaurantId,
         name: menu.name,
         description: menu.description || null,
         menu_type: menu.menu_type || 'food',
         display_order: menu.display_order || 0,
         is_active: menu.is_active !== undefined ? menu.is_active : true,
-      })
-      .select('id')
-      .single();
-    if (menuError) throw new Error(`Failed to insert menu "${menu.name}": ${menuError.message}`);
+      }))
+    )
+    .select('id');
+  if (menuError) throw new Error(`Failed to insert menus: ${menuError.message}`);
 
-    // dishes.menu_category_id is a FK to menu_categories — not to menus directly
-    const { data: insertedCategory, error: categoryError } = await supabase
-      .from('menu_categories')
-      .insert({
+  // ── Step 2: Batch insert one default category per menu ─────────────────────
+  // Supabase batch INSERT preserves insertion order, so insertedMenus[i] ↔ menus[i].
+  const { data: insertedCategories, error: categoryError } = await supabase
+    .from('menu_categories')
+    .insert(
+      insertedMenus.map((insertedMenu, i) => ({
         restaurant_id: restaurantId,
         menu_id: insertedMenu.id,
-        name: menu.name,
+        name: menus[i].name,
         display_order: 0,
         is_active: true,
-      })
-      .select('id')
-      .single();
-    if (categoryError)
-      throw new Error(
-        `Failed to insert category for menu "${menu.name}": ${categoryError.message}`
-      );
+      }))
+    )
+    .select('id');
+  if (categoryError) throw new Error(`Failed to insert menu categories: ${categoryError.message}`);
 
-    if (!menu.dishes?.length) continue;
+  // ── Step 3: Batch insert all dishes across all menus ───────────────────────
+  // Build a flat list preserving the dish → category mapping via index.
+  type DishWithCategoryId = { dish: AppMenu['dishes'][number]; categoryId: string };
+  const allDishes: DishWithCategoryId[] = [];
 
-    const dishesPayload = menu.dishes.map(dish => ({
-      restaurant_id: restaurantId,
-      menu_category_id: insertedCategory.id, // correct FK — not menu_id
-      name: dish.name,
-      description: dish.description || null,
-      price: dish.price,
-      dietary_tags: dish.dietary_tags || [],
-      allergens: dish.allergens || [],
-      ingredients: dish.ingredients || [],
-      calories: dish.calories || null,
-      spice_level: dish.spice_level || null,
-      image_url: dish.photo_url || null,
-      is_available: dish.is_available !== undefined ? dish.is_available : true,
-      description_visibility: dish.description_visibility ?? 'menu',
-      ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-    }));
-
-    const { data: insertedDishes, error: dishesError } = await supabase
-      .from('dishes')
-      .insert(dishesPayload)
-      .select('id');
-    if (dishesError)
-      throw new Error(`Failed to insert dishes for menu "${menu.name}": ${dishesError.message}`);
-
-    // Link canonical ingredients via dish_ingredients join table (optional — non-fatal)
-    if (insertedDishes) {
-      for (let i = 0; i < insertedDishes.length; i++) {
-        const dish = menu.dishes[i];
-        if (dish.selectedIngredients?.length) {
-          const { error: ingError } = await addDishIngredients(
-            insertedDishes[i].id,
-            dish.selectedIngredients.map((ing: SelectedIngredient) => ({
-              ingredient_id: ing.id,
-              quantity: ing.quantity || null,
-            }))
-          );
-          if (ingError) {
-            console.error(
-              `[RestaurantService] Failed to link ingredients for dish "${dish.name}":`,
-              ingError
-            );
-          }
-        }
-      }
+  for (let i = 0; i < menus.length; i++) {
+    const categoryId = insertedCategories[i].id;
+    for (const dish of menus[i].dishes ?? []) {
+      allDishes.push({ dish, categoryId });
     }
   }
+
+  if (!allDishes.length) return;
+
+  const { data: insertedDishes, error: dishesError } = await supabase
+    .from('dishes')
+    .insert(
+      allDishes.map(({ dish, categoryId }) => ({
+        restaurant_id: restaurantId,
+        menu_category_id: categoryId, // correct FK — not menu_id
+        name: dish.name,
+        description: dish.description || null,
+        price: dish.price,
+        dietary_tags: dish.dietary_tags || [],
+        allergens: dish.allergens || [],
+        ingredients: dish.ingredients || [],
+        calories: dish.calories || null,
+        spice_level: dish.spice_level || null,
+        image_url: dish.photo_url || null,
+        is_available: dish.is_available !== undefined ? dish.is_available : true,
+        description_visibility: dish.description_visibility ?? 'menu',
+        ingredients_visibility: dish.ingredients_visibility ?? 'detail',
+      }))
+    )
+    .select('id');
+  if (dishesError) throw new Error(`Failed to insert dishes: ${dishesError.message}`);
+
+  // ── Step 4: Link canonical ingredients in parallel (non-fatal) ────────────
+  await Promise.all(
+    insertedDishes.map(async (insertedDish, i) => {
+      const { dish } = allDishes[i];
+      if (!dish.selectedIngredients?.length) return;
+      const { error: ingError } = await addDishIngredients(
+        insertedDish.id,
+        dish.selectedIngredients.map((ing: SelectedIngredient) => ({
+          ingredient_id: ing.id,
+          quantity: ing.quantity || null,
+        }))
+      );
+      if (ingError) {
+        console.error(
+          `[RestaurantService] Failed to link ingredients for dish "${dish.name}":`,
+          ingError
+        );
+      }
+    })
+  );
 }
 
 /**

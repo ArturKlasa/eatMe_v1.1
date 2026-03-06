@@ -22,16 +22,10 @@ interface RestaurantMarkersProps {
   onMarkerPress: (restaurant: Restaurant) => void;
 }
 
-export const RestaurantMarkers: React.FC<RestaurantMarkersProps> = ({
+export const RestaurantMarkers = React.memo<RestaurantMarkersProps>(function RestaurantMarkers({
   restaurants,
   onMarkerPress,
-}) => {
-  // Add debugging
-  console.log('RestaurantMarkers received:', restaurants.length, 'restaurants');
-  restaurants.forEach((restaurant, index) => {
-    console.log(`Restaurant ${index + 1}:`, restaurant.name, 'at', restaurant.coordinates);
-  });
-
+}) {
   return (
     <>
       {restaurants.map(restaurant => (
@@ -85,4 +79,4 @@ export const RestaurantMarkers: React.FC<RestaurantMarkersProps> = ({
       ))}
     </>
   );
-};
+});

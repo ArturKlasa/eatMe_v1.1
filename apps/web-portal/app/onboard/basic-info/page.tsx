@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import dynamic from 'next/dynamic';
@@ -160,6 +160,15 @@ function BasicInfoPageContent() {
     };
   });
 
+  // Refs that mirror the two external state values used inside the watch()
+  // subscription. Updating a ref doesn't trigger a re-render, so the
+  // subscription no longer needs to be torn down and re-created every time
+  // cuisines or hours change. The closure always reads the latest value.
+  const selectedCuisinesRef = useRef(selectedCuisines);
+  selectedCuisinesRef.current = selectedCuisines;
+  const operatingHoursRef = useRef(operatingHours);
+  operatingHoursRef.current = operatingHours;
+
   const {
     register,
     handleSubmit,
@@ -242,7 +251,10 @@ function BasicInfoPageContent() {
     },
   });
 
-  // Auto-save draft to localStorage on any form change
+  // Auto-save draft to localStorage on any form change.
+  // selectedCuisines and operatingHours are read via refs so the subscription
+  // is created once (when user.id changes) instead of being torn down and
+  // re-created on every cuisine toggle or operating-hours edit.
   useEffect(() => {
     const subscription = watch(currentValues => {
       if (!user?.id) return;
@@ -264,11 +276,11 @@ function BasicInfoPageContent() {
         },
         phone: currentValues.phone || undefined,
         website: currentValues.website || undefined,
-        cuisines: selectedCuisines,
+        cuisines: selectedCuisinesRef.current,
       };
 
       const operating_hours: Record<string, { open: string; close: string }> = {};
-      Object.entries(operatingHours).forEach(([day, hours]) => {
+      Object.entries(operatingHoursRef.current).forEach(([day, hours]) => {
         if (!hours.closed) {
           operating_hours[day] = { open: hours.open, close: hours.close };
         }
@@ -298,7 +310,7 @@ function BasicInfoPageContent() {
       subscription.unsubscribe();
       cancelAutoSave();
     };
-  }, [watch, user?.id, selectedCuisines, operatingHours]);
+  }, [watch, user?.id]); // selectedCuisines/operatingHours read via refs — no deps needed
 
   // Remove the useEffect that sets values, as we're now using async defaultValues
   // Only use useEffect to sync external state that's NOT in the form

@@ -5,7 +5,7 @@
  * Similar to DailyFilterModal design with compact header
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -55,34 +55,60 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
 
-  // Fetch restaurant from Supabase
+  // Single effect: restaurant data, restaurant rating and favourite check fire
+  // in parallel via Promise.all; dish ratings follow immediately after the
+  // restaurant payload arrives (they need dish IDs).
+  const mountedRef = useRef(true);
   useEffect(() => {
-    const fetchRestaurant = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('restaurants')
-          .select(
-            `
-            *,
-            menus (
-              *,
-              menu_categories (
-                *,
-                dishes (*)
-              )
-            )
-          `
-          )
-          .eq('id', restaurantId)
-          .single();
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
+  useEffect(() => {
+    const loadAll = async () => {
+      try {
+        const [restaurantResult, ratingResult, favResult] = await Promise.all([
+          supabase
+            .from('restaurants')
+            .select(
+              `
+              *,
+              menus (
+                *,
+                menu_categories (
+                  *,
+                  dishes (*)
+                )
+              )
+            `
+            )
+            .eq('id', restaurantId)
+            .single(),
+          getRestaurantRating(restaurantId),
+          user ? isFavorited(user.id, 'restaurant', restaurantId) : Promise.resolve(null),
+        ]);
+
+        if (!mountedRef.current) return;
+
+        // Restaurant rating (independent of restaurant data)
+        setRestaurantRating(ratingResult);
+
+        // Favourite status
+        if (favResult !== null) {
+          setIsFavorite(favResult.ok ? favResult.data : false);
+        }
+        setFavoritesInitialized(true);
+
+        // Restaurant data + dish ratings
+        const { data, error } = restaurantResult;
         if (error) throw error;
 
         if (data) {
           const typed = data as unknown as RestaurantWithMenus;
           setRestaurant(typed);
 
-          // Track restaurant view
           trackRestaurantView({
             id: typed.id,
             name: typed.name,
@@ -90,56 +116,26 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             imageUrl: typed.image_url ?? undefined,
           });
 
-          // Fetch ratings for all dishes
-          const allDishIds: string[] = [];
-          typed.menus?.forEach(menu => {
-            menu.menu_categories?.forEach(category => {
-              category.dishes?.forEach(dish => {
-                allDishIds.push(dish.id);
-              });
-            });
-          });
+          // Dish ratings need restaurant data first — fire immediately after
+          const allDishIds =
+            typed.menus?.flatMap(m =>
+              m.menu_categories?.flatMap(c => c.dishes?.map(d => d.id) ?? []) ?? []
+            ) ?? [];
 
           if (allDishIds.length > 0) {
             const ratings = await getDishRatingsBatch(allDishIds);
-            setDishRatings(ratings);
+            if (mountedRef.current) setDishRatings(ratings);
           }
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     };
 
-    fetchRestaurant();
-  }, [restaurantId, trackRestaurantView]);
-
-  // Check if restaurant is favorited
-  useEffect(() => {
-    const checkFavoriteStatus = async () => {
-      if (!user || !restaurantId) {
-        setFavoritesInitialized(true);
-        return;
-      }
-
-      const result = await isFavorited(user.id, 'restaurant', restaurantId);
-      setIsFavorite(result.ok ? result.data : false);
-      setFavoritesInitialized(true);
-    };
-
-    checkFavoriteStatus();
-  }, [user, restaurantId]);
-
-  // Fetch restaurant rating
-  useEffect(() => {
-    const fetchRestaurantRating = async () => {
-      const rating = await getRestaurantRating(restaurantId);
-      setRestaurantRating(rating);
-    };
-
-    fetchRestaurantRating();
-  }, [restaurantId]);
+    loadAll();
+  }, [restaurantId, user, trackRestaurantView]);
 
   if (loading) {
     return (

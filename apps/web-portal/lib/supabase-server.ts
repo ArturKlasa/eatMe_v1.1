@@ -92,11 +92,13 @@ export function createServerSupabaseClient() {
 /**
  * Extracts and verifies the Bearer token from an API request.
  * Returns the authenticated user if the token is valid AND the user is an admin.
+ *
+ * Checks app_metadata.role (service-role-only, not editable by end users).
  */
 export async function verifyAdminRequest(
   request: NextRequest
 ): Promise<
-  | { user: { id: string; email?: string; user_metadata: Record<string, unknown> }; error: null }
+  | { user: { id: string; email?: string; app_metadata: Record<string, unknown> }; error: null }
   | { user: null; error: string; status: 401 | 403 }
 > {
   const authHeader = request.headers.get('authorization');
@@ -116,9 +118,16 @@ export async function verifyAdminRequest(
     return { user: null, error: 'Invalid or expired token', status: 401 };
   }
 
-  if (user.user_metadata?.role !== 'admin') {
+  if (user.app_metadata?.role !== 'admin') {
     return { user: null, error: 'Admin access required', status: 403 };
   }
 
-  return { user: user as any, error: null };
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      app_metadata: user.app_metadata,
+    },
+    error: null,
+  };
 }

@@ -53,7 +53,8 @@
         {
           "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiYWtsYXNhIiwiYSI6ImNtZzMxNzdueTBldmMybHB1aHhwa3o4eGYifQ.AeDOBIHaWjsvAh4BqDw6Rg"
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {

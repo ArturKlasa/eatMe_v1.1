@@ -11,6 +11,7 @@ import './src/i18n'; // Initialize i18n
 import { initializeSettings, useSettingsStore } from './src/stores/settingsStore';
 import { useFilterStore } from './src/stores/filterStore';
 import { useCountryDetection } from './src/hooks/useCountryDetection';
+import { configureGoogleSignIn } from './src/lib/googleAuth';
 import 'react-native-gesture-handler'; // Required for React Navigation
 
 /**
@@ -28,6 +29,11 @@ export default function App(): React.JSX.Element {
   // Initialize Mapbox once at app level
   useEffect(() => {
     Mapbox.setAccessToken(ENV.mapbox.accessToken);
+  }, []);
+
+  // Configure native Google Sign-In SDK once at app level
+  useEffect(() => {
+    configureGoogleSignIn();
   }, []);
 
   // Initialize settings (auto-detects currency from device locale on every launch)

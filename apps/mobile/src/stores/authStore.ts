@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import { supabase, getOAuthRedirectUrl } from '../lib/supabase';
+import { signInWithGoogle, signOutFromGoogle } from '../lib/googleAuth';
 import { Session, User, AuthError, Subscription } from '@supabase/supabase-js';
 import { debugLog } from '../config/environment';
 import * as WebBrowser from 'expo-web-browser';
@@ -238,6 +239,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isLoading: false,
       });
 
+      // Also sign out from the native Google SDK so the OS account picker
+      // doesn't silently re-authenticate the same account on the next sign-in.
+      signOutFromGoogle();
+
       return { error: null };
     } catch (err) {
       const error = err as AuthError;
@@ -335,18 +340,50 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   // Sign in with OAuth provider
   signInWithOAuth: async (provider: 'google' | 'facebook') => {
+    // ── Google: native OS account picker (no browser, no password) ──────────
+    if (provider === 'google') {
+      try {
+        set({ isLoading: true, error: null });
+        debugLog('[Auth] Starting native Google sign-in...');
+
+        const { error } = await signInWithGoogle();
+
+        if (error) {
+          // 'OAuth cancelled' is a user-initiated action — don't persist as error state
+          if (error.message !== 'OAuth cancelled') {
+            console.error('[Auth] Native Google sign-in error:', error);
+            set({ error: error.message, isLoading: false });
+          } else {
+            set({ isLoading: false });
+          }
+          return { error };
+        }
+
+        // Session is set inside signInWithGoogle → onAuthStateChange fires and
+        // updates the store reactively, but we also clear the loading flag here.
+        debugLog('[Auth] Native Google sign-in successful');
+        set({ isLoading: false });
+        return { error: null };
+      } catch (err) {
+        const error = err as Error;
+        console.error('[Auth] Unexpected native Google error:', error);
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+    }
+
+    // ── Facebook (and any future providers): browser-based OAuth flow ────────
     try {
       set({ isLoading: true, error: null });
-      debugLog(`[Auth] Starting ${provider} OAuth flow...`);
+      debugLog(`[Auth] Starting ${provider} browser OAuth flow...`);
 
       const redirectUrl = getOAuthRedirectUrl();
 
-      // Start OAuth flow with Supabase
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: true, // We'll handle the browser ourselves
+          skipBrowserRedirect: true, // We open the browser ourselves
         },
       });
 
@@ -357,15 +394,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
 
       if (!data?.url) {
-        const error = new Error('No OAuth URL returned from Supabase');
-        console.error('[Auth] OAuth error:', error);
-        set({ error: error.message, isLoading: false });
-        return { error };
+        const err = new Error('No OAuth URL returned from Supabase');
+        console.error('[Auth] OAuth error:', err);
+        set({ error: err.message, isLoading: false });
+        return { error: err };
       }
 
       debugLog(`[Auth] Opening ${provider} OAuth URL:`, data.url);
 
-      // Open OAuth URL in system browser
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl, {
         showInRecents: true,
       });
@@ -373,14 +409,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       debugLog('[Auth] Browser result:', result.type);
 
       if (result.type === 'success' && result.url) {
-        // Extract the URL parameters
         const url = new URL(result.url);
-        const params = new URLSearchParams(url.hash.substring(1)); // Remove # from hash
+        const params = new URLSearchParams(url.hash.substring(1));
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
 
         if (accessToken && refreshToken) {
-          // Set session with the tokens
           const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -399,24 +433,22 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             isLoading: false,
           });
 
-          // Preference sync is handled reactively by storeBindings.ts
-
           return { error: null };
         } else {
-          const error = new Error('No access token received from OAuth provider');
-          console.error('[Auth] OAuth error:', error);
-          set({ error: error.message, isLoading: false });
-          return { error };
+          const err = new Error('No access token received from OAuth provider');
+          console.error('[Auth] OAuth error:', err);
+          set({ error: err.message, isLoading: false });
+          return { error: err };
         }
       } else if (result.type === 'cancel') {
         debugLog(`[Auth] ${provider} OAuth cancelled by user`);
         set({ isLoading: false });
         return { error: new Error('OAuth cancelled') };
       } else {
-        const error = new Error('OAuth failed');
-        console.error('[Auth] OAuth error:', error);
-        set({ error: error.message, isLoading: false });
-        return { error };
+        const err = new Error('OAuth failed');
+        console.error('[Auth] OAuth error:', err);
+        set({ error: err.message, isLoading: false });
+        return { error: err };
       }
     } catch (err) {
       const error = err as Error;

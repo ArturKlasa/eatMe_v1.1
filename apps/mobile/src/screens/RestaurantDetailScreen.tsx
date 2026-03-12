@@ -179,11 +179,20 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       restaurant.open_hours as Record<string, { open: string; close: string }> | null
     );
 
-  // Determine payment note
+  // Determine payment note from DB column
   const getPaymentNote = () => {
-    // For now, return null since payment methods aren't in Supabase yet
-    return null;
+    switch ((restaurant as any).payment_methods) {
+      case 'cash_only':
+        return { icon: '💵', label: 'Cash only' };
+      case 'card_only':
+        return { icon: '💳', label: 'Cards only' };
+      case 'cash_and_card':
+        return { icon: '💵💳', label: 'Cash & card' };
+      default:
+        return null;
+    }
   };
+  const paymentNote = getPaymentNote();
 
   const paymentNote = getPaymentNote();
 
@@ -462,6 +471,18 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               </View>
             )}
           </View>
+
+          {/* Payment Methods Section */}
+          {paymentNote && (
+            <View style={styles.hoursMoreSection}>
+              <Text style={styles.hoursMoreSectionTitle}>Payment</Text>
+              <Text style={styles.hoursMoreAddress}>
+                {paymentNote.icon}
+                {'  '}
+                {paymentNote.label}
+              </Text>
+            </View>
+          )}
 
           {/* Address Section */}
           <View style={styles.hoursMoreSection}>

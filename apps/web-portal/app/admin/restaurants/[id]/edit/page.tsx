@@ -19,9 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { RESTAURANT_TYPES, CUISINES, POPULAR_CUISINES, COUNTRIES } from '@/lib/constants';
+import {
+  RESTAURANT_TYPES,
+  CUISINES,
+  POPULAR_CUISINES,
+  COUNTRIES,
+  PAYMENT_METHOD_OPTIONS,
+} from '@/lib/constants';
 import type { ParsedLocationDetails } from '@/lib/parseAddress';
 
 const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
@@ -59,6 +66,7 @@ export default function EditRestaurantPage() {
     takeout_available: false,
     dine_in_available: true,
     accepts_reservations: false,
+    payment_methods: 'cash_and_card' as 'cash_only' | 'card_only' | 'cash_and_card',
   });
 
   const [cuisineSearch, setCuisineSearch] = useState('');
@@ -123,6 +131,9 @@ export default function EditRestaurantPage() {
             takeout_available: data.takeout_available || false,
             dine_in_available: data.dine_in_available !== false,
             accepts_reservations: data.accepts_reservations || false,
+            payment_methods:
+              (data.payment_methods as 'cash_only' | 'card_only' | 'cash_and_card') ||
+              'cash_and_card',
           });
 
           // Populate operating hours from DB (open_hours stores only open days)
@@ -196,6 +207,7 @@ export default function EditRestaurantPage() {
           takeout_available: formData.takeout_available,
           dine_in_available: formData.dine_in_available,
           accepts_reservations: formData.accepts_reservations,
+          payment_methods: formData.payment_methods,
         })
         .eq('id', restaurantId);
 
@@ -377,7 +389,7 @@ export default function EditRestaurantPage() {
                 id="description"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full min-h-25 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 placeholder="Share what makes your restaurant special..."
               />
             </div>
@@ -670,6 +682,36 @@ export default function EditRestaurantPage() {
                   📅 Accepts Reservations
                 </Label>
               </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <Label className="mb-3 block font-medium">💳 Payment Methods</Label>
+              <RadioGroup
+                value={formData.payment_methods}
+                onValueChange={value =>
+                  setFormData({
+                    ...formData,
+                    payment_methods: value as 'cash_only' | 'card_only' | 'cash_and_card',
+                  })
+                }
+                className="grid grid-cols-1 gap-2"
+              >
+                {PAYMENT_METHOD_OPTIONS.map(option => (
+                  <div key={option.value} className="flex items-start space-x-3">
+                    <RadioGroupItem
+                      value={option.value}
+                      id={`pay-${option.value}`}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <Label htmlFor={`pay-${option.value}`} className="font-medium cursor-pointer">
+                        {option.icon} {option.label}
+                      </Label>
+                      <p className="text-xs text-gray-500">{option.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
             </div>
           </CardContent>
         </Card>

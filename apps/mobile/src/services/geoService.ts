@@ -47,6 +47,7 @@ export interface RestaurantWithDistance {
    * Returned by the nearby-restaurants Edge Function via select('*').
    */
   open_hours?: Record<string, { open: string; close: string }> | null;
+  payment_methods?: 'cash_only' | 'card_only' | 'cash_and_card' | null;
   distance: number;
   menus?: Array<{
     id: string;

@@ -1125,6 +1125,7 @@ export type Database = {
           neighbourhood: string | null;
           open_hours: Json | null;
           owner_id: string | null;
+          payment_methods: string | null;
           phone: string | null;
           postal_code: string | null;
           rating: number | null;
@@ -1157,6 +1158,7 @@ export type Database = {
           neighbourhood?: string | null;
           open_hours?: Json | null;
           owner_id?: string | null;
+          payment_methods?: string | null;
           phone?: string | null;
           postal_code?: string | null;
           rating?: number | null;
@@ -1189,6 +1191,7 @@ export type Database = {
           neighbourhood?: string | null;
           open_hours?: Json | null;
           owner_id?: string | null;
+          payment_methods?: string | null;
           phone?: string | null;
           postal_code?: string | null;
           rating?: number | null;

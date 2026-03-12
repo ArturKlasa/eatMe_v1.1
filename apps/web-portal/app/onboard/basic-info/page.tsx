@@ -27,6 +27,7 @@ import {
   COUNTRIES,
   POPULAR_CUISINES,
   SERVICE_SPEED_OPTIONS,
+  PAYMENT_METHOD_OPTIONS,
   DAYS_OF_WEEK,
 } from '@/lib/constants';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -36,6 +37,7 @@ import {
   RestaurantOperations,
   FormProgress,
   RestaurantType,
+  PaymentMethods,
 } from '@/types/restaurant';
 import { ArrowLeft, ArrowRight, MapPin, Clock, Utensils, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -69,6 +71,7 @@ interface FormData {
   dine_in_available: boolean;
   service_speed?: 'fast-food' | 'regular';
   accepts_reservations: boolean;
+  payment_methods: 'cash_only' | 'card_only' | 'cash_and_card';
 }
 
 function BasicInfoPageContent() {
@@ -115,6 +118,12 @@ function BasicInfoPageContent() {
     if (typeof window === 'undefined' || !user?.id) return 'regular';
     const savedData = loadRestaurantData(user.id);
     return savedData?.operations?.service_speed || 'regular';
+  });
+
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethods>(() => {
+    if (typeof window === 'undefined' || !user?.id) return 'cash_and_card';
+    const savedData = loadRestaurantData(user.id);
+    return (savedData?.operations?.payment_methods as PaymentMethods) || 'cash_and_card';
   });
 
   const [operatingHours, setOperatingHours] = useState<
@@ -198,10 +207,8 @@ function BasicInfoPageContent() {
           dine_in_available: true,
           service_speed: 'regular',
           accepts_reservations: false,
+          payment_methods: 'cash_and_card' as const,
         };
-      }
-
-      // Load saved data directly into defaultValues
       const savedData = loadRestaurantData(user.id);
 
       if (savedData) {
@@ -224,6 +231,7 @@ function BasicInfoPageContent() {
           dine_in_available: savedData.operations?.dine_in_available ?? true,
           service_speed: savedData.operations?.service_speed || 'regular',
           accepts_reservations: savedData.operations?.accepts_reservations ?? false,
+          payment_methods: (savedData.operations?.payment_methods as PaymentMethods) ?? 'cash_and_card',
         };
       }
 
@@ -246,6 +254,7 @@ function BasicInfoPageContent() {
         dine_in_available: true,
         service_speed: 'regular',
         accepts_reservations: false,
+        payment_methods: 'cash_and_card' as const,
       };
     },
   });
@@ -292,6 +301,7 @@ function BasicInfoPageContent() {
         dine_in_available: currentValues.dine_in_available,
         service_speed: currentValues.service_speed,
         accepts_reservations: currentValues.accepts_reservations,
+        payment_methods: currentValues.payment_methods as PaymentMethods | undefined,
       };
 
       const updatedData: FormProgress = {
@@ -445,6 +455,7 @@ function BasicInfoPageContent() {
       dine_in_available: data.dine_in_available,
       service_speed: data.service_speed,
       accepts_reservations: data.accepts_reservations,
+      payment_methods: data.payment_methods,
     };
 
     // Save to localStorage
@@ -951,6 +962,34 @@ function BasicInfoPageContent() {
                           className="font-medium cursor-pointer"
                         >
                           {option.label}
+                        </Label>
+                        <p className="text-sm text-gray-500">{option.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <Separator />
+
+              <div>
+                <Label className="mb-3 block">💳 Payment Methods</Label>
+                <RadioGroup
+                  value={paymentMethods}
+                  onValueChange={value => {
+                    setPaymentMethods(value as PaymentMethods);
+                    setValue('payment_methods', value as PaymentMethods);
+                  }}
+                >
+                  {PAYMENT_METHOD_OPTIONS.map(option => (
+                    <div key={option.value} className="flex items-start space-x-3 mb-3">
+                      <RadioGroupItem value={option.value} id={`pay-${option.value}`} />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={`pay-${option.value}`}
+                          className="font-medium cursor-pointer"
+                        >
+                          {option.icon} {option.label}
                         </Label>
                         <p className="text-sm text-gray-500">{option.description}</p>
                       </div>

@@ -200,6 +200,22 @@ function ReviewPageContent() {
                       </div>
                     </>
                   )}
+                {restaurantData.operations?.payment_methods && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Payment Methods</p>
+                      <p className="text-gray-700">
+                        {restaurantData.operations.payment_methods === 'cash_and_card' &&
+                          '💵💳 Cash & Card'}
+                        {restaurantData.operations.payment_methods === 'cash_only' &&
+                          '💵 Cash Only'}
+                        {restaurantData.operations.payment_methods === 'card_only' &&
+                          '💳 Card Only'}
+                      </p>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <p className="text-gray-500 italic">Restaurant information not yet added</p>

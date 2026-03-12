@@ -41,6 +41,29 @@ export const SERVICE_SPEED_OPTIONS = [
   { value: 'fast-food', label: 'Fast Food', description: 'Food ready immediately' },
 ];
 
+export const PAYMENT_METHOD_OPTIONS = [
+  {
+    value: 'cash_and_card',
+    label: 'Cash & Card',
+    description: 'Accepts both cash and card payments',
+    icon: '💵💳',
+  },
+  {
+    value: 'card_only',
+    label: 'Card Only',
+    description: 'Card payments only (no cash)',
+    icon: '💳',
+  },
+  {
+    value: 'cash_only',
+    label: 'Cash Only',
+    description: 'Cash payments only (no cards)',
+    icon: '💵',
+  },
+] as const;
+
+export type PaymentMethodValue = 'cash_and_card' | 'card_only' | 'cash_only';
+
 export const MENU_CATEGORIES = [
   { value: 'all_day', label: 'All-Day', description: 'Available all day' },
   { value: 'breakfast', label: 'Breakfast', description: 'Morning menu' },

@@ -346,6 +346,7 @@ CREATE TABLE public.restaurants (
   dine_in_available boolean DEFAULT true,
   accepts_reservations boolean DEFAULT false,
   service_speed text CHECK (service_speed = ANY (ARRAY['fast-food'::text, 'regular'::text])),
+  payment_methods text CHECK (payment_methods = ANY (ARRAY['cash_only'::text, 'card_only'::text, 'cash_and_card'::text])),
   rating numeric DEFAULT 0.00,
   image_url text,
   description text,

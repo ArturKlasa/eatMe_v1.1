@@ -90,6 +90,8 @@ export interface RestaurantBasicInfo {
   cuisines: string[];
 }
 
+export type PaymentMethods = 'cash_only' | 'card_only' | 'cash_and_card';
+
 export interface RestaurantOperations {
   operating_hours: OperatingHours;
   delivery_available: boolean;
@@ -97,6 +99,7 @@ export interface RestaurantOperations {
   dine_in_available: boolean;
   service_speed?: 'fast-food' | 'regular';
   accepts_reservations: boolean;
+  payment_methods?: PaymentMethods;
 }
 
 export interface RestaurantData {

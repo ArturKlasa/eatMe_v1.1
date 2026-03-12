@@ -104,6 +104,8 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
       dine_in_available: restaurant.dine_in_available ?? undefined,
       service_speed: (restaurant.service_speed as 'fast-food' | 'regular') ?? undefined,
       accepts_reservations: restaurant.accepts_reservations ?? undefined,
+      payment_methods:
+        (restaurant.payment_methods as 'cash_only' | 'card_only' | 'cash_and_card') ?? undefined,
     },
     menus: (restaurant.menus ?? []).map((menu: any) => ({
       id: menu.id,
@@ -220,6 +222,7 @@ export async function submitRestaurantProfile(
     dine_in_available: formData.operations?.dine_in_available ?? true,
     accepts_reservations: formData.operations?.accepts_reservations ?? false,
     service_speed: formData.operations?.service_speed as 'fast-food' | 'regular' | undefined,
+    payment_methods: (formData.operations?.payment_methods as string) ?? null,
     description: basicInfo.description,
   };
 

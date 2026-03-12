@@ -194,8 +194,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   };
   const paymentNote = getPaymentNote();
 
-  const paymentNote = getPaymentNote();
-
   const handleMenuOption = async (option: string) => {
     switch (option) {
       case 'address':

@@ -30,9 +30,12 @@ import { debugLog } from '../config/environment';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
+let _configured = false;
+
 /**
  * Configure the native Google Sign-In SDK.
- * Must be called once before any sign-in attempt — place in App.tsx useEffect.
+ * Called automatically at module load time — no need to call this manually.
+ * Safe to call multiple times (idempotent).
  */
 export function configureGoogleSignIn(): void {
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
@@ -56,8 +59,14 @@ export function configureGoogleSignIn(): void {
     scopes: ['profile', 'email'],
   });
 
+  _configured = true;
   debugLog('[GoogleAuth] GoogleSignin configured.');
 }
+
+// Auto-configure immediately when this module is imported.
+// This avoids the "apiClient is null - call configure() first" error that
+// occurs when configure() is deferred to a useEffect (async after render).
+configureGoogleSignIn();
 
 // ─── Sign-in ─────────────────────────────────────────────────────────────────
 
@@ -74,6 +83,12 @@ export interface GoogleAuthResult {
  */
 export async function signInWithGoogle(): Promise<GoogleAuthResult> {
   try {
+    // Safety net: configure if auto-configure at module load didn't succeed
+    // (e.g., env var wasn't available yet at import time).
+    if (!_configured) {
+      configureGoogleSignIn();
+    }
+
     debugLog('[GoogleAuth] Checking Google Play Services...');
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 

@@ -145,7 +145,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   },
   weekDayHoursClosed: {
     fontSize: typography.size.xs,
-    color: '#FF5722',
+    color: colors.danger,
     fontWeight: typography.weight.semibold,
   },
   currentDayInfo: {
@@ -159,7 +159,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   },
   todayHoursClosed: {
     fontSize: typography.size.xs,
-    color: '#FF5722',
+    color: colors.danger,
     fontWeight: typography.weight.semibold,
   },
   openBadge: {
@@ -175,9 +175,9 @@ export const restaurantDetailStyles = StyleSheet.create({
   },
   closedBadge: {
     fontSize: 11,
-    color: '#FF5722',
+    color: colors.danger,
     fontWeight: typography.weight.bold,
-    backgroundColor: '#FF572220',
+    backgroundColor: `${colors.danger}20`,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
@@ -424,7 +424,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   tabClosedBadge: {
     fontSize: typography.size.base,
     fontWeight: typography.weight.bold,
-    color: '#FF5722',
+    color: colors.danger,
   },
 
   // Hours & More Tab

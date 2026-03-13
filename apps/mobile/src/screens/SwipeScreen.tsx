@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { debugLog } from '../config/environment';
 import { View, Text, TouchableOpacity, ActivityIndicator, Image, ScrollView } from 'react-native';
 import { styles } from './SwipeScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -133,7 +134,7 @@ export function SwipeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>{t('swipe.gettingLocation')}</Text>
         </View>
       </SafeAreaView>
@@ -144,7 +145,7 @@ export function SwipeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>{t('swipe.loadingDishes')}</Text>
         </View>
       </SafeAreaView>

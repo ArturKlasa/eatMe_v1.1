@@ -18,6 +18,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
 
 interface Props {
   children: React.ReactNode;
@@ -85,61 +86,61 @@ export class ErrorBoundary extends React.Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: colors.black,
   },
   content: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: spacing['2xl'],
   },
   emoji: {
-    fontSize: 56,
-    marginBottom: 20,
+    fontSize: typography.size['4xl'],
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 12,
+    fontSize: typography.size['2xl'],
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   message: {
-    fontSize: 15,
-    color: '#aaa',
+    fontSize: typography.size.base,
+    color: colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: spacing['2xl'],
   },
   devBox: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 24,
+    backgroundColor: colors.darkSecondary,
+    borderRadius: borderRadius.base,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
     width: '100%',
   },
   devLabel: {
-    fontSize: 11,
-    color: '#f97316',
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: typography.size.xs,
+    color: colors.danger,
+    fontWeight: typography.weight.semibold,
+    marginBottom: spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   devText: {
-    fontSize: 12,
-    color: '#ccc',
+    fontSize: typography.size.sm,
+    color: colors.gray400,
     fontFamily: 'monospace',
   },
   button: {
-    backgroundColor: '#f97316',
-    paddingHorizontal: 32,
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing['2xl'],
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: borderRadius.md,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: colors.white,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.bold,
   },
 });

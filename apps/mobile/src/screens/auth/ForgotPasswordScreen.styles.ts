@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
     color: colors.darkText,
   },
   errorContainer: {
-    backgroundColor: '#4A2A2A',
+    backgroundColor: colors.errorSurface,
     borderRadius: borderRadius.base,
     padding: spacing.md,
     marginBottom: spacing.base,

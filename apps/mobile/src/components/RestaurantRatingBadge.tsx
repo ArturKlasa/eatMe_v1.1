@@ -28,31 +28,31 @@ export function RestaurantRatingBadge({
     switch (category) {
       case 'Food':
         if (percentage >= 85) return { text: 'Delicious', color: colors.success };
-        if (percentage >= 70) return { text: 'Tasty', color: '#FFB800' };
+        if (percentage >= 70) return { text: 'Tasty', color: colors.accentLight };
         return { text: 'Mediocre food', color: colors.error };
 
       case 'Service':
         if (percentage >= 85) return { text: 'Excellent service', color: colors.success };
-        if (percentage >= 70) return { text: 'Good service', color: '#FFB800' };
+        if (percentage >= 70) return { text: 'Good service', color: colors.accentLight };
         return { text: 'Poor service', color: colors.error };
 
       case 'Clean':
         if (percentage >= 85) return { text: 'Clean', color: colors.success };
-        if (percentage >= 70) return { text: 'Fairly clean', color: '#FFB800' };
+        if (percentage >= 70) return { text: 'Fairly clean', color: colors.accentLight };
         return { text: 'Not clean', color: colors.error };
 
       case 'Wait time':
         if (percentage >= 85) return { text: 'Quick', color: colors.success };
-        if (percentage >= 70) return { text: 'Reasonable wait', color: '#FFB800' };
+        if (percentage >= 70) return { text: 'Reasonable wait', color: colors.accentLight };
         return { text: 'Long wait', color: colors.error };
 
       case 'Value':
         if (percentage >= 85) return { text: 'Great value', color: colors.success };
-        if (percentage >= 70) return { text: 'Fair value', color: '#FFB800' };
+        if (percentage >= 70) return { text: 'Fair value', color: colors.accentLight };
         return { text: 'Overpriced', color: colors.error };
 
       default:
-        return { text: 'OK', color: '#FFB800' };
+        return { text: 'OK', color: colors.accentLight };
     }
   };
 

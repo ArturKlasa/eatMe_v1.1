@@ -155,7 +155,7 @@ export const styles = StyleSheet.create({
     fontWeight: typography.weight.medium,
   },
   errorContainer: {
-    backgroundColor: '#4A2A2A',
+    backgroundColor: colors.errorSurface,
     borderRadius: borderRadius.base,
     padding: spacing.md,
     marginBottom: spacing.base,
@@ -196,40 +196,5 @@ export const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-  },
-  languageButton: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  languageButtonText: {
-    color: colors.white,
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-  },
-  languagePicker: {
-    backgroundColor: colors.darkSecondary,
-    borderRadius: borderRadius.md,
-    marginHorizontal: spacing.base,
-    marginBottom: spacing.base,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  languageOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.base,
-    borderRadius: borderRadius.base,
-  },
-  languageOptionActive: {
-    backgroundColor: colors.darkTertiary,
-  },
-  languageOptionText: {
-    color: colors.white,
-    fontSize: typography.size.base,
   },
 });

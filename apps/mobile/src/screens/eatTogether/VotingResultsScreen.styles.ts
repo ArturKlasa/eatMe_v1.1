@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.darkSecondary,
     borderRadius: borderRadius.lg,
     borderWidth: 3,
-    borderColor: '#FFD700',
+    borderColor: colors.gold,
     padding: spacing.xl,
     alignItems: 'center',
     marginBottom: spacing.xl,
@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
   crownBadge: {
     position: 'absolute',
     top: -20,
-    backgroundColor: '#FFD700',
+    backgroundColor: colors.gold,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -51,8 +51,7 @@ export const styles = StyleSheet.create({
     fontSize: typography.size['2xl'],
   },
   winnerLabel: {
-    color: '#FFD700',
-    fontSize: typography.size.sm,
+    color: colors.gold,
     fontWeight: typography.weight.bold,
     textTransform: 'uppercase',
     marginTop: spacing.lg,
@@ -80,7 +79,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    color: '#FFD700',
+    color: colors.gold,
     fontSize: typography.size['4xl'],
     fontWeight: typography.weight.bold,
   },

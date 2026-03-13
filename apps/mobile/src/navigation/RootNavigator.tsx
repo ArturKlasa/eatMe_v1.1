@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { colors } from '@eatme/tokens';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import {
@@ -208,7 +209,7 @@ function MainNavigator() {
 function LoadingScreen() {
   return (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#EA580C" />
+      <ActivityIndicator size="large" color={colors.accentDark} />
     </View>
   );
 }
@@ -271,6 +272,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: colors.backgroundWarm,
   },
 });

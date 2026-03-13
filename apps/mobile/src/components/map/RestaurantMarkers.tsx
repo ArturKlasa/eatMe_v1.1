@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { PointAnnotation } from '@rnmapbox/maps';
 import { commonStyles, theme } from '@/styles';
+import { colors } from '@eatme/tokens';
 
 // Restaurant type from mobile hooks
 interface Restaurant {
@@ -46,7 +47,7 @@ export const RestaurantMarkers = React.memo<RestaurantMarkersProps>(function Res
                 height: 26,
                 borderRadius: 13,
                 borderWidth: 2,
-                borderColor: '#FFFFFF',
+                borderColor: colors.white,
                 justifyContent: 'center',
                 alignItems: 'center',
               },

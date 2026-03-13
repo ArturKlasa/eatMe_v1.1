@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { styles } from './ForgotPasswordScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -112,7 +113,7 @@ export function ForgotPasswordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder={t('forgotPassword.emailPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.gray500}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -136,7 +137,7 @@ export function ForgotPasswordScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.resetButtonText}>{t('forgotPassword.sendResetLink')}</Text>
               )}

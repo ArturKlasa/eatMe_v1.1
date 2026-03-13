@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 import { pickImage, takePhoto, uploadDishPhoto } from '../services/dishPhotoService';
+import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -188,7 +189,7 @@ export function DishPhotoModal({
             disabled={uploading}
           >
             {uploading ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.white} size="small" />
             ) : (
               <>
                 <Text style={styles.addPhotoIcon}>📷</Text>
@@ -211,14 +212,14 @@ export function DishPhotoModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.dark,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: colors.darkBorder,
   },
   closeButton: {
     width: 40,
@@ -227,27 +228,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeButtonText: {
-    fontSize: 24,
-    color: '#fff',
+    fontSize: typography.size['2xl'],
+    color: colors.white,
   },
   headerInfo: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
   dishName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
   },
   dishPrice: {
-    fontSize: 16,
-    color: '#FF6B35',
+    fontSize: typography.size.base,
+    color: colors.accent,
     marginTop: 2,
   },
   mainPhotoContainer: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
-    backgroundColor: '#000',
+    backgroundColor: colors.black,
     position: 'relative',
   },
   mainPhoto: {
@@ -258,55 +259,55 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: colors.darkSecondary,
   },
   noPhotoIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: typography.size['6xl'],
+    marginBottom: spacing.base,
   },
   noPhotoText: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: '600',
+    fontSize: typography.size.lg,
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
   },
   noPhotoSubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
+    fontSize: typography.size.sm,
+    color: colors.darkTextMuted,
+    marginTop: spacing.xs,
   },
   photoCounter: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
+    bottom: spacing.base,
+    right: spacing.base,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm / 2,
+    borderRadius: spacing.base,
   },
   photoCounterText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.white,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
   },
   thumbnailScroll: {
     maxHeight: 80,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: colors.darkBorder,
   },
   thumbnailContent: {
-    padding: 12,
-    gap: 8,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   thumbnail: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: borderRadius.base,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   thumbnailSelected: {
-    borderColor: '#FF6B35',
+    borderColor: colors.accent,
   },
   thumbnailImage: {
     width: '100%',
@@ -314,47 +315,47 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     flex: 1,
-    padding: 16,
+    padding: spacing.base,
   },
   infoSectionContent: {
-    paddingBottom: 24,
+    paddingBottom: spacing.xl,
   },
   descriptionContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.base,
   },
   descriptionLabel: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 4,
+    fontSize: typography.size.sm,
+    color: colors.darkTextMuted,
+    marginBottom: spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   description: {
-    fontSize: 16,
-    color: '#fff',
+    fontSize: typography.size.base,
+    color: colors.white,
     lineHeight: 22,
   },
   addPhotoButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
+    padding: spacing.base,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.base,
+    gap: spacing.sm,
   },
   addPhotoIcon: {
-    fontSize: 24,
+    fontSize: typography.size['2xl'],
   },
   addPhotoText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.white,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
   },
   photosFromCommunity: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: typography.size.sm,
+    color: colors.darkTextMuted,
     fontStyle: 'italic',
   },
 });

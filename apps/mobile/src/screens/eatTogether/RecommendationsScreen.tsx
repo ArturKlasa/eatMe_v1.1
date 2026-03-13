@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { styles } from './RecommendationsScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -165,7 +166,7 @@ export function RecommendationsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#FF9800" />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>{t('sessionVoting.loading')}</Text>
         </View>
       </SafeAreaView>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { styles } from './SessionLobbyScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -173,7 +174,7 @@ export function SessionLobbyScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#FF9800" />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>{t('sessionLobby.loading')}</Text>
         </View>
       </SafeAreaView>
@@ -319,7 +320,7 @@ export function SessionLobbyScreen() {
             disabled={generating || activeMembers.length < 2}
           >
             {generating ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <Text style={styles.buttonText}>{t('sessionLobby.generateRecommendations')}</Text>
             )}

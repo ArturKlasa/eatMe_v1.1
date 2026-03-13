@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { PointAnnotation } from '@rnmapbox/maps';
+import { colors } from '@eatme/tokens';
 
 // Dish type from mobile hooks
 interface Dish {
@@ -58,12 +59,12 @@ const styles = {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FF9800', // Orange background
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: '#FFF',
+    borderColor: colors.white,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: {
       width: 0,
       height: 2,

@@ -11,18 +11,19 @@ import {
   Alert,
 } from 'react-native';
 import { styles } from './RegisterScreen.styles';
+import { colors } from '@eatme/tokens';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
-import { getSupportedLanguages, changeLanguage } from '../../i18n';
+import { AuthLanguageSelector } from '../../components/auth';
 
 type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const { signUp, isLoading, error, clearError } = useAuthStore();
 
@@ -32,15 +33,6 @@ export function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
-
-  const supportedLanguages = getSupportedLanguages();
-  const currentLanguage = i18n.language;
-
-  const handleLanguageChange = async (languageCode: 'en' | 'es' | 'pl') => {
-    await changeLanguage(languageCode);
-    setShowLanguageSelector(false);
-  };
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -125,7 +117,7 @@ export function RegisterScreen() {
 
   const getPasswordStrength = (): { strength: string; color: string; width: string } => {
     if (password.length === 0) {
-      return { strength: '', color: '#E5E7EB', width: '0%' };
+      return { strength: '', color: colors.gray200, width: '0%' };
     }
 
     let score = 0;
@@ -136,10 +128,11 @@ export function RegisterScreen() {
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
 
-    if (score <= 2) return { strength: t('register.passwordWeak'), color: '#EF4444', width: '33%' };
+    if (score <= 2)
+      return { strength: t('register.passwordWeak'), color: colors.error, width: '33%' };
     if (score <= 4)
-      return { strength: t('register.passwordMedium'), color: '#F59E0B', width: '66%' };
-    return { strength: t('register.passwordStrong'), color: '#10B981', width: '100%' };
+      return { strength: t('register.passwordMedium'), color: colors.warning, width: '66%' };
+    return { strength: t('register.passwordStrong'), color: colors.success, width: '100%' };
   };
 
   const passwordStrength = getPasswordStrength();
@@ -155,35 +148,7 @@ export function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Language Selector */}
-          <TouchableOpacity
-            style={styles.languageButton}
-            onPress={() => setShowLanguageSelector(!showLanguageSelector)}
-          >
-            <Text style={styles.languageButtonText}>
-              {supportedLanguages.find(lang => lang.code === currentLanguage)?.flag}{' '}
-              {supportedLanguages.find(lang => lang.code === currentLanguage)?.name}
-            </Text>
-          </TouchableOpacity>
-
-          {showLanguageSelector && (
-            <View style={styles.languagePicker}>
-              {supportedLanguages.map(lang => (
-                <TouchableOpacity
-                  key={lang.code}
-                  style={[
-                    styles.languageOption,
-                    currentLanguage === lang.code && styles.languageOptionActive,
-                  ]}
-                  onPress={() => handleLanguageChange(lang.code as 'en' | 'es' | 'pl')}
-                >
-                  <Text style={styles.languageOptionText}>
-                    {lang.flag} {lang.name}
-                  </Text>
-                  {currentLanguage === lang.code && <Text style={styles.checkmark}>✓</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+          <AuthLanguageSelector />
 
           {/* Header */}
           <View style={styles.headerContainer}>
@@ -202,7 +167,7 @@ export function RegisterScreen() {
               <TextInput
                 style={styles.input}
                 placeholder={t('register.profileNamePlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.gray500}
                 value={profileName}
                 onChangeText={setProfileName}
                 autoCapitalize="none"
@@ -218,7 +183,7 @@ export function RegisterScreen() {
               <TextInput
                 style={styles.input}
                 placeholder={t('register.emailPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.gray500}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -235,7 +200,7 @@ export function RegisterScreen() {
                 <TextInput
                   style={styles.passwordInput}
                   placeholder={t('register.passwordPlaceholder')}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.gray500}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -282,7 +247,7 @@ export function RegisterScreen() {
                   confirmPassword.length > 0 && confirmPassword !== password && styles.inputError,
                 ]}
                 placeholder={t('register.confirmPasswordPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.gray500}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
@@ -324,7 +289,7 @@ export function RegisterScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.registerButtonText}>{t('register.createAccount')}</Text>
               )}

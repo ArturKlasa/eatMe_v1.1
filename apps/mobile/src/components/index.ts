@@ -7,6 +7,12 @@
 // Export all common components
 export * from './common';
 
+// Export auth components
+export * from './auth';
+
+// Export icon components
+export * from './icons';
+
 // Export specific components
 export { DrawerFilters } from './DrawerFilters';
 export { FilterFAB } from './FilterFAB';

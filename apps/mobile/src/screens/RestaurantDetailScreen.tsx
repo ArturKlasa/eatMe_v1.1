@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
 import { supabase, type RestaurantWithMenus, type Dish } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
-import { spacing } from '@/styles/theme';
+import { colors, spacing, typography } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useTranslation } from 'react-i18next';
@@ -140,8 +140,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, color: '#666' }}>{t('restaurant.loadingRestaurant')}</Text>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={{ marginTop: spacing.base, color: colors.textSecondary }}>
+          {t('restaurant.loadingRestaurant')}
+        </Text>
       </View>
     );
   }
@@ -415,8 +417,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             </View>
           ))}
           {(!restaurant.menus || restaurant.menus.length === 0) && (
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#666' }}>No menu items available</Text>
+            <View style={{ padding: spacing['2xl'], alignItems: 'center' }}>
+              <Text style={{ color: colors.textSecondary }}>No menu items available</Text>
             </View>
           )}
         </ScrollView>

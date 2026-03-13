@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { styles } from './ProfileScreen.styles';
+import { colors } from '@eatme/tokens';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -263,7 +264,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           <View style={modalScreenStyles.section}>
             <Text style={modalScreenStyles.sectionTitle}>{t('profile.yourActivity')}</Text>
             {loadingStats ? (
-              <ActivityIndicator color="#FF9800" />
+              <ActivityIndicator color={colors.accent} />
             ) : (
               <View style={modalScreenStyles.statsGrid}>
                 <View style={modalScreenStyles.statItem}>

@@ -179,14 +179,14 @@ export const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   tag: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.amberLight,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
   },
   tagText: {
     fontSize: typography.size.xs,
-    color: '#92400E',
+    color: colors.amberDark,
     fontWeight: typography.weight.medium,
   },
   matchScore: {

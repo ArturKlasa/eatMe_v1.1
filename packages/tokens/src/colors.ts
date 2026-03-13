@@ -98,6 +98,24 @@ export const colors = {
   accentLight: '#FFB74D',
   /** Red for dangerous / unavailable items */
   danger: '#FF5722',
+
+  // ─── Semantic extras ─────────────────────────────────────────────────────
+  /** Gold — trophy / winner / first-place highlights */
+  gold: '#FFD700',
+  /** Warm off-white tint used behind accent content */
+  backgroundWarm: '#FFF7ED',
+  /** Dark error surface (deep red-tinted dark bg for error states) */
+  errorSurface: '#4A2A2A',
+  /** Facebook brand blue */
+  facebookBlue: '#1877F2',
+  /** Google button border grey */
+  googleBorderGrey: '#DADCE0',
+  /** Google button text dark */
+  googleTextDark: '#3C4043',
+  /** Amber/warm amber used for warnings on light background */
+  amberDark: '#92400E',
+  /** Light amber background */
+  amberLight: '#FEF3C7',
 } as const;
 
 export type Colors = typeof colors;

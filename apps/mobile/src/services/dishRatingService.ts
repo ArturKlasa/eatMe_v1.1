@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { colors } from '@eatme/tokens';
 
 export interface DishRating {
   dishId: string;
@@ -83,10 +84,10 @@ export async function getDishRating(dishId: string): Promise<DishRating | null> 
  * Get color for rating percentage
  */
 export function getRatingColor(percentage: number | null): string {
-  if (percentage === null) return '#999999'; // Gray for no ratings
-  if (percentage >= 80) return '#4CAF50'; // Green
-  if (percentage >= 60) return '#FF9800'; // Yellow/Orange
-  return '#F44336'; // Red
+  if (percentage === null) return colors.darkTextMuted;
+  if (percentage >= 80) return colors.success;
+  if (percentage >= 60) return colors.warning;
+  return colors.error;
 }
 
 /**

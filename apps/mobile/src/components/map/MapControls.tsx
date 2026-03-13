@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { commonStyles, mapComponentStyles } from '@/styles';
+import { colors } from '@eatme/tokens';
 
 interface MapControlsProps {
   onLocationPress: () => void;
@@ -34,7 +35,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
             right: 20,
             zIndex: 1000,
             elevation: 10,
-            backgroundColor: '#E0E0E0',
+            backgroundColor: colors.gray300,
           },
         ]}
         onPress={onMenuPress}
@@ -50,7 +51,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
             bottom: 330 + bottomOffset,
             zIndex: 1000,
             elevation: 10,
-            backgroundColor: '#E0E0E0',
+            backgroundColor: colors.gray300,
           },
         ]}
         onPress={onLocationPress}

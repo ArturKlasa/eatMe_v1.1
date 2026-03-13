@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { styles } from './JoinSessionScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +78,7 @@ export function JoinSessionScreen() {
             value={sessionCode}
             onChangeText={handleCodeChange}
             placeholder={t('sessionJoin.codePlaceholder')}
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textSecondary}
             maxLength={6}
             autoCapitalize="characters"
             autoCorrect={false}
@@ -95,7 +96,7 @@ export function JoinSessionScreen() {
           disabled={loading || sessionCode.length !== 6}
         >
           {loading ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.joinButtonText}>{t('sessionJoin.joinButton')}</Text>
           )}

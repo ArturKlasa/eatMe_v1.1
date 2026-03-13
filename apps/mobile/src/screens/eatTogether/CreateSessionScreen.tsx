@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { styles } from './CreateSessionScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
@@ -185,7 +186,7 @@ export function CreateSessionScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.createButtonText}>{t('eatTogether.createSession')}</Text>
           )}

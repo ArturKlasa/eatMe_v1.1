@@ -550,12 +550,12 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       <View
         style={[commonStyles.containers.screen, { justifyContent: 'center', alignItems: 'center' }]}
       >
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={{ marginTop: 16, fontSize: 16, color: colors.textSecondary }}>
           {geoLoading ? 'Finding nearby restaurants...' : 'Loading restaurants...'}
         </Text>
         {userLocation && (
-          <Text style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+          <Text style={{ marginTop: 8, fontSize: 12, color: colors.textTertiary }}>
             Searching within 5km radius
           </Text>
         )}
@@ -572,11 +572,15 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           { justifyContent: 'center', alignItems: 'center', padding: 20 },
         ]}
       >
-        <Text style={{ fontSize: 18, color: '#FF3B30', marginBottom: 8, textAlign: 'center' }}>
+        <Text style={{ fontSize: 18, color: colors.error, marginBottom: 8, textAlign: 'center' }}>
           Unable to find nearby restaurants
         </Text>
-        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>{geoError.message}</Text>
-        <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center' }}>
+          {geoError.message}
+        </Text>
+        <Text
+          style={{ fontSize: 12, color: colors.textTertiary, marginTop: 8, textAlign: 'center' }}
+        >
           Please check your location permission and internet connection
         </Text>
       </View>
@@ -665,8 +669,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
               alignItems: 'center',
             }}
           >
-            <ActivityIndicator size="small" color="#FF6B35" />
-            <Text style={{ marginLeft: 10, color: '#fff', fontSize: 14 }}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={{ marginLeft: 10, color: colors.white, fontSize: 14 }}>
               {geoLoading ? 'Updating nearby restaurants...' : 'Loading...'}
             </Text>
           </View>

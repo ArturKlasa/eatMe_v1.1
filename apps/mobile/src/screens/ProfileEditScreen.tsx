@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { styles } from './ProfileEditScreen.styles';
+import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -120,7 +121,7 @@ export function ProfileEditScreen() {
           disabled={isSaving}
         >
           {isSaving ? (
-            <ActivityIndicator size="small" color="#FF9800" />
+            <ActivityIndicator size="small" color={colors.accent} />
           ) : (
             <Text style={styles.saveButtonText}>{t('common.save')}</Text>
           )}
@@ -144,7 +145,7 @@ export function ProfileEditScreen() {
                 markChanged();
               }}
               placeholder={t('profileEdit.namePlaceholder')}
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.textSecondary}
               maxLength={12}
               autoCapitalize="none"
             />

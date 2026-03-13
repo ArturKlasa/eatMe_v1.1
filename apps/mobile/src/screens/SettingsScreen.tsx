@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { SettingsScreenProps } from '@/types/navigation';
 import { modalScreenStyles } from '@/styles';
+import { colors, spacing, typography, borderRadius } from '@eatme/tokens';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { getSupportedLanguages } from '@/i18n';
@@ -129,9 +130,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
                   {t('settings.languageDescription')}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <Text style={{ fontSize: 20 }}>{currentLanguageData?.flag}</Text>
-                <Text style={{ color: '#FF9800', fontSize: 16, fontWeight: '600' }}>
+                <Text
+                  style={{
+                    color: colors.accent,
+                    fontSize: typography.size.base,
+                    fontWeight: typography.weight.semibold,
+                  }}
+                >
                   {currentLanguageData?.name}
                 </Text>
               </View>
@@ -154,8 +161,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               <Switch
                 value={pushNotifications}
                 onValueChange={value => updateNotifications({ pushNotifications: value })}
-                trackColor={{ false: '#555', true: '#FF9800' }}
-                thumbColor={pushNotifications ? '#FFF' : '#CCC'}
+                trackColor={{ false: colors.darkDragHandle, true: colors.accent }}
+                thumbColor={pushNotifications ? colors.white : colors.gray400}
               />
             </View>
 
@@ -169,8 +176,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
               <Switch
                 value={locationServices}
                 onValueChange={value => updatePrivacy({ locationServices: value })}
-                trackColor={{ false: '#555', true: '#FF9800' }}
-                thumbColor={locationServices ? '#FFF' : '#CCC'}
+                trackColor={{ false: colors.darkDragHandle, true: colors.accent }}
+                thumbColor={locationServices ? colors.white : colors.gray400}
               />
             </View>
           </View>
@@ -239,25 +246,31 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             />
             <View
               style={{
-                backgroundColor: '#1E1E1E',
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                backgroundColor: colors.dark,
+                borderTopLeftRadius: borderRadius['2xl'],
+                borderTopRightRadius: borderRadius['2xl'],
                 paddingBottom: Math.max(40, insets.bottom + 20),
               }}
             >
               <LanguageSelector onLanguageChange={handleLanguageChange} />
               <TouchableOpacity
                 style={{
-                  backgroundColor: '#FF9800',
-                  marginHorizontal: 16,
-                  marginTop: 16,
-                  padding: 16,
-                  borderRadius: 12,
+                  backgroundColor: colors.accent,
+                  marginHorizontal: spacing.base,
+                  marginTop: spacing.base,
+                  padding: spacing.base,
+                  borderRadius: borderRadius.md,
                   alignItems: 'center',
                 }}
                 onPress={() => setShowLanguageModal(false)}
               >
-                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+                <Text
+                  style={{
+                    color: colors.white,
+                    fontSize: typography.size.base,
+                    fontWeight: typography.weight.bold,
+                  }}
+                >
                   {t('common.close')}
                 </Text>
               </TouchableOpacity>

@@ -15,6 +15,7 @@ import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, PanResponder } 
 import { useFilterStore, DailyFilters, defaultDailyFilters } from '../../stores/filterStore';
 import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
+import { colors, spacing, typography, borderRadius } from '@eatme/tokens';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/i18nUtils';
 import { POPULAR_CUISINES, ALL_CUISINES } from '../../constants';
@@ -79,10 +80,10 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             <Text style={[modals.title, modals.darkTitle]}>{t('filters.dailyFilters')}</Text>
             <TouchableOpacity
               style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: '#FF9800',
+                paddingHorizontal: spacing.base,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.base,
+                backgroundColor: colors.accent,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -93,9 +94,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             >
               <Text
                 style={{
-                  fontSize: 14,
-                  color: '#FFFFFF',
-                  fontWeight: '600',
+                  fontSize: typography.size.sm,
+                  color: colors.white,
+                  fontWeight: typography.weight.semibold,
                 }}
               >
                 {t('common.apply')}
@@ -588,14 +589,20 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
             <Text style={[modals.title, modals.darkTitle]}>🍔 {t('filters.selectMeals')}</Text>
             <TouchableOpacity
               style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: '#FF9800',
+                paddingHorizontal: spacing.base,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.base,
+                backgroundColor: colors.accent,
               }}
               onPress={onClose}
             >
-              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>
+              <Text
+                style={{
+                  fontSize: typography.size.sm,
+                  color: colors.white,
+                  fontWeight: typography.weight.semibold,
+                }}
+              >
                 {t('common.done')}
               </Text>
             </TouchableOpacity>
@@ -658,14 +665,20 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
             <Text style={[modals.title, modals.darkTitle]}>🍽️ {t('filters.selectCuisines')}</Text>
             <TouchableOpacity
               style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: '#FF9800',
+                paddingHorizontal: spacing.base,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.base,
+                backgroundColor: colors.accent,
               }}
               onPress={onClose}
             >
-              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>
+              <Text
+                style={{
+                  fontSize: typography.size.sm,
+                  color: colors.white,
+                  fontWeight: typography.weight.semibold,
+                }}
+              >
                 {t('common.done')}
               </Text>
             </TouchableOpacity>

@@ -1,0 +1,22 @@
+{
+  "name": "@eatme/tokens",
+  "version": "0.1.0",
+  "description": "Platform-agnostic design tokens for EatMe — colors, typography, spacing, borderRadius, shadows",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

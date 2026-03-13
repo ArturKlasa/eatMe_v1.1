@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { styles } from './OnboardingStep2Screen.styles';
+import { colors } from '@eatme/tokens';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '../../stores/onboardingStore';

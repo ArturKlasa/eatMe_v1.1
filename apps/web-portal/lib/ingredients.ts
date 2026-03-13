@@ -19,14 +19,12 @@ export interface Allergen {
   id: string;
   code: string;
   name: string;
-  icon: string;
 }
 
 export interface DietaryTag {
   id: string;
   code: string;
   name: string;
-  icon: string;
   category: string;
 }
 
@@ -124,7 +122,7 @@ export async function getIngredientDetails(canonicalIngredientId: string) {
  * Get all allergens
  */
 export async function getAllergens() {
-  const { data, error } = await supabase.from('allergens').select('*').order('name');
+  const { data, error } = await supabase.from('allergens').select('id, code, name').order('name');
 
   return { data: data as Allergen[] | null, error };
 }
@@ -133,7 +131,7 @@ export async function getAllergens() {
  * Get all dietary tags
  */
 export async function getDietaryTags() {
-  const { data, error } = await supabase.from('dietary_tags').select('*').order('name');
+  const { data, error } = await supabase.from('dietary_tags').select('id, code, name, category').order('name');
 
   return { data: data as DietaryTag[] | null, error };
 }

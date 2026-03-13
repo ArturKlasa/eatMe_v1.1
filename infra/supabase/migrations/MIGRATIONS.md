@@ -64,6 +64,7 @@ applied alphabetically (e.g. `006a` before `006b`).
 | `039_add_polish_canonical_ingredients.sql`         | Adds Polish canonical ingredients                                          |
 | `040_add_polish_aliases.sql`                       | Seeds Polish ingredient aliases (PL)                                       |
 | `041_ensure_rls_enabled.sql`                       | Security audit: idempotent `ENABLE ROW LEVEL SECURITY` on all tables       |
+| `045_remove_icon_from_allergens_and_dietary_tags.sql` | Drops `icon` column from `allergens` and `dietary_tags`; icons moved to client-side constants |
 
 ---
 

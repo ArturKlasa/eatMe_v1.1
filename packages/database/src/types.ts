@@ -73,7 +73,6 @@ export type Database = {
           code: string;
           created_at: string | null;
           description: string | null;
-          icon: string | null;
           id: string;
           name: string;
           severity: string | null;
@@ -83,7 +82,6 @@ export type Database = {
           code: string;
           created_at?: string | null;
           description?: string | null;
-          icon?: string | null;
           id?: string;
           name: string;
           severity?: string | null;
@@ -93,7 +91,6 @@ export type Database = {
           code?: string;
           created_at?: string | null;
           description?: string | null;
-          icon?: string | null;
           id?: string;
           name?: string;
           severity?: string | null;
@@ -197,7 +194,6 @@ export type Database = {
           code: string;
           created_at: string | null;
           description: string | null;
-          icon: string | null;
           id: string;
           name: string;
           updated_at: string | null;
@@ -207,7 +203,6 @@ export type Database = {
           code: string;
           created_at?: string | null;
           description?: string | null;
-          icon?: string | null;
           id?: string;
           name: string;
           updated_at?: string | null;
@@ -217,7 +212,6 @@ export type Database = {
           code?: string;
           created_at?: string | null;
           description?: string | null;
-          icon?: string | null;
           id?: string;
           name?: string;
           updated_at?: string | null;

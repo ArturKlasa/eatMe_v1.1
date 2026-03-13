@@ -6,6 +6,8 @@
  * cuisine/allergen lists that must match between the two apps.
  */
 
+export { ALLERGEN_ICONS, DIETARY_TAG_ICONS, getAllergenIcon, getDietaryTagIcon } from './icons';
+
 /**
  * Quick-pick cuisine list shown in the daily filter grid.
  * Mirrors the web portal's POPULAR_CUISINES array.

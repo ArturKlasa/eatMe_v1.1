@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import type { EditableIngredient } from '@/lib/menu-scan';
 
 // ---------------------------------------------------------------------------
+import { getAllergenIcon } from '@/lib/icons';
+
 // Types
 // ---------------------------------------------------------------------------
 
@@ -19,7 +21,6 @@ interface Allergen {
   id: string;
   code: string;
   name: string;
-  icon: string;
 }
 
 interface AddIngredientPanelProps {
@@ -84,7 +85,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
     // Load allergens for the add-new form
     supabase
       .from('allergens')
-      .select('id, code, name, icon')
+      .select('id, code, name')
       .order('name')
       .then(({ data }) => {
         if (data) setAllergens(data as Allergen[]);
@@ -417,7 +418,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                               : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
                           )}
                         >
-                          {allergen.icon && <span>{allergen.icon}</span>}
+                          <span>{getAllergenIcon(allergen.code)}</span>
                           {allergen.name}
                         </button>
                       );

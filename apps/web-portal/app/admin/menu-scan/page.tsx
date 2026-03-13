@@ -26,6 +26,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { getDietaryTagIcon } from '@/lib/icons';
 import { AddIngredientPanel } from '@/components/admin/AddIngredientPanel';
 import { NewRestaurantForm, type NewRestaurantResult } from '@/components/admin/NewRestaurantForm';
 import {
@@ -68,7 +69,6 @@ interface DietaryTagOption {
   id: string;
   code: string;
   name: string;
-  icon: string | null;
 }
 
 interface AddIngredientTarget {
@@ -272,7 +272,7 @@ export default function MenuScanPage() {
     // Load dietary tags for review
     supabase
       .from('dietary_tags')
-      .select('id, code, name, icon')
+      .select('id, code, name')
       .order('name')
       .then(({ data }) => setDietaryTags((data as DietaryTagOption[]) ?? []));
   }, []);
@@ -1433,9 +1433,7 @@ export default function MenuScanPage() {
                                                   : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                                               )}
                                             >
-                                              {tag.icon && (
-                                                <span className="mr-0.5">{tag.icon}</span>
-                                              )}
+                                              <span className="mr-0.5">{getDietaryTagIcon(tag.code)}</span>
                                               {tag.name}
                                             </button>
                                           );

@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   Share,
   ScrollView,
 } from 'react-native';
+import { styles } from './CreateSessionScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
@@ -194,157 +194,3 @@ export function CreateSessionScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1A1A1A',
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#E0E0E0',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#B0B0B0',
-    marginBottom: 32,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#E0E0E0',
-    marginBottom: 8,
-  },
-  sectionHint: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 16,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  optionCardSelected: {
-    borderColor: '#FF9800',
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#666',
-    marginRight: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FF9800',
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E0E0E0',
-    marginBottom: 4,
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: '#999',
-  },
-  createButton: {
-    backgroundColor: '#FF9800',
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-  },
-  createButtonDisabled: {
-    opacity: 0.5,
-  },
-  createButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  codeSection: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#B0B0B0',
-    marginBottom: 12,
-  },
-  codeBox: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
-    paddingVertical: 20,
-    paddingHorizontal: 40,
-    marginBottom: 8,
-  },
-  codeText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FF9800',
-    letterSpacing: 4,
-  },
-  hint: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-  },
-  qrSection: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  qrBox: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 8,
-  },
-  shareButton: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#FF9800',
-  },
-  shareButtonText: {
-    color: '#FF9800',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  continueButton: {
-    backgroundColor: '#FF9800',
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-  },
-  continueButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-});

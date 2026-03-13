@@ -7,9 +7,9 @@ import {
   Animated,
   PanResponder,
   Alert,
-  StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { styles } from './ProfileScreen.styles';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -320,33 +320,5 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  editButton: {
-    marginTop: 16,
-    backgroundColor: '#FF9800',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  editButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  signOutButton: {
-    backgroundColor: '#333',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FF5722',
-  },
-  signOutButtonText: {
-    color: '#FF5722',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});
 
 export default ProfileScreen;

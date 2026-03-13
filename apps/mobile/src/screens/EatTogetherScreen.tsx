@@ -1,13 +1,6 @@
 import React, { useRef } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Animated,
-  PanResponder,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Animated, PanResponder } from 'react-native';
+import { styles } from './EatTogetherScreen.styles';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -195,65 +188,5 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  actionsContainer: {
-    padding: 16,
-    gap: 12,
-  },
-  primaryAction: {
-    backgroundColor: '#FF9800',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  secondaryAction: {
-    backgroundColor: '#2A2A2A',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#333',
-  },
-  actionIcon: {
-    fontSize: 40,
-    marginBottom: 8,
-  },
-  actionTitle: {
-    color: '#E0E0E0',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  actionDescription: {
-    color: '#E0E0E0',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    opacity: 0.8,
-  },
-  stepsList: {
-    gap: 12,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2A2A2A',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  stepIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  stepText: {
-    color: '#E0E0E0',
-    fontSize: 14,
-    flex: 1,
-    lineHeight: 20,
-  },
-});
 
 export default EatTogetherScreen;

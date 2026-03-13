@@ -12,6 +12,7 @@ import { initializeSettings, useSettingsStore } from './src/stores/settingsStore
 import { useFilterStore } from './src/stores/filterStore';
 import { useCountryDetection } from './src/hooks/useCountryDetection';
 import 'react-native-gesture-handler'; // Required for React Navigation
+import { configureGoogleSignIn } from './src/lib/googleAuth';
 
 /**
  * Main App component for EatMe mobile application
@@ -30,8 +31,14 @@ export default function App(): React.JSX.Element {
     Mapbox.setAccessToken(ENV.mapbox.accessToken);
   }, []);
 
-  // Note: Google Sign-In is configured automatically at module load
-  // (googleAuth.ts self-configures on import) — no useEffect needed here.
+  // Best-effort early warm-up of the Google Sign-In SDK.
+  // signInWithGoogle() also calls configureGoogleSignIn() right before the
+  // native call, so this useEffect is not strictly required — it just allows
+  // the native _apiClient to be constructed in the background before the user
+  // taps the button, saving ~50 ms on the first sign-in attempt.
+  useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
 
   // Initialize settings (auto-detects currency from device locale on every launch)
   useEffect(() => {

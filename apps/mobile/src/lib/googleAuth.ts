@@ -30,12 +30,17 @@ import { debugLog } from '../config/environment';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-let _configured = false;
-
 /**
  * Configure the native Google Sign-In SDK.
- * Called automatically at module load time — no need to call this manually.
- * Safe to call multiple times (idempotent).
+ *
+ * Called automatically at app startup (App.tsx) AND again inside
+ * signInWithGoogle() immediately before any native call. This double-call is
+ * intentional: it guarantees the native _apiClient is always initialised even
+ * with the new architecture (TurboModules/JSI), where module-level code does
+ * not have a serialised ordering guarantee with the native module queue.
+ *
+ * GoogleSignin.configure() is idempotent — repeated calls just replace the
+ * internal configPromise, which signIn() awaits before touching the native layer.
  */
 export function configureGoogleSignIn(): void {
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
@@ -50,23 +55,13 @@ export function configureGoogleSignIn(): void {
   }
 
   GoogleSignin.configure({
-    // The Web client ID is required by Supabase to verify the ID token server-side.
-    // It is NOT the Android or iOS client ID.
     webClientId,
-    // Request offline access so a server-side refresh token can be issued if needed.
     offlineAccess: false,
-    // Only request the scopes Supabase needs (profile + email are the defaults).
     scopes: ['profile', 'email'],
   });
 
-  _configured = true;
   debugLog('[GoogleAuth] GoogleSignin configured.');
 }
-
-// Auto-configure immediately when this module is imported.
-// This avoids the "apiClient is null - call configure() first" error that
-// occurs when configure() is deferred to a useEffect (async after render).
-configureGoogleSignIn();
 
 // ─── Sign-in ─────────────────────────────────────────────────────────────────
 
@@ -83,11 +78,16 @@ export interface GoogleAuthResult {
  */
 export async function signInWithGoogle(): Promise<GoogleAuthResult> {
   try {
-    // Safety net: configure if auto-configure at module load didn't succeed
-    // (e.g., env var wasn't available yet at import time).
-    if (!_configured) {
-      configureGoogleSignIn();
-    }
+    // Configure immediately before every sign-in attempt.
+    //
+    // WHY here and not just at module load / App.tsx?
+    // With newArchEnabled=true (TurboModules/JSI), there is no serialised
+    // ordering guarantee between module-level JS code and the native module
+    // queue. Calling configure() synchronously here — right before
+    // hasPlayServices() and signIn() — guarantees the library's internal
+    // configPromise is always a freshly-set Promise that signIn() will await
+    // before touching the native _apiClient.
+    configureGoogleSignIn();
 
     debugLog('[GoogleAuth] Checking Google Play Services...');
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });

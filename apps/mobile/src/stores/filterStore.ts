@@ -78,6 +78,14 @@ export interface DailyFilters {
   sortBy: 'closest' | 'bestMatch' | 'highestRated';
 }
 
+/** A single ingredient entry in the "Ingredients to Avoid" permanent filter. */
+export interface IngredientToAvoid {
+  /** canonical_ingredients.id — used for matching against dish_ingredients */
+  canonicalIngredientId: string;
+  /** ingredient_aliases.display_name — shown in the UI without a join */
+  displayName: string;
+}
+
 // Permanent Filters - Profile-level, stored in user settings
 export interface PermanentFilters {
   // 1. Diet preference (only one can be selected)
@@ -131,12 +139,10 @@ export interface PermanentFilters {
     kidsMenu: boolean;
   };
 
-  // 7. Ingredients to avoid (list of ingredients)
-  ingredientsToAvoid: string[];
+  // 7. Ingredients to avoid — keyed by canonical_ingredient_id so filters
+  //    can match against dish_ingredients without string comparisons.
+  ingredientsToAvoid: IngredientToAvoid[];
 
-  // Legacy fields for backward compatibility
-  ingredientExclusions: string[];
-  dislikedIngredients: string[];
   defaultPriceRange: {
     min: number;
     max: number;
@@ -191,12 +197,8 @@ interface FilterActions {
     restriction: keyof PermanentFilters['religiousRestrictions']
   ) => void;
   toggleFacility: (facility: keyof PermanentFilters['facilities']) => void;
-  addIngredientToAvoid: (ingredient: string) => void;
-  removeIngredientToAvoid: (ingredient: string) => void;
-  addIngredientExclusion: (ingredient: string) => void;
-  removeIngredientExclusion: (ingredient: string) => void;
-  addDislikedIngredient: (ingredient: string) => void;
-  removeDislikedIngredient: (ingredient: string) => void;
+  addIngredientToAvoid: (ingredient: IngredientToAvoid) => void;
+  removeIngredientToAvoid: (canonicalIngredientId: string) => void;
   setPermanentPriceRange: (min: number, max: number) => void;
   setCuisinePreferences: (cuisines: string[]) => void;
   setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => void;
@@ -334,8 +336,6 @@ const defaultPermanentFilters: PermanentFilters = {
     kidsMenu: false,
   },
   ingredientsToAvoid: [],
-  ingredientExclusions: [],
-  dislikedIngredients: [],
   defaultPriceRange: {
     min: 10,
     max: 50,
@@ -633,7 +633,7 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         },
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   toggleReligiousRestriction: (restriction: keyof PermanentFilters['religiousRestrictions']) => {
@@ -646,7 +646,7 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         },
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   toggleFacility: (facility: keyof PermanentFilters['facilities']) => {
@@ -659,67 +659,29 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         },
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
-  addIngredientToAvoid: (ingredient: string) => {
+  addIngredientToAvoid: (ingredient: IngredientToAvoid) => {
     set(state => ({
       permanent: {
         ...state.permanent,
         ingredientsToAvoid: [...state.permanent.ingredientsToAvoid, ingredient],
       },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
-  removeIngredientToAvoid: (ingredient: string) => {
+  removeIngredientToAvoid: (canonicalIngredientId: string) => {
     set(state => ({
       permanent: {
         ...state.permanent,
-        ingredientsToAvoid: state.permanent.ingredientsToAvoid.filter(i => i !== ingredient),
+        ingredientsToAvoid: state.permanent.ingredientsToAvoid.filter(
+          i => i.canonicalIngredientId !== canonicalIngredientId
+        ),
       },
     }));
-    get().saveFilters();
-  },
-
-  addIngredientExclusion: (ingredient: string) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        ingredientExclusions: [...state.permanent.ingredientExclusions, ingredient],
-      },
-    }));
-    get().saveFilters();
-  },
-
-  removeIngredientExclusion: (ingredient: string) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        ingredientExclusions: state.permanent.ingredientExclusions.filter(i => i !== ingredient),
-      },
-    }));
-    get().saveFilters();
-  },
-
-  addDislikedIngredient: (ingredient: string) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        dislikedIngredients: [...state.permanent.dislikedIngredients, ingredient],
-      },
-    }));
-    get().saveFilters();
-  },
-
-  removeDislikedIngredient: (ingredient: string) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        dislikedIngredients: state.permanent.dislikedIngredients.filter(i => i !== ingredient),
-      },
-    }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   setPermanentPriceRange: (min: number, max: number) => {
@@ -823,12 +785,12 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     set(state => ({
       permanent: { ...defaultPermanentFilters },
     }));
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   resetAllFilters: () => {
     set({ ...defaultFilterState });
-    get().saveFilters();
+    get().savePermanentFilters();
   },
 
   // Persistence actions
@@ -960,8 +922,20 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     const state = get();
     let count = 0;
 
-    // Check price range (not default)
-    if (state.daily.priceRange.min !== 1 || state.daily.priceRange.max !== 4) {
+    // Check price range against the currency-aware defaults so a fresh, untouched
+    // slider never inflates the badge count.
+    const currency = (() => {
+      try {
+        return require('./settingsStore').useSettingsStore.getState().currency as SupportedCurrency;
+      } catch {
+        return undefined;
+      }
+    })();
+    const defaultPriceRange = getDefaultDailyFilters(currency).priceRange;
+    if (
+      state.daily.priceRange.min !== defaultPriceRange.min ||
+      state.daily.priceRange.max !== defaultPriceRange.max
+    ) {
       count++;
     }
 
@@ -1060,16 +1034,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check ingredients to avoid
     if (state.permanent.ingredientsToAvoid.length > 0) {
-      count++;
-    }
-
-    // Check ingredient exclusions (legacy)
-    if (state.permanent.ingredientExclusions.length > 0) {
-      count++;
-    }
-
-    // Check disliked ingredients (legacy)
-    if (state.permanent.dislikedIngredients.length > 0) {
       count++;
     }
 

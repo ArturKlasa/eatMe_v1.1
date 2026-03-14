@@ -6,6 +6,7 @@
  */
 
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
+import { debugLog } from '../config/environment';
 
 /**
  * Estimate an average spend (in the user's local currency) for a restaurant
@@ -48,8 +49,14 @@ export interface Restaurant {
   coordinates: [number, number];
   address: string;
   isOpen: boolean;
+  /** Distance from the user in kilometres — populated from the nearby-restaurants Edge Function. */
+  distanceKm?: number;
+  /**
+   * Dietary certifications held by the restaurant (e.g. 'halal', 'kosher', 'vegan', 'vegetarian').
+   * Sourced from the DB `dietary_certifications` column.
+   */
+  dietaryCertifications?: string[];
 }
-import { debugLog } from '../config/environment';
 
 /**
  * Filter result with metadata about the filtering operation
@@ -75,7 +82,8 @@ export interface FilterResult {
 export function applyFilters(
   restaurants: Restaurant[],
   dailyFilters: DailyFilters,
-  permanentFilters: PermanentFilters
+  permanentFilters: PermanentFilters,
+  defaultPriceRange: { min: number; max: number } = { min: 10, max: 50 }
 ): FilterResult {
   const startTime = Date.now();
   let filteredRestaurants = [...restaurants];
@@ -89,7 +97,7 @@ export function applyFilters(
 
   // Apply daily filters (soft constraints)
   filteredRestaurants = applyDailyFilters(filteredRestaurants, dailyFilters, filterSummary);
-  dailyFilterCount = getDailyFilterCount(dailyFilters);
+  dailyFilterCount = getDailyFilterCount(dailyFilters, defaultPriceRange);
 
   // Sort results based on daily sort preference
   filteredRestaurants = sortRestaurants(filteredRestaurants, dailyFilters.sortBy);
@@ -119,19 +127,15 @@ function applyPermanentFilters(
 ): Restaurant[] {
   let filtered = restaurants;
 
-  // Diet preference filter
+  // Diet preference filter — uses the restaurant's dietary_certifications from the DB
   if (permanentFilters.dietPreference !== 'all') {
-    // In a real app, we'd check restaurant menu/capability
-    // For mock data, we'll simulate based on cuisine type
     filtered = filtered.filter(restaurant => {
-      const isVeganFriendly = ['Contemporary Mexican', 'Italian'].includes(restaurant.cuisine);
-      const isVegetarianFriendly = !['Seafood'].includes(restaurant.cuisine);
-
+      const certs = restaurant.dietaryCertifications ?? [];
       switch (permanentFilters.dietPreference) {
         case 'vegan':
-          return isVeganFriendly;
+          return certs.includes('vegan');
         case 'vegetarian':
-          return isVegetarianFriendly;
+          return certs.includes('vegetarian') || certs.includes('vegan');
         default:
           return true;
       }
@@ -145,19 +149,8 @@ function applyPermanentFilters(
     .map(([allergy, _]) => allergy);
 
   if (activeAllergies.length > 0) {
-    // In a real app, this would check restaurant allergen capabilities
-    // For mock data, we'll assume all restaurants can accommodate common allergies
-    // except for specific cuisine types that commonly use those ingredients
-    filtered = filtered.filter(restaurant => {
-      if (activeAllergies.includes('shellfish') && restaurant.cuisine === 'Seafood') {
-        return false; // Seafood restaurants likely can't guarantee no shellfish contamination
-      }
-      if (activeAllergies.includes('gluten') && restaurant.cuisine === 'Italian') {
-        // Some Italian restaurants might not have good gluten-free options
-        return restaurant.rating >= 4.5; // Only highly-rated ones likely have good GF options
-      }
-      return true;
-    });
+    // Allergen filtering is enforced at dish level via the feed Edge Function.
+    // At the restaurant level we surface the active constraints in the summary only.
     filterSummary.push(`Allergies: ${activeAllergies.join(', ')}`);
   }
 
@@ -167,14 +160,10 @@ function applyPermanentFilters(
     .map(([requirement, _]) => requirement);
 
   if (activeReligious.length > 0) {
-    // In a real app, this would check restaurant certifications
-    // For mock data, we'll make assumptions based on cuisine
+    // Filter by dietary certifications stored on the restaurant record.
     filtered = filtered.filter(restaurant => {
-      if (activeReligious.includes('halal') || activeReligious.includes('kosher')) {
-        // Assume only certain cuisines commonly have halal/kosher options
-        return ['Contemporary Mexican', 'Italian'].includes(restaurant.cuisine);
-      }
-      return true;
+      const certs = restaurant.dietaryCertifications ?? [];
+      return activeReligious.every(r => certs.includes(r));
     });
     filterSummary.push(`Religious: ${activeReligious.join(', ')}`);
   }
@@ -185,14 +174,8 @@ function applyPermanentFilters(
     .map(([facility, _]) => facility);
 
   if (activeFacilities.length > 0) {
-    // In a real app, this would check restaurant facility features
-    // For mock data, we'll assume newer/higher-rated restaurants have better facilities
-    filtered = filtered.filter(restaurant => {
-      if (activeFacilities.includes('wheelchairAccessible')) {
-        return restaurant.rating >= 4.5; // Assume highly-rated restaurants are accessible
-      }
-      return true;
-    });
+    // Facility data is not yet available in the restaurant feed.
+    // Constraint is surfaced in the summary for future enforcement.
     filterSummary.push(`Facilities: ${activeFacilities.join(', ')}`);
   }
 
@@ -227,50 +210,26 @@ function applyDailyFilters(
     filterSummary.push(`Cuisines: ${dailyFilters.cuisineTypes.join(', ')}`);
   }
 
-  // Diet preference filter
+  // Diet preference filter — uses the restaurant's dietary_certifications from the DB
   const { vegetarian: wantsVegetarian, vegan: wantsVegan } = dailyFilters.dietPreference;
   if (wantsVegetarian || wantsVegan) {
     filtered = filtered.filter(restaurant => {
-      if (wantsVegan) {
-        return ['Mediterranean', 'Asian', 'Healthy'].includes(restaurant.cuisine);
-      }
-      if (wantsVegetarian) {
-        return !['Steakhouse', 'BBQ'].includes(restaurant.cuisine);
-      }
+      const certs = restaurant.dietaryCertifications ?? [];
+      if (wantsVegan) return certs.includes('vegan');
+      if (wantsVegetarian) return certs.includes('vegetarian') || certs.includes('vegan');
       return true;
     });
     const labels = [wantsVegetarian && 'Vegetarian', wantsVegan && 'Vegan'].filter(Boolean);
     filterSummary.push(`Diet: ${labels.join(', ')}`);
   }
 
-  // Protein type filters
+  // Protein type filters — applied at dish level via the feed Edge Function.
+  // At the restaurant level we surface the active constraints in the summary only.
   const selectedProteins = Object.entries(dailyFilters.proteinTypes)
     .filter(([_, enabled]) => enabled)
     .map(([protein, _]) => protein);
 
   if (selectedProteins.length > 0) {
-    filtered = filtered.filter(restaurant => {
-      // Mock logic: filter based on protein types
-      if (
-        selectedProteins.includes('meat') &&
-        ['Steakhouse', 'BBQ', 'American'].includes(restaurant.cuisine)
-      ) {
-        return true;
-      }
-      if (
-        selectedProteins.includes('fish') &&
-        ['Seafood', 'Sushi', 'Asian'].includes(restaurant.cuisine)
-      ) {
-        return true;
-      }
-      if (
-        selectedProteins.includes('seafood') &&
-        ['Seafood', 'Mediterranean'].includes(restaurant.cuisine)
-      ) {
-        return true;
-      }
-      return selectedProteins.length === 0; // If no proteins selected, show all
-    });
     filterSummary.push(`Proteins: ${selectedProteins.join(', ')}`);
   }
 
@@ -280,25 +239,11 @@ function applyDailyFilters(
     filterSummary.push('Open now');
   }
 
-  // Calorie range filter (if enabled)
+  // Calorie range filter — applied at dish level via the feed Edge Function.
+  // At the restaurant level we surface the active constraint in the summary only.
   if (dailyFilters.calorieRange.enabled) {
-    // In a real app, this would filter based on menu item calories
-    // For mock data, we'll assume all restaurants have options in the range
-    // but prefer restaurants with lighter cuisine for lower calorie ranges
-    if (dailyFilters.calorieRange.max < 600) {
-      // Prefer lighter cuisines for low-calorie requests
-      filtered = filtered.sort((a, b) => {
-        const aIsLight = ['Contemporary Mexican', 'Seafood'].includes(a.cuisine);
-        const bIsLight = ['Contemporary Mexican', 'Seafood'].includes(b.cuisine);
-
-        if (aIsLight && !bIsLight) return -1;
-        if (!aIsLight && bIsLight) return 1;
-        return 0;
-      });
-    }
-
     filterSummary.push(
-      `Calories: ${dailyFilters.calorieRange.min}-${dailyFilters.calorieRange.max}`
+      `Calories: ${dailyFilters.calorieRange.min}–${dailyFilters.calorieRange.max}`
     );
   }
 
@@ -313,39 +258,21 @@ function sortRestaurants(restaurants: Restaurant[], sortBy: DailyFilters['sortBy
 
   switch (sortBy) {
     case 'closest':
-      // In a real app, this would calculate distance from user location
-      // For mock data, we'll sort by a simulated distance based on coordinates
-      return sorted.sort((a, b) => {
-        const aDistance =
-          Math.abs(a.coordinates[0] + 122.082) + Math.abs(a.coordinates[1] - 37.421);
-        const bDistance =
-          Math.abs(b.coordinates[0] + 122.082) + Math.abs(b.coordinates[1] - 37.421);
-        return aDistance - bDistance;
-      });
+      // Sort by pre-computed distance from the nearby-restaurants Edge Function.
+      // Restaurants without a distanceKm value are pushed to the end.
+      return sorted.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
 
     case 'highestRated':
       return sorted.sort((a, b) => b.rating - a.rating);
 
     case 'bestMatch':
     default:
-      // For "best match", we'll use a combination of rating and other factors
       return sorted.sort((a, b) => {
-        // Higher rating gets bonus points
-        const aScore = a.rating * 2;
-        const bScore = b.rating * 2;
-
-        // Open restaurants get bonus points
-        const aOpenBonus = a.isOpen ? 0.5 : 0;
-        const bOpenBonus = b.isOpen ? 0.5 : 0;
-
-        // Closer restaurants get bonus points (mock calculation)
-        const aDistanceBonus = 1 / (Math.abs(a.coordinates[0] + 122.082) + 1);
-        const bDistanceBonus = 1 / (Math.abs(b.coordinates[0] + 122.082) + 1);
-
-        const finalA = aScore + aOpenBonus + aDistanceBonus;
-        const finalB = bScore + bOpenBonus + bDistanceBonus;
-
-        return finalB - finalA;
+        const aScore =
+          a.rating * 2 + (a.isOpen ? 0.5 : 0) + (a.distanceKm != null ? 1 / (a.distanceKm + 1) : 0);
+        const bScore =
+          b.rating * 2 + (b.isOpen ? 0.5 : 0) + (b.distanceKm != null ? 1 / (b.distanceKm + 1) : 0);
+        return bScore - aScore;
       });
   }
 }
@@ -353,11 +280,17 @@ function sortRestaurants(restaurants: Restaurant[], sortBy: DailyFilters['sortBy
 /**
  * Count active daily filters
  */
-function getDailyFilterCount(dailyFilters: DailyFilters): number {
+function getDailyFilterCount(
+  dailyFilters: DailyFilters,
+  defaultPriceRange: { min: number; max: number } = { min: 10, max: 50 }
+): number {
   let count = 0;
 
-  // Price range (not default: 10–50)
-  if (dailyFilters.priceRange.min !== 10 || dailyFilters.priceRange.max !== 50) {
+  // Price range (not default)
+  if (
+    dailyFilters.priceRange.min !== defaultPriceRange.min ||
+    dailyFilters.priceRange.max !== defaultPriceRange.max
+  ) {
     count++;
   }
 
@@ -410,11 +343,6 @@ function getPermanentFilterCount(permanentFilters: PermanentFilters): number {
 
   // Diet preference
   if (permanentFilters.dietPreference !== 'all') {
-    count++;
-  }
-
-  // Ingredient exclusions
-  if (permanentFilters.ingredientExclusions.length > 0) {
     count++;
   }
 

@@ -60,6 +60,8 @@ export interface UserPreferencesDB {
   diet_types: PermanentFilters['dietTypes'] | null;
   religious_restrictions: PermanentFilters['religiousRestrictions'] | null;
   default_max_distance: number;
+  /** Array of {canonicalIngredientId, displayName} — added by migration 046. */
+  ingredients_to_avoid: PermanentFilters['ingredientsToAvoid'] | null;
 }
 
 // ─── Normalisers ───────────────────────────────────────────────────────────────
@@ -152,7 +154,8 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
     exclude: filters.exclude,
     diet_types: filters.dietTypes,
     religious_restrictions: filters.religiousRestrictions,
-    default_max_distance: 5, // Could make this configurable
+    default_max_distance: 5,
+    ingredients_to_avoid: filters.ingredientsToAvoid,
   };
 }
 
@@ -170,6 +173,9 @@ export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<Perman
     exclude: normaliseObject(dbPrefs.exclude, DEFAULT_EXCLUDE),
     dietTypes: normaliseObject(dbPrefs.diet_types, DEFAULT_DIET_TYPES),
     religiousRestrictions: normaliseObject(dbPrefs.religious_restrictions, DEFAULT_RELIGIOUS),
+    ingredientsToAvoid: Array.isArray(dbPrefs.ingredients_to_avoid)
+      ? dbPrefs.ingredients_to_avoid
+      : [],
   };
 }
 

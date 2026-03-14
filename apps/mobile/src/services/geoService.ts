@@ -48,6 +48,8 @@ export interface RestaurantWithDistance {
    */
   open_hours?: Record<string, { open: string; close: string }> | null;
   payment_methods?: 'cash_only' | 'card_only' | 'cash_and_card' | null;
+  /** Dietary certifications held by the restaurant (e.g. 'halal', 'kosher', 'vegan', 'vegetarian'). */
+  dietary_certifications?: string[] | null;
   distance: number;
   menus?: Array<{
     id: string;
@@ -98,24 +100,11 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
     dietaryTags.push('vegetarian');
   }
 
-  // Add protein type preferences as dietary tags
-  // proteinTypes is on daily filters and is an object
-  if (daily.proteinTypes) {
-    // If user excludes all meat proteins, suggest vegetarian
-    const noMeat = !daily.proteinTypes.meat;
-    const noFish = !daily.proteinTypes.fish;
-    const noSeafood = !daily.proteinTypes.seafood;
-    if (noMeat && noFish && noSeafood && !dietaryTags.includes('vegetarian')) {
-      // Don't auto-add vegetarian - user might still want eggs
-    }
-  }
-
   if (dietaryTags.length > 0) {
     filters.dietaryTags = dietaryTags;
   }
 
   // Allergens to exclude (from permanent filters)
-  // allergies is an object with boolean values, convert to array of active allergens
   if (permanent.allergies) {
     const activeAllergens = Object.entries(permanent.allergies)
       .filter(([_, active]) => active)
@@ -123,6 +112,12 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
     if (activeAllergens.length > 0) {
       filters.excludeAllergens = activeAllergens;
     }
+  }
+
+  // Ingredients to avoid — send canonical UUIDs so the Edge Function can
+  // annotate dishes that contain them with flagged_ingredients.
+  if (permanent.ingredientsToAvoid && permanent.ingredientsToAvoid.length > 0) {
+    filters.flagIngredients = permanent.ingredientsToAvoid.map(i => i.canonicalIngredientId);
   }
 
   // Note: serviceTypes filter could be added to DailyFilters if needed

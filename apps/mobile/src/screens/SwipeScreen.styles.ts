@@ -194,6 +194,24 @@ export const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     color: colors.success,
   },
+  flaggedContainer: {
+    backgroundColor: '#FFF3CD',
+    borderWidth: 1,
+    borderColor: '#FFCA28',
+    borderRadius: borderRadius.base,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  flaggedTitle: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: '#7B5800',
+    marginBottom: spacing.xs,
+  },
+  flaggedIngredients: {
+    fontSize: typography.size.sm,
+    color: '#5C3D00',
+  },
   buttonsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',

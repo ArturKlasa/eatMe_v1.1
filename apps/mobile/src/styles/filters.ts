@@ -378,6 +378,39 @@ export const drawerFiltersStyles = StyleSheet.create({
 
   ingredientOption: filterBase.option,
 
+  // Search input inside the ingredient picker modal
+  ingredientSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 10,
+    backgroundColor: colors.darkSecondary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.darkBorderLight,
+    paddingHorizontal: 12,
+  } as ViewStyle,
+
+  ingredientSearchInput: {
+    flex: 1,
+    height: 40,
+    color: colors.darkText,
+    fontSize: 14,
+  } as any, // RN TextStyle
+
+  ingredientSearchSpinner: {
+    marginLeft: 8,
+  } as ViewStyle,
+
+  ingredientSectionHeader: {
+    marginHorizontal: 16,
+    marginBottom: 4,
+    fontSize: 11,
+    color: colors.darkTextLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  } as any,
+
   modalFooter: {
     padding: 20,
     ...createBorder(1, colors.darkBorder, 'top'),

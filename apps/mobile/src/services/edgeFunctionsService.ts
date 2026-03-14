@@ -44,6 +44,13 @@ export interface ServerDish {
 
   // Score from recommendation engine
   score?: number;
+
+  /**
+   * Display names of ingredients the user wants to avoid that are present
+   * in this dish. Empty array = no flagged ingredients. The dish is still
+   * shown — this is a soft warning, not a hard exclusion.
+   */
+  flagged_ingredients: string[];
 }
 
 /**
@@ -62,6 +69,12 @@ export interface FeedRequest {
     calorieRange?: { min: number; max: number };
     allergens?: string[];
     cuisines?: string[];
+    /**
+     * canonical_ingredient_id UUIDs from the user's "Ingredients to Avoid" list.
+     * Dishes containing these are still shown but annotated with flagged_ingredients
+     * so the UI can display a warning instead of hiding the dish.
+     */
+    flagIngredients?: string[];
   };
   userId?: string;
   limit?: number; // default 20
@@ -122,6 +135,10 @@ export async function getFeed(
         .filter(([_, active]) => active)
         .map(([allergen]) => allergen),
       cuisines: dailyFilters.cuisineTypes,
+      flagIngredients:
+        permanentFilters.ingredientsToAvoid.length > 0
+          ? permanentFilters.ingredientsToAvoid.map(i => i.canonicalIngredientId)
+          : undefined,
     },
     userId,
     limit: 20,

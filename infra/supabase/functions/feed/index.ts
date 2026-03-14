@@ -36,6 +36,8 @@ interface FeedRequest {
     calorieRange?: { min: number; max: number };
     allergens?: string[];
     cuisines?: string[];
+    /** canonical_ingredient_id UUIDs — dishes containing any are annotated, not excluded. */
+    flagIngredients?: string[];
   };
   userId?: string;
   limit?: number; // default 20
@@ -200,7 +202,8 @@ serve(async req => {
         `
         *,
         restaurant:restaurants(id, name, cuisine_types, rating),
-        analytics:dish_analytics(view_count, right_swipe_count, popularity_score)
+        analytics:dish_analytics(view_count, right_swipe_count, popularity_score),
+        dish_ingredients(ingredient_id)
       `
       )
       .in('restaurant_id', restaurantIds)
@@ -286,6 +289,53 @@ serve(async req => {
         return !filters.allergens!.some(allergen => dishAllergens.includes(allergen));
       });
       console.log(`[Feed] After allergen filter: ${filteredDishes.length}`);
+    }
+
+    // Ingredient flag annotation — soft warning, NOT a hard exclusion.
+    // For each dish, compute which of the user's avoided ingredients are present
+    // and attach their display names as flagged_ingredients so the UI can warn
+    // the user without hiding the dish.
+    if (filters.flagIngredients && filters.flagIngredients.length > 0) {
+      const flagSet = new Set(filters.flagIngredients);
+
+      // Build a map of canonical_ingredient_id → display_name from the request.
+      // The client sends UUIDs; we need display names for the UI.
+      // We fetch the display names once for all flagged IDs.
+      let flagDisplayNames: Record<string, string> = {};
+      try {
+        const { data: aliasRows } = await supabase
+          .from('ingredient_aliases')
+          .select('canonical_ingredient_id, display_name')
+          .in('canonical_ingredient_id', Array.from(flagSet))
+          .order('display_name', { ascending: true });
+
+        // Pick one representative display_name per canonical_ingredient_id
+        for (const row of aliasRows ?? []) {
+          if (!flagDisplayNames[row.canonical_ingredient_id]) {
+            flagDisplayNames[row.canonical_ingredient_id] = row.display_name;
+          }
+        }
+      } catch (err) {
+        console.error('[Feed] Could not fetch ingredient display names (non-fatal):', err);
+      }
+
+      filteredDishes = filteredDishes.map((d: any) => {
+        const ingredientIds: string[] = (d.dish_ingredients ?? []).map(
+          (row: any) => row.ingredient_id
+        );
+        const flagged = ingredientIds
+          .filter(id => flagSet.has(id))
+          .map(id => flagDisplayNames[id] ?? id); // fallback to UUID if name lookup failed
+        return { ...d, flagged_ingredients: flagged };
+      });
+
+      const flaggedCount = filteredDishes.filter(
+        (d: any) => d.flagged_ingredients.length > 0
+      ).length;
+      console.log(`[Feed] Flagged ingredients annotated on ${flaggedCount} dishes`);
+    } else {
+      // Ensure the field is always present on every dish
+      filteredDishes = filteredDishes.map((d: any) => ({ ...d, flagged_ingredients: [] }));
     }
 
     // Cuisine preference — handled as a scoring boost below, not a hard filter.

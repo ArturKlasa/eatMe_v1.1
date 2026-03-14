@@ -264,6 +264,17 @@ export function SwipeScreen() {
               </View>
             )}
 
+            {currentDish.flagged_ingredients && currentDish.flagged_ingredients.length > 0 && (
+              <View style={styles.flaggedContainer}>
+                <Text style={styles.flaggedTitle}>
+                  ⚠️ Contains ingredients you prefer to avoid:
+                </Text>
+                <Text style={styles.flaggedIngredients}>
+                  {currentDish.flagged_ingredients.join(', ')}
+                </Text>
+              </View>
+            )}
+
             {currentDish.score !== undefined && (
               <Text style={styles.matchScore}>Match Score: {currentDish.score.toFixed(0)}%</Text>
             )}

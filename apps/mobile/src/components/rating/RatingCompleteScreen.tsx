@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { PointsEarned, DishRatingInput, RestaurantFeedbackInput } from '../../types/rating';
 
@@ -25,6 +26,7 @@ export function RatingCompleteScreen({
   onViewRewards,
   onDone,
 }: RatingCompleteScreenProps) {
+  const { t } = useTranslation();
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -32,51 +34,51 @@ export function RatingCompleteScreen({
           <Text style={styles.successEmoji}>🎉</Text>
         </View>
 
-        <Text style={styles.title}>Thanks!</Text>
-        <Text style={styles.subtitle}>Your feedback helps others discover great food</Text>
+        <Text style={styles.title}>{t('rating.complete.title')}</Text>
+        <Text style={styles.subtitle}>{t('rating.complete.subtitle')}</Text>
 
         {/* Points Breakdown */}
         <View style={styles.pointsCard}>
-          <Text style={styles.pointsTitle}>You earned:</Text>
+          <Text style={styles.pointsTitle}>{t('rating.complete.youEarned')}</Text>
 
           {dishRatings.map((rating, index) => (
             <View key={rating.dishId} style={styles.pointsRow}>
-              <Text style={styles.pointsLabel}>Rated {rating.dishName}</Text>
+              <Text style={styles.pointsLabel}>{t('rating.complete.ratedDish', { dishName: rating.dishName })}</Text>
               <Text style={styles.pointsValue}>+10 pts</Text>
             </View>
           ))}
 
           {dishRatings.some(r => r.tags.length > 0) && (
             <View style={styles.pointsRow}>
-              <Text style={styles.pointsLabel}>Added tags</Text>
+              <Text style={styles.pointsLabel}>{t('rating.complete.addedTags')}</Text>
               <Text style={styles.pointsValue}>+{pointsEarned.dishTags} pts</Text>
             </View>
           )}
 
           {dishRatings.some(r => r.photoUri) && (
             <View style={styles.pointsRow}>
-              <Text style={styles.pointsLabel}>Added dish photo(s)</Text>
+              <Text style={styles.pointsLabel}>{t('rating.complete.addedDishPhotos')}</Text>
               <Text style={styles.pointsValue}>+{pointsEarned.dishPhotos} pts</Text>
             </View>
           )}
 
           {restaurantFeedback && (
             <View style={styles.pointsRow}>
-              <Text style={styles.pointsLabel}>Restaurant feedback</Text>
+              <Text style={styles.pointsLabel}>{t('rating.complete.restaurantFeedback')}</Text>
               <Text style={styles.pointsValue}>+{pointsEarned.restaurantFeedback} pts</Text>
             </View>
           )}
 
           {restaurantFeedback?.photoUri && (
             <View style={styles.pointsRow}>
-              <Text style={styles.pointsLabel}>Restaurant photo</Text>
+              <Text style={styles.pointsLabel}>{t('rating.complete.restaurantPhoto')}</Text>
               <Text style={styles.pointsValue}>+{pointsEarned.restaurantPhoto} pts</Text>
             </View>
           )}
 
           {pointsEarned.firstVisitBonus > 0 && (
             <View style={styles.pointsRow}>
-              <Text style={[styles.pointsLabel, styles.bonusLabel]}>🎁 First visit bonus!</Text>
+              <Text style={[styles.pointsLabel, styles.bonusLabel]}>{t('rating.complete.firstVisitBonus')}</Text>
               <Text style={[styles.pointsValue, styles.bonusValue]}>
                 +{pointsEarned.firstVisitBonus} pts
               </Text>
@@ -86,7 +88,7 @@ export function RatingCompleteScreen({
           <View style={styles.pointsDivider} />
 
           <View style={styles.pointsRow}>
-            <Text style={styles.totalLabel}>Total earned</Text>
+            <Text style={styles.totalLabel}>{t('rating.complete.totalEarned')}</Text>
             <Text style={styles.totalValue}>+{pointsEarned.total} pts</Text>
           </View>
         </View>
@@ -94,16 +96,16 @@ export function RatingCompleteScreen({
         {/* Motivational Message */}
         <View style={styles.motivationCard}>
           <Text style={styles.motivationEmoji}>🌟</Text>
-          <Text style={styles.motivationText}>Keep rating to unlock exclusive rewards!</Text>
+          <Text style={styles.motivationText}>{t('rating.complete.motivationText')}</Text>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.rewardsButton} onPress={onViewRewards}>
-          <Text style={styles.rewardsButtonText}>View rewards</Text>
+          <Text style={styles.rewardsButtonText}>{t('rating.complete.viewRewards')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.doneButton} onPress={onDone}>
-          <Text style={styles.doneButtonText}>Done</Text>
+          <Text style={styles.doneButtonText}>{t('common.done')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

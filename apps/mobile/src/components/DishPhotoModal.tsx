@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { pickImage, takePhoto, uploadDishPhoto } from '../services/dishPhotoService';
 import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
@@ -50,6 +51,7 @@ export function DishPhotoModal({
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
   const user = useAuthStore(state => state.user);
+  const { t } = useTranslation();
 
   const handleAddPhoto = () => {
     if (!user) {
@@ -127,8 +129,8 @@ export function DishPhotoModal({
           ) : (
             <View style={styles.noPhotoContainer}>
               <Text style={styles.noPhotoIcon}>📸</Text>
-              <Text style={styles.noPhotoText}>No photos yet</Text>
-              <Text style={styles.noPhotoSubtext}>Be the first to share!</Text>
+              <Text style={styles.noPhotoText}>{t('dish.noPhotos')}</Text>
+              <Text style={styles.noPhotoSubtext}>{t('dish.beFirstToShare')}</Text>
             </View>
           )}
 
@@ -170,14 +172,14 @@ export function DishPhotoModal({
         >
           {dishDescription && (
             <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionLabel}>Description</Text>
+              <Text style={styles.descriptionLabel}>{t('dish.description')}</Text>
               <Text style={styles.description}>{dishDescription}</Text>
             </View>
           )}
 
           {dishIngredients && dishIngredients.length > 0 && (
             <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionLabel}>Ingredients</Text>
+              <Text style={styles.descriptionLabel}>{t('dish.ingredients')}</Text>
               <Text style={styles.description}>{dishIngredients.join(', ')}</Text>
             </View>
           )}
@@ -193,7 +195,7 @@ export function DishPhotoModal({
             ) : (
               <>
                 <Text style={styles.addPhotoIcon}>📷</Text>
-                <Text style={styles.addPhotoText}>Add Your Photo</Text>
+                <Text style={styles.addPhotoText}>{t('dish.addYourPhoto')}</Text>
               </>
             )}
           </TouchableOpacity>

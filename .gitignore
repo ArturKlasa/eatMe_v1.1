@@ -64,6 +64,10 @@ ios/
 *.key
 *.mobileprovision
 
+# Google Sign-In configuration (contains project IDs, download from Firebase Console)
+google-services.json
+GoogleService-Info.plist
+
 # Metro
 .metro-health-check*
 

@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { mapFooterStyles } from '@/styles';
 
 // Dish type from mobile hooks
@@ -36,6 +37,7 @@ export const MapFooter: React.FC<MapFooterProps> = ({
   onFilterPress,
 }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const getEmoji = (cuisine: string) => {
     if (cuisine.includes('Mexican')) return '🌮';
@@ -88,7 +90,7 @@ export const MapFooter: React.FC<MapFooterProps> = ({
 
             {!dish.isAvailable && (
               <View style={mapFooterStyles.unavailableBadge}>
-                <Text style={mapFooterStyles.unavailableText}>Unavailable</Text>
+                <Text style={mapFooterStyles.unavailableText}>{t('common.unavailable')}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -97,14 +99,14 @@ export const MapFooter: React.FC<MapFooterProps> = ({
         {/* Show more button */}
         <TouchableOpacity style={mapFooterStyles.showMoreCard}>
           <Text style={mapFooterStyles.showMoreIcon}>+</Text>
-          <Text style={mapFooterStyles.showMoreText}>View more{'\n'}dishes</Text>
+          <Text style={mapFooterStyles.showMoreText}>{t('mapFooter.viewMoreDishes')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
       {/* Filter Button */}
       <View style={mapFooterStyles.filterSection}>
         <TouchableOpacity style={mapFooterStyles.filterButton} onPress={onFilterPress}>
-          <Text style={mapFooterStyles.filterButtonText}>🥢 Filter Dishes & Restaurants</Text>
+            <Text style={mapFooterStyles.filterButtonText}>{t('mapFooter.filterButton')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import {
   RestaurantQuestionType,
@@ -35,6 +36,7 @@ export function RestaurantQuestionScreen({
 }: RestaurantQuestionScreenProps) {
   const [response, setResponse] = useState<boolean | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>();
+  const { t } = useTranslation();
 
   const handleAddPhoto = async () => {
     const uri = await onAddPhoto();
@@ -61,7 +63,7 @@ export function RestaurantQuestionScreen({
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.subtitle}>One quick question about {restaurantName}:</Text>
+        <Text style={styles.subtitle}>{t('rating.question.subtitle', { restaurantName })}</Text>
         <Text style={styles.question}>{RESTAURANT_QUESTIONS[questionType]}</Text>
 
         {/* Yes/No Buttons */}
@@ -95,8 +97,8 @@ export function RestaurantQuestionScreen({
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Text style={styles.photoIcon}>📸</Text>
-                <Text style={styles.photoText}>Add a restaurant photo</Text>
-                <Text style={styles.photoSubtext}>(interior, exterior, or ambiance)</Text>
+                <Text style={styles.photoText}>{t('rating.addRestaurantPhoto')}</Text>
+                <Text style={styles.photoSubtext}>{t('rating.question.photoHint')}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -105,7 +107,7 @@ export function RestaurantQuestionScreen({
               style={styles.removePhotoButton}
               onPress={() => setPhotoUri(undefined)}
             >
-              <Text style={styles.removePhotoText}>Remove photo</Text>
+              <Text style={styles.removePhotoText}>{t('rating.removePhoto')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -114,14 +116,14 @@ export function RestaurantQuestionScreen({
       <View style={styles.footer}>
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
-            <Text style={styles.skipButtonText}>Skip</Text>
+            <Text style={styles.skipButtonText}>{t('common.skip')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.doneButton, response === null && styles.doneButtonDisabled]}
             onPress={handleDone}
             disabled={response === null}
           >
-            <Text style={styles.doneButtonText}>Done</Text>
+            <Text style={styles.doneButtonText}>{t('common.done')}</Text>
           </TouchableOpacity>
         </View>
       </View>

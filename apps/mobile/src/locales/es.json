@@ -35,7 +35,13 @@
     "signInRequired": "Se Requiere Iniciar Sesión",
     "emailAddress": "Correo Electrónico",
     "somethingWrong": "Algo salió mal",
-    "other": "Otro"
+    "other": "Otro",
+    "unavailable": "No disponible",
+    "optional": "opcional",
+    "reset": "Restablecer",
+    "of": "de",
+    "points": "puntos",
+    "updating": "Actualizando..."
   },
   "navigation": {
     "home": "Inicio",
@@ -217,7 +223,78 @@
       "chilaquiles": "Chilaquiles"
     },
     "selectCuisines": "Seleccionar Cocinas",
-    "selectMeals": "Seleccionar Comidas"
+    "selectMeals": "Seleccionar Comidas",
+    "personalPreferences": "Filtros de preferencias personales",
+    "dietPreferenceTitle": "🥕 Preferencia Dietética",
+    "excludeTitle": "🚫 Excluir",
+    "allergiesTitle": "⚠️ Alergias",
+    "ingredientsToAvoidTitle": "🥄 Ingredientes que te gustaría Evitar",
+    "dietPreferencesTitle": "🍃 Preferencias Dietéticas",
+    "religiousRestrictionsTitle": "🕌 Restricciones Religiosas",
+    "facilitiesTitle": "🏪 Instalaciones del Restaurante",
+    "quickFilters": "Filtros Rápidos",
+    "calorieRange": "Rango de Calorías",
+    "calories": "{{min}} - {{max}} calorías",
+    "cuisineTypes": "Tipos de Cocina",
+    "dietOptions": "Opciones de Dieta",
+    "dietPreferenceSubtitle": "Preferencia Dietética",
+    "proteinTypesSubtitle": "Tipos de Proteína",
+    "resetAllFilters": "Restablecer Todos los Filtros",
+    "resetFiltersTitle": "Restablecer Filtros",
+    "resetFiltersMessage": "Esto limpiará todos los filtros activos. ¿Estás seguro?",
+    "ingredientsToAvoid": "Ingredientes a Evitar",
+    "commonlyAvoided": "Comúnmente evitados",
+    "selectIngredients": "Seleccionar Ingredientes ({{count}} seleccionados)",
+    "noResults": "Sin resultados para \"{{query}}\"",
+    "searchIngredients": "Buscar ingredientes…",
+    "dietOption": {
+      "all": "Todo",
+      "vegetarian": "Vegetariano",
+      "vegan": "Vegano"
+    },
+    "exclude": {
+      "noMeat": "Sin Carne",
+      "noFish": "Sin Pescado",
+      "noSeafood": "Sin Mariscos",
+      "noEggs": "Sin Huevos",
+      "noDairy": "Sin Lácteos",
+      "noSpicy": "Sin Picante"
+    },
+    "allergy": {
+      "lactose": "Lactosa",
+      "gluten": "Gluten",
+      "peanuts": "Cacahuetes",
+      "soy": "Soya",
+      "sesame": "Sésamo",
+      "shellfish": "Mariscos",
+      "nuts": "Frutos secos"
+    },
+    "dietType": {
+      "diabetic": "Apto para Diabéticos",
+      "keto": "Dieta Keto",
+      "paleo": "Dieta Paleo",
+      "lowCarb": "Dieta Baja en Carbohidratos",
+      "pescatarian": "Pescetariano"
+    },
+    "religious": {
+      "halal": "Halal",
+      "hindu": "Hindú",
+      "kosher": "Kosher",
+      "jain": "Jainismo",
+      "buddhist": "Budista"
+    },
+    "facility": {
+      "familyFriendly": "Apto para Familias",
+      "wheelchairAccessible": "Accesible para Sillas de Ruedas",
+      "petFriendly": "Acepta Mascotas",
+      "lgbtAccessible": "LGBT Accesible",
+      "kidsMenu": "Menú para Niños"
+    },
+    "proteinLabel": {
+      "meat": "Carne",
+      "fish": "Pescado",
+      "seafood": "Mariscos"
+    }
   },
   "restaurant": {
     "openNow": "Abierto Ahora",
@@ -285,7 +362,14 @@
     "favoriteRemoved": "Removido de favoritos",
     "restaurantNotFound": "Restaurante no encontrado",
     "loadingRestaurant": "Cargando restaurante...",
-    "errorLoadingRestaurant": "Error cargando restaurante"
+    "errorLoadingRestaurant": "Error cargando restaurante",
+    "noMenuItems": "No hay elementos de menú disponibles",
+    "payment": "Pago",
+    "more": "Más",
+    "call": "Llamar",
+    "openInMaps": "Abrir en Mapas",
+    "restaurantAddress": "Dirección del Restaurante",
+    "reportMisleadingInfo": "Reportar Información Incorrecta"
   },
   "settings": {
     "title": "Configuración",
@@ -350,7 +434,9 @@
     "maintenanceError": "El servicio está en mantenimiento. Por favor intenta de nuevo más tarde.",
     "unknownError": "Ocurrió un error desconocido. Por favor intenta de nuevo.",
     "retryLater": "Por favor intenta de nuevo más tarde.",
-    "contactSupport": "Si el problema persiste, por favor contacta al soporte."
+    "contactSupport": "Si el problema persiste, por favor contacta al soporte.",
+    "unexpectedError": "Ocurrió un error inesperado. Los datos de tu sesión no se han perdido.",
+    "tryAgain": "Intentar de nuevo"
   },
   "time": {
     "now": "ahora",
@@ -512,7 +598,12 @@
     "comingSoon2": "Insignias de logros",
     "comingSoon3": "Análisis de perfil de gustos",
     "comingSoon4": "Funciones sociales",
-    "comingSoon5": "Compartir y recomendaciones"
+    "comingSoon5": "Compartir y recomendaciones",
+    "totalSwipes": "Total de Deslizadas",
+    "dishesLiked": "Platillos que Gustaron",
+    "dishesPassed": "Platillos Pasados",
+    "likeRate": "Tasa de Likes",
+    "account": "Cuenta"
   },
   "profileEdit": {
     "title": "Editar Perfil",
@@ -782,5 +873,77 @@
     "phoneDialerFailed": "Falló abrir el marcador telefónico",
     "noPhone": "Sin Teléfono",
     "phoneNotAvailable": "Número telefónico no disponible para este restaurante"
+  },
+  "mapFooter": {
+    "viewMoreDishes": "Ver más\nplatillos",
+    "filterButton": "🥢 Filtrar Platillos y Restaurantes"
+  },
+  "profileCompletion": {
+    "title": "Preferencias de Perfil",
+    "points": "puntos",
+    "completion": "Completado",
+    "completeToTitle": "✨ Completa tu perfil para:",
+    "morePointsAvailable": "🎁 {{count}} puntos más disponibles:",
+    "benefit1": "Obtener recomendaciones de platillos personalizadas",
+    "benefit2": "Guardar tus preferencias para filtros rápidos",
+    "benefit3": "Descubrir restaurantes que coincidan con tu gusto",
+    "profileComplete": "✓ Perfil Completo",
+    "tapToReview": "Toca para revisar preferencias",
+    "continueSetup": "Continuar Configuración →",
+    "startSetup": "Iniciar Configuración →"
+  },
+  "dish": {
+    "noPhotos": "Sin fotos todavía",
+    "beFirstToShare": "¡Sé el primero en compartir!",
+    "description": "Descripción",
+    "ingredients": "Ingredientes",
+    "addYourPhoto": "Agregar Tu Foto",
+    "photosFromCommunity": "{{count}} foto(s) de la comunidad"
+  },
+  "rating": {
+    "bannerTitle": "Califica platillos, gana recompensas",
+    "visitedRestaurant": "Visitaste 1 restaurante recientemente",
+    "visitedRestaurants": "Visitaste {{count}} restaurantes recientemente",
+    "addDishPhoto": "Agregar foto del platillo",
+    "addRestaurantPhoto": "Agregar foto del restaurante",
+    "removePhoto": "Eliminar foto",
+    "complete": {
+      "title": "¡Gracias!",
+      "subtitle": "Tu opinión ayuda a otros a descubrir buena comida",
+      "youEarned": "Ganaste:",
+      "ratedDish": "Calificaste {{dishName}}",
+      "addedTags": "Etiquetas agregadas",
+      "addedDishPhotos": "Foto(s) de platillo agregada(s)",
+      "restaurantFeedback": "Opinión del restaurante",
+      "restaurantPhoto": "Foto del restaurante",
+      "firstVisitBonus": "🎁 ¡Bono de primera visita!",
+      "totalEarned": "Total ganado",
+      "motivationText": "¡Sigue calificando para desbloquear recompensas exclusivas!",
+      "viewRewards": "Ver recompensas"
+    },
+    "selectRestaurant": {
+      "title": "¿Comiste en alguno de estos hoy?",
+      "subtitle": "Califica tu experiencia y gana recompensas",
+      "iAteHere": "Comí aquí",
+      "ateSomewhereElse": "Comí en otro lugar"
+    },
+    "selectDishes": {
+      "title": "¿Qué tuviste en {{restaurantName}}?",
+      "subtitle": "Selecciona todos los platillos que probaste",
+      "continue": "Continuar ({{count}} seleccionados)"
+    },
+    "rateDish": {
+      "title": "¿Cómo estuvo el {{dishName}}?",
+      "progress": "{{current}} de {{total}}",
+      "lovedIt": "Me encantó",
+      "okay": "Estuvo bien",
+      "notForMe": "No es para mí",
+      "whatMadeItGreat": "¿Qué lo hizo genial?",
+      "whatCouldBeBetter": "¿Qué podría mejorar?"
+    },
+    "question": {
+      "subtitle": "Una pregunta rápida sobre {{restaurantName}}:",
+      "photoHint": "(interior, exterior o ambiente)"
+    }
   }
 }

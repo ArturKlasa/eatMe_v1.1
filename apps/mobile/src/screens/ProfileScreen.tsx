@@ -269,15 +269,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
               <View style={modalScreenStyles.statsGrid}>
                 <View style={modalScreenStyles.statItem}>
                   <Text style={modalScreenStyles.statNumber}>{stats.interactions}</Text>
-                  <Text style={modalScreenStyles.statLabel}>Total Swipes</Text>
+                  <Text style={modalScreenStyles.statLabel}>{t('profile.totalSwipes')}</Text>
                 </View>
                 <View style={modalScreenStyles.statItem}>
                   <Text style={modalScreenStyles.statNumber}>{stats.likes}</Text>
-                  <Text style={modalScreenStyles.statLabel}>Dishes Liked</Text>
+                  <Text style={modalScreenStyles.statLabel}>{t('profile.dishesLiked')}</Text>
                 </View>
                 <View style={modalScreenStyles.statItem}>
                   <Text style={modalScreenStyles.statNumber}>{stats.dislikes}</Text>
-                  <Text style={modalScreenStyles.statLabel}>Dishes Passed</Text>
+                  <Text style={modalScreenStyles.statLabel}>{t('profile.dishesPassed')}</Text>
                 </View>
                 <View style={modalScreenStyles.statItem}>
                   <Text style={modalScreenStyles.statNumber}>
@@ -286,7 +286,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                       : 0}
                     %
                   </Text>
-                  <Text style={modalScreenStyles.statLabel}>Like Rate</Text>
+                  <Text style={modalScreenStyles.statLabel}>{t('profile.likeRate')}</Text>
                 </View>
               </View>
             )}
@@ -295,16 +295,16 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
           {/* Account Actions */}
           {user && (
             <View style={modalScreenStyles.section}>
-              <Text style={modalScreenStyles.sectionTitle}>Account</Text>
+              <Text style={modalScreenStyles.sectionTitle}>{t('profile.account')}</Text>
               <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-                <Text style={styles.signOutButtonText}>Sign Out</Text>
+                <Text style={styles.signOutButtonText}>{t('auth.signOut')}</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Coming Soon Section */}
           <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>Coming Soon</Text>
+            <Text style={modalScreenStyles.sectionTitle}>{t('settings.comingSoon')}</Text>
             <View style={modalScreenStyles.sectionContent}>
               {comingSoonFeatures.map((feature, index) => (
                 <View key={index} style={modalScreenStyles.featureItem}>

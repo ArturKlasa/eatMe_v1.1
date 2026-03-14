@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 
 interface RatingBannerProps {
@@ -14,6 +15,7 @@ interface RatingBannerProps {
 }
 
 export function RatingBanner({ onPress, recentRestaurantCount = 0 }: RatingBannerProps) {
+  const { t } = useTranslation();
   if (recentRestaurantCount === 0) {
     return null;
   }
@@ -24,11 +26,11 @@ export function RatingBanner({ onPress, recentRestaurantCount = 0 }: RatingBanne
         <Text style={styles.icon}>🎁</Text>
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.title}>Rate dishes, get rewards</Text>
+        <Text style={styles.title}>{t('rating.bannerTitle')}</Text>
         <Text style={styles.subtitle}>
           {recentRestaurantCount === 1
-            ? 'You visited 1 restaurant recently'
-            : `You visited ${recentRestaurantCount} restaurants recently`}
+            ? t('rating.visitedRestaurant')
+            : t('rating.visitedRestaurants', { count: recentRestaurantCount })}
         </Text>
       </View>
       <View style={styles.arrowContainer}>

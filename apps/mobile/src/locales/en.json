@@ -35,7 +35,13 @@
     "signInRequired": "Sign In Required",
     "emailAddress": "Email Address",
     "somethingWrong": "Something went wrong",
-    "other": "Other"
+    "other": "Other",
+    "unavailable": "Unavailable",
+    "optional": "optional",
+    "reset": "Reset",
+    "of": "of",
+    "points": "points",
+    "updating": "Updating..."
   },
   "navigation": {
     "home": "Home",
@@ -217,7 +223,78 @@
       "chilaquiles": "Chilaquiles"
     },
     "selectCuisines": "Select Cuisines",
-    "selectMeals": "Select Meals"
+    "selectMeals": "Select Meals",
+    "personalPreferences": "Personal preference filters",
+    "dietPreferenceTitle": "🥕 Diet Preference",
+    "excludeTitle": "🚫 Exclude",
+    "allergiesTitle": "⚠️ Allergies",
+    "ingredientsToAvoidTitle": "🥄 Ingredients You Would Like to Avoid",
+    "dietPreferencesTitle": "🍃 Diet Preferences",
+    "religiousRestrictionsTitle": "🕌 Religious Restrictions",
+    "facilitiesTitle": "🏪 Restaurant Facilities",
+    "quickFilters": "Quick Filters",
+    "calorieRange": "Calorie Range",
+    "calories": "{{min}} - {{max}} calories",
+    "cuisineTypes": "Cuisine Types",
+    "dietOptions": "Diet Options",
+    "dietPreferenceSubtitle": "Diet Preference",
+    "proteinTypesSubtitle": "Protein Types",
+    "resetAllFilters": "Reset All Filters",
+    "resetFiltersTitle": "Reset Filters",
+    "resetFiltersMessage": "This will clear all active filters. Are you sure?",
+    "ingredientsToAvoid": "Ingredients to Avoid",
+    "commonlyAvoided": "Commonly avoided",
+    "selectIngredients": "Select Ingredients ({{count}} selected)",
+    "noResults": "No results for \"{{query}}\"",
+    "searchIngredients": "Search ingredients…",
+    "dietOption": {
+      "all": "All",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan"
+    },
+    "exclude": {
+      "noMeat": "No Meat",
+      "noFish": "No Fish",
+      "noSeafood": "No Seafood",
+      "noEggs": "No Eggs",
+      "noDairy": "No Dairy",
+      "noSpicy": "No Spicy"
+    },
+    "allergy": {
+      "lactose": "Lactose",
+      "gluten": "Gluten",
+      "peanuts": "Peanuts",
+      "soy": "Soy",
+      "sesame": "Sesame",
+      "shellfish": "Shellfish",
+      "nuts": "Nuts"
+    },
+    "dietType": {
+      "diabetic": "Suitable for Diabetics",
+      "keto": "Keto Diet",
+      "paleo": "Paleo Diet",
+      "lowCarb": "Low-carb Diet",
+      "pescatarian": "Pescatarian"
+    },
+    "religious": {
+      "halal": "Halal",
+      "hindu": "Hindu",
+      "kosher": "Kosher",
+      "jain": "Jain",
+      "buddhist": "Buddhist"
+    },
+    "facility": {
+      "familyFriendly": "Family Friendly",
+      "wheelchairAccessible": "Wheelchair Accessible",
+      "petFriendly": "Pet Friendly",
+      "lgbtAccessible": "LGBT Accessible",
+      "kidsMenu": "Kids Menu"
+    },
+    "proteinLabel": {
+      "meat": "Meat",
+      "fish": "Fish",
+      "seafood": "Seafood"
+    }
   },
   "restaurant": {
     "openNow": "Open Now",
@@ -285,7 +362,14 @@
     "favoriteRemoved": "Removed from favorites",
     "restaurantNotFound": "Restaurant not found",
     "loadingRestaurant": "Loading restaurant...",
-    "errorLoadingRestaurant": "Error loading restaurant"
+    "errorLoadingRestaurant": "Error loading restaurant",
+    "noMenuItems": "No menu items available",
+    "payment": "Payment",
+    "more": "More",
+    "call": "Call",
+    "openInMaps": "Open in Maps",
+    "restaurantAddress": "Restaurant Address",
+    "reportMisleadingInfo": "Report Misleading Info"
   },
   "settings": {
     "title": "Settings",
@@ -350,7 +434,9 @@
     "maintenanceError": "Service is under maintenance. Please try again later.",
     "unknownError": "An unknown error occurred. Please try again.",
     "retryLater": "Please try again later.",
-    "contactSupport": "If the problem persists, please contact support."
+    "contactSupport": "If the problem persists, please contact support.",
+    "unexpectedError": "An unexpected error occurred. Your session data has not been lost.",
+    "tryAgain": "Try again"
   },
   "time": {
     "now": "now",
@@ -512,7 +598,12 @@
     "comingSoon2": "Achievement badges",
     "comingSoon3": "Taste profile analysis",
     "comingSoon4": "Social features",
-    "comingSoon5": "Sharing & recommendations"
+    "comingSoon5": "Sharing & recommendations",
+    "totalSwipes": "Total Swipes",
+    "dishesLiked": "Dishes Liked",
+    "dishesPassed": "Dishes Passed",
+    "likeRate": "Like Rate",
+    "account": "Account"
   },
   "profileEdit": {
     "title": "Edit Profile",
@@ -782,5 +873,77 @@
     "phoneDialerFailed": "Failed to open phone dialer",
     "noPhone": "No Phone",
     "phoneNotAvailable": "Phone number not available for this restaurant"
+  },
+  "mapFooter": {
+    "viewMoreDishes": "View more\ndishes",
+    "filterButton": "🥢 Filter Dishes & Restaurants"
+  },
+  "profileCompletion": {
+    "title": "Profile Preferences",
+    "points": "points",
+    "completion": "Completion",
+    "completeToTitle": "✨ Complete your profile to:",
+    "morePointsAvailable": "🎁 {{count}} more points available:",
+    "benefit1": "Get personalized dish recommendations",
+    "benefit2": "Save your preferences for quick filters",
+    "benefit3": "Discover restaurants matching your taste",
+    "profileComplete": "✓ Profile Complete",
+    "tapToReview": "Tap to review preferences",
+    "continueSetup": "Continue Setup →",
+    "startSetup": "Start Setup →"
+  },
+  "dish": {
+    "noPhotos": "No photos yet",
+    "beFirstToShare": "Be the first to share!",
+    "description": "Description",
+    "ingredients": "Ingredients",
+    "addYourPhoto": "Add Your Photo",
+    "photosFromCommunity": "{{count}} photo(s) from the community"
+  },
+  "rating": {
+    "bannerTitle": "Rate dishes, get rewards",
+    "visitedRestaurant": "You visited 1 restaurant recently",
+    "visitedRestaurants": "You visited {{count}} restaurants recently",
+    "addDishPhoto": "Add a dish photo",
+    "addRestaurantPhoto": "Add a restaurant photo",
+    "removePhoto": "Remove photo",
+    "complete": {
+      "title": "Thanks!",
+      "subtitle": "Your feedback helps others discover great food",
+      "youEarned": "You earned:",
+      "ratedDish": "Rated {{dishName}}",
+      "addedTags": "Added tags",
+      "addedDishPhotos": "Added dish photo(s)",
+      "restaurantFeedback": "Restaurant feedback",
+      "restaurantPhoto": "Restaurant photo",
+      "firstVisitBonus": "🎁 First visit bonus!",
+      "totalEarned": "Total earned",
+      "motivationText": "Keep rating to unlock exclusive rewards!",
+      "viewRewards": "View rewards"
+    },
+    "selectRestaurant": {
+      "title": "Did you eat in one of those today?",
+      "subtitle": "Rate your experience and earn rewards",
+      "iAteHere": "I ate here",
+      "ateSomewhereElse": "I ate somewhere else"
+    },
+    "selectDishes": {
+      "title": "What did you have at {{restaurantName}}?",
+      "subtitle": "Select all dishes you tried",
+      "continue": "Continue ({{count}} selected)"
+    },
+    "rateDish": {
+      "title": "How was the {{dishName}}?",
+      "progress": "{{current}} of {{total}}",
+      "lovedIt": "Loved it",
+      "okay": "Okay",
+      "notForMe": "Not for me",
+      "whatMadeItGreat": "What made it great?",
+      "whatCouldBeBetter": "What could be better?"
+    },
+    "question": {
+      "subtitle": "One quick question about {{restaurantName}}:",
+      "photoHint": "(interior, exterior, or ambiance)"
+    }
   }
 }

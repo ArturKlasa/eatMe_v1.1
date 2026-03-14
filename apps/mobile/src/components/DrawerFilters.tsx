@@ -21,6 +21,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useFilterStore } from '../stores/filterStore';
 import type { IngredientToAvoid } from '../stores/filterStore';
 import { drawerFiltersStyles } from '@/styles';
@@ -36,6 +37,7 @@ interface DrawerFiltersProps {
 }
 
 export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll }) => {
+  const { t } = useTranslation();
   // ── Ingredient picker state ──────────────────────────────────────────────
   const [showIngredientsModal, setShowIngredientsModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -141,9 +143,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
   return (
     <ScrollView style={drawerFiltersStyles.container} onScroll={onScroll} scrollEventThrottle={16}>
       <View style={drawerFiltersStyles.header}>
-        <Text style={drawerFiltersStyles.title}>Personal preference filters</Text>
+        <Text style={drawerFiltersStyles.title}>{t('filters.personalPreferences')}</Text>
         <TouchableOpacity onPress={onClose} style={drawerFiltersStyles.clearButton}>
-          <Text style={drawerFiltersStyles.clearButtonText}>Apply</Text>
+          <Text style={drawerFiltersStyles.clearButtonText}>{t('common.apply')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -175,7 +177,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 2. Exclude - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>🚫 Exclude</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.excludeTitle')}</Text>
         <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.exclude) as (keyof typeof permanent.exclude)[]).map(exclusion => {
             const disabled = isExcludeDisabled(exclusion);
@@ -201,7 +203,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
                     disabled && drawerFiltersStyles.disabledText,
                   ]}
                 >
-                  {formatCamelCase(exclusion)}
+                  {t(`filters.exclude.${exclusion}`)}
                 </Text>
               </TouchableOpacity>
             );
@@ -211,7 +213,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 3. Allergies - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>⚠️ Allergies</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.allergiesTitle')}</Text>
         <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.allergies) as (keyof typeof permanent.allergies)[]).map(
             allergy => (
@@ -229,7 +231,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
                     permanent.allergies[allergy] && drawerFiltersStyles.selectedText,
                   ]}
                 >
-                  {formatLabel(allergy)}
+                  {t(`filters.allergy.${allergy}`)}
                 </Text>
               </TouchableOpacity>
             )
@@ -239,17 +241,17 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 4. Ingredients to Avoid - Expandable List */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>🥄 Ingredients You Would Like to Avoid</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.ingredientsToAvoidTitle')}</Text>
         <TouchableOpacity style={drawerFiltersStyles.expandableButton} onPress={handleOpenModal}>
           <Text style={drawerFiltersStyles.expandableButtonText}>
-            Select Ingredients ({permanent.ingredientsToAvoid.length} selected)
+            {t('filters.selectIngredients', { count: permanent.ingredientsToAvoid.length })}
           </Text>
           <Text style={drawerFiltersStyles.expandableArrow}>→</Text>
         </TouchableOpacity>
 
         {permanent.ingredientsToAvoid.length > 0 && (
           <View style={drawerFiltersStyles.selectedIngredientsContainer}>
-            <Text style={drawerFiltersStyles.selectedIngredientsTitle}>Selected:</Text>
+            <Text style={drawerFiltersStyles.selectedIngredientsTitle}>{t('common.selected')}:</Text>
             <View style={drawerFiltersStyles.selectedIngredientsRow}>
               {permanent.ingredientsToAvoid.map(item => (
                 <View
@@ -272,7 +274,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 5. Diet Preferences - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>🍃 Diet Preferences</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.dietPreferencesTitle')}</Text>
         <View style={drawerFiltersStyles.optionsContainer}>
           {(Object.keys(permanent.dietTypes) as (keyof typeof permanent.dietTypes)[]).map(
             dietType => (
@@ -290,15 +292,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
                     permanent.dietTypes[dietType] && drawerFiltersStyles.selectedText,
                   ]}
                 >
-                  {dietType === 'diabetic'
-                    ? 'Suitable for Diabetics'
-                    : dietType === 'keto'
-                      ? 'Keto Diet'
-                      : dietType === 'paleo'
-                        ? 'Paleo Diet'
-                        : dietType === 'lowCarb'
-                          ? 'Low-carb Diet'
-                          : 'Pescatarian'}
+                  {t(`filters.dietType.${dietType}`)}
                 </Text>
               </TouchableOpacity>
             )
@@ -308,7 +302,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 6. Religious Restrictions - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>🕌 Religious Restrictions</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.religiousRestrictionsTitle')}</Text>
         <View style={drawerFiltersStyles.optionsContainer}>
           {(
             Object.keys(
@@ -329,7 +323,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
                   permanent.religiousRestrictions[restriction] && drawerFiltersStyles.selectedText,
                 ]}
               >
-                {formatLabel(restriction)}
+                {t(`filters.religious.${restriction}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -374,7 +368,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         <View style={drawerFiltersStyles.modalOverlay}>
           <View style={drawerFiltersStyles.modalContainer}>
             <View style={drawerFiltersStyles.modalHeader}>
-              <Text style={drawerFiltersStyles.modalTitle}>Ingredients to Avoid</Text>
+              <Text style={drawerFiltersStyles.modalTitle}>{t('filters.ingredientsToAvoid')}</Text>
               <TouchableOpacity
                 onPress={handleCloseModal}
                 style={drawerFiltersStyles.modalCloseButton}
@@ -387,7 +381,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
             <View style={drawerFiltersStyles.ingredientSearchContainer}>
               <TextInput
                 style={drawerFiltersStyles.ingredientSearchInput}
-                placeholder="Search ingredients…"
+                placeholder={t('filters.searchIngredients')}
                 placeholderTextColor="#888"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -405,11 +399,11 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
             {/* Section header */}
             {searchQuery.trim().length < 2 && commonIngredients.length > 0 && (
-              <Text style={drawerFiltersStyles.ingredientSectionHeader}>Commonly avoided</Text>
+              <Text style={drawerFiltersStyles.ingredientSectionHeader}>{t('filters.commonlyAvoided')}</Text>
             )}
             {searchQuery.trim().length >= 2 && !isSearching && suggestions.length === 0 && (
               <Text style={drawerFiltersStyles.ingredientSectionHeader}>
-                No results for "{searchQuery}"
+                {t('filters.noResults', { query: searchQuery })}
               </Text>
             )}
 
@@ -451,7 +445,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
                 style={drawerFiltersStyles.modalDoneButton}
                 onPress={handleCloseModal}
               >
-                <Text style={drawerFiltersStyles.modalDoneText}>Done</Text>
+                <Text style={drawerFiltersStyles.modalDoneText}>{t('common.done')}</Text>
               </TouchableOpacity>
             </View>
           </View>

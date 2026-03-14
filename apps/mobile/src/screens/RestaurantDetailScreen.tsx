@@ -418,7 +418,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           ))}
           {(!restaurant.menus || restaurant.menus.length === 0) && (
             <View style={{ padding: spacing['2xl'], alignItems: 'center' }}>
-              <Text style={{ color: colors.textSecondary }}>No menu items available</Text>
+              <Text style={{ color: colors.textSecondary }}>{t('restaurant.noMenuItems')}</Text>
             </View>
           )}
         </ScrollView>
@@ -438,7 +438,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               onPress={() => setHoursExpanded(!hoursExpanded)}
               activeOpacity={0.7}
             >
-              <Text style={styles.hoursMoreSectionTitle}>Opening Hours</Text>
+              <Text style={styles.hoursMoreSectionTitle}>{t('time.openingHours')}</Text>
               <Text style={styles.hoursExpandIcon}>{hoursExpanded ? '▾' : '▸'}</Text>
             </TouchableOpacity>
             {hoursExpanded && (
@@ -475,7 +475,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           {/* Payment Methods Section */}
           {paymentNote && (
             <View style={styles.hoursMoreSection}>
-              <Text style={styles.hoursMoreSectionTitle}>Payment</Text>
+              <Text style={styles.hoursMoreSectionTitle}>{t('restaurant.payment')}</Text>
               <Text style={styles.hoursMoreAddress}>
                 {paymentNote.icon}
                 {'  '}
@@ -486,7 +486,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
           {/* Address Section */}
           <View style={styles.hoursMoreSection}>
-            <Text style={styles.hoursMoreSectionTitle}>Address</Text>
+            <Text style={styles.hoursMoreSectionTitle}>{t('settings.address')}</Text>
             <Text style={styles.hoursMoreAddress}>
               {restaurant.address}
               {'\n'}
@@ -497,13 +497,13 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               style={styles.hoursMoreActionButton}
               onPress={() => setShowAddressModal(true)}
             >
-              <Text style={styles.hoursMoreActionButtonText}>📍 Open in Maps</Text>
+              <Text style={styles.hoursMoreActionButtonText}>📍 {t('restaurant.openInMaps')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* More Actions Section */}
           <View style={styles.hoursMoreSection}>
-            <Text style={styles.hoursMoreSectionTitle}>More</Text>
+            <Text style={styles.hoursMoreSectionTitle}>{t('restaurant.more')}</Text>
 
             <TouchableOpacity
               style={styles.hoursMoreRow}
@@ -513,12 +513,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               <Text style={styles.hoursMoreRowIcon}>⭐</Text>
               <Text style={styles.hoursMoreRowText}>
                 {!favoritesInitialized
-                  ? 'Loading...'
+                  ? t('common.loading')
                   : favoriteLoading
-                    ? 'Updating...'
+                    ? t('common.updating')
                     : isFavorite
-                      ? 'Remove from Favorites'
-                      : 'Add to Favorites'}
+                      ? t('restaurant.removeFromFavorites')
+                      : t('restaurant.addToFavorites')}
               </Text>
             </TouchableOpacity>
 
@@ -527,17 +527,17 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               onPress={() => handleMenuOption('review')}
             >
               <Text style={styles.hoursMoreRowIcon}>✍️</Text>
-              <Text style={styles.hoursMoreRowText}>Add Review</Text>
+              <Text style={styles.hoursMoreRowText}>{t('restaurantDetail.addReview')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.hoursMoreRow} onPress={() => handleMenuOption('share')}>
               <Text style={styles.hoursMoreRowIcon}>↗️</Text>
-              <Text style={styles.hoursMoreRowText}>Share</Text>
+              <Text style={styles.hoursMoreRowText}>{t('restaurant.share')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.hoursMoreRow} onPress={() => handleMenuOption('call')}>
               <Text style={styles.hoursMoreRowIcon}>📞</Text>
-              <Text style={styles.hoursMoreRowText}>Call</Text>
+              <Text style={styles.hoursMoreRowText}>{t('restaurant.call')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -546,7 +546,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             >
               <Text style={styles.hoursMoreRowIcon}>🚩</Text>
               <Text style={[styles.hoursMoreRowText, styles.hoursMoreRowTextDanger]}>
-                Report Misleading Info
+                {t('restaurant.reportMisleadingInfo')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -566,7 +566,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           onPress={() => setShowAddressModal(false)}
         >
           <View style={styles.addressModal}>
-            <Text style={styles.addressModalTitle}>Restaurant Address</Text>
+            <Text style={styles.addressModalTitle}>{t('restaurant.restaurantAddress')}</Text>
             <Text style={styles.addressModalText}>
               {restaurant.address}
               {'\n'}
@@ -582,12 +582,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                   )}`;
                   Linking.openURL(url).catch(err => {
                     console.error('Failed to open maps:', err);
-                    Alert.alert('Error', 'Failed to open maps');
+                    Alert.alert(t('common.error'), 'Failed to open maps');
                   });
                   setShowAddressModal(false);
                 }}
               >
-                <Text style={styles.addressModalButtonText}>Open in Maps</Text>
+                <Text style={styles.addressModalButtonText}>{t('restaurant.openInMaps')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.addressModalButton}
@@ -596,7 +596,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 <Text
                   style={[styles.addressModalButtonText, styles.addressModalButtonTextSecondary]}
                 >
-                  Close
+                  {t('common.close')}
                 </Text>
               </TouchableOpacity>
             </View>

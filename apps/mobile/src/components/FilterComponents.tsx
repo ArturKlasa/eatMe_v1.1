@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import Slider from 'react-native-slider';
+import { useTranslation } from 'react-i18next';
 import { useFilterStore, DAILY_FILTER_PRESETS } from '../stores/filterStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { getCurrencyInfo, formatPrice } from '../utils/currencyConfig';
@@ -169,6 +170,7 @@ export const PriceRangeFilter: React.FC = () => {
  */
 export const CuisineTypeFilter: React.FC = () => {
   const { daily, toggleDailyCuisine, setDailyCuisines } = useFilterStore();
+  const { t } = useTranslation();
 
   const clearAllCuisines = () => {
     setDailyCuisines([]);
@@ -181,13 +183,13 @@ export const CuisineTypeFilter: React.FC = () => {
   return (
     <View style={filterComponentsStyles.filterSection}>
       <View style={filterComponentsStyles.filterTitleRow}>
-        <Text style={filterComponentsStyles.filterTitle}>🍽️ Cuisine Types</Text>
+        <Text style={filterComponentsStyles.filterTitle}>🍽️ {t('filters.cuisineTypes')}</Text>
         <View style={filterComponentsStyles.filterActions}>
           <TouchableOpacity onPress={clearAllCuisines} style={filterComponentsStyles.actionButton}>
-            <Text style={filterComponentsStyles.actionButtonText}>Clear</Text>
+            <Text style={filterComponentsStyles.actionButtonText}>{t('common.clear')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={selectAllCuisines} style={filterComponentsStyles.actionButton}>
-            <Text style={filterComponentsStyles.actionButtonText}>All</Text>
+            <Text style={filterComponentsStyles.actionButtonText}>{t('common.all')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -234,26 +236,27 @@ export const CuisineTypeFilter: React.FC = () => {
  */
 export const DietToggleFilter: React.FC = () => {
   const { daily, setDietPreference, toggleProteinType } = useFilterStore();
+  const { t } = useTranslation();
 
   const dietPreferenceOptions = [
-    { key: 'all', label: 'All' },
-    { key: 'vegetarian', label: 'Vegetarian' },
-    { key: 'vegan', label: 'Vegan' },
+    { key: 'all', label: t('filters.dietOption.all') },
+    { key: 'vegetarian', label: t('filters.dietOption.vegetarian') },
+    { key: 'vegan', label: t('filters.dietOption.vegan') },
   ];
 
   const proteinOptions = [
-    { key: 'meat', label: 'Meat', icon: '🥩' },
-    { key: 'fish', label: 'Fish', icon: '🐟' },
-    { key: 'seafood', label: 'Seafood', icon: '🦐' },
+    { key: 'meat', label: t('filters.proteinLabel.meat'), icon: '🥩' },
+    { key: 'fish', label: t('filters.proteinLabel.fish'), icon: '🐟' },
+    { key: 'seafood', label: t('filters.proteinLabel.seafood'), icon: '🦐' },
   ];
 
   return (
     <View style={filterComponentsStyles.filterSection}>
-      <Text style={filterComponentsStyles.filterTitle}>🍽️ Diet Options</Text>
+      <Text style={filterComponentsStyles.filterTitle}>🍽️ {t('filters.dietOptions')}</Text>
 
       {/* Diet Preference Selection */}
       <View style={filterComponentsStyles.toggleList}>
-        <Text style={filterComponentsStyles.filterSubtitle}>Diet Preference</Text>
+        <Text style={filterComponentsStyles.filterSubtitle}>{t('filters.dietPreferenceSubtitle')}</Text>
         {dietPreferenceOptions.map(option => (
           <TouchableOpacity
             key={option.key}
@@ -281,7 +284,7 @@ export const DietToggleFilter: React.FC = () => {
 
       {/* Protein Types */}
       <View style={filterComponentsStyles.toggleList}>
-        <Text style={filterComponentsStyles.filterSubtitle}>Protein Types</Text>
+        <Text style={filterComponentsStyles.filterSubtitle}>{t('filters.proteinTypesSubtitle')}</Text>
         {proteinOptions.map(option => (
           <View key={option.key} style={filterComponentsStyles.toggleItem}>
             <View style={filterComponentsStyles.toggleLabel}>
@@ -312,11 +315,12 @@ export const DietToggleFilter: React.FC = () => {
  */
 export const CalorieRangeFilter: React.FC = () => {
   const { daily, setDailyCalorieRange } = useFilterStore();
+  const { t } = useTranslation();
 
   return (
     <View style={filterComponentsStyles.filterSection}>
       <View style={filterComponentsStyles.filterTitleRow}>
-        <Text style={filterComponentsStyles.filterTitle}>🔥 Calorie Range</Text>
+        <Text style={filterComponentsStyles.filterTitle}>🔥 {t('filters.calorieRange')}</Text>
         <Switch
           value={daily.calorieRange.enabled}
           onValueChange={enabled =>
@@ -330,7 +334,7 @@ export const CalorieRangeFilter: React.FC = () => {
       {daily.calorieRange.enabled && (
         <View style={filterComponentsStyles.calorieContainer}>
           <Text style={filterComponentsStyles.calorieLabel}>
-            {daily.calorieRange.min} - {daily.calorieRange.max} calories
+            {t('filters.calories', { min: daily.calorieRange.min, max: daily.calorieRange.max })}
           </Text>
 
           <View style={filterComponentsStyles.sliderContainer}>
@@ -372,12 +376,13 @@ export const CalorieRangeFilter: React.FC = () => {
  */
 export const QuickFilterPresets: React.FC = () => {
   const { activePreset, applyPreset, resetDailyFilters } = useFilterStore();
+  const { t } = useTranslation();
 
   const presetKeys = Object.keys(DAILY_FILTER_PRESETS);
 
   return (
     <View style={filterComponentsStyles.filterSection}>
-      <Text style={filterComponentsStyles.filterTitle}>⚡ Quick Filters</Text>
+      <Text style={filterComponentsStyles.filterTitle}>⚡ {t('filters.quickFilters')}</Text>
 
       <View style={filterComponentsStyles.presetGrid}>
         {presetKeys.map(presetKey => {
@@ -407,13 +412,13 @@ export const QuickFilterPresets: React.FC = () => {
       <TouchableOpacity
         style={filterComponentsStyles.resetButton}
         onPress={() => {
-          Alert.alert('Reset Filters', 'This will clear all active filters. Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Reset', style: 'destructive', onPress: resetDailyFilters },
+          Alert.alert(t('filters.resetFiltersTitle'), t('filters.resetFiltersMessage'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('common.reset'), style: 'destructive', onPress: resetDailyFilters },
           ]);
         }}
       >
-        <Text style={filterComponentsStyles.resetButtonText}>Reset All Filters</Text>
+        <Text style={filterComponentsStyles.resetButtonText}>{t('filters.resetAllFilters')}</Text>
       </TouchableOpacity>
     </View>
   );

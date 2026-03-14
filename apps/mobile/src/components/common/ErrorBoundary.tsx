@@ -18,6 +18,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import i18n from '../../i18n/index';
 import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
 
 interface Props {
@@ -64,9 +65,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.emoji}>🍽️</Text>
-          <Text style={styles.title}>Something went wrong</Text>
+          <Text style={styles.title}>{i18n.t('common.somethingWrong')}</Text>
           <Text style={styles.message}>
-            An unexpected error occurred. Your session data has not been lost.
+            {i18n.t('errors.unexpectedError')}
           </Text>
           {__DEV__ && this.state.error && (
             <View style={styles.devBox}>
@@ -75,7 +76,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </View>
           )}
           <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
-            <Text style={styles.buttonText}>Try again</Text>
+            <Text style={styles.buttonText}>{i18n.t('errors.tryAgain')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

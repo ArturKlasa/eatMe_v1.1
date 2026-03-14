@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { RecentlyViewedRestaurant } from '../../types/rating';
 
@@ -23,14 +24,15 @@ export function SelectRestaurantScreen({
   onAteSomewhereElse,
   onCancel,
 }: SelectRestaurantScreenProps) {
+  const { t } = useTranslation();
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Did you eat in one of those today?</Text>
-        <Text style={styles.subtitle}>Rate your experience and earn rewards</Text>
+        <Text style={styles.title}>{t('rating.selectRestaurant.title')}</Text>
+        <Text style={styles.subtitle}>{t('rating.selectRestaurant.subtitle')}</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -53,7 +55,7 @@ export function SelectRestaurantScreen({
               style={styles.selectButton}
               onPress={() => onSelectRestaurant(restaurant)}
             >
-              <Text style={styles.selectButtonText}>I ate here</Text>
+              <Text style={styles.selectButtonText}>{t('rating.selectRestaurant.iAteHere')}</Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -61,10 +63,10 @@ export function SelectRestaurantScreen({
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.secondaryButton} onPress={onAteSomewhereElse}>
-          <Text style={styles.secondaryButtonText}>I ate somewhere else</Text>
+          <Text style={styles.secondaryButtonText}>{t('rating.selectRestaurant.ateSomewhereElse')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

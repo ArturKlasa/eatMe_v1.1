@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { colors, typography, spacing, borderRadius } from '../styles/theme';
 
@@ -16,6 +17,7 @@ interface ProfileCompletionCardProps {
 
 export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({ onPress }) => {
   const { profileCompletion, profilePoints, isCompleted } = useOnboardingStore();
+  const { t } = useTranslation();
 
   const pointsToNext = 100 - profilePoints;
 
@@ -24,18 +26,18 @@ export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({ on
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Profile Preferences</Text>
+          <Text style={styles.title}>{t('profileCompletion.title')}</Text>
         </View>
         <View style={styles.pointsBadge}>
           <Text style={styles.pointsText}>{profilePoints}</Text>
-          <Text style={styles.pointsLabel}>points</Text>
+          <Text style={styles.pointsLabel}>{t('profileCompletion.points')}</Text>
         </View>
       </View>
 
       {/* Progress Section */}
       <View style={styles.progressSection}>
         <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>Completion</Text>
+          <Text style={styles.progressLabel}>{t('profileCompletion.completion')}</Text>
           <Text style={styles.progressPercentage}>{profileCompletion}%</Text>
         </View>
 
@@ -59,12 +61,12 @@ export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({ on
         <View style={styles.benefitsSection}>
           <Text style={styles.benefitsTitle}>
             {profileCompletion === 0
-              ? '✨ Complete your profile to:'
-              : `🎁 ${pointsToNext} more points available:`}
+              ? t('profileCompletion.completeToTitle')
+              : t('profileCompletion.morePointsAvailable', { count: pointsToNext })}
           </Text>
-          <Text style={styles.benefitItem}>• Get personalized dish recommendations</Text>
-          <Text style={styles.benefitItem}>• Save your preferences for quick filters</Text>
-          <Text style={styles.benefitItem}>• Discover restaurants matching your taste</Text>
+          <Text style={styles.benefitItem}>• {t('profileCompletion.benefit1')}</Text>
+          <Text style={styles.benefitItem}>• {t('profileCompletion.benefit2')}</Text>
+          <Text style={styles.benefitItem}>• {t('profileCompletion.benefit3')}</Text>
         </View>
       )}
 
@@ -72,13 +74,13 @@ export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({ on
       <View style={styles.ctaSection}>
         {profileCompletion === 100 ? (
           <View style={styles.completedBadge}>
-            <Text style={styles.completedText}>✓ Profile Complete</Text>
-            <Text style={styles.completedSubtext}>Tap to review preferences</Text>
+            <Text style={styles.completedText}>{t('profileCompletion.profileComplete')}</Text>
+            <Text style={styles.completedSubtext}>{t('profileCompletion.tapToReview')}</Text>
           </View>
         ) : (
           <View style={styles.ctaButton}>
             <Text style={styles.ctaText}>
-              {profileCompletion > 0 ? 'Continue Setup →' : 'Start Setup →'}
+              {profileCompletion > 0 ? t('profileCompletion.continueSetup') : t('profileCompletion.startSetup')}
             </Text>
           </View>
         )}

@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { RecentlyViewedRestaurant, RecentlyViewedDish } from '../../types/rating';
 
@@ -24,6 +25,7 @@ export function SelectDishesScreen({
   onBack,
 }: SelectDishesScreenProps) {
   const [selectedDishIds, setSelectedDishIds] = useState<Set<string>>(new Set());
+  const { t } = useTranslation();
 
   // Sort dishes: viewed dishes first (by view time), then the rest
   const sortedDishes = [...allDishes].sort((a, b) => {
@@ -61,8 +63,8 @@ export function SelectDishesScreen({
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>What did you have at {restaurant.name}?</Text>
-        <Text style={styles.subtitle}>Select all dishes you tried</Text>
+        <Text style={styles.title}>{t('rating.selectDishes.title', { restaurantName: restaurant.name })}</Text>
+        <Text style={styles.subtitle}>{t('rating.selectDishes.subtitle')}</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -99,7 +101,9 @@ export function SelectDishesScreen({
           disabled={selectedDishIds.size === 0}
         >
           <Text style={styles.continueButtonText}>
-            Continue {selectedDishIds.size > 0 ? `(${selectedDishIds.size} selected)` : ''}
+            {selectedDishIds.size > 0
+              ? t('rating.selectDishes.continue', { count: selectedDishIds.size })
+              : t('common.next')}
           </Text>
         </TouchableOpacity>
       </View>

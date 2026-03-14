@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import {
   DishOpinion,
@@ -38,6 +39,7 @@ export function RateDishScreen({
   const [opinion, setOpinion] = useState<DishOpinion | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<DishTag>>(new Set());
   const [photoUri, setPhotoUri] = useState<string | undefined>();
+  const { t } = useTranslation();
 
   // Reset state when dish changes
   useEffect(() => {
@@ -89,12 +91,12 @@ export function RateDishScreen({
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.progress}>
-          {currentIndex + 1} of {totalDishes}
+          {t('rating.rateDish.progress', { current: currentIndex + 1, total: totalDishes })}
         </Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>How was the {dish.name}?</Text>
+        <Text style={styles.title}>{t('rating.rateDish.title', { dishName: dish.name })}</Text>
 
         {/* Opinion Selection */}
         <View style={styles.opinionContainer}>
@@ -107,7 +109,7 @@ export function RateDishScreen({
           >
             <Text style={styles.opinionEmoji}>👍</Text>
             <Text style={[styles.opinionText, opinion === 'liked' && styles.opinionTextSelected]}>
-              Loved it
+              {t('rating.rateDish.lovedIt')}
             </Text>
           </TouchableOpacity>
 
@@ -120,7 +122,7 @@ export function RateDishScreen({
           >
             <Text style={styles.opinionEmoji}>😐</Text>
             <Text style={[styles.opinionText, opinion === 'okay' && styles.opinionTextSelected]}>
-              Okay
+              {t('rating.rateDish.okay')}
             </Text>
           </TouchableOpacity>
 
@@ -135,7 +137,7 @@ export function RateDishScreen({
             <Text
               style={[styles.opinionText, opinion === 'disliked' && styles.opinionTextSelected]}
             >
-              Not for me
+              {t('rating.rateDish.notForMe')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -144,7 +146,7 @@ export function RateDishScreen({
         {availableTags.length > 0 && (
           <View style={styles.tagsSection}>
             <Text style={styles.tagsTitle}>
-              {opinion === 'liked' ? 'What made it great?' : 'What could be better?'}
+              {opinion === 'liked' ? t('rating.rateDish.whatMadeItGreat') : t('rating.rateDish.whatCouldBeBetter')}
             </Text>
             <View style={styles.tagsContainer}>
               {availableTags.map(tag => (
@@ -170,8 +172,8 @@ export function RateDishScreen({
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Text style={styles.photoIcon}>📸</Text>
-                <Text style={styles.photoText}>Add a dish photo</Text>
-                <Text style={styles.photoSubtext}>(optional)</Text>
+                <Text style={styles.photoText}>{t('rating.addDishPhoto')}</Text>
+                <Text style={styles.photoSubtext}>({t('common.optional')})</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -180,7 +182,7 @@ export function RateDishScreen({
               style={styles.removePhotoButton}
               onPress={() => setPhotoUri(undefined)}
             >
-              <Text style={styles.removePhotoText}>Remove photo</Text>
+              <Text style={styles.removePhotoText}>{t('rating.removePhoto')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -193,7 +195,7 @@ export function RateDishScreen({
           disabled={!canContinue}
         >
           <Text style={styles.continueButtonText}>
-            {currentIndex < totalDishes - 1 ? 'Next' : 'Continue'}
+            {currentIndex < totalDishes - 1 ? t('common.next') : t('common.done')}
           </Text>
         </TouchableOpacity>
       </View>

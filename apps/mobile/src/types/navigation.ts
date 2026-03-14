@@ -18,7 +18,6 @@ export type AuthStackParamList = {
 // Main App Stack Navigator - Contains all app screens (authenticated)
 export type MainStackParamList = {
   Map: undefined;
-  Swipe: undefined;
   Filters: undefined;
   Favorites: undefined;
   Profile: undefined;

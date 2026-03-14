@@ -12,7 +12,6 @@ import {
   ViewedHistoryScreen,
   EatTogetherScreen,
   SettingsScreen,
-  SwipeScreen,
   OnboardingStep1Screen,
   OnboardingStep2Screen,
 } from '@/screens';
@@ -66,14 +65,6 @@ function MainNavigator() {
       }}
     >
       <MainStack.Screen name="Map" component={MapScreen} />
-      <MainStack.Screen
-        name="Swipe"
-        component={SwipeScreen}
-        options={{
-          headerShown: true,
-          title: 'Swipe',
-        }}
-      />
       <MainStack.Screen
         name="Filters"
         component={FiltersScreen}

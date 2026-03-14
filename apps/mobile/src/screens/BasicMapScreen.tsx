@@ -56,6 +56,10 @@ interface MapRestaurant {
   isOpen: boolean;
   openingHours: { open: string; close: string };
   distance?: string;
+  /** Raw numeric distance from the Edge Function in km — used for sorting. */
+  distanceKm?: number;
+  /** Dietary certifications from the DB `dietary_certifications` column. */
+  dietaryCertifications?: string[];
 }
 
 /** Map-display view model for dishes. Not the same as the DB Dish type — includes pre-computed map fields (coordinates, restaurantName, etc.). */
@@ -146,6 +150,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         isOpen: isRestaurantOpenNow(openHours),
         openingHours: todayEntry ?? { open: '09:00', close: '22:00' },
         distance: formatDistance(r.distance),
+        distanceKm: r.distance,
+        dietaryCertifications: r.dietary_certifications ?? [],
       };
     }) as MapRestaurant[];
   }, [nearbyRestaurants]);

@@ -8,7 +8,6 @@ export { ViewedHistoryScreen } from './ViewedHistoryScreen';
 export { EatTogetherScreen } from './EatTogetherScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { RestaurantDetailScreen } from './RestaurantDetailScreen';
-export { SwipeScreen } from './SwipeScreen';
 
 // Eat Together screens
 export * from './eatTogether';

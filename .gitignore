@@ -64,9 +64,9 @@ ios/
 *.key
 *.mobileprovision
 
-# Google Sign-In configuration (contains project IDs, download from Firebase Console)
-google-services.json
-GoogleService-Info.plist
+# Note: google-services.json and GoogleService-Info.plist are intentionally tracked.
+# They contain only client-side config (OAuth client IDs, project IDs) — no private keys.
+# They are safe to commit and required by EAS Build.
 
 # Metro
 .metro-health-check*

@@ -9,6 +9,7 @@
     "scheme": "eatme",
     "android": {
       "package": "com.eatme.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/EatMe_icon_v1.png",
         "backgroundColor": "#FFFFFF"

@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
+import { GoogleIcon, FacebookIcon } from '../../components/icons';
 import { AuthLanguageSelector } from '../../components/auth';
 
 type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
@@ -25,7 +26,7 @@ type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Reg
 export function RegisterScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
-  const { signUp, isLoading, error, clearError } = useAuthStore();
+  const { signUp, signInWithOAuth, isLoading, error, clearError } = useAuthStore();
 
   const [profileName, setProfileName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,6 +34,18 @@ export function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+
+  const handleOAuthSignIn = async (provider: 'google' | 'facebook') => {
+    setOauthLoading(true);
+    const { error } = await signInWithOAuth(provider);
+    setOauthLoading(false);
+    if (error && error.message !== 'OAuth cancelled') {
+      Alert.alert(t('common.error'), error.message);
+    }
+  };
+
+  const isButtonDisabled = isLoading || oauthLoading;
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -292,6 +305,46 @@ export function RegisterScreen() {
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.registerButtonText}>{t('register.createAccount')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>{t('common.or')}</Text>
+            <View style={styles.divider} />
+          </View>
+
+          {/* Social Sign Up Buttons */}
+          <View style={styles.formContainer}>
+            <TouchableOpacity
+              style={[styles.socialButton, styles.googleButton]}
+              onPress={() => handleOAuthSignIn('google')}
+              disabled={isButtonDisabled}
+            >
+              {oauthLoading ? (
+                <ActivityIndicator color="#4285F4" />
+              ) : (
+                <>
+                  <GoogleIcon />
+                  <Text style={styles.googleButtonText}>{t('register.continueWithGoogle')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.socialButton, styles.facebookButton]}
+              onPress={() => handleOAuthSignIn('facebook')}
+              disabled={isButtonDisabled}
+            >
+              {oauthLoading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <>
+                  <FacebookIcon />
+                  <Text style={styles.facebookButtonText}>{t('register.continueWithFacebook')}</Text>
+                </>
               )}
             </TouchableOpacity>
           </View>

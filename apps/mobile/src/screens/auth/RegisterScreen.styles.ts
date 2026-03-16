@@ -197,4 +197,51 @@ export const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.base,
+    marginHorizontal: spacing.xl,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.darkBorderLight,
+  },
+  dividerText: {
+    color: colors.darkTextMuted,
+    paddingHorizontal: spacing.base,
+    fontSize: typography.size.sm,
+  },
+  socialButton: {
+    backgroundColor: colors.darkTertiary,
+    borderRadius: borderRadius.md,
+    padding: spacing.base,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.darkBorderLight,
+  },
+  googleButton: {
+    backgroundColor: colors.white,
+    borderColor: colors.googleBorderGrey,
+  },
+  facebookButton: {
+    backgroundColor: colors.facebookBlue,
+    borderColor: colors.facebookBlue,
+  },
+  googleButtonText: {
+    color: colors.googleTextDark,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    marginLeft: spacing.md,
+  },
+  facebookButtonText: {
+    color: colors.white,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    marginLeft: spacing.md,
+  },
 });

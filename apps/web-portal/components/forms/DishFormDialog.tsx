@@ -615,7 +615,7 @@ export function DishFormDialog({
               value={spiceLevel?.toString() || '0'}
               onValueChange={value => setValue('spice_level', value ? parseInt(value) : 0)}
             >
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {SPICE_LEVELS.map(level => (
                   <div key={level.value} className="flex items-center space-x-2">
                     <RadioGroupItem value={level.value.toString()} id={`spice-${level.value}`} />

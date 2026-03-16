@@ -251,7 +251,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
         {permanent.ingredientsToAvoid.length > 0 && (
           <View style={drawerFiltersStyles.selectedIngredientsContainer}>
-            <Text style={drawerFiltersStyles.selectedIngredientsTitle}>{t('common.selected')}:</Text>
+            <Text style={drawerFiltersStyles.selectedIngredientsTitle}>
+              {t('common.selected')}:
+            </Text>
             <View style={drawerFiltersStyles.selectedIngredientsRow}>
               {permanent.ingredientsToAvoid.map(item => (
                 <View
@@ -302,7 +304,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 6. Religious Restrictions - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.religiousRestrictionsTitle')}</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>
+          {t('filters.religiousRestrictionsTitle')}
+        </Text>
         <View style={drawerFiltersStyles.optionsContainer}>
           {(
             Object.keys(
@@ -399,7 +403,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
             {/* Section header */}
             {searchQuery.trim().length < 2 && commonIngredients.length > 0 && (
-              <Text style={drawerFiltersStyles.ingredientSectionHeader}>{t('filters.commonlyAvoided')}</Text>
+              <Text style={drawerFiltersStyles.ingredientSectionHeader}>
+                {t('filters.commonlyAvoided')}
+              </Text>
             )}
             {searchQuery.trim().length >= 2 && !isSearching && suggestions.length === 0 && (
               <Text style={drawerFiltersStyles.ingredientSectionHeader}>

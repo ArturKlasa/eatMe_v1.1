@@ -63,7 +63,9 @@ export function SelectRestaurantScreen({
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.secondaryButton} onPress={onAteSomewhereElse}>
-          <Text style={styles.secondaryButtonText}>{t('rating.selectRestaurant.ateSomewhereElse')}</Text>
+          <Text style={styles.secondaryButtonText}>
+            {t('rating.selectRestaurant.ateSomewhereElse')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>

@@ -158,10 +158,10 @@ export const CUISINES = [
 export const DIETARY_TAGS = [
   { value: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
   { value: 'vegan', label: 'Vegan', icon: '🌱' },
-  { value: 'diabetic', label: 'Diabetic', icon: '🩺' },
+  { value: 'diabetic_friendly', label: 'Diabetic-Friendly', icon: '🩺' },
   { value: 'keto', label: 'Keto', icon: '🥑' },
   { value: 'paleo', label: 'Paleo', icon: '🥩' },
-  { value: 'low-carb', label: 'Low-Carb', icon: '📉' },
+  { value: 'low_carb', label: 'Low-Carb', icon: '📉' },
   { value: 'halal', label: 'Halal', icon: '☪️' },
   { value: 'hindu', label: 'Hindu', icon: '🕉️' },
   { value: 'kosher', label: 'Kosher', icon: '✡️' },
@@ -183,9 +183,15 @@ export const ALLERGENS = [
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
 
 export const SPICE_LEVELS = [
-  { value: 0, label: 'No spicy', icon: '🥛' },
-  { value: 1, label: 'Spicy', icon: '🌶️' },
+  { value: 0, label: 'No spice', icon: '' },
+  { value: 1, label: '🌶️', icon: '🌶️' },
+  { value: 3, label: '🌶️🌶️🌶️', icon: '🌶️🌶️🌶️' },
 ] as const;
+
+/** Map a numeric spice_level (0 | 1 | 3) to its chilli-icon string. */
+export function spiceIcon(level: number | null | undefined): string {
+  return SPICE_LEVELS.find(l => l.value === level)?.icon ?? '';
+}
 
 export const WIZARD_STEPS = [
   { id: 1, title: 'Basic Information', path: '/onboard/basic-info' },

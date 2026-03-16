@@ -82,8 +82,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
             {/* Spice Level */}
             {dish.spice_level !== undefined && dish.spice_level > 0 && (
               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}{' '}
-                {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.label}
+                {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
               </Badge>
             )}
 

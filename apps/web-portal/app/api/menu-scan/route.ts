@@ -32,7 +32,7 @@ STRICT RULES:
    - GF, "sin gluten", "gluten-free" → dietary_hints: ["gluten_free"]
    - H, "halal" → dietary_hints: ["halal"]
    - K, "kosher" → dietary_hints: ["kosher"]
-8. Detect spice indicators (🌶, "picante", "spicy", ★) → spice_level: 2. Use null otherwise.
+8. Detect spice indicators (🌶, "picante", "spicy", ★) → spice_level: 1 for mild/single indicator, 3 for very spicy/multiple indicators. Use null (no indicator) or 0 (explicitly non-spicy) otherwise.
 9. Extract ingredients ONLY when explicitly listed on the menu (typically in parentheses after the dish name). If not listed, set raw_ingredients to null.
 10. confidence: 1.0 = perfectly legible text, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
 11. Menus may be in Spanish or English. Keep all names in their original language.
@@ -54,7 +54,7 @@ JSON SCHEMA (return exactly this structure):
               "description": string | null,
               "raw_ingredients": string[] | null,
               "dietary_hints": string[],
-              "spice_level": 0 | 1 | 2 | 3 | 4 | null,
+              "spice_level": 0 | 1 | 3 | null,
               "calories": number | null,
               "confidence": number
             }
@@ -427,8 +427,15 @@ async function enrichResult(
       for (const dish of cat.dishes) {
         const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai);
 
+        // Normalise LLM-returned spice_level to the allowed set {0, 1, 3}.
+        // (LLMs may still return 2 or 4 despite the prompt.)
+        const rawSpice = dish.spice_level ?? null;
+        const normalisedSpice: 0 | 1 | 3 | null =
+          rawSpice === null ? null : rawSpice <= 0 ? 0 : rawSpice <= 1 ? 1 : rawSpice === 2 ? 1 : 3;
+
         enrichedDishes.push({
           ...dish,
+          spice_level: normalisedSpice,
           matched_ingredients: matched,
           mapped_dietary_tags: mapDietaryHints(dish.dietary_hints ?? []),
         });
@@ -456,10 +463,7 @@ export async function POST(request: NextRequest) {
   // 1. Verify admin
   const auth = await verifyAdminRequest(request);
   if (auth.error || !auth.user) {
-    return NextResponse.json(
-      { error: auth.error ?? 'Unauthorized' },
-      { status: (auth as any).status ?? 401 }
-    );
+    return NextResponse.json({ error: auth.error ?? 'Unauthorized' }, { status: 401 });
   }
   const user = auth.user;
 
@@ -482,8 +486,8 @@ export async function POST(request: NextRequest) {
   if (!images || images.length === 0) {
     return NextResponse.json({ error: 'At least one image is required' }, { status: 400 });
   }
-  if (images.length > 10) {
-    return NextResponse.json({ error: 'Maximum 10 images per scan' }, { status: 400 });
+  if (images.length > 20) {
+    return NextResponse.json({ error: 'Maximum 20 images per scan' }, { status: 400 });
   }
 
   const supabase = createServerSupabaseClient();
@@ -583,19 +587,19 @@ export async function POST(request: NextRequest) {
       dishCount,
       processingMs,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[MenuScan] Processing failed:', error);
 
     await supabase
       .from('menu_scan_jobs')
       .update({
         status: 'failed',
-        error_message: error.message ?? 'Unknown error',
+        error_message: error instanceof Error ? error.message : 'Unknown error',
       })
       .eq('id', job.id);
 
     return NextResponse.json(
-      { error: error.message ?? 'Menu processing failed', jobId: job.id },
+      { error: error instanceof Error ? error.message : 'Menu processing failed', jobId: job.id },
       { status: 500 }
     );
   }

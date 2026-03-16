@@ -146,7 +146,9 @@ export function RateDishScreen({
         {availableTags.length > 0 && (
           <View style={styles.tagsSection}>
             <Text style={styles.tagsTitle}>
-              {opinion === 'liked' ? t('rating.rateDish.whatMadeItGreat') : t('rating.rateDish.whatCouldBeBetter')}
+              {opinion === 'liked'
+                ? t('rating.rateDish.whatMadeItGreat')
+                : t('rating.rateDish.whatCouldBeBetter')}
             </Text>
             <View style={styles.tagsContainer}>
               {availableTags.map(tag => (

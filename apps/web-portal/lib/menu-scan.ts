@@ -96,6 +96,9 @@ export interface EditableDish {
   dish_category_id: string | null;
   confidence: number;
   ingredients: EditableIngredient[];
+  /** AI-suggested allergen codes — informational only, not saved to DB directly.
+   *  The authoritative allergens are calculated by the DB trigger from dish_ingredients. */
+  suggested_allergens?: string[];
 }
 
 export interface EditableCategory {
@@ -348,5 +351,6 @@ export function newEmptyDish(): EditableDish {
     dish_category_id: null,
     confidence: 1.0,
     ingredients: [],
+    suggested_allergens: [],
   };
 }

@@ -10,6 +10,7 @@ import { loadRestaurantData, clearRestaurantData } from '@/lib/storage';
 import { FormProgress, Menu, RestaurantType } from '@/types/restaurant';
 import type { Location as AppLocation } from '@/types/restaurant';
 import { basicInfoSchema } from '@/lib/validation';
+import { SPICE_LEVELS } from '@/lib/constants';
 import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRestaurantFull, submitRestaurantProfile } from '@/lib/restaurantService';
@@ -290,7 +291,7 @@ function ReviewPageContent() {
                                     variant="outline"
                                     className="bg-red-50 text-red-700 border-red-200"
                                   >
-                                    {dish.spice_level === 0 ? '🥛 No spicy' : '🌶️ Spicy'}
+                                    {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
                                   </Badge>
                                 )}
                                 {dish.dietary_tags.map(tag => (

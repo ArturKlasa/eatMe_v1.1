@@ -63,7 +63,9 @@ export function SelectDishesScreen({
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{t('rating.selectDishes.title', { restaurantName: restaurant.name })}</Text>
+        <Text style={styles.title}>
+          {t('rating.selectDishes.title', { restaurantName: restaurant.name })}
+        </Text>
         <Text style={styles.subtitle}>{t('rating.selectDishes.subtitle')}</Text>
       </View>
 

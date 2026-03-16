@@ -106,7 +106,7 @@ export const MapFooter: React.FC<MapFooterProps> = ({
       {/* Filter Button */}
       <View style={mapFooterStyles.filterSection}>
         <TouchableOpacity style={mapFooterStyles.filterButton} onPress={onFilterPress}>
-            <Text style={mapFooterStyles.filterButtonText}>{t('mapFooter.filterButton')}</Text>
+          <Text style={mapFooterStyles.filterButtonText}>{t('mapFooter.filterButton')}</Text>
         </TouchableOpacity>
       </View>
     </View>

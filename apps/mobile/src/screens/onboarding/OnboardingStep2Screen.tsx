@@ -43,8 +43,9 @@ const DISH_OPTIONS = [
 ];
 
 const SPICE_LEVELS = [
-  { value: 'no', key: 'spiceNo', emoji: '😌' },
-  { value: 'yes', key: 'spiceYes', emoji: '🌶️' },
+  { value: 'none', key: 'spiceNone', emoji: '' },
+  { value: 'mild', key: 'spiceMild', emoji: '🌶️' },
+  { value: 'hot', key: 'spiceHot', emoji: '🌶️🌶️🌶️' },
 ];
 
 export function OnboardingStep2Screen() {
@@ -79,7 +80,7 @@ export function OnboardingStep2Screen() {
     updateFormData({ favoriteDishes: updated });
   };
 
-  const handleSpiceSelect = (spice: 'yes' | 'no') => {
+  const handleSpiceSelect = (spice: 'none' | 'mild' | 'hot') => {
     updateFormData({ spiceTolerance: spice });
   };
 
@@ -189,7 +190,7 @@ export function OnboardingStep2Screen() {
                   styles.spiceCard,
                   formData?.spiceTolerance === spice.value && styles.spiceCardSelected,
                 ]}
-                onPress={() => handleSpiceSelect(spice.value as any)}
+                onPress={() => handleSpiceSelect(spice.value)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.spiceEmoji}>{spice.emoji}</Text>

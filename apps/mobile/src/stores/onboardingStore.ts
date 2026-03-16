@@ -19,7 +19,7 @@ export interface OnboardingFormData {
   // Step 2: Cuisines & Dishes
   favoriteCuisines: string[];
   favoriteDishes: string[];
-  spiceTolerance: 'yes' | 'no';
+  spiceTolerance: 'none' | 'mild' | 'hot';
 }
 
 interface OnboardingState {
@@ -75,7 +75,7 @@ const defaultFormData: OnboardingFormData = {
   allergies: [],
   favoriteCuisines: [],
   favoriteDishes: [],
-  spiceTolerance: 'no',
+  spiceTolerance: 'none',
 };
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
@@ -247,7 +247,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
           allergies: ensureArray(data.allergies),
           favoriteCuisines: ensureArray(data.favorite_cuisines),
           favoriteDishes: ensureArray(data.favorite_dishes),
-          spiceTolerance: (data.spice_tolerance || 'no') as OnboardingFormData['spiceTolerance'],
+          spiceTolerance: (data.spice_tolerance || 'none') as OnboardingFormData['spiceTolerance'],
         };
 
         // profile_completion_percentage and profile_points are computed locally

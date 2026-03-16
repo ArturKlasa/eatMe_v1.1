@@ -74,7 +74,7 @@ erDiagram
         jsonb allergens "Auto-populated by trigger"
         jsonb dietary_tags "Auto-populated by trigger"
         integer calories
-        smallint spice_level "0–4 (0=none, 4=very spicy)"
+        smallint spice_level "0/1/3 (0=none, 1=🌶️, 3=🌶️🌶️🌶️)"
         text image_url
         boolean is_available "Default: true"
         boolean is_visible_on_menu "Default: true"

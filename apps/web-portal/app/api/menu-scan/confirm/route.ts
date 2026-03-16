@@ -188,10 +188,10 @@ export async function POST(request: NextRequest) {
       dishes_saved: totalDishesInserted,
       warnings: errors.length > 0 ? errors : undefined,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[MenuScan/confirm] Unexpected error:', error);
     return NextResponse.json(
-      { error: error.message ?? 'Commit failed unexpectedly' },
+      { error: error instanceof Error ? error.message : 'Commit failed unexpectedly' },
       { status: 500 }
     );
   }

@@ -20,14 +20,16 @@ import {
   ZoomIn,
   MapPin,
   Pencil,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { getDietaryTagIcon } from '@/lib/icons';
+import { getDietaryTagIcon, getAllergenIcon } from '@/lib/icons';
 import { AddIngredientPanel } from '@/components/admin/AddIngredientPanel';
+import { InlineIngredientSearch } from '@/components/admin/InlineIngredientSearch';
 import { NewRestaurantForm, type NewRestaurantResult } from '@/components/admin/NewRestaurantForm';
 import {
   type EditableMenu,
@@ -138,6 +140,43 @@ async function resizeImageToBase64(
 }
 
 // ---------------------------------------------------------------------------
+// PDF → images (runs in browser using pdfjs-dist, no server needed)
+// Renders each page to a canvas at 2× scale, exports as JPEG File.
+// ---------------------------------------------------------------------------
+
+async function pdfToImages(file: File, maxPagesPerFile = 20): Promise<File[]> {
+  const pdfjsLib = await import('pdfjs-dist');
+  // Worker is committed to /public — re-copy from node_modules if pdfjs-dist is upgraded
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const numPages = Math.min(pdf.numPages, maxPagesPerFile);
+  const baseName = file.name.replace(/\.pdf$/i, '');
+  const results: File[] = [];
+
+  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2.0 }); // ~1680 px for an A4 page
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas 2D context unavailable');
+    await page.render({
+      canvasContext: ctx as Parameters<typeof page.render>[0]['canvasContext'],
+      viewport,
+    }).promise;
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', 0.85)
+    );
+    results.push(new File([blob], `${baseName}_p${pageNum}.jpg`, { type: 'image/jpeg' }));
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Build the confirm payload from editable state
 // ---------------------------------------------------------------------------
 
@@ -208,6 +247,7 @@ export default function MenuScanPage() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isPdfConverting, setIsPdfConverting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---------- processing step ----------
@@ -222,6 +262,12 @@ export default function MenuScanPage() {
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [expandedDishes, setExpandedDishes] = useState<Set<string>>(new Set());
   const [addIngredientTarget, setAddIngredientTarget] = useState<AddIngredientTarget | null>(null);
+  const [suggestingDishId, setSuggestingDishId] = useState<string | null>(null);
+  const [inlineSearchTarget, setInlineSearchTarget] = useState<{
+    mIdx: number;
+    cIdx: number;
+    dIdx: number;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
 
   // ---------- quick-add restaurant ----------
@@ -284,10 +330,32 @@ export default function MenuScanPage() {
 
   // ---------- file selection helpers ----------
   const handleFilesSelected = useCallback(
-    (files: FileList | File[]) => {
+    async (files: FileList | File[]) => {
       const arr = Array.from(files);
-      const valid = arr.filter(f => f.type.startsWith('image/'));
-      const combined = [...imageFiles, ...valid].slice(0, 10); // max 10 images
+      const images = arr.filter(f => f.type.startsWith('image/'));
+      const pdfs = arr.filter(f => f.type === 'application/pdf');
+
+      let allNew: File[] = [...images];
+
+      if (pdfs.length > 0) {
+        setIsPdfConverting(true);
+        try {
+          const pages = (await Promise.all(pdfs.map(f => pdfToImages(f)))).flat();
+          allNew = [...allNew, ...pages];
+          if (pages.length > 0) {
+            toast.success(
+              `Converted ${pdfs.length} PDF(s) → ${pages.length} page${pages.length !== 1 ? 's' : ''}`
+            );
+          }
+        } catch (err) {
+          console.error('[MenuScan] PDF conversion failed:', err);
+          toast.error('Failed to read PDF — try saving pages as images instead');
+        } finally {
+          setIsPdfConverting(false);
+        }
+      }
+
+      const combined = [...imageFiles, ...allNew].slice(0, 20); // max 20 images/pages
       setImageFiles(combined);
 
       // Revoke old URLs & create new ones
@@ -317,7 +385,10 @@ export default function MenuScanPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    handleFilesSelected(e.dataTransfer.files);
+    const arr = Array.from(e.dataTransfer.files).filter(
+      f => f.type.startsWith('image/') || f.type === 'application/pdf'
+    );
+    if (arr.length) handleFilesSelected(arr);
   };
 
   // ---------- process handler: call /api/menu-scan ----------
@@ -327,7 +398,11 @@ export default function MenuScanPage() {
       return;
     }
     if (imageFiles.length === 0) {
-      toast.error('Please upload at least one image');
+      toast.error('Please upload at least one image or PDF');
+      return;
+    }
+    if (isPdfConverting) {
+      toast.error('PDF is still converting — please wait a moment');
       return;
     }
 
@@ -542,6 +617,275 @@ export default function MenuScanPage() {
           }),
         };
       })
+    );
+  };
+
+  const addIngredientToDish = (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ing: import('@/lib/menu-scan').EditableIngredient
+  ) => {
+    setEditableMenus(prev =>
+      prev.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                // Avoid duplicates
+                const alreadyHas = d.ingredients.some(
+                  i =>
+                    i.canonical_ingredient_id &&
+                    i.canonical_ingredient_id === ing.canonical_ingredient_id
+                );
+                if (alreadyHas) return d;
+                return { ...d, ingredients: [...d.ingredients, ing] };
+              }),
+            };
+          }),
+        };
+      })
+    );
+  };
+
+  const suggestIngredients = async (
+    dishId: string,
+    dishName: string,
+    description: string,
+    mIdx: number,
+    cIdx: number,
+    dIdx: number
+  ) => {
+    setSuggestingDishId(dishId);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Session expired');
+        return;
+      }
+
+      const res = await fetch('/api/menu-scan/suggest-ingredients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ dish_name: dishName, description: description || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Suggestion failed');
+
+      const suggestions: import('@/lib/menu-scan').EditableIngredient[] = data.ingredients ?? [];
+      // Fix: vegan implies vegetarian
+      const rawTags: string[] = data.dietary_tags ?? [];
+      const effectiveDietaryTags =
+        rawTags.includes('vegan') && !rawTags.includes('vegetarian')
+          ? [...rawTags, 'vegetarian']
+          : rawTags;
+      const suggestedAllergens: string[] = data.allergens ?? [];
+      const suggestedSpice: number | null = data.spice_level ?? null;
+
+      // Compute toast summary from snapshot BEFORE setState (accurate for single-user admin)
+      const snap = editableMenus[mIdx]?.categories[cIdx]?.dishes[dIdx];
+      const snapIds = new Set(
+        (snap?.ingredients ?? []).map(i => i.canonical_ingredient_id).filter(Boolean)
+      );
+      const toAddCount = suggestions.filter(
+        i => !i.canonical_ingredient_id || !snapIds.has(i.canonical_ingredient_id)
+      ).length;
+      const newTagsCount = effectiveDietaryTags.filter(
+        t => !(snap?.dietary_tags ?? []).includes(t)
+      ).length;
+      const parts: string[] = [];
+      if (toAddCount > 0) parts.push(`${toAddCount} ingredient${toAddCount !== 1 ? 's' : ''}`);
+      if (newTagsCount > 0)
+        parts.push(`${newTagsCount} dietary tag${newTagsCount !== 1 ? 's' : ''}`);
+      if (suggestedSpice !== null && snap?.spice_level === null) parts.push('spice level');
+      if (suggestedAllergens.length > 0)
+        parts.push(
+          `${suggestedAllergens.length} allergen hint${suggestedAllergens.length !== 1 ? 's' : ''}`
+        );
+
+      // Fix: dedup inside updater uses `prev` state, not stale closure
+      setEditableMenus(prev =>
+        prev.map((m, mi) => {
+          if (mi !== mIdx) return m;
+          return {
+            ...m,
+            categories: m.categories.map((c, ci) => {
+              if (ci !== cIdx) return c;
+              return {
+                ...c,
+                dishes: c.dishes.map((d, di) => {
+                  if (di !== dIdx) return d;
+
+                  const existingIdsSet = new Set(
+                    d.ingredients
+                      .map(i => i.canonical_ingredient_id)
+                      .filter((id): id is string => Boolean(id))
+                  );
+                  const toAdd = suggestions.filter(
+                    i =>
+                      !i.canonical_ingredient_id || !existingIdsSet.has(i.canonical_ingredient_id)
+                  );
+
+                  const patch: Partial<import('@/lib/menu-scan').EditableDish> = {};
+
+                  if (toAdd.length > 0) patch.ingredients = [...d.ingredients, ...toAdd];
+
+                  const newTags = effectiveDietaryTags.filter(t => !d.dietary_tags.includes(t));
+                  if (newTags.length > 0) patch.dietary_tags = [...d.dietary_tags, ...newTags];
+
+                  if (suggestedSpice !== null && d.spice_level === null)
+                    patch.spice_level = suggestedSpice;
+
+                  if (suggestedAllergens.length > 0) patch.suggested_allergens = suggestedAllergens;
+
+                  return Object.keys(patch).length > 0 ? { ...d, ...patch } : d;
+                }),
+              };
+            }),
+          };
+        })
+      );
+
+      if (parts.length === 0) {
+        toast.info('No new suggestions to add');
+      } else {
+        toast.success(`Suggested: ${parts.join(', ')}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Suggestion failed');
+    } finally {
+      setSuggestingDishId(null);
+    }
+  };
+
+  /** Run AI suggestions for every food dish that has no ingredients yet, 3 at a time. */
+  const suggestAllDishes = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      toast.error('Session expired');
+      return;
+    }
+
+    // Collect all food dish coordinates
+    type DishCoord = {
+      mIdx: number;
+      cIdx: number;
+      dIdx: number;
+      name: string;
+      description: string;
+    };
+    const targets: DishCoord[] = [];
+    editableMenus.forEach((menu, mIdx) => {
+      if (menu.menu_type === 'drink') return;
+      menu.categories.forEach((cat, cIdx) => {
+        cat.dishes.forEach((dish, dIdx) => {
+          if (dish.name.trim())
+            targets.push({ mIdx, cIdx, dIdx, name: dish.name, description: dish.description });
+        });
+      });
+    });
+
+    if (targets.length === 0) {
+      toast.info('No dishes to analyse');
+      return;
+    }
+
+    setIsSuggestingAll(true);
+    setSuggestAllProgress({ done: 0, total: targets.length });
+
+    const CONCURRENCY = 3;
+    let done = 0;
+
+    for (let i = 0; i < targets.length; i += CONCURRENCY) {
+      const batch = targets.slice(i, i + CONCURRENCY);
+      await Promise.allSettled(
+        batch.map(async ({ mIdx, cIdx, dIdx, name, description }) => {
+          try {
+            const res = await fetch('/api/menu-scan/suggest-ingredients', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ dish_name: name, description: description || null }),
+            });
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const suggestions: import('@/lib/menu-scan').EditableIngredient[] =
+              data.ingredients ?? [];
+            const rawTags: string[] = data.dietary_tags ?? [];
+            const effectiveDietaryTags =
+              rawTags.includes('vegan') && !rawTags.includes('vegetarian')
+                ? [...rawTags, 'vegetarian']
+                : rawTags;
+            const suggestedAllergens: string[] = data.allergens ?? [];
+            const suggestedSpice: number | null = data.spice_level ?? null;
+
+            setEditableMenus(prev =>
+              prev.map((m, mi) => {
+                if (mi !== mIdx) return m;
+                return {
+                  ...m,
+                  categories: m.categories.map((c, ci) => {
+                    if (ci !== cIdx) return c;
+                    return {
+                      ...c,
+                      dishes: c.dishes.map((d, di) => {
+                        if (di !== dIdx) return d;
+                        const existingIdsSet = new Set(
+                          d.ingredients
+                            .map(ing => ing.canonical_ingredient_id)
+                            .filter((id): id is string => Boolean(id))
+                        );
+                        const toAdd = suggestions.filter(
+                          ing =>
+                            !ing.canonical_ingredient_id ||
+                            !existingIdsSet.has(ing.canonical_ingredient_id)
+                        );
+                        const patch: Partial<import('@/lib/menu-scan').EditableDish> = {};
+                        if (toAdd.length > 0) patch.ingredients = [...d.ingredients, ...toAdd];
+                        const newTags = effectiveDietaryTags.filter(
+                          t => !d.dietary_tags.includes(t)
+                        );
+                        if (newTags.length > 0)
+                          patch.dietary_tags = [...d.dietary_tags, ...newTags];
+                        if (suggestedSpice !== null && d.spice_level === null)
+                          patch.spice_level = suggestedSpice;
+                        if (suggestedAllergens.length > 0)
+                          patch.suggested_allergens = suggestedAllergens;
+                        return Object.keys(patch).length > 0 ? { ...d, ...patch } : d;
+                      }),
+                    };
+                  }),
+                };
+              })
+            );
+          } catch {
+            // Non-fatal: continue with other dishes
+          }
+        })
+      );
+      done += batch.length;
+      setSuggestAllProgress({ done, total: targets.length });
+    }
+
+    setIsSuggestingAll(false);
+    setSuggestAllProgress(null);
+    toast.success(
+      `AI analysis complete for ${targets.length} dish${targets.length !== 1 ? 'es' : ''}`
     );
   };
 
@@ -770,7 +1114,9 @@ export default function MenuScanPage() {
 
         {/* Image upload */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-800">2. Upload Menu Photos (max 10)</h2>
+          <h2 className="font-semibold text-gray-800">
+            2. Upload Menu Photos or PDF (max 20 pages)
+          </h2>
 
           <div
             className={cn(
@@ -782,19 +1128,29 @@ export default function MenuScanPage() {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !isPdfConverting && fileInputRef.current?.click()}
           >
-            <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
-            <p className="text-sm font-medium text-gray-700">
-              Drag & drop photos here, or click to browse
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              JPG, PNG, WEBP — up to 10 images. Phone photos work fine.
-            </p>
+            {isPdfConverting ? (
+              <>
+                <Loader2 className="h-10 w-10 mx-auto text-orange-400 mb-3 animate-spin" />
+                <p className="text-sm font-medium text-gray-700">Converting PDF pages…</p>
+                <p className="text-xs text-gray-400 mt-1">This may take a few seconds</p>
+              </>
+            ) : (
+              <>
+                <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                <p className="text-sm font-medium text-gray-700">
+                  Drag & drop photos or a PDF here, or click to browse
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  JPG, PNG, WEBP or PDF — up to 20 images/pages. Phone photos work fine.
+                </p>
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               multiple
               className="hidden"
               onChange={e => e.target.files && handleFilesSelected(e.target.files)}
@@ -1253,6 +1609,29 @@ export default function MenuScanPage() {
 
         {/* ---- Right: Extraction results ---- */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {/* Suggest All toolbar */}
+          {editableMenus.length > 0 && (
+            <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-2.5">
+              <p className="text-xs text-gray-500">
+                {suggestAllProgress
+                  ? `Analysing… ${suggestAllProgress.done} / ${suggestAllProgress.total} dishes`
+                  : `${countDishes(editableMenus)} dishes extracted`}
+              </p>
+              <button
+                type="button"
+                disabled={isSuggestingAll}
+                onClick={suggestAllDishes}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 transition-colors font-medium"
+              >
+                {isSuggestingAll ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                Suggest All
+              </button>
+            </div>
+          )}
           {editableMenus.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400 space-y-3">
               <AlertTriangle className="h-10 w-10" />
@@ -1433,7 +1812,9 @@ export default function MenuScanPage() {
                                                   : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                                               )}
                                             >
-                                              <span className="mr-0.5">{getDietaryTagIcon(tag.code)}</span>
+                                              <span className="mr-0.5">
+                                                {getDietaryTagIcon(tag.code)}
+                                              </span>
                                               {tag.name}
                                             </button>
                                           );
@@ -1443,10 +1824,57 @@ export default function MenuScanPage() {
                                   )}
 
                                   {/* Ingredients */}
-                                  {dish.ingredients.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-gray-500 mb-1.5">Ingredients</p>
-                                      <div className="flex flex-wrap gap-1.5">
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <p className="text-xs text-gray-500">Ingredients</p>
+                                      <div className="flex items-center gap-1">
+                                        {/* AI Suggest */}
+                                        <button
+                                          type="button"
+                                          disabled={suggestingDishId === dish._id}
+                                          onClick={() =>
+                                            suggestIngredients(
+                                              dish._id,
+                                              dish.name,
+                                              dish.description,
+                                              mIdx,
+                                              cIdx,
+                                              dIdx
+                                            )
+                                          }
+                                          className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 transition-colors"
+                                          title="Suggest ingredients from dish name & description"
+                                        >
+                                          {suggestingDishId === dish._id ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Sparkles className="h-3 w-3" />
+                                          )}
+                                          Suggest
+                                        </button>
+                                        {/* Inline Add */}
+                                        {!(
+                                          inlineSearchTarget?.mIdx === mIdx &&
+                                          inlineSearchTarget?.cIdx === cIdx &&
+                                          inlineSearchTarget?.dIdx === dIdx
+                                        ) && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setInlineSearchTarget({ mIdx, cIdx, dIdx })
+                                            }
+                                            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors"
+                                          >
+                                            <Plus className="h-3 w-3" />
+                                            Add
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Ingredient pills */}
+                                    {dish.ingredients.length > 0 && (
+                                      <div className="flex flex-wrap gap-1.5 mb-1.5">
                                         {dish.ingredients.map((ing, ingIdx) => {
                                           const matched = ing.status === 'matched';
                                           return matched ? (
@@ -1488,8 +1916,45 @@ export default function MenuScanPage() {
                                           );
                                         })}
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
+
+                                    {/* Inline ingredient search */}
+                                    {inlineSearchTarget?.mIdx === mIdx &&
+                                      inlineSearchTarget?.cIdx === cIdx &&
+                                      inlineSearchTarget?.dIdx === dIdx && (
+                                        <InlineIngredientSearch
+                                          existingIds={
+                                            new Set(
+                                              dish.ingredients
+                                                .map(i => i.canonical_ingredient_id)
+                                                .filter((id): id is string => Boolean(id))
+                                            )
+                                          }
+                                          onAdd={ing => {
+                                            addIngredientToDish(mIdx, cIdx, dIdx, ing);
+                                          }}
+                                          onClose={() => setInlineSearchTarget(null)}
+                                        />
+                                      )}
+
+                                    {/* AI allergen hints */}
+                                    {(dish.suggested_allergens ?? []).length > 0 && (
+                                      <div className="flex flex-wrap items-center gap-1 mt-1.5 pt-1.5 border-t border-gray-100">
+                                        <span className="text-xs text-gray-400 mr-0.5">
+                                          ⚠️ AI hints:
+                                        </span>
+                                        {dish.suggested_allergens!.map(code => (
+                                          <span
+                                            key={code}
+                                            className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full"
+                                            title="AI-suggested allergen — confirmed automatically from matched ingredients on save"
+                                          >
+                                            {getAllergenIcon(code)} {code.replace(/_/g, ' ')}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
 
                                   {/* Dish category + extra fields row */}
                                   <div className="flex items-center gap-3 flex-wrap">
@@ -1525,11 +1990,9 @@ export default function MenuScanPage() {
                                         className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white focus:outline-none focus:border-orange-400"
                                       >
                                         <option value="">—</option>
-                                        <option value="0">🌶 None</option>
-                                        <option value="1">🌶 Mild</option>
-                                        <option value="2">🌶🌶 Medium</option>
-                                        <option value="3">🌶🌶🌶 Hot</option>
-                                        <option value="4">🌶🌶🌶🌶 Extra Hot</option>
+                                        <option value="0">No spice</option>
+                                        <option value="1">🌶️</option>
+                                        <option value="3">🌶️🌶️🌶️</option>
                                       </select>
                                     </div>
                                     <div>

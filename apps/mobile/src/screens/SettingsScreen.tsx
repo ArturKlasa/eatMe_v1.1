@@ -203,7 +203,9 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           <View style={modalScreenStyles.section}>
             <Text style={modalScreenStyles.sectionTitle}>{t('settings.about')}</Text>
             <View style={modalScreenStyles.aboutContent}>
-              <Text style={modalScreenStyles.aboutText}>{t('app.name')} - {t('app.description')}</Text>
+              <Text style={modalScreenStyles.aboutText}>
+                {t('app.name')} - {t('app.description')}
+              </Text>
               <Text style={modalScreenStyles.aboutText}>{t('app.versionBeta')}</Text>
               <Text style={modalScreenStyles.aboutText}>{t('app.phase1')}</Text>
             </View>

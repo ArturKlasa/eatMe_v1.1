@@ -450,7 +450,7 @@ OUTPUT JSON SCHEMA:
               "description": string | null,
               "raw_ingredients": string[] | null,
               "dietary_hints": string[],
-              "spice_level": 0|1|2|3|4 | null,
+              "spice_level": 0|1|3 | null,
               "calories": number | null,
               "confidence": number
             }

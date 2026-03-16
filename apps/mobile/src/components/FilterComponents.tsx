@@ -256,7 +256,9 @@ export const DietToggleFilter: React.FC = () => {
 
       {/* Diet Preference Selection */}
       <View style={filterComponentsStyles.toggleList}>
-        <Text style={filterComponentsStyles.filterSubtitle}>{t('filters.dietPreferenceSubtitle')}</Text>
+        <Text style={filterComponentsStyles.filterSubtitle}>
+          {t('filters.dietPreferenceSubtitle')}
+        </Text>
         {dietPreferenceOptions.map(option => (
           <TouchableOpacity
             key={option.key}
@@ -284,7 +286,9 @@ export const DietToggleFilter: React.FC = () => {
 
       {/* Protein Types */}
       <View style={filterComponentsStyles.toggleList}>
-        <Text style={filterComponentsStyles.filterSubtitle}>{t('filters.proteinTypesSubtitle')}</Text>
+        <Text style={filterComponentsStyles.filterSubtitle}>
+          {t('filters.proteinTypesSubtitle')}
+        </Text>
         {proteinOptions.map(option => (
           <View key={option.key} style={filterComponentsStyles.toggleItem}>
             <View style={filterComponentsStyles.toggleLabel}>

@@ -66,9 +66,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.emoji}>🍽️</Text>
           <Text style={styles.title}>{i18n.t('common.somethingWrong')}</Text>
-          <Text style={styles.message}>
-            {i18n.t('errors.unexpectedError')}
-          </Text>
+          <Text style={styles.message}>{i18n.t('errors.unexpectedError')}</Text>
           {__DEV__ && this.state.error && (
             <View style={styles.devBox}>
               <Text style={styles.devLabel}>Dev info:</Text>

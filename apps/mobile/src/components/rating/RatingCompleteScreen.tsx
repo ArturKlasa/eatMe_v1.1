@@ -43,7 +43,9 @@ export function RatingCompleteScreen({
 
           {dishRatings.map((rating, index) => (
             <View key={rating.dishId} style={styles.pointsRow}>
-              <Text style={styles.pointsLabel}>{t('rating.complete.ratedDish', { dishName: rating.dishName })}</Text>
+              <Text style={styles.pointsLabel}>
+                {t('rating.complete.ratedDish', { dishName: rating.dishName })}
+              </Text>
               <Text style={styles.pointsValue}>+10 pts</Text>
             </View>
           ))}
@@ -78,7 +80,9 @@ export function RatingCompleteScreen({
 
           {pointsEarned.firstVisitBonus > 0 && (
             <View style={styles.pointsRow}>
-              <Text style={[styles.pointsLabel, styles.bonusLabel]}>{t('rating.complete.firstVisitBonus')}</Text>
+              <Text style={[styles.pointsLabel, styles.bonusLabel]}>
+                {t('rating.complete.firstVisitBonus')}
+              </Text>
               <Text style={[styles.pointsValue, styles.bonusValue]}>
                 +{pointsEarned.firstVisitBonus} pts
               </Text>

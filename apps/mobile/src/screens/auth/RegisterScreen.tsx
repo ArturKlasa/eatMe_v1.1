@@ -343,7 +343,9 @@ export function RegisterScreen() {
               ) : (
                 <>
                   <FacebookIcon />
-                  <Text style={styles.facebookButtonText}>{t('register.continueWithFacebook')}</Text>
+                  <Text style={styles.facebookButtonText}>
+                    {t('register.continueWithFacebook')}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

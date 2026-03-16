@@ -80,7 +80,9 @@ export const ProfileCompletionCard: React.FC<ProfileCompletionCardProps> = ({ on
         ) : (
           <View style={styles.ctaButton}>
             <Text style={styles.ctaText}>
-              {profileCompletion > 0 ? t('profileCompletion.continueSetup') : t('profileCompletion.startSetup')}
+              {profileCompletion > 0
+                ? t('profileCompletion.continueSetup')
+                : t('profileCompletion.startSetup')}
             </Text>
           </View>
         )}

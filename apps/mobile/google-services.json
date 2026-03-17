@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "127042385908-277q5qrovkfh11jcnbsn6pk47jbludql.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eatme.app",
+            "certificate_hash": "88350b79a200920bedf6e31a727fa5bea5b0f7f5"
+          }
+        },
+        {
           "client_id": "127042385908-6d5dh5qlbfvgs2lcmj9ker73kg4cqofh.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

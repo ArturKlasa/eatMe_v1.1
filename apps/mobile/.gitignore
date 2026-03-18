@@ -34,7 +34,8 @@ yarn-error.*
 .env*.local
 
 # EAS build config — contains API keys and tokens, managed via EAS secrets
-eas.json
+# EAS build config - must be tracked for EAS Build cloud builds
+# eas.json
 
 # typescript
 *.tsbuildinfo

@@ -115,4 +115,5 @@ build/
 dist/
 out/
 # EAS build config — contains secrets, managed via EAS environment variables
-apps/mobile/eas.json
+# EAS build config - must be tracked for EAS Build cloud builds
+# apps/mobile/eas.json

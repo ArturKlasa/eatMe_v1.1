@@ -1,3 +1,15 @@
+/**
+ * useAllDishes — SHELVED (March 18, 2026)
+ *
+ * Fetches all dishes from Supabase for use by the swipe interface.
+ * No active screen uses this hook — it was removed from the app when
+ * the swipe feature was shelved.
+ *
+ * Restore: move back to apps/mobile/src/hooks/useAllDishes.ts and
+ * re-export from hooks/index.ts.
+ *
+ * Note: import path for supabase will need updating on restore.
+ */
 import { useState, useEffect } from 'react';
 import { supabase, type Dish, type DishWithRelations } from '../lib/supabase';
 

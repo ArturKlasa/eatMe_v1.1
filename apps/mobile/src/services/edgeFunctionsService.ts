@@ -96,20 +96,10 @@ export interface FeedResponse {
 }
 
 /**
- * Swipe request parameters
- */
-export interface SwipeRequest {
-  userId: string;
-  dishId: string;
-  action: 'left' | 'right' | 'super';
-  viewDuration?: number; // milliseconds
-  position?: number; // position in feed
-  sessionId?: string;
-}
-
-/**
  * Get personalized dish feed from server
  */
+// trackSwipe(), SwipeRequest, and generateSessionId() have been shelved.
+// See shelf/swipe-feature/services/swipeService.ts
 export async function getFeed(
   location: { lat: number; lng: number },
   dailyFilters: DailyFilters,
@@ -159,48 +149,4 @@ export async function getFeed(
   }
 
   return response.json();
-}
-
-/**
- * Track user swipe action
- */
-export async function trackSwipe(
-  userId: string,
-  dishId: string,
-  action: 'left' | 'right' | 'super',
-  viewDuration?: number,
-  position?: number,
-  sessionId?: string
-): Promise<{ success: boolean }> {
-  const request: SwipeRequest = {
-    userId,
-    dishId,
-    action,
-    viewDuration,
-    position,
-    sessionId,
-  };
-
-  const response = await fetch(`${EDGE_FUNCTIONS_URL}/swipe`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to track swipe');
-  }
-
-  return response.json();
-}
-
-/**
- * Generate unique session ID
- */
-export function generateSessionId(): string {
-  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }

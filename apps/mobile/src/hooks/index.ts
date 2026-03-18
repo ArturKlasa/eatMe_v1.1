@@ -3,6 +3,6 @@
  */
 
 export { useDish } from './useDish';
-export { useAllDishes } from './useAllDishes';
+// useAllDishes shelved — see shelf/swipe-feature/hooks/useAllDishes.ts
 export { useCountryDetection } from './useCountryDetection';
 export { useSwipeToClose } from './useSwipeToClose';

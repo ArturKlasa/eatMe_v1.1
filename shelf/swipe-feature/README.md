@@ -38,14 +38,18 @@ The swipe screen is EatMe's primary dish discovery interface — a Tinder-style 
 ```
 shelf/swipe-feature/
 ├── README.md                        ← this file
-└── screens/
-    ├── SwipeScreen.tsx              ← main screen component
-    └── SwipeScreen.styles.ts        ← styles
+├── screens/
+│   ├── SwipeScreen.tsx              ← main screen component
+│   └── SwipeScreen.styles.ts        ← styles
+├── services/
+│   └── swipeService.ts              ← trackSwipe(), SwipeRequest, generateSessionId() — shelved March 18, 2026
+└── hooks/
+    └── useAllDishes.ts              ← hook for fetching all dishes (swipe feed) — shelved March 18, 2026
 ```
 
 **Not shelved** (still in use by BasicMapScreen):
 
-- `apps/mobile/src/services/edgeFunctionsService.ts` — `getFeed()`, `trackSwipe()`, `ServerDish` type
+- `apps/mobile/src/services/edgeFunctionsService.ts` — `getFeed()`, `FeedRequest`, `FeedResponse`, `ServerDish` type
 
 ---
 
@@ -56,6 +60,22 @@ shelf/swipe-feature/
 ```bash
 cp shelf/swipe-feature/screens/SwipeScreen.tsx       apps/mobile/src/screens/SwipeScreen.tsx
 cp shelf/swipe-feature/screens/SwipeScreen.styles.ts apps/mobile/src/screens/SwipeScreen.styles.ts
+```
+
+Merge `trackSwipe()`, `SwipeRequest`, and `generateSessionId()` from
+`shelf/swipe-feature/services/swipeService.ts` back into
+`apps/mobile/src/services/edgeFunctionsService.ts`.
+
+Restore the `useAllDishes` hook:
+
+```bash
+cp shelf/swipe-feature/hooks/useAllDishes.ts apps/mobile/src/hooks/useAllDishes.ts
+```
+
+Then re-add the export in `apps/mobile/src/hooks/index.ts`:
+
+```typescript
+export { useAllDishes } from './useAllDishes';
 ```
 
 ### 2. Re-export from screens index

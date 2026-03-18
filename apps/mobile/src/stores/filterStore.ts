@@ -28,9 +28,6 @@ export interface DailyFilters {
   // Cuisine types selection (multiple choice)
   cuisineTypes: string[];
 
-  // Meal/dish selection (multiple choice)
-  meals: string[];
-
   // Diet preference (multi-select: vegetarian, vegan)
   dietPreference: {
     vegetarian: boolean;
@@ -57,9 +54,6 @@ export interface DailyFilters {
 
   // Spice level (single choice: no spicy, either way, i like spicy)
   spiceLevel: 'noSpicy' | 'eitherWay' | 'iLikeSpicy';
-
-  // Hunger level (single choice: on a diet, normal, starving)
-  hungerLevel: 'diet' | 'normal' | 'starving';
 
   // Calorie range (optional slider)
   calorieRange: {
@@ -174,13 +168,10 @@ interface FilterActions {
   setDailyPriceRange: (min: number, max: number) => void;
   toggleDailyCuisine: (cuisine: string) => void;
   setDailyCuisines: (cuisines: string[]) => void;
-  toggleDailyMeal: (meal: string) => void;
-  setDailyMeals: (meals: string[]) => void;
   setDietPreference: (key: keyof DailyFilters['dietPreference']) => void;
   toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => void;
   toggleMeatType: (meatType: keyof DailyFilters['meatTypes']) => void;
   setSpiceLevel: (level: DailyFilters['spiceLevel']) => void;
-  setHungerLevel: (level: DailyFilters['hungerLevel']) => void;
   setDailyCalorieRange: (min: number, max: number, enabled?: boolean) => void;
   setDailyMaxDistance: (distance: number) => void;
   toggleOpenNow: () => void;
@@ -248,7 +239,6 @@ export const defaultDailyFilters: DailyFilters = {
     max: 50,
   },
   cuisineTypes: [],
-  meals: [],
   dietPreference: {
     vegetarian: false,
     vegan: false,
@@ -268,7 +258,6 @@ export const defaultDailyFilters: DailyFilters = {
     other: false,
   },
   spiceLevel: 'eitherWay',
-  hungerLevel: 'normal',
   calorieRange: {
     min: 200,
     max: 800,
@@ -447,30 +436,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     get().saveFilters();
   },
 
-  toggleDailyMeal: (meal: string) => {
-    set(state => ({
-      daily: {
-        ...state.daily,
-        meals: state.daily.meals.includes(meal)
-          ? state.daily.meals.filter(m => m !== meal)
-          : [...state.daily.meals, meal],
-      },
-      activePreset: null,
-    }));
-    get().saveFilters();
-  },
-
-  setDailyMeals: (meals: string[]) => {
-    set(state => ({
-      daily: {
-        ...state.daily,
-        meals: meals,
-      },
-      activePreset: null,
-    }));
-    get().saveFilters();
-  },
-
   setDietPreference: (key: keyof DailyFilters['dietPreference']) => {
     set(state => ({
       daily: {
@@ -518,17 +483,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       daily: {
         ...state.daily,
         spiceLevel: level,
-      },
-      activePreset: null,
-    }));
-    get().saveFilters();
-  },
-
-  setHungerLevel: (level: DailyFilters['hungerLevel']) => {
-    set(state => ({
-      daily: {
-        ...state.daily,
-        hungerLevel: level,
       },
       activePreset: null,
     }));
@@ -944,11 +898,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       count++;
     }
 
-    // Check meals
-    if (state.daily.meals.length > 0) {
-      count++;
-    }
-
     // Check diet preference (any enabled)
     if (Object.values(state.daily.dietPreference).some(Boolean)) {
       count++;
@@ -962,11 +911,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check spice level (not 'eitherWay')
     if (state.daily.spiceLevel !== 'eitherWay') {
-      count++;
-    }
-
-    // Check hunger level (not 'normal')
-    if (state.daily.hungerLevel !== 'normal') {
       count++;
     }
 

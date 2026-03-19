@@ -1038,21 +1038,74 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 ---
 
+---
+
+## Phase 8 — Restaurant Menu View: Context-Aware Filter UX
+
+**Goal:** In the restaurant detail screen, grey out and reorder dishes that don't match the user's permanent hard filters, and highlight ingredients the user wants to avoid.
+
+**Prerequisites:** None — pure mobile frontend. Can be shipped at any time independently of Phases 5–7.
+
+**Risk:** Very low — no backend changes, no migrations, no schema changes.
+
+**Review reference:** `docs/todos/first-principles-review-data-model-filters-recommendations.md` Part 14
+
+### 8.1 New utility: `menuFilterUtils.ts`
+
+**Tasks:**
+
+- [ ] **Create `apps/mobile/src/utils/menuFilterUtils.ts`:**
+  - Export `ALLERGY_TO_DB` map (same as `userPreferencesService.ts` — or import from there)
+  - Export `classifyDish(dish, permanentFilters, ingredientsToAvoid)` →
+    `{ passesHardFilters: boolean, flaggedIngredientNames: string[] }`
+  - `passesHardFilters = false` when:
+    - `dietPreference === 'vegetarian'` AND dish lacks `vegetarian`/`vegan` dietary tag
+    - `dietPreference === 'vegan'` AND dish lacks `vegan` dietary tag
+    - Any active allergy maps to an allergen code present in `dish.allergens`
+    - Any active religious restriction tag is missing from `dish.dietary_tags`
+  - `flaggedIngredientNames`: display names of `ingredientsToAvoid` whose `canonicalIngredientId` appears in `dish.dish_ingredients[].ingredient_id`
+
+### 8.2 Update `RestaurantDetailScreen.tsx`
+
+**Tasks:**
+
+- [ ] **Add `dish_ingredients(ingredient_id)` to the dishes sub-select** in the Supabase restaurant query
+- [ ] **Read permanent filters** from `useFilterStore(state => state.permanent)` + `ingredientsToAvoid`
+- [ ] **In `renderMenuItem`:** call `classifyDish` and:
+  - If `!passesHardFilters`: wrap item in `opacity: 0.35`, append a `"Not for you"` pill (grey, small text)
+  - If `flaggedIngredientNames.length > 0`: append `⚠️ Contains: X, Y` warning line in amber
+- [ ] **Sort dishes within each category:** passing dishes first, greyed-out dishes last
+  - Sort is applied when rendering `category.dishes` — original data is not mutated
+
+### Phase 8 — Acceptance Criteria
+
+- [ ] A user with `dietPreference = vegetarian` sees non-vegetarian dishes greyed out and at the bottom of each menu category
+- [ ] A user with an active allergen sees dishes containing that allergen greyed out and at the bottom
+- [ ] A user with religious restrictions (e.g. `halal`) sees non-halal dishes greyed out
+- [ ] Dishes with avoided ingredients show an amber `⚠️ Contains: …` warning without being greyed out
+- [ ] All dishes are still visible and tappable — nothing is hidden
+- [ ] Feed behaviour is unchanged — hard filters in the feed still fully exclude non-matching dishes
+
+**Estimated effort:** 0.5–1 day
+
+---
+
 ## Summary
 
-| Phase | Name                        | Depends on | Effort    | Risk        |
-| ----- | --------------------------- | ---------- | --------- | ----------- |
-| 1     | Schema Cleanup              | —          | 4–6 days  | Low         |
-| 2     | Filter Pipeline Unification | Phase 1    | 5–7 days  | Medium      |
-| 3     | Option Groups               | Phase 1    | 8–12 days | Medium-high |
-| 4     | Embedding Foundation        | Phase 1    | 5–7 days  | Low-medium  |
-| 5     | Feed V2                     | Phase 2, 4 | 5–7 days  | Medium      |
-| 6     | Behaviour Profile Pipeline  | Phase 4, 5 | 4–5 days  | Low         |
-| 7     | Group Recommendations V2    | Phase 4, 6 | 3–4 days  | Low         |
+| Phase | Name                        | Depends on | Effort      | Risk        |
+| ----- | --------------------------- | ---------- | ----------- | ----------- |
+| 1     | Schema Cleanup              | —          | 4–6 days    | Low         |
+| 2     | Filter Pipeline Unification | Phase 1    | 5–7 days    | Medium      |
+| 3     | Option Groups               | Phase 1    | 8–12 days   | Medium-high |
+| 4     | Embedding Foundation        | Phase 1    | 5–7 days    | Low-medium  |
+| 5     | Feed V2                     | Phase 2, 4 | 5–7 days    | Medium      |
+| 6     | Behaviour Profile Pipeline  | Phase 4, 5 | 4–5 days    | Low         |
+| 7     | Group Recommendations V2    | Phase 4, 6 | 3–4 days    | Low         |
+| 8     | Menu View Filter UX         | —          | 0.5–1 day   | Very low    |
 
-**Total estimated effort:** 33–46 days
+**Total estimated effort:** 33.5–47 days
 
-**Parallelisation:** Phases 2 and 3 can run in parallel after Phase 1. Phases 4 can start as soon as Phase 1 is done. Phase 5 requires both 2 and 4. Phases 6 and 7 are sequential at the end.
+**Parallelisation:** Phases 2 and 3 can run in parallel after Phase 1. Phase 4 can start as soon as Phase 1 is done. Phase 5 requires both 2 and 4. Phases 6 and 7 are sequential at the end. **Phase 8 is fully independent and can be shipped at any time.**
 
 ```
 Phase 1 ─┬─→ Phase 2 ─────┐
@@ -1060,6 +1113,8 @@ Phase 1 ─┬─→ Phase 2 ─────┐
           └─→ Phase 4 ─────┼─→ Phase 5 ──→ Phase 6 ──→ Phase 7
                            │
               (2 + 4 done) ┘
+
+Phase 8 (independent — ship any time)
 ```
 
 **Critical path:** Phase 1 → Phase 4 → Phase 5 → Phase 6 → Phase 7 (20–27 days)

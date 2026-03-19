@@ -331,6 +331,25 @@ export const restaurantDetailStyles = StyleSheet.create({
     color: colors.darkTextMuted,
     lineHeight: 18,
   },
+  flaggedIngredientsWarning: {
+    fontSize: typography.size.sm,
+    color: '#D97706', // amber-600
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  notForYouPill: {
+    backgroundColor: '#3A3A3A',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  notForYouText: {
+    fontSize: 10,
+    color: '#888888',
+    fontWeight: '500' as const,
+  },
 
   // Address Modal
   addressModal: {

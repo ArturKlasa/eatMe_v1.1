@@ -2000,4 +2000,92 @@ The behaviour profile pipeline should be designed and included in the implementa
 
 ---
 
+## Part 14 — Restaurant Menu View: Context-Aware Filter Application
+
+**Added:** March 2026
+
+### 14.1 The Problem
+
+EatMe operates at dish level. A restaurant may serve both dishes that match a user's hard constraints and dishes that do not. For example:
+
+- A restaurant offers both vegetarian and non-vegetarian dishes.
+- A user with a permanent `dietPreference = vegetarian` filter opens that restaurant's menu.
+
+In the **feed**, hard filters exclude non-matching dishes entirely — the user never sees a non-vegetarian dish in the swipe deck. This is correct for discovery.
+
+In the **restaurant detail / menu view**, the user has explicitly chosen to open this restaurant. They deserve to see its full offering — but non-matching dishes should be clearly de-emphasised so the user isn't confused about what they can order.
+
+### 14.2 Design Decision: Grey-out + Reorder (not hide)
+
+**Decision:** In the restaurant menu view, dishes that fail the user's **permanent hard filters** are:
+
+1. Rendered at **reduced opacity** (0.35) with a small "Not for you" pill label.
+2. **Sorted to the end** of their menu category section, after all matching dishes.
+3. **Never hidden** — the user may still tap them to read details (e.g. to order for a companion).
+
+**Rationale:**
+- Hiding dishes would make it look like the restaurant has a smaller menu than it does.
+- The user consciously opened this restaurant — they have agency.
+- A companion at the table may not share the user's restrictions.
+- De-emphasising (not hiding) is the minimum-surprise approach.
+
+**Which hard filters apply to greying-out:**
+
+| Filter | Greyed out if... |
+|---|---|
+| `dietPreference = vegetarian` | dish lacks `vegetarian` or `vegan` dietary tag |
+| `dietPreference = vegan` | dish lacks `vegan` dietary tag |
+| `allergies` (any active) | dish's `allergens` array contains the active allergen code |
+| `religiousRestrictions` (any active) | dish's `dietary_tags` array is missing the required tag |
+
+**Soft filters (price, spice, cuisine) are NOT applied** — they only affect feed ranking, never menu view appearance.
+
+### 14.3 Ingredient Flagging in the Menu View
+
+For `ingredients_to_avoid` entries:
+
+- Dishes containing one or more of the user's avoided ingredients show a **warning line** beneath the dish name: `⚠️ Contains: Peanuts, Sesame`.
+- The dish is **NOT greyed out** and is **NOT moved** — this is a soft preference, not a hard constraint.
+- Matching is done against `dish_ingredients.canonical_ingredient_id`.
+- Display names come from the stored `IngredientToAvoid.displayName` in the filterStore (already pre-resolved at the time the user added the ingredient to their avoid list).
+
+**Why not grey out avoided-ingredient dishes?**
+The first-principles decision (Part 8 Q14) is that `ingredients_to_avoid` is always a soft warning. Users with true safety-critical intolerances should use `allergies` (which is a hard constraint, does apply greying). The distinction: allergies = medical safety, ingredients_to_avoid = personal preference.
+
+### 14.4 Data Requirements
+
+For this feature to work, the restaurant detail screen needs:
+
+1. **User's permanent hard filters** — already in `filterStore.permanent` (Zustand, available anywhere).
+2. **`dish.allergens`** — already included in the `*` select on `dishes`.
+3. **`dish.dietary_tags`** — already included in the `*` select on `dishes`.
+4. **`dish.dish_ingredients` with `ingredient_id`** — needs to be added to the existing Supabase query (currently not fetched).
+5. **`filterStore.permanent.ingredientsToAvoid`** — array of `{ canonicalIngredientId, displayName }` already in the filterStore.
+
+No new migrations, no new backend endpoints, no schema changes required.
+
+### 14.5 Allergen Code Mapping
+
+The filterStore `permanent.allergies` uses boolean keys (`soy`, `nuts`, etc.) which map to DB allergen codes via `ALLERGY_TO_DB` in `userPreferencesService.ts`. The menu view must apply the same mapping when comparing against `dish.allergens`.
+
+```
+filterStore key → DB allergen code
+  lactose       → 'lactose'
+  gluten        → 'gluten'
+  peanuts       → 'peanuts'
+  soy           → 'soybeans'
+  sesame        → 'sesame'
+  shellfish     → 'shellfish'
+  nuts          → 'tree_nuts'
+```
+
+### 14.6 Implementation Location
+
+- **Screen:** `apps/mobile/src/screens/RestaurantDetailScreen.tsx`
+- **New utility:** `apps/mobile/src/utils/menuFilterUtils.ts` — `classifyDish(dish, permanentFilters)` returns `{ passesHardFilters: boolean, flaggedIngredientNames: string[] }`
+- **No backend changes** required.
+- **No new Supabase query** — only add `dish_ingredients(ingredient_id)` to the existing `dishes(*)` select.
+
+---
+
 _This document should be treated as a living design artefact. All challenge questions in Part 8 have been answered. The next step is to produce a concrete implementation plan with phases, migrations, and task breakdowns._

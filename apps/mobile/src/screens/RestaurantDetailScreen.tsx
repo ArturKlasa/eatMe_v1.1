@@ -31,6 +31,8 @@ import { DishRatingBadge } from '../components/DishRatingBadge';
 import { getDishRatingsBatch, type DishRating } from '../services/dishRatingService';
 import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
 import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
+import { useFilterStore } from '../stores/filterStore';
+import { classifyDish, sortDishesByFilter } from '../utils/menuFilterUtils';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
@@ -41,6 +43,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const user = useAuthStore(state => state.user);
   const trackRestaurantView = useSessionStore(state => state.trackRestaurantView);
   const trackDishView = useSessionStore(state => state.trackDishView);
+  const permanentFilters = useFilterStore(state => state.permanent);
+  const ingredientsToAvoid = useFilterStore(state => state.permanent.ingredientsToAvoid);
   const [restaurant, setRestaurant] = useState<RestaurantWithMenus | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'food' | 'hours'>('food');
@@ -82,6 +86,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                   *,
                   dishes (
                     *,
+                    dish_ingredients (ingredient_id),
                     option_groups (
                       *,
                       options (*)
@@ -342,10 +347,16 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         priceLabel = `$${item.price.toFixed(2)}`;
     }
 
+    const { passesHardFilters, flaggedIngredientNames } = classifyDish(
+      item,
+      permanentFilters,
+      ingredientsToAvoid
+    );
+
     return (
       <TouchableOpacity
         key={item.id}
-        style={styles.menuItem}
+        style={[styles.menuItem, !passesHardFilters && { opacity: 0.35 }]}
         onPress={() => handleDishPress(item)}
         activeOpacity={0.7}
       >
@@ -358,6 +369,11 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 !item.dietary_tags?.includes('vegan') &&
                 ' 🥬'}
             </Text>
+            {!passesHardFilters && (
+              <View style={styles.notForYouPill}>
+                <Text style={styles.notForYouText}>Not for you</Text>
+              </View>
+            )}
             {rating && (
               <DishRatingBadge
                 likePercentage={rating.likePercentage}
@@ -374,8 +390,25 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         {item.ingredients_visibility === 'menu' && item.ingredients?.length > 0 && (
           <Text style={styles.menuItemIngredients}>{item.ingredients.join(', ')}</Text>
         )}
+        {flaggedIngredientNames.length > 0 && (
+          <Text style={styles.flaggedIngredientsWarning}>
+            ⚠️ Contains: {flaggedIngredientNames.join(', ')}
+          </Text>
+        )}
       </TouchableOpacity>
     );
+  };
+
+  /**
+   * Returns dishes sorted so those passing hard filters appear first.
+   * Preserves the restaurant-defined order within each group.
+   */
+  const sortedDishes = (dishes: any[]): any[] => {
+    const classified = dishes.map(d => ({
+      ...d,
+      passesHardFilters: classifyDish(d, permanentFilters, ingredientsToAvoid).passesHardFilters,
+    }));
+    return sortDishesByFilter(classified);
   };
 
   return (
@@ -447,7 +480,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               {menu.menu_categories?.map((category: any) => (
                 <View key={category.id} style={styles.menuCategory}>
                   <Text style={styles.categoryName}>{category.name}</Text>
-                  {category.dishes?.map(renderMenuItem)}
+                  {sortedDishes(category.dishes ?? []).map(renderMenuItem)}
                 </View>
               ))}
             </View>

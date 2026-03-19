@@ -81,7 +81,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   - Check: `apps/mobile/src/services/ingredientService.ts`
   - Check: all Postgres triggers and functions in migration files
   - Check: `infra/supabase/migrations/database_schema.sql`
-- [ ] **Verify data parity:** Confirm every row in `ingredients_master` has a corresponding `canonical_ingredients` entry
+- [x] **Verify data parity:** Confirm every row in `ingredients_master` has a corresponding `canonical_ingredients` entry
 
 > ⚠️ **Blocking dependency — fix trigger functions before dropping tables:**  
 > `calculate_dish_allergens` (migration 011a lines 97–113) and `calculate_dish_dietary_tags` (lines 120–153) both join `dish_ingredients.ingredient_id` against `ingredient_allergens.ingredient_id` and `ingredient_dietary_tags.ingredient_id` respectively — which reference `ingredients_master.id`, **not** `canonical_ingredients.id`. Since `dish_ingredients` links to `canonical_ingredients`, this join produces no rows for any dish. `dishes.allergens` and `dishes.dietary_tags` are currently empty for all dishes populated through the canonical system. Dropping `ingredients_master` first would either fail (FK violation) or silently leave the functions broken. **Both functions must be rewritten to use the canonical tables before the DROP.**
@@ -180,7 +180,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   | `apps/web-portal/lib/export.ts`                       | 44, 94                                       | Remove `ingredients` field from JSON/CSV export; replace with `selectedIngredients` display names if needed                 |
   | `apps/web-portal/lib/validation.ts`                   | 64: `ingredients: z.array(z.string())`       | Remove from `dishSchema`                                                                                                    |
 
-- [ ] **Backfill check:** Verify no dish has data in `ingredients` TEXT[] that is NOT also represented in `dish_ingredients`. SQL:
+- [x] **Backfill check:** Verify no dish has data in `ingredients` TEXT[] that is NOT also represented in `dish_ingredients`. SQL:
   ```sql
   SELECT d.id, d.name, d.ingredients
   FROM dishes d
@@ -255,7 +255,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Verify allergen codes in the `allergens` table** before running the migration:
+- [x] **Verify allergen codes in the `allergens` table** before running the migration:
 
   ```sql
   SELECT code FROM allergens ORDER BY code;
@@ -300,7 +300,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   - Change `PermanentFilters.allergies` from `{ lactose: boolean, ... }` to `string[]`
   - Update `loadPermanentFilters` / `savePermanentFilters` to read/write TEXT[] directly
   - Update the allergen UI (checkbox list → reads from `allergens` reference table instead of hardcoded keys)
-  _(Note: in-memory boolean-map interface kept unchanged; conversion to TEXT[] handled in `userPreferencesService.ts` so no UI code breaks)_
+    _(Note: in-memory boolean-map interface kept unchanged; conversion to TEXT[] handled in `userPreferencesService.ts` so no UI code breaks)_
 - [x] **Update `edgeFunctionsService.ts`:** Simplify — pass `permanentFilters.allergies` directly (already an array of codes) _(allergen code mapping `soy→soybeans`, `nuts→tree_nuts` added)_
 - [x] **Update `userPreferencesService.ts`:** Update sync functions to handle TEXT[] format
 - [x] **Update feed Edge Function:** Allergen filter becomes `dishes.allergens && $allergies` (array overlap) _(N/A — Edge Function already does in-memory comparison; `edgeFunctionsService.ts` fix ensures correct codes are sent)_
@@ -386,7 +386,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 ### Phase 1 — Acceptance Criteria
 
 - [x] `calculate_dish_allergens` and `calculate_dish_dietary_tags` are rewritten to use `canonical_ingredient_allergens` / `canonical_ingredient_dietary_tags`
-- [ ] Backfill UPDATE confirms that `dishes.allergens` and `dishes.dietary_tags` are now populated for all dishes with canonical ingredients _(run migration 047a in Supabase SQL Editor to confirm)_
+- [x] Backfill UPDATE confirms that `dishes.allergens` and `dishes.dietary_tags` are now populated for all dishes with canonical ingredients _(run migration 047a in Supabase SQL Editor to confirm)_
 - [x] `ingredients_master`, `ingredient_allergens`, `ingredient_dietary_tags` tables are dropped
 - [x] `dishes.ingredients` TEXT[] column is dropped; no source file references it (checked: `restaurantService.ts`, `DishFormDialog.tsx`, `export.ts`, `validation.ts`)
 - [x] `dishes.spice_level` is TEXT with CHECK ('none', 'mild', 'hot'); all web portal (`constants.ts`, `DishFormDialog.tsx`, `DishCard.tsx`, `validation.ts`, `restaurantService.ts`, `menu-scan.ts`) + Edge Functions (`feed`, `nearby-restaurants`) + mobile types use text values

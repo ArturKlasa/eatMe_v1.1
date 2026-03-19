@@ -12,6 +12,7 @@
 import { supabase } from '../lib/supabase';
 import { DishRatingInput, RestaurantFeedbackInput, PointsEarned } from '../types/rating';
 import { debugLog } from '../config/environment';
+import { recordInteraction } from './interactionService';
 
 /**
  * Upload a photo to Supabase Storage
@@ -139,6 +140,16 @@ export async function saveDishOpinions(
 
       if (opinionError) {
         console.error('[RatingService] Error saving dish opinion:', opinionError);
+      } else {
+        // Record interaction for preference vector computation.
+        // 'liked' and 'okay' contribute positive signal.
+        // 'disliked' is intentionally NOT recorded here — disliking a dish at
+        // one restaurant doesn't mean the user dislikes that dish category.
+        // Feed exclusion of disliked dishes is handled separately via
+        // user_dish_interactions rows written by the swipe/feed layer.
+        if (rating.opinion === 'liked' || rating.opinion === 'okay') {
+          recordInteraction(userId, rating.dishId, 'liked');
+        }
       }
     }
 

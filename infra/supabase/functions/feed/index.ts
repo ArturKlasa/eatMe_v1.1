@@ -105,7 +105,7 @@ function rankCandidates(
   filters: FeedRequest['filters'],
   radiusKm: number,
   userLikedCuisines: string[],
-  userPrefs: { spiceTolerance?: string | null; favoriteCuisines?: string[] },
+  userPrefs: { spiceTolerance?: string | null; favoriteCuisines?: string[]; preferredPriceRange?: [number, number] | null },
   hasPreferenceVector: boolean
 ): Candidate[] {
   const SLIDER_MIN = 10;
@@ -214,6 +214,16 @@ function rankCandidates(
       if (userLikedCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.10;
     }
 
+    // Learned price range soft boost (+0.06 max) — from user_behavior_profiles.preferred_price_range
+    if (userPrefs.preferredPriceRange && d.price != null) {
+      const [pMin, pMax] = userPrefs.preferredPriceRange;
+      if (d.price >= pMin && d.price <= pMax) {
+        const mid = (pMin + pMax) / 2;
+        const range = Math.max(pMax - pMin, 1);
+        score += 0.06 * Math.max(0, 1 - Math.abs(d.price - mid) / range);
+      }
+    }
+
     return { ...d, score: Math.max(0, score) };
   });
 }
@@ -282,6 +292,7 @@ serve(async (req: Request) => {
     let dbSpiceTolerance: string | null = null;
     let dbFavoriteCuisines: string[] = [];
     let dbReligiousRestrictions: string[] = [];
+    let dbPreferredPriceRange: [number, number] | null = null;
 
     if (userId && userId !== 'anonymous') {
       const [interactionsRes, prefsRes, behaviorRes] = await Promise.all([
@@ -297,7 +308,7 @@ serve(async (req: Request) => {
           .maybeSingle(),
         supabase
           .from('user_behavior_profiles')
-          .select('preference_vector')
+          .select('preference_vector, preferred_cuisines, preferred_price_range')
           .eq('user_id', userId)
           .maybeSingle(),
       ]);
@@ -326,12 +337,21 @@ serve(async (req: Request) => {
         preferenceVector = typeof raw === 'string' ? JSON.parse(raw) : raw;
       }
 
+      if (Array.isArray(behaviorRes.data?.preferred_cuisines) && behaviorRes.data.preferred_cuisines.length > 0) {
+        dbFavoriteCuisines = [...new Set([...dbFavoriteCuisines, ...behaviorRes.data.preferred_cuisines])];
+      }
+
+      if (Array.isArray(behaviorRes.data?.preferred_price_range) && behaviorRes.data.preferred_price_range.length === 2) {
+        dbPreferredPriceRange = behaviorRes.data.preferred_price_range as [number, number];
+      }
+
       console.log(`[Feed] User context: ${userDislikes.length} dislikes, vector=${preferenceVector !== null}`);
     }
 
     const spiceTolerance    = filters.spiceTolerance ?? dbSpiceTolerance;
     const favoriteCuisines  = filters.favoriteCuisines?.length ? filters.favoriteCuisines : dbFavoriteCuisines;
     const religiousRestrictions = filters.religiousRestrictions?.length ? filters.religiousRestrictions : dbReligiousRestrictions;
+    const preferredPriceRange = dbPreferredPriceRange;
     const hardDietTag = filters.dietPreference && filters.dietPreference !== 'all' ? filters.dietPreference : null;
 
     // ── Stage 1: generate_candidates ─────────────────────────────────────────
@@ -422,7 +442,7 @@ serve(async (req: Request) => {
       filters,
       radius,
       userLikedCuisines,
-      { spiceTolerance, favoriteCuisines },
+      { spiceTolerance, favoriteCuisines, preferredPriceRange },
       preferenceVector !== null
     );
 

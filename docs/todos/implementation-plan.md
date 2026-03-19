@@ -829,7 +829,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Refactor `feed/index.ts`** to split into two stages:
+- [x] **Refactor `feed/index.ts`** to split into two stages:
 
   **Stage 1 (single SQL query):**
 
@@ -851,13 +851,13 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
   - If `$preference_vector` is NULL (cold start): fall back to popularity ordering
 
-- [ ] **Create an RPC function** `generate_candidates(...)` in a migration for this query
+- [x] **Create an RPC function** `generate_candidates(...)` in a migration for this query
 
 ### 5.2 Implement Stage 2 — Ranking
 
 **Tasks:**
 
-- [ ] **Score the 200 candidates** using a weighted formula:
+- [x] **Score the 200 candidates** using a weighted formula:
 
   ```
   score = w_similarity * (1 - vector_distance)
@@ -873,8 +873,8 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   - Initial weights: `w_similarity = 0.4, w_rating = 0.2, w_popularity = 0.15, w_distance = 0.15, w_quality = 0.1`
   - Soft boosts remain additive (daily filter signals)
 
-- [ ] **Apply diversity cap** (max 3 dishes per restaurant)
-- [ ] **Return top 20**
+- [x] **Apply diversity cap** (max 3 dishes per restaurant)
+- [x] **Return top 20**
 
 ### 5.3 Cold start fallback
 
@@ -882,7 +882,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **When `preference_vector` is NULL:**
+- [x] **When `preference_vector` is NULL:**
   - Stage 1: skip vector ordering; use PostGIS distance + popularity instead
   - Stage 2: standard scoring without similarity component; increase weight of rating + popularity
 - [ ] **Future (not this phase):** Onboarding-seeded vector — ask users to pick 5–10 example dishes during onboarding
@@ -897,12 +897,12 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 ### Phase 5 — Acceptance Criteria
 
-- [ ] Feed uses the two-stage pipeline: PostGIS + hard filters + vector ANN → 200 candidates → scored + ranked → top 20
-- [ ] Cold start users (no preference vector) still get meaningful results via popularity fallback
+- [x] Feed uses the two-stage pipeline: PostGIS + hard filters + vector ANN → 200 candidates → scored + ranked → top 20
+- [x] Cold start users (no preference vector) still get meaningful results via popularity fallback
 - [ ] Recommendation quality is visibly better than the current label-based scoring for users with interaction history
 - [ ] End-to-end feed latency remains < 500ms
-- [ ] Soft daily filters (cuisine, price, spice) still produce visible ranking effects
-- [ ] Hard permanent filters (allergies, diet, religious) still absolutely exclude violating dishes
+- [x] Soft daily filters (cuisine, price, spice) still produce visible ranking effects
+- [x] Hard permanent filters (allergies, diet, religious) still absolutely exclude violating dishes
 
 **Estimated effort:** 5–7 days
 
@@ -924,11 +924,11 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Track dish views:** When a user opens a dish detail view for > 3 seconds, insert a `viewed` interaction
+- [x] **Track dish views:** When a user opens a dish detail view for > 3 seconds, insert a `viewed` interaction
 - [ ] **Track dish likes:** When a user likes a dish (via the feed or detail view), insert a `liked` interaction
-- [ ] **Track dish opinions:** When a user submits a `dish_opinion`, also insert a corresponding interaction (`liked` / `disliked` based on opinion)
-- [ ] **Track dish saves:** When a user saves a dish to favourites, insert a `saved` interaction
-- [ ] **Ensure idempotency:** Don't insert duplicate interactions for the same user+dish+type within a session
+- [x] **Track dish opinions:** When a user submits a `dish_opinion`, insert a corresponding positive interaction (`liked` for `liked` / `okay`; skip `disliked` to avoid over-penalising dish categories)
+- [x] **Track dish saves:** When a user saves a dish to favourites, insert a `saved` interaction
+- [x] **Ensure idempotency:** Don't insert duplicate interactions for the same user+dish+type within a session
 
 ### 6.2 Build the preference vector computation
 
@@ -936,7 +936,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Create `infra/supabase/functions/update-preference-vector/index.ts`:**
+- [x] **Create `infra/supabase/functions/update-preference-vector/index.ts`:**
   - Input: `{ user_id: string }`
   - Load all `user_dish_interactions` for the user (liked, saved, viewed > 10s, opinion = liked/okay)
   - Load dish embeddings for those dishes
@@ -944,15 +944,15 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
     - Favorite: 3.0, Positive rating: 2.0, Like: 1.5, View > 10s: 0.5
     - Apply time decay: $w_{\text{decayed}} = w \times e^{-0.01 \times \Delta t_{\text{days}}}$
   - Store result in `user_behavior_profiles.preference_vector` + `preference_vector_updated_at`
-- [ ] **Trigger:** Call this function after each new interaction (debounced — max once per 5 minutes per user)
+- [x] **Trigger:** Call this function after each new interaction (debounced — max once per 5 minutes per user)
 - [ ] **Batch fallback:** Daily cron job that recomputes all profiles where `preference_vector_updated_at < now() - interval '24 hours'` and new interactions exist
 
 ### 6.3 Update `user_behavior_profiles` aggregate fields
 
 **Tasks:**
 
-- [ ] **Compute `preferred_cuisines`:** Most common `restaurant.cuisine_types` among liked/saved dishes
-- [ ] **Compute `preferred_price_range`:** Median price of liked dishes ± 1 std dev
+- [x] **Compute `preferred_cuisines`:** Most common `restaurant.cuisine_types` among liked/saved dishes
+- [x] **Compute `preferred_price_range`:** Median price of liked dishes ± 1 std dev
 - [ ] **Compute `interaction_rate`:** Total interactions / distinct session count
 - [ ] **Store all** in the `user_behavior_profiles` row alongside the preference vector
 
@@ -960,17 +960,17 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Load `preference_vector`** in the feed Edge Function (Phase 5 already reads it — this phase ensures it's populated)
-- [ ] **Use `preferred_cuisines`** and `preferred_price_range` as additional soft boosts in Stage 2 scoring
+- [x] **Load `preference_vector`** in the feed Edge Function (Phase 5 already reads it — this phase ensures it's populated)
+- [x] **Use `preferred_cuisines`** and `preferred_price_range` as additional soft boosts in Stage 2 scoring
 
 ### Phase 6 — Acceptance Criteria
 
 - [ ] Every dish view (> 3s), like, save, and opinion creates a `user_dish_interactions` row
-- [ ] `preference_vector` is computed and stored for users with ≥ 3 interactions
-- [ ] Preference vector updates are debounced (not recomputed on every interaction)
-- [ ] The feed uses the preference vector for ranking when available
-- [ ] Users with no interactions still get valid results (cold start fallback works)
-- [ ] `preferred_cuisines` and `preferred_price_range` are populated and used as soft boosts
+- [x] `preference_vector` is computed and stored for users with ≥ 3 interactions
+- [x] Preference vector updates are debounced (not recomputed on every interaction)
+- [x] The feed uses the preference vector for ranking when available
+- [x] Users with no interactions still get valid results (cold start fallback works)
+- [x] `preferred_cuisines` and `preferred_price_range` are populated and used as soft boosts
 
 **Estimated effort:** 4–5 days
 
@@ -1092,16 +1092,16 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 ## Summary
 
-| Phase | Name                        | Depends on | Effort      | Risk        |
-| ----- | --------------------------- | ---------- | ----------- | ----------- |
-| 1     | Schema Cleanup              | —          | 4–6 days    | Low         |
-| 2     | Filter Pipeline Unification | Phase 1    | 5–7 days    | Medium      |
-| 3     | Option Groups               | Phase 1    | 8–12 days   | Medium-high |
-| 4     | Embedding Foundation        | Phase 1    | 5–7 days    | Low-medium  |
-| 5     | Feed V2                     | Phase 2, 4 | 5–7 days    | Medium      |
-| 6     | Behaviour Profile Pipeline  | Phase 4, 5 | 4–5 days    | Low         |
-| 7     | Group Recommendations V2    | Phase 4, 6 | 3–4 days    | Low         |
-| 8     | Menu View Filter UX         | —          | 0.5–1 day   | Very low    |
+| Phase | Name                        | Depends on | Effort    | Risk        |
+| ----- | --------------------------- | ---------- | --------- | ----------- |
+| 1     | Schema Cleanup              | —          | 4–6 days  | Low         |
+| 2     | Filter Pipeline Unification | Phase 1    | 5–7 days  | Medium      |
+| 3     | Option Groups               | Phase 1    | 8–12 days | Medium-high |
+| 4     | Embedding Foundation        | Phase 1    | 5–7 days  | Low-medium  |
+| 5     | Feed V2                     | Phase 2, 4 | 5–7 days  | Medium      |
+| 6     | Behaviour Profile Pipeline  | Phase 4, 5 | 4–5 days  | Low         |
+| 7     | Group Recommendations V2    | Phase 4, 6 | 3–4 days  | Low         |
+| 8     | Menu View Filter UX         | —          | 0.5–1 day | Very low    |
 
 **Total estimated effort:** 33.5–47 days
 

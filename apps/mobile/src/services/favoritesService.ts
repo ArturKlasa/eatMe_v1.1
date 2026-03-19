@@ -5,6 +5,7 @@
 
 import { supabase as _supabase } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
+import { recordInteraction } from './interactionService';
 // favorites table is not yet in the generated DB types — use untyped client
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
@@ -147,6 +148,10 @@ export async function toggleFavorite(
     } else {
       const addResult = await addToFavorites(userId, subjectType, subjectId);
       if (!addResult.ok && addResult.error !== 'Already in favorites') return addResult;
+      // Record 'saved' interaction for dish favourites only (not restaurants)
+      if (subjectType === 'dish') {
+        recordInteraction(userId, subjectId, 'saved');
+      }
       return ok(true);
     }
   } catch (e) {

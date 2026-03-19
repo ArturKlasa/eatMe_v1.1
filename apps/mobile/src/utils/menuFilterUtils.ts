@@ -61,9 +61,7 @@ export function classifyDish(
 ): DishClassification {
   const allergens: string[] = dish.allergens ?? [];
   const dietaryTags: string[] = dish.dietary_tags ?? [];
-  const dishIngredientIds = new Set(
-    (dish.dish_ingredients ?? []).map(di => di.ingredient_id)
-  );
+  const dishIngredientIds = new Set((dish.dish_ingredients ?? []).map(di => di.ingredient_id));
 
   // ── Hard filter checks ───────────────────────────────────────────────────
 

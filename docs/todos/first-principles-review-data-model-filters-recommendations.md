@@ -2024,6 +2024,7 @@ In the **restaurant detail / menu view**, the user has explicitly chosen to open
 3. **Never hidden** — the user may still tap them to read details (e.g. to order for a companion).
 
 **Rationale:**
+
 - Hiding dishes would make it look like the restaurant has a smaller menu than it does.
 - The user consciously opened this restaurant — they have agency.
 - A companion at the table may not share the user's restrictions.
@@ -2031,12 +2032,12 @@ In the **restaurant detail / menu view**, the user has explicitly chosen to open
 
 **Which hard filters apply to greying-out:**
 
-| Filter | Greyed out if... |
-|---|---|
-| `dietPreference = vegetarian` | dish lacks `vegetarian` or `vegan` dietary tag |
-| `dietPreference = vegan` | dish lacks `vegan` dietary tag |
-| `allergies` (any active) | dish's `allergens` array contains the active allergen code |
-| `religiousRestrictions` (any active) | dish's `dietary_tags` array is missing the required tag |
+| Filter                               | Greyed out if...                                           |
+| ------------------------------------ | ---------------------------------------------------------- |
+| `dietPreference = vegetarian`        | dish lacks `vegetarian` or `vegan` dietary tag             |
+| `dietPreference = vegan`             | dish lacks `vegan` dietary tag                             |
+| `allergies` (any active)             | dish's `allergens` array contains the active allergen code |
+| `religiousRestrictions` (any active) | dish's `dietary_tags` array is missing the required tag    |
 
 **Soft filters (price, spice, cuisine) are NOT applied** — they only affect feed ranking, never menu view appearance.
 

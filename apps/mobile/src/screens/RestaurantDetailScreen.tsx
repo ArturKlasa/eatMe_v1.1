@@ -33,6 +33,7 @@ import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
 import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
 import { useFilterStore } from '../stores/filterStore';
 import { classifyDish, sortDishesByFilter } from '../utils/menuFilterUtils';
+import { recordInteraction } from '../services/interactionService';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
 
@@ -260,6 +261,16 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         break;
     }
   };
+
+  // Record 'viewed' interaction after the dish detail has been open for 3+ seconds.
+  // Timer is cleared if the user dismisses before 3s.
+  useEffect(() => {
+    if (!selectedDish || !user) return;
+    const timer = setTimeout(() => {
+      recordInteraction(user.id, selectedDish.id, 'viewed');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [selectedDish?.id, user?.id]);
 
   const handleDishPress = async (dish: any) => {
     setSelectedDish(dish);

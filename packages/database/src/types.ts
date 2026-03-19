@@ -1419,7 +1419,6 @@ export type Database = {
           default_max_distance: number | null;
           diet_preference: string | null;
           diet_types: Json | null;
-          dining_occasions: Json | null;
           exclude: Json | null;
           favorite_cuisines: Json | null;
           favorite_dishes: Json | null;
@@ -1439,7 +1438,6 @@ export type Database = {
           default_max_distance?: number | null;
           diet_preference?: string | null;
           diet_types?: Json | null;
-          dining_occasions?: Json | null;
           exclude?: Json | null;
           favorite_cuisines?: Json | null;
           favorite_dishes?: Json | null;
@@ -1459,7 +1457,6 @@ export type Database = {
           default_max_distance?: number | null;
           diet_preference?: string | null;
           diet_types?: Json | null;
-          dining_occasions?: Json | null;
           exclude?: Json | null;
           favorite_cuisines?: Json | null;
           favorite_dishes?: Json | null;

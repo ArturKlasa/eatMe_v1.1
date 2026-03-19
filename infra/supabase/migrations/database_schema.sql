@@ -400,7 +400,6 @@ CREATE TABLE public.user_preferences (
   spice_tolerance text DEFAULT 'none'::text CHECK (spice_tolerance = ANY (ARRAY['none'::text, 'mild'::text, 'hot'::text])),
   service_preferences jsonb DEFAULT '{"dine_in": true, "takeout": true, "delivery": true}'::jsonb,
   meal_times jsonb DEFAULT '[]'::jsonb,
-  dining_occasions jsonb DEFAULT '[]'::jsonb,
   onboarding_completed boolean DEFAULT false,
   onboarding_completed_at timestamp with time zone,
   ingredients_to_avoid jsonb NOT NULL DEFAULT '[]'::jsonb,

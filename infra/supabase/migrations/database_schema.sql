@@ -1,31 +1,5 @@
--- =============================================================================
--- EATME DATABASE SCHEMA — REFERENCE SNAPSHOT
--- =============================================================================
--- Purpose  : Ground-truth reference for the live Supabase database.
---            Use this file to understand the actual schema instead of reading
---            the individual migrations (many are duplicated/superseded).
--- Usage    : Read-only. Do NOT run this file. Apply changes via numbered
---            migration files in this directory.
--- Updated  : 2026-03-05
--- WARNING  : Table order and constraints may not be valid for direct execution.
---
--- KEY RELATIONSHIPS (simplified)
--- --------------------------------
--- restaurants
---   └─ menus              (restaurant_id FK)
---       └─ menu_categories  (menu_id FK, ON DELETE CASCADE from menus)
---           └─ dishes       (menu_category_id FK, NO CASCADE — delete manually)
---
--- dishes.menu_category_id  → menu_categories.id   (nullable, NO ON DELETE CASCADE)
--- dishes.restaurant_id     → restaurants.id       (ON DELETE CASCADE)
--- dishes.dish_category_id  → dish_categories.id   (ON DELETE SET NULL)
---
--- restaurants.location is JSONB { lat, lng } — NOT a PostGIS POINT column.
--- A computed column location_point (geography) is derived from it automatically.
---
--- user_preferences stores mobile consumer dietary settings.
--- users mirrors auth.users with extra profile fields.
--- =============================================================================
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.admin_audit_log (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -164,7 +138,7 @@ CREATE TABLE public.dishes (
   allergens ARRAY DEFAULT ARRAY[]::text[],
   ingredients ARRAY DEFAULT ARRAY[]::text[],
   calories integer,
-  spice_level smallint CHECK (spice_level >= 0 AND spice_level <= 4),
+  spice_level smallint CHECK (spice_level IS NULL OR (spice_level = ANY (ARRAY[0, 1, 3]))),
   image_url text,
   is_available boolean DEFAULT true,
   dish_category_id uuid,
@@ -344,7 +318,6 @@ CREATE TABLE public.restaurants (
   dine_in_available boolean DEFAULT true,
   accepts_reservations boolean DEFAULT false,
   service_speed text CHECK (service_speed = ANY (ARRAY['fast-food'::text, 'regular'::text])),
-  payment_methods text CHECK (payment_methods = ANY (ARRAY['cash_only'::text, 'card_only'::text, 'cash_and_card'::text])),
   rating numeric DEFAULT 0.00,
   image_url text,
   description text,
@@ -357,6 +330,7 @@ CREATE TABLE public.restaurants (
   location_point USER-DEFINED DEFAULT (st_setsrid(st_makepoint(((location ->> 'lng'::text))::double precision, ((location ->> 'lat'::text))::double precision), 4326))::geography,
   neighbourhood text,
   state text,
+  payment_methods text CHECK (payment_methods = ANY (ARRAY['cash_only'::text, 'card_only'::text, 'cash_and_card'::text])),
   CONSTRAINT restaurants_pkey PRIMARY KEY (id),
   CONSTRAINT restaurants_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id),
   CONSTRAINT restaurants_suspended_by_fkey FOREIGN KEY (suspended_by) REFERENCES auth.users(id)
@@ -449,12 +423,13 @@ CREATE TABLE public.user_preferences (
   protein_preferences jsonb DEFAULT '[]'::jsonb,
   favorite_cuisines jsonb DEFAULT '[]'::jsonb,
   favorite_dishes jsonb DEFAULT '[]'::jsonb,
-  spice_tolerance text DEFAULT 'medium'::text CHECK (spice_tolerance = ANY (ARRAY['none'::text, 'mild'::text, 'medium'::text, 'spicy'::text, 'very_spicy'::text])),
+  spice_tolerance text DEFAULT 'none'::text CHECK (spice_tolerance = ANY (ARRAY['none'::text, 'mild'::text, 'hot'::text])),
   service_preferences jsonb DEFAULT '{"dine_in": true, "takeout": true, "delivery": true}'::jsonb,
   meal_times jsonb DEFAULT '[]'::jsonb,
   dining_occasions jsonb DEFAULT '[]'::jsonb,
   onboarding_completed boolean DEFAULT false,
   onboarding_completed_at timestamp with time zone,
+  ingredients_to_avoid jsonb NOT NULL DEFAULT '[]'::jsonb,
   CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

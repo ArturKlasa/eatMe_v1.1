@@ -13,22 +13,29 @@
 -- Codes in the resulting TEXT[] match the allergens.code column (all lowercase),
 -- so dishes.allergens && user_preferences.allergies array-overlap works correctly.
 
-ALTER TABLE user_preferences
-  ALTER COLUMN allergies TYPE TEXT[]
-    USING (
-      SELECT COALESCE(
-        array_agg(
-          CASE key
-            WHEN 'soy'  THEN 'soybeans'   -- JSONB key differs from allergens.code
-            WHEN 'nuts' THEN 'tree_nuts'  -- JSONB key differs from allergens.code
-            ELSE key                      -- gluten, sesame, lactose, peanuts, shellfish match
-          END
-        ),
-        '{}'::TEXT[]
-      )
-      FROM jsonb_each_text(COALESCE(allergies, '{}'::jsonb))
-      WHERE value = 'true'
-    );
+-- PostgreSQL does not allow subqueries in ALTER COLUMN ... USING.
+-- Pattern: add new TEXT[] column → populate via UPDATE → drop old JSONB → rename.
 
-ALTER TABLE user_preferences
-  ALTER COLUMN allergies SET DEFAULT '{}';
+-- Step 1: Add the replacement column.
+ALTER TABLE user_preferences ADD COLUMN allergies_new TEXT[] DEFAULT '{}';
+
+-- Step 2: Populate with active allergen codes, applying the key→code mapping.
+UPDATE user_preferences
+SET allergies_new = (
+  SELECT COALESCE(
+    array_agg(
+      CASE key
+        WHEN 'soy'  THEN 'soybeans'   -- filterStore key differs from allergens.code
+        WHEN 'nuts' THEN 'tree_nuts'  -- filterStore key differs from allergens.code
+        ELSE key                      -- gluten, sesame, lactose, peanuts, shellfish match
+      END
+    ),
+    '{}'::TEXT[]
+  )
+  FROM jsonb_each_text(COALESCE(allergies, '{}'::jsonb))
+  WHERE value = 'true'
+);
+
+-- Step 3: Swap columns.
+ALTER TABLE user_preferences DROP COLUMN allergies;
+ALTER TABLE user_preferences RENAME COLUMN allergies_new TO allergies;

@@ -74,7 +74,7 @@ export async function getRestaurantSummary(ownerId: string): Promise<DashboardRe
 export async function getRestaurantFull(ownerId: string): Promise<FormProgress | null> {
   const { data: restaurant, error } = await supabase
     .from('restaurants')
-    .select('*, menus(*, menu_categories(*, dishes(*)))')
+    .select('*, menus(*, menu_categories(*, dishes(*, option_groups(*, options(*)))))')
     .eq('owner_id', ownerId)
     .maybeSingle();
 
@@ -115,7 +115,22 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
       is_active: menu.is_active ?? true,
       display_order: menu.display_order ?? 0,
       // Flatten dishes from menu_categories onto the menu (portal UI has no category level)
-      dishes: (menu.menu_categories ?? []).flatMap((cat: any) => cat.dishes ?? []),
+      dishes: (menu.menu_categories ?? []).flatMap((cat: any) =>
+        (cat.dishes ?? []).map((d: any) => ({
+          ...d,
+          photo_url: d.image_url,
+          dish_kind: d.dish_kind ?? 'standard',
+          display_price_prefix: d.display_price_prefix ?? 'exact',
+          option_groups: (d.option_groups ?? [])
+            .sort((a: any, b: any) => a.display_order - b.display_order)
+            .map((g: any) => ({
+              ...g,
+              options: (g.options ?? []).sort(
+                (a: any, b: any) => a.display_order - b.display_order
+              ),
+            })),
+        }))
+      ),
     })),
     dishes: (restaurant.menus ?? []).flatMap((m: any) =>
       (m.menu_categories ?? []).flatMap((cat: any) => cat.dishes ?? [])
@@ -397,6 +412,8 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
         is_available: dish.is_available !== undefined ? dish.is_available : true,
         description_visibility: dish.description_visibility ?? 'menu',
         ingredients_visibility: dish.ingredients_visibility ?? 'detail',
+        dish_kind: dish.dish_kind ?? 'standard',
+        display_price_prefix: dish.display_price_prefix ?? 'exact',
       }))
     )
     .select('id');
@@ -422,6 +439,70 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
       }
     })
   );
+
+  // ── Step 5: Save option groups for template/experience dishes (non-fatal) ───
+  await Promise.all(
+    insertedDishes.map(async (insertedDish, i) => {
+      const { dish } = allDishes[i];
+      if (!dish.option_groups?.length) return;
+      await saveOptionGroupsForDish(insertedDish.id, restaurantId, dish.option_groups);
+    })
+  );
+}
+
+/**
+ * Save option groups + their options for a dish.
+ * Replaces any existing groups (delete-then-insert). Non-fatal per group.
+ */
+async function saveOptionGroupsForDish(
+  dishId: string,
+  restaurantId: string,
+  optionGroups: AppMenu['dishes'][number]['option_groups']
+): Promise<void> {
+  if (!optionGroups?.length) return;
+  // Delete existing groups (cascades to options)
+  await supabase.from('option_groups').delete().eq('dish_id', dishId);
+  for (const [gi, group] of optionGroups.entries()) {
+    const { data: inserted, error } = await supabase
+      .from('option_groups')
+      .insert({
+        restaurant_id: restaurantId,
+        dish_id: dishId,
+        name: group.name,
+        description: group.description ?? null,
+        selection_type: group.selection_type,
+        min_selections: group.min_selections ?? 0,
+        max_selections: group.max_selections ?? null,
+        display_order: gi,
+        is_active: group.is_active !== false,
+      })
+      .select('id')
+      .single();
+    if (error) {
+      console.error(`[RestaurantService] Failed to save option group "${group.name}":`, error);
+      continue;
+    }
+    if (group.options?.length) {
+      const { error: optErr } = await supabase.from('options').insert(
+        group.options.map((opt, oi) => ({
+          option_group_id: inserted.id,
+          name: opt.name,
+          description: opt.description ?? null,
+          price_delta: opt.price_delta ?? 0,
+          calories_delta: opt.calories_delta ?? null,
+          canonical_ingredient_id: opt.canonical_ingredient_id ?? null,
+          is_available: opt.is_available !== false,
+          display_order: oi,
+        }))
+      );
+      if (optErr) {
+        console.error(
+          `[RestaurantService] Failed to save options for group "${group.name}":`,
+          optErr
+        );
+      }
+    }
+  }
 }
 
 /**

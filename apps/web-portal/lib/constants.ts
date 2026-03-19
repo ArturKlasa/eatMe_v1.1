@@ -195,6 +195,107 @@ export function spiceIcon(level: string | null | undefined): string {
   return SPICE_LEVELS.find(l => l.value === level)?.icon ?? '';
 }
 
+export const DISH_KINDS = [
+  {
+    value: 'standard' as const,
+    label: 'Standard',
+    description: 'Single item, fixed composition',
+    icon: '🍽️',
+  },
+  {
+    value: 'template' as const,
+    label: 'Template',
+    description: 'Customer chooses components (protein, sauce…)',
+    icon: '🔧',
+  },
+  {
+    value: 'experience' as const,
+    label: 'Experience',
+    description: 'Multi-course or group dining (hot pot, tasting menu…)',
+    icon: '✨',
+  },
+] as const;
+
+export type DishKindValue = (typeof DISH_KINDS)[number]['value'];
+
+export const DISPLAY_PRICE_PREFIXES = [
+  { value: 'exact' as const, label: 'Exact price', example: '$14.00' },
+  { value: 'from' as const, label: 'From', example: 'from $14.00' },
+  { value: 'per_person' as const, label: 'Per person', example: '$14.00 / person' },
+  { value: 'market_price' as const, label: 'Market price', example: 'Market price' },
+  { value: 'ask_server' as const, label: 'Ask server', example: 'Ask server' },
+] as const;
+
+export type DisplayPricePrefixValue = (typeof DISPLAY_PRICE_PREFIXES)[number]['value'];
+
+export const SELECTION_TYPES = [
+  { value: 'single' as const, label: 'Single choice', description: 'Pick exactly one option' },
+  { value: 'multiple' as const, label: 'Multiple choice', description: 'Pick one or more options' },
+  { value: 'quantity' as const, label: 'Quantity', description: 'Set amount per option' },
+] as const;
+
+/**
+ * Dish-type presets — skeleton option groups pre-populated when a partner
+ * picks a template or experience dish kind.
+ */
+export const OPTION_PRESETS: Record<
+  string,
+  {
+    label: string;
+    groups: {
+      name: string;
+      selection_type: 'single' | 'multiple' | 'quantity';
+      min_selections: number;
+      max_selections: number | null;
+    }[];
+  }
+> = {
+  dish_with_extras: {
+    label: 'Dish with extras',
+    groups: [
+      { name: 'Extras', selection_type: 'multiple', min_selections: 0, max_selections: null },
+    ],
+  },
+  base_preparation: {
+    label: 'Base + preparation',
+    groups: [
+      { name: 'Base', selection_type: 'single', min_selections: 1, max_selections: 1 },
+      { name: 'Preparation', selection_type: 'single', min_selections: 1, max_selections: 1 },
+    ],
+  },
+  build_your_own: {
+    label: 'Build your own',
+    groups: [
+      { name: 'Base', selection_type: 'single', min_selections: 1, max_selections: 1 },
+      { name: 'Proteins', selection_type: 'multiple', min_selections: 1, max_selections: 3 },
+      { name: 'Toppings', selection_type: 'multiple', min_selections: 0, max_selections: null },
+      { name: 'Sauce', selection_type: 'single', min_selections: 1, max_selections: 1 },
+    ],
+  },
+  combo_set: {
+    label: 'Combo / set',
+    groups: [
+      { name: 'Main', selection_type: 'single', min_selections: 1, max_selections: 1 },
+      { name: 'Sides', selection_type: 'multiple', min_selections: 0, max_selections: 2 },
+    ],
+  },
+  sushi_matrix: {
+    label: 'Sushi matrix',
+    groups: [
+      { name: 'Fish', selection_type: 'single', min_selections: 1, max_selections: 1 },
+      { name: 'Style', selection_type: 'single', min_selections: 1, max_selections: 1 },
+    ],
+  },
+  hot_pot: {
+    label: 'Hot Pot',
+    groups: [
+      { name: 'Broth', selection_type: 'single', min_selections: 1, max_selections: 1 },
+      { name: 'Proteins', selection_type: 'multiple', min_selections: 1, max_selections: null },
+      { name: 'Vegetables', selection_type: 'multiple', min_selections: 0, max_selections: null },
+    ],
+  },
+};
+
 export const WIZARD_STEPS = [
   { id: 1, title: 'Basic Information', path: '/onboard/basic-info' },
   { id: 2, title: 'Operations', path: '/onboard/operations' },

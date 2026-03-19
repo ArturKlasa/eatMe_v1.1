@@ -9,6 +9,36 @@ export interface SelectedIngredient {
   quantity?: string | null;
 }
 
+export type DishKind = 'standard' | 'template' | 'experience';
+export type DisplayPricePrefix = 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
+
+export interface Option {
+  id?: string;
+  option_group_id?: string;
+  name: string;
+  description?: string;
+  price_delta: number;
+  calories_delta?: number | null;
+  canonical_ingredient_id?: string | null;
+  is_available?: boolean;
+  display_order?: number;
+}
+
+export interface OptionGroup {
+  id?: string;
+  restaurant_id?: string;
+  dish_id?: string | null;
+  menu_category_id?: string | null;
+  name: string;
+  description?: string;
+  selection_type: 'single' | 'multiple' | 'quantity';
+  min_selections?: number;
+  max_selections?: number | null;
+  display_order?: number;
+  is_active?: boolean;
+  options: Option[];
+}
+
 export interface OperatingHours {
   monday?: { open: string; close: string };
   tuesday?: { open: string; close: string };
@@ -46,6 +76,12 @@ export interface Dish {
   description_visibility?: 'menu' | 'detail';
   /** Where ingredients are shown in the mobile app. Defaults to 'detail'. */
   ingredients_visibility?: 'menu' | 'detail' | 'none';
+  /** Dish composition type. 'standard' = single item (default). */
+  dish_kind?: DishKind;
+  /** How the base price should be displayed. 'exact' = show as-is (default). */
+  display_price_prefix?: DisplayPricePrefix;
+  /** Option groups attached to this dish (template/experience types). */
+  option_groups?: OptionGroup[];
   /** UI-only: canonical ingredients selected via autocomplete; not persisted on this object. */
   selectedIngredients?: SelectedIngredient[];
 }

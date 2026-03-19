@@ -43,6 +43,35 @@ export type MenuCategory = Tables<'menu_categories'>;
 /** Raw row from the `dishes` table */
 export type Dish = Tables<'dishes'>;
 
+/** A single selectable option within an option group */
+export interface Option {
+  id: string;
+  option_group_id: string;
+  name: string;
+  description?: string | null;
+  price_delta: number;
+  calories_delta?: number | null;
+  canonical_ingredient_id?: string | null;
+  is_available: boolean;
+  display_order: number;
+}
+
+/** A group of options attached to a dish (template / experience kinds) */
+export interface OptionGroup {
+  id: string;
+  restaurant_id: string;
+  dish_id?: string | null;
+  menu_category_id?: string | null;
+  name: string;
+  description?: string | null;
+  selection_type: 'single' | 'multiple' | 'quantity';
+  min_selections: number;
+  max_selections?: number | null;
+  display_order: number;
+  is_active: boolean;
+  options: Option[];
+}
+
 // ============================================================================
 // COMPOUND QUERY SHAPES — Supabase .select() results with joined relations
 // ============================================================================
@@ -53,5 +82,11 @@ export interface DishWithRelations extends Dish {
 }
 
 export interface RestaurantWithMenus extends Restaurant {
-  menus: Array<Menu & { menu_categories: Array<MenuCategory & { dishes: Dish[] }> }>;
+  menus: Array<
+    Menu & {
+      menu_categories: Array<
+        MenuCategory & { dishes: Array<Dish & { option_groups?: OptionGroup[] }> }
+      >;
+    }
+  >;
 }

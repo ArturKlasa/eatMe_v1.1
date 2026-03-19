@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
-import { supabase, type RestaurantWithMenus, type Dish } from '../lib/supabase';
+import { supabase, type RestaurantWithMenus, type Dish, type OptionGroup } from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing, typography } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
@@ -50,6 +50,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
+  const [dishOptionGroups, setDishOptionGroups] = useState<OptionGroup[]>([]);
   const [dishPhotos, setDishPhotos] = useState<any[]>([]);
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
@@ -79,7 +80,13 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 *,
                 menu_categories (
                   *,
-                  dishes (*)
+                  dishes (
+                    *,
+                    option_groups (
+                      *,
+                      options (*)
+                    )
+                  )
                 )
               )
             `
@@ -251,6 +258,17 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
   const handleDishPress = async (dish: any) => {
     setSelectedDish(dish);
+    // Option groups are already embedded in the dish from the query
+    const embedded: OptionGroup[] = (dish.option_groups ?? [])
+      .filter((g: OptionGroup) => g.is_active)
+      .sort((a: OptionGroup, b: OptionGroup) => a.display_order - b.display_order)
+      .map((g: OptionGroup) => ({
+        ...g,
+        options: (g.options ?? [])
+          .filter((o: any) => o.is_available)
+          .sort((a: any, b: any) => a.display_order - b.display_order),
+      }));
+    setDishOptionGroups(embedded);
 
     // Track dish view
     trackDishView(restaurantId, {
@@ -305,6 +323,24 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
   const renderMenuItem = (item: any) => {
     const rating = dishRatings.get(item.id);
+    const pricePrefix = item.display_price_prefix;
+    let priceLabel: string;
+    switch (pricePrefix) {
+      case 'from':
+        priceLabel = `from $${item.price.toFixed(2)}`;
+        break;
+      case 'per_person':
+        priceLabel = `$${item.price.toFixed(2)}/person`;
+        break;
+      case 'market_price':
+        priceLabel = 'Market price';
+        break;
+      case 'ask_server':
+        priceLabel = 'Ask server';
+        break;
+      default:
+        priceLabel = `$${item.price.toFixed(2)}`;
+    }
 
     return (
       <TouchableOpacity
@@ -330,7 +366,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               />
             )}
           </View>
-          <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
+          <Text style={styles.menuItemPrice}>{priceLabel}</Text>
         </View>
         {item.description && item.description_visibility !== 'detail' && (
           <Text style={styles.menuItemIngredients}>{item.description}</Text>
@@ -612,6 +648,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             setSelectedDish(null);
             setDishPhotos([]);
             setDishIngredientNames([]);
+            setDishOptionGroups([]);
           }}
           dishId={selectedDish.id}
           dishName={selectedDish.name}
@@ -624,6 +661,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             selectedDish.ingredients_visibility === 'detail' ? dishIngredientNames : []
           }
           dishPrice={selectedDish.price}
+          dishKind={(selectedDish as any).dish_kind ?? 'standard'}
+          displayPricePrefix={(selectedDish as any).display_price_prefix ?? 'exact'}
+          optionGroups={dishOptionGroups}
           photos={dishPhotos}
           onPhotoAdded={() => {
             // Refresh photos after upload

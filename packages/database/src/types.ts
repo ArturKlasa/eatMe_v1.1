@@ -453,16 +453,17 @@ export type Database = {
           description_visibility: string;
           dietary_tags: string[] | null;
           dish_category_id: string | null;
+          dish_kind: string;
+          display_price_prefix: string;
           id: string;
           image_url: string | null;
-          ingredients: string[] | null;
           ingredients_visibility: string;
           is_available: boolean | null;
           menu_category_id: string | null;
           name: string;
           price: number;
           restaurant_id: string | null;
-          spice_level: number | null;
+          spice_level: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -473,16 +474,17 @@ export type Database = {
           description_visibility?: string;
           dietary_tags?: string[] | null;
           dish_category_id?: string | null;
+          dish_kind?: string;
+          display_price_prefix?: string;
           id?: string;
           image_url?: string | null;
-          ingredients?: string[] | null;
           ingredients_visibility?: string;
           is_available?: boolean | null;
           menu_category_id?: string | null;
           name?: string;
           price?: number;
           restaurant_id?: string | null;
-          spice_level?: number | null;
+          spice_level?: string | null;
           updated_at?: string | null;
         };
         Update: {
@@ -493,16 +495,17 @@ export type Database = {
           description_visibility?: string;
           dietary_tags?: string[] | null;
           dish_category_id?: string | null;
+          dish_kind?: string;
+          display_price_prefix?: string;
           id?: string;
           image_url?: string | null;
-          ingredients?: string[] | null;
           ingredients_visibility?: string;
           is_available?: boolean | null;
           menu_category_id?: string | null;
           name?: string;
           price?: number;
           restaurant_id?: string | null;
-          spice_level?: number | null;
+          spice_level?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -532,6 +535,133 @@ export type Database = {
             columns: ['restaurant_id'];
             isOneToOne: false;
             referencedRelation: 'restaurants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      option_groups: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          dish_id: string | null;
+          display_order: number;
+          id: string;
+          is_active: boolean;
+          max_selections: number | null;
+          menu_category_id: string | null;
+          min_selections: number;
+          name: string;
+          restaurant_id: string;
+          selection_type: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          dish_id?: string | null;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          max_selections?: number | null;
+          menu_category_id?: string | null;
+          min_selections?: number;
+          name: string;
+          restaurant_id: string;
+          selection_type: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          dish_id?: string | null;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          max_selections?: number | null;
+          menu_category_id?: string | null;
+          min_selections?: number;
+          name?: string;
+          restaurant_id?: string;
+          selection_type?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'option_groups_restaurant_id_fkey';
+            columns: ['restaurant_id'];
+            isOneToOne: false;
+            referencedRelation: 'restaurants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'option_groups_dish_id_fkey';
+            columns: ['dish_id'];
+            isOneToOne: false;
+            referencedRelation: 'dishes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'option_groups_menu_category_id_fkey';
+            columns: ['menu_category_id'];
+            isOneToOne: false;
+            referencedRelation: 'menu_categories';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      options: {
+        Row: {
+          calories_delta: number | null;
+          canonical_ingredient_id: string | null;
+          created_at: string | null;
+          description: string | null;
+          display_order: number;
+          id: string;
+          is_available: boolean;
+          name: string;
+          option_group_id: string;
+          price_delta: number;
+          updated_at: string | null;
+        };
+        Insert: {
+          calories_delta?: number | null;
+          canonical_ingredient_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          display_order?: number;
+          id?: string;
+          is_available?: boolean;
+          name: string;
+          option_group_id: string;
+          price_delta?: number;
+          updated_at?: string | null;
+        };
+        Update: {
+          calories_delta?: number | null;
+          canonical_ingredient_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          display_order?: number;
+          id?: string;
+          is_available?: boolean;
+          name?: string;
+          option_group_id?: string;
+          price_delta?: number;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'options_option_group_id_fkey';
+            columns: ['option_group_id'];
+            isOneToOne: false;
+            referencedRelation: 'option_groups';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'options_ingredient_id_fkey';
+            columns: ['canonical_ingredient_id'];
+            isOneToOne: false;
+            referencedRelation: 'canonical_ingredients';
             referencedColumns: ['id'];
           },
         ];

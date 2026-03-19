@@ -597,8 +597,8 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   CREATE INDEX options_ingredient_id_idx ON options(canonical_ingredient_id);
   ```
 
-- [ ] **Update `database_schema.sql`**
-- [ ] **Update TypeScript types** in `apps/web-portal/lib/supabase.ts` — add `OptionGroup`, `Option`, `DishKind`, `DisplayPricePrefix` types
+- [x] **Update `database_schema.sql`**
+- [x] **Update TypeScript types** in `apps/web-portal/lib/supabase.ts` — add `OptionGroup`, `Option`, `DishKind`, `DisplayPricePrefix` types
 
 ### 3.2 Web portal — `DishFormDialog` extension
 
@@ -608,18 +608,18 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Add `dish_kind` selector** to the form — radio group: Standard / Template / Experience
+- [x] **Add `dish_kind` selector** to the form — radio group: Standard / Template / Experience
   - When `dish_kind` is `standard`: no options UI shown (current behaviour)
   - When `dish_kind` is `template` or `experience`: show "Options" section
-- [ ] **Add `display_price_prefix` selector** — dropdown: Exact / From / Per person / Market price / Ask server
+- [x] **Add `display_price_prefix` selector** — dropdown: Exact / From / Per person / Market price / Ask server
   - Only shown when `dish_kind` is `template` or `experience`
-- [ ] **Build Option Groups editor** inside the dialog:
+- [x] **Build Option Groups editor** inside the dialog:
   - "Add Option Group" button → creates a new group with: name, selection_type (single/multiple), min/max selections
   - Within each group: "Add Option" button → name, price_delta, calories_delta, optional ingredient link
   - Inline editing — no separate modal for options
   - Drag/drop or arrow buttons for `display_order`
   - Delete group / delete option with confirmation
-- [ ] **Implement dish-type presets** (Part 10 §10.12 Q3):
+- [x] **Implement dish-type presets** (Part 10 §10.12 Q3):
   - When partner selects `dish_kind = 'template'`, show preset picker:
     - "Dish with extras" → 1 optional multiple-choice group
     - "Base + preparation" → 2 required single-choice groups
@@ -627,18 +627,18 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
     - "Combo / set" → 1 required + 1 optional group
     - "Sushi matrix" → 2 required single-choice groups
   - When partner selects `dish_kind = 'experience'`: pre-populate broth/meats/vegetables groups
-- [ ] **Save logic:** Write `option_groups` + `options` to Supabase on dish save (both wizard mode and DB mode)
-- [ ] **Load logic:** Fetch existing `option_groups` + `options` when editing a dish
-- [ ] **Update `lib/restaurantService.ts`:** Include option groups in `saveAllRestaurantData` and `loadRestaurantForReview`
-- [ ] **Update `lib/validation.ts`:** Add Zod schemas for option groups and options
+- [x] **Save logic:** Write `option_groups` + `options` to Supabase on dish save (both wizard mode and DB mode)
+- [x] **Load logic:** Fetch existing `option_groups` + `options` when editing a dish
+- [x] **Update `lib/restaurantService.ts`:** Include option groups in `saveAllRestaurantData` and `loadRestaurantForReview`
+- [x] **Update `lib/validation.ts`:** Add Zod schemas for option groups and options
 
 ### 3.3 Web portal — `DishCard` update
 
 **Tasks:**
 
-- [ ] Show `dish_kind` badge on the card (Template / Experience)
-- [ ] Show `display_price_prefix` in price display ("from $13", "$25/person")
-- [ ] Show option group count summary (e.g. "3 option groups")
+- [x] Show `dish_kind` badge on the card (Template / Experience)
+- [x] Show `display_price_prefix` in price display ("from $13", "$25/person")
+- [x] Show option group count summary (e.g. "3 option groups")
 
 ### 3.4 Web portal — category-level option groups
 
@@ -655,33 +655,33 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Fetch option groups + options** when opening a dish detail view:
+- [x] **Fetch option groups + options** when opening a dish detail view:
   ```sql
   SELECT * FROM option_groups WHERE dish_id = $1 AND is_active = true ORDER BY display_order;
   SELECT * FROM options WHERE option_group_id = ANY($group_ids) AND is_available = true ORDER BY display_order;
   -- Also fetch category-level groups for the dish's menu_category_id
   ```
-- [ ] **Render option groups** using inferred render styles (Part 10 §10.12 Q4):
+- [x] **Render option groups** using inferred render styles (Part 10 §10.12 Q4):
   - `single` + ≤ 5 options → chips or radio list
   - `multiple` + short labels → chips with check state
   - Two single-choice required groups → potential grid layout
   - \> 8 options → grouped list / accordion
   - Experience dishes → sectioned card layout
-- [ ] **Show price deltas** next to each option (+$2, included)
-- [ ] **Show allergen warnings** per option when `canonical_ingredient_id` is set and the user has matching allergies
-- [ ] **Display `display_price_prefix`** in feed cards and detail view ("from $13", "$25/person")
+- [x] **Show price deltas** next to each option (+$2, included)
+- [ ] **Show allergen warnings** per option when `canonical_ingredient_id` is set and the user has matching allergies _(deferred to Phase 5 — requires preference vector)_
+- [x] **Display `display_price_prefix`** in feed cards and detail view ("from $13", "$25/person")
 
 ### Phase 3 — Acceptance Criteria
 
-- [ ] A restaurant partner can create a template dish (e.g. "Thai Main Course") with required protein and preparation groups
-- [ ] A partner can create an experience dish (e.g. "Hot Pot") with broth + meats + vegetables groups
-- [ ] Dish-type presets pre-populate skeleton option groups correctly
-- [ ] Category-level option groups appear on all dishes in that category
-- [ ] Mobile dish detail renders option groups with appropriate UI for each selection type
-- [ ] Option-level allergen warnings appear for users with matching allergies
-- [ ] Price display shows "from $X" for template dishes and "$X/person" for experience dishes
-- [ ] Existing standard dishes are completely unaffected
-- [ ] RLS policies allow partners to CRUD only their own option groups
+- [x] A restaurant partner can create a template dish (e.g. "Thai Main Course") with required protein and preparation groups
+- [x] A partner can create an experience dish (e.g. "Hot Pot") with broth + meats + vegetables groups
+- [x] Dish-type presets pre-populate skeleton option groups correctly
+- [ ] Category-level option groups appear on all dishes in that category _(3.4 — deferred)_
+- [x] Mobile dish detail renders option groups with appropriate UI for each selection type
+- [ ] Option-level allergen warnings appear for users with matching allergies _(deferred to Phase 5)_
+- [x] Price display shows "from $X" for template dishes and "$X/person" for experience dishes
+- [x] Existing standard dishes are completely unaffected
+- [x] RLS policies allow partners to CRUD only their own option groups
 
 **Estimated effort:** 8–12 days
 
@@ -701,7 +701,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Migration `053_embedding_foundation.sql`:**
+- [ ] **Migration `054_embedding_foundation.sql`:**
 
   ```sql
   -- Enable pgvector

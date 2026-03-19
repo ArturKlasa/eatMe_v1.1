@@ -62,6 +62,38 @@ export const dishSchema = z.object({
   is_available: z.boolean().optional(),
   description_visibility: z.enum(['menu', 'detail']).optional(),
   ingredients_visibility: z.enum(['menu', 'detail', 'none']).optional(),
+  dish_kind: z.enum(['standard', 'template', 'experience']).optional().default('standard'),
+  display_price_prefix: z
+    .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
+    .optional()
+    .default('exact'),
+  option_groups: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string().min(1, 'Group name is required'),
+        description: z.string().optional(),
+        selection_type: z.enum(['single', 'multiple', 'quantity']),
+        min_selections: z.number().int().min(0).default(0),
+        max_selections: z.number().int().min(1).nullable().optional(),
+        display_order: z.number().int().min(0).default(0),
+        is_active: z.boolean().default(true),
+        options: z.array(
+          z.object({
+            id: z.string().optional(),
+            name: z.string().min(1, 'Option name is required'),
+            description: z.string().optional(),
+            price_delta: z.number().default(0),
+            calories_delta: z.number().int().nullable().optional(),
+            canonical_ingredient_id: z.string().uuid().nullable().optional(),
+            is_available: z.boolean().default(true),
+            display_order: z.number().int().min(0).default(0),
+          })
+        ),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export const menuSchema = z.object({

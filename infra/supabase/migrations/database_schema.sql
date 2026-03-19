@@ -143,10 +143,48 @@ CREATE TABLE public.dishes (
   dish_category_id uuid,
   description_visibility text NOT NULL DEFAULT 'menu'::text CHECK (description_visibility = ANY (ARRAY['menu'::text, 'detail'::text])),
   ingredients_visibility text NOT NULL DEFAULT 'detail'::text CHECK (ingredients_visibility = ANY (ARRAY['menu'::text, 'detail'::text, 'none'::text])),
+  dish_kind text NOT NULL DEFAULT 'standard'::text CHECK (dish_kind = ANY (ARRAY['standard'::text, 'template'::text, 'experience'::text])),
+  display_price_prefix text NOT NULL DEFAULT 'exact'::text CHECK (display_price_prefix = ANY (ARRAY['exact'::text, 'from'::text, 'per_person'::text, 'market_price'::text, 'ask_server'::text])),
   CONSTRAINT dishes_pkey PRIMARY KEY (id),
   CONSTRAINT dishes_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
   CONSTRAINT dishes_menu_id_fkey FOREIGN KEY (menu_category_id) REFERENCES public.menu_categories(id),
   CONSTRAINT dishes_dish_category_id_fkey FOREIGN KEY (dish_category_id) REFERENCES public.dish_categories(id)
+);
+CREATE TABLE public.option_groups (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  dish_id uuid,
+  menu_category_id uuid,
+  name text NOT NULL,
+  description text,
+  selection_type text NOT NULL CHECK (selection_type = ANY (ARRAY['single'::text, 'multiple'::text, 'quantity'::text])),
+  min_selections integer NOT NULL DEFAULT 0,
+  max_selections integer,
+  display_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT option_groups_pkey PRIMARY KEY (id),
+  CONSTRAINT option_groups_owner_check CHECK ((dish_id IS NOT NULL AND menu_category_id IS NULL) OR (dish_id IS NULL AND menu_category_id IS NOT NULL)),
+  CONSTRAINT option_groups_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  CONSTRAINT option_groups_dish_id_fkey FOREIGN KEY (dish_id) REFERENCES public.dishes(id) ON DELETE CASCADE,
+  CONSTRAINT option_groups_menu_category_id_fkey FOREIGN KEY (menu_category_id) REFERENCES public.menu_categories(id) ON DELETE CASCADE
+);
+CREATE TABLE public.options (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  option_group_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  price_delta numeric NOT NULL DEFAULT 0,
+  calories_delta integer,
+  canonical_ingredient_id uuid,
+  is_available boolean NOT NULL DEFAULT true,
+  display_order integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT options_pkey PRIMARY KEY (id),
+  CONSTRAINT options_option_group_id_fkey FOREIGN KEY (option_group_id) REFERENCES public.option_groups(id) ON DELETE CASCADE,
+  CONSTRAINT options_ingredient_id_fkey FOREIGN KEY (canonical_ingredient_id) REFERENCES public.canonical_ingredients(id) ON DELETE SET NULL
 );
 CREATE TABLE public.eat_together_members (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

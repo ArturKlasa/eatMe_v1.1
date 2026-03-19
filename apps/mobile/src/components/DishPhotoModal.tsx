@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { pickImage, takePhoto, uploadDishPhoto } from '../services/dishPhotoService';
 import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
+import type { OptionGroup } from '../lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,8 +34,11 @@ interface DishPhotoModalProps {
   dishDescription?: string;
   dishIngredients?: string[];
   dishPrice: number;
+  dishKind?: string;
+  displayPricePrefix?: string;
+  optionGroups?: OptionGroup[];
   photos: DishPhoto[];
-  onPhotoAdded?: () => void; // Callback to refresh photos after upload
+  onPhotoAdded?: () => void;
 }
 
 export function DishPhotoModal({
@@ -45,6 +49,9 @@ export function DishPhotoModal({
   dishDescription,
   dishIngredients,
   dishPrice,
+  dishKind = 'standard',
+  displayPricePrefix = 'exact',
+  optionGroups = [],
   photos,
   onPhotoAdded,
 }: DishPhotoModalProps) {
@@ -113,8 +120,19 @@ export function DishPhotoModal({
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.dishName}>{dishName}</Text>
-            <Text style={styles.dishPrice}>${dishPrice.toFixed(2)}</Text>
+            <Text style={styles.dishName}>
+              {dishName}
+              {dishKind === 'template' && '  🔧'}
+              {dishKind === 'experience' && '  ✨'}
+            </Text>
+            <Text style={styles.dishPrice}>
+              {displayPricePrefix === 'from' && `from $${dishPrice.toFixed(2)}`}
+              {displayPricePrefix === 'per_person' && `$${dishPrice.toFixed(2)} / person`}
+              {displayPricePrefix === 'market_price' && 'Market price'}
+              {displayPricePrefix === 'ask_server' && 'Ask server'}
+              {(!displayPricePrefix || displayPricePrefix === 'exact') &&
+                `$${dishPrice.toFixed(2)}`}
+            </Text>
           </View>
         </View>
 
@@ -181,6 +199,57 @@ export function DishPhotoModal({
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>{t('dish.ingredients')}</Text>
               <Text style={styles.description}>{dishIngredients.join(', ')}</Text>
+            </View>
+          )}
+
+          {/* Option Groups */}
+          {optionGroups.length > 0 && (
+            <View style={styles.optionGroupsContainer}>
+              {optionGroups.map(group => {
+                const useChips = group.options.length <= 8;
+                const isRequired = group.min_selections > 0;
+                return (
+                  <View key={group.id} style={styles.optionGroup}>
+                    <View style={styles.optionGroupHeader}>
+                      <Text style={styles.optionGroupName}>{group.name}</Text>
+                      <Text style={styles.optionGroupMeta}>
+                        {isRequired ? 'Required' : 'Optional'}
+                        {group.selection_type === 'single' ? ' · pick 1' : ''}
+                        {group.selection_type === 'multiple' && group.max_selections
+                          ? ` · up to ${group.max_selections}`
+                          : ''}
+                      </Text>
+                    </View>
+                    {useChips ? (
+                      <View style={styles.optionChips}>
+                        {group.options.map(opt => (
+                          <View key={opt.id} style={styles.optionChip}>
+                            <Text style={styles.optionChipName}>{opt.name}</Text>
+                            {opt.price_delta !== 0 && (
+                              <Text style={styles.optionChipDelta}>
+                                {opt.price_delta > 0 ? '+' : ''}${opt.price_delta.toFixed(2)}
+                              </Text>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.optionList}>
+                        {group.options.map(opt => (
+                          <View key={opt.id} style={styles.optionListRow}>
+                            <Text style={styles.optionListName}>{opt.name}</Text>
+                            {opt.price_delta !== 0 && (
+                              <Text style={styles.optionChipDelta}>
+                                {opt.price_delta > 0 ? '+' : ''}${opt.price_delta.toFixed(2)}
+                              </Text>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           )}
 
@@ -359,5 +428,65 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.darkTextMuted,
     fontStyle: 'italic',
+  },
+  optionGroupsContainer: {
+    marginBottom: spacing.base,
+  },
+  optionGroup: {
+    marginBottom: spacing.base,
+  },
+  optionGroupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: spacing.xs,
+  },
+  optionGroupName: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  optionGroupMeta: {
+    fontSize: typography.size.xs,
+    color: colors.darkTextMuted,
+  },
+  optionChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  optionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.darkSecondary,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
+  optionChipName: {
+    fontSize: typography.size.sm,
+    color: colors.white,
+  },
+  optionChipDelta: {
+    fontSize: typography.size.xs,
+    color: colors.accent,
+  },
+  optionList: {
+    gap: spacing.xs,
+  },
+  optionListRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.darkBorder,
+  },
+  optionListName: {
+    fontSize: typography.size.sm,
+    color: colors.white,
+    flex: 1,
   },
 });

@@ -39,8 +39,7 @@ export interface Dish {
   calories?: number;
   dietary_tags: string[];
   allergens: string[];
-  ingredients: string[];
-  spice_level?: number; // 0-4 scale
+  spice_level?: 'none' | 'mild' | 'hot' | null;
   photo_url?: string;
   is_available?: boolean;
   /** Where the description is shown in the mobile app. Defaults to 'menu'. */

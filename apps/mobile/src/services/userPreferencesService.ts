@@ -7,8 +7,66 @@ import { supabase } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
 import type { PermanentFilters } from '../stores/filterStore';
 
+// ─── Code mappings (filterStore key → DB allergens.code / dietary_tags.code) ────
+
+const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
+  lactose: 'lactose',
+  gluten: 'gluten',
+  peanuts: 'peanuts',
+  soy: 'soybeans', // JSONB key 'soy' → DB code 'soybeans'
+  sesame: 'sesame',
+  shellfish: 'shellfish',
+  nuts: 'tree_nuts', // JSONB key 'nuts' → DB code 'tree_nuts'
+};
+
+const DB_TO_ALLERGY: Record<string, keyof PermanentFilters['allergies']> = {
+  lactose: 'lactose',
+  gluten: 'gluten',
+  peanuts: 'peanuts',
+  soybeans: 'soy',
+  sesame: 'sesame',
+  shellfish: 'shellfish',
+  tree_nuts: 'nuts',
+};
+
+const EXCLUDE_TO_DB: Record<keyof PermanentFilters['exclude'], string> = {
+  noMeat: 'vegetarian',
+  noFish: 'no_fish',
+  noSeafood: 'no_seafood',
+  noEggs: 'no_eggs',
+  noDairy: 'dairy_free',
+  noSpicy: 'no_spicy',
+};
+
+const DB_TO_EXCLUDE: Record<string, keyof PermanentFilters['exclude']> = {
+  vegetarian: 'noMeat',
+  no_fish: 'noFish',
+  no_seafood: 'noSeafood',
+  no_eggs: 'noEggs',
+  dairy_free: 'noDairy',
+  no_spicy: 'noSpicy',
+};
+
+const DIET_TYPE_TO_DB: Record<keyof PermanentFilters['dietTypes'], string> = {
+  diabetic: 'diabetic',
+  keto: 'keto',
+  paleo: 'paleo',
+  lowCarb: 'low_carb', // camelCase → snake_case
+  pescatarian: 'pescatarian',
+};
+
+const DB_TO_DIET_TYPE: Record<string, keyof PermanentFilters['dietTypes']> = {
+  diabetic: 'diabetic',
+  keto: 'keto',
+  paleo: 'paleo',
+  low_carb: 'lowCarb',
+  pescatarian: 'pescatarian',
+};
+
+// religiousRestrictions keys match dietary_tags.code directly (halal, kosher, hindu, jain, buddhist)
+const RELIGIOUS_KEYS = ['halal', 'hindu', 'kosher', 'jain', 'buddhist'] as const;
+
 // ─── Default values ────────────────────────────────────────────────────────────
-// Used as fallbacks when DB rows were created before the schema stabilised.
 
 const DEFAULT_ALLERGIES: PermanentFilters['allergies'] = {
   lactose: false,
@@ -45,42 +103,29 @@ const DEFAULT_RELIGIOUS: PermanentFilters['religiousRestrictions'] = {
   buddhist: false,
 };
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Convert a TEXT[] from the DB to a set of code strings for fast lookup. */
+function toCodeSet(arr: string[] | null | undefined): Set<string> {
+  return new Set(Array.isArray(arr) ? arr : []);
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export interface UserPreferencesDB {
   user_id: string;
   diet_preference: 'all' | 'vegetarian' | 'vegan';
-  /**
-   * Stored as JSONB. Older rows use an object {lactose: boolean, ...},
-   * rows created after migration 024 may have an empty array [].
-   * Always normalise with normaliseAllergies() before use.
-   */
-  allergies: PermanentFilters['allergies'] | unknown[] | null;
-  exclude: PermanentFilters['exclude'] | null;
-  diet_types: PermanentFilters['dietTypes'] | null;
-  religious_restrictions: PermanentFilters['religiousRestrictions'] | null;
+  /** TEXT[] of allergen codes matching allergens.code (e.g. 'soybeans', 'tree_nuts'). */
+  allergies: string[] | null;
+  /** TEXT[] of exclusion intent codes (e.g. 'vegetarian', 'dairy_free', 'no_eggs'). */
+  exclude: string[] | null;
+  /** TEXT[] of diet type codes (e.g. 'keto', 'low_carb'). */
+  diet_types: string[] | null;
+  /** TEXT[] of religious restriction codes matching dietary_tags.code. */
+  religious_restrictions: string[] | null;
   default_max_distance: number;
   /** Array of {canonicalIngredientId, displayName} — added by migration 046. */
   ingredients_to_avoid: PermanentFilters['ingredientsToAvoid'] | null;
-}
-
-// ─── Normalisers ───────────────────────────────────────────────────────────────
-
-/**
- * Migration 032 normalised all existing rows to the object format and fixed
- * the column default. This function is kept as a lightweight safety net for
- * any dev-environment rows that may have been created in between.
- */
-function normaliseAllergies(
-  raw: PermanentFilters['allergies'] | unknown[] | null
-): PermanentFilters['allergies'] {
-  if (!raw || Array.isArray(raw)) return { ...DEFAULT_ALLERGIES };
-  return { ...DEFAULT_ALLERGIES, ...(raw as Partial<PermanentFilters['allergies']>) };
-}
-
-function normaliseObject<T extends object>(raw: T | null | undefined, defaults: T): T {
-  if (!raw || Array.isArray(raw)) return { ...defaults };
-  return { ...defaults, ...raw };
 }
 
 /**
@@ -142,6 +187,7 @@ export async function saveUserPreferences(
 
 /**
  * Convert filterStore permanent filters to database format.
+ * Translates the boolean-map UI state to TEXT[] arrays with correct DB codes.
  *
  * Note: price range is intentionally excluded — it is session-only state
  * managed by filterStore as a daily filter and should never be persisted
@@ -150,10 +196,23 @@ export async function saveUserPreferences(
 export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPreferencesDB> {
   return {
     diet_preference: filters.dietPreference,
-    allergies: filters.allergies,
-    exclude: filters.exclude,
-    diet_types: filters.dietTypes,
-    religious_restrictions: filters.religiousRestrictions,
+    // Convert boolean maps → TEXT[] with proper DB code mapping
+    allergies: (
+      Object.entries(filters.allergies) as [keyof PermanentFilters['allergies'], boolean][]
+    )
+      .filter(([_, active]) => active)
+      .map(([key]) => ALLERGY_TO_DB[key]),
+    exclude: (Object.entries(filters.exclude) as [keyof PermanentFilters['exclude'], boolean][])
+      .filter(([_, active]) => active)
+      .map(([key]) => EXCLUDE_TO_DB[key]),
+    diet_types: (
+      Object.entries(filters.dietTypes) as [keyof PermanentFilters['dietTypes'], boolean][]
+    )
+      .filter(([_, active]) => active)
+      .map(([key]) => DIET_TYPE_TO_DB[key]),
+    religious_restrictions: (Object.entries(filters.religiousRestrictions) as [string, boolean][])
+      .filter(([_, active]) => active)
+      .map(([key]) => key), // keys match dietary_tags.code directly
     default_max_distance: 5,
     ingredients_to_avoid: filters.ingredientsToAvoid,
   };
@@ -161,18 +220,47 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
 
 /**
  * Convert database preferences to filterStore format.
- *
- * Applies runtime normalisers to handle rows created by different
- * migrations (e.g. allergies may be [] or an object depending on age).
- * Price range is intentionally excluded — see permanentFiltersToDb.
+ * Translates TEXT[] DB values back to the boolean-map PermanentFilters shape.
  */
 export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<PermanentFilters> {
+  const allergySet = toCodeSet(dbPrefs.allergies);
+  const excludeSet = toCodeSet(dbPrefs.exclude);
+  const dietSet = toCodeSet(dbPrefs.diet_types);
+  const religiousSet = toCodeSet(dbPrefs.religious_restrictions);
+
   return {
     dietPreference: dbPrefs.diet_preference ?? 'all',
-    allergies: normaliseAllergies(dbPrefs.allergies),
-    exclude: normaliseObject(dbPrefs.exclude, DEFAULT_EXCLUDE),
-    dietTypes: normaliseObject(dbPrefs.diet_types, DEFAULT_DIET_TYPES),
-    religiousRestrictions: normaliseObject(dbPrefs.religious_restrictions, DEFAULT_RELIGIOUS),
+    allergies: {
+      lactose: allergySet.has('lactose'),
+      gluten: allergySet.has('gluten'),
+      peanuts: allergySet.has('peanuts'),
+      soy: allergySet.has('soybeans'),
+      sesame: allergySet.has('sesame'),
+      shellfish: allergySet.has('shellfish'),
+      nuts: allergySet.has('tree_nuts'),
+    },
+    exclude: {
+      noMeat: excludeSet.has('vegetarian'),
+      noFish: excludeSet.has('no_fish'),
+      noSeafood: excludeSet.has('no_seafood'),
+      noEggs: excludeSet.has('no_eggs'),
+      noDairy: excludeSet.has('dairy_free'),
+      noSpicy: excludeSet.has('no_spicy'),
+    },
+    dietTypes: {
+      diabetic: dietSet.has('diabetic'),
+      keto: dietSet.has('keto'),
+      paleo: dietSet.has('paleo'),
+      lowCarb: dietSet.has('low_carb'),
+      pescatarian: dietSet.has('pescatarian'),
+    },
+    religiousRestrictions: {
+      halal: religiousSet.has('halal'),
+      hindu: religiousSet.has('hindu'),
+      kosher: religiousSet.has('kosher'),
+      jain: religiousSet.has('jain'),
+      buddhist: religiousSet.has('buddhist'),
+    },
     ingredientsToAvoid: Array.isArray(dbPrefs.ingredients_to_avoid)
       ? dbPrefs.ingredients_to_avoid
       : [],

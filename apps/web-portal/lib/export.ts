@@ -41,7 +41,6 @@ export const exportAsJSON = (data: RestaurantData): void => {
         price: dish.price,
         dietary_tags: dish.dietary_tags,
         allergens: dish.allergens,
-        ingredients: dish.ingredients,
         photo_url: dish.photo_url || null,
       })),
     };
@@ -75,15 +74,7 @@ export const exportAsJSON = (data: RestaurantData): void => {
  */
 export const exportAsCSV = (dishes: Dish[], restaurantName: string): void => {
   try {
-    const headers = [
-      'Name',
-      'Description',
-      'Price',
-      'Dietary Tags',
-      'Allergens',
-      'Ingredients',
-      'Photo URL',
-    ];
+    const headers = ['Name', 'Description', 'Price', 'Dietary Tags', 'Allergens', 'Photo URL'];
 
     const rows = dishes.map(dish => [
       escapeCSV(dish.name),
@@ -91,7 +82,6 @@ export const exportAsCSV = (dishes: Dish[], restaurantName: string): void => {
       dish.price.toFixed(2),
       escapeCSV(dish.dietary_tags.join('; ')),
       escapeCSV(dish.allergens.join('; ')),
-      escapeCSV(dish.ingredients.join('; ')),
       dish.photo_url || '',
     ]);
 

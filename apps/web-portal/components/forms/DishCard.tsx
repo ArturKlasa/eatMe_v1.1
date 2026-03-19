@@ -57,22 +57,16 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {/* Ingredients */}
-          {((dish as any).selectedIngredients?.length > 0 || dish.ingredients?.length > 0) && (
+          {/* Ingredients — shown in wizard mode only (selectedIngredients from autocomplete) */}
+          {(dish as any).selectedIngredients?.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">Ingredients:</p>
               <div className="flex flex-wrap gap-1">
-                {(dish as any).selectedIngredients?.length > 0
-                  ? (dish as any).selectedIngredients.map((ing: any, idx: number) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {ing.name}
-                      </Badge>
-                    ))
-                  : dish.ingredients.map((ing, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {ing}
-                      </Badge>
-                    ))}
+                {(dish as any).selectedIngredients.map((ing: any, idx: number) => (
+                  <Badge key={idx} variant="secondary" className="text-xs">
+                    {ing.name}
+                  </Badge>
+                ))}
               </div>
             </div>
           )}
@@ -80,7 +74,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
           {/* Tags and Allergens */}
           <div className="flex flex-wrap gap-2">
             {/* Spice Level */}
-            {dish.spice_level !== undefined && dish.spice_level > 0 && (
+            {dish.spice_level && dish.spice_level !== 'none' && (
               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                 {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
               </Badge>

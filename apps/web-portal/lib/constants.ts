@@ -183,13 +183,15 @@ export const ALLERGENS = [
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
 
 export const SPICE_LEVELS = [
-  { value: 0, label: 'No spice', icon: '' },
-  { value: 1, label: '🌶️', icon: '🌶️' },
-  { value: 3, label: '🌶️🌶️🌶️', icon: '🌶️🌶️🌶️' },
+  { value: 'none' as const, label: 'No spice', icon: '' },
+  { value: 'mild' as const, label: '🌶️', icon: '🌶️' },
+  { value: 'hot' as const, label: '🌶️🌶️🌶️', icon: '🌶️🌶️🌶️' },
 ] as const;
 
-/** Map a numeric spice_level (0 | 1 | 3) to its chilli-icon string. */
-export function spiceIcon(level: number | null | undefined): string {
+export type SpiceLevel = (typeof SPICE_LEVELS)[number]['value'];
+
+/** Map a spice_level text value to its chilli-icon string. */
+export function spiceIcon(level: string | null | undefined): string {
   return SPICE_LEVELS.find(l => l.value === level)?.icon ?? '';
 }
 

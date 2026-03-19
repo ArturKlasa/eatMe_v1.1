@@ -391,7 +391,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
         price: dish.price,
         dietary_tags: dish.dietary_tags || [],
         allergens: dish.allergens || [],
-        ingredients: dish.ingredients || [],
         calories: dish.calories || null,
         spice_level: dish.spice_level || null,
         image_url: dish.photo_url || null,

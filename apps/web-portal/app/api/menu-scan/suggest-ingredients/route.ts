@@ -63,7 +63,7 @@ interface DishAnalysis {
   ingredients: string[];
   dietary_tags: string[];
   allergens: string[];
-  spice_level: 0 | 1 | 3 | null;
+  spice_level: 'none' | 'mild' | 'hot' | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,8 +117,16 @@ async function analyseDish(
     );
 
     const rawSpice = parsed.spice_level;
-    const spice_level: 0 | 1 | 3 | null =
+    const numericSpice: number | null =
       rawSpice === 0 ? 0 : rawSpice === 1 ? 1 : rawSpice === 3 ? 3 : null;
+    const spice_level: 'none' | 'mild' | 'hot' | null =
+      numericSpice == null
+        ? null
+        : numericSpice === 0
+          ? 'none'
+          : numericSpice === 1
+            ? 'mild'
+            : 'hot';
 
     return { ingredients, dietary_tags, allergens, spice_level };
   } catch {

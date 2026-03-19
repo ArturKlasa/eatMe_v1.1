@@ -136,9 +136,8 @@ CREATE TABLE public.dishes (
   price numeric NOT NULL DEFAULT 0,
   dietary_tags ARRAY DEFAULT ARRAY[]::text[],
   allergens ARRAY DEFAULT ARRAY[]::text[],
-  ingredients ARRAY DEFAULT ARRAY[]::text[],
   calories integer,
-  spice_level smallint CHECK (spice_level IS NULL OR (spice_level = ANY (ARRAY[0, 1, 3]))),
+  spice_level text DEFAULT 'none'::text CHECK (spice_level IS NULL OR (spice_level = ANY (ARRAY['none'::text, 'mild'::text, 'hot'::text]))),
   image_url text,
   is_available boolean DEFAULT true,
   dish_category_id uuid,
@@ -210,31 +209,6 @@ CREATE TABLE public.ingredient_aliases (
   language text NOT NULL DEFAULT 'en'::text,
   CONSTRAINT ingredient_aliases_pkey PRIMARY KEY (id),
   CONSTRAINT ingredient_aliases_canonical_ingredient_id_fkey FOREIGN KEY (canonical_ingredient_id) REFERENCES public.canonical_ingredients(id)
-);
-CREATE TABLE public.ingredient_allergens (
-  ingredient_id uuid NOT NULL,
-  allergen_id uuid NOT NULL,
-  confidence text DEFAULT 'confirmed'::text CHECK (confidence = ANY (ARRAY['confirmed'::text, 'possible'::text, 'trace'::text])),
-  CONSTRAINT ingredient_allergens_pkey PRIMARY KEY (ingredient_id, allergen_id),
-  CONSTRAINT ingredient_allergens_ingredient_id_fkey FOREIGN KEY (ingredient_id) REFERENCES public.ingredients_master(id),
-  CONSTRAINT ingredient_allergens_allergen_id_fkey FOREIGN KEY (allergen_id) REFERENCES public.allergens(id)
-);
-CREATE TABLE public.ingredient_dietary_tags (
-  ingredient_id uuid NOT NULL,
-  dietary_tag_id uuid NOT NULL,
-  CONSTRAINT ingredient_dietary_tags_pkey PRIMARY KEY (ingredient_id, dietary_tag_id),
-  CONSTRAINT ingredient_dietary_tags_ingredient_id_fkey FOREIGN KEY (ingredient_id) REFERENCES public.ingredients_master(id),
-  CONSTRAINT ingredient_dietary_tags_dietary_tag_id_fkey FOREIGN KEY (dietary_tag_id) REFERENCES public.dietary_tags(id)
-);
-CREATE TABLE public.ingredients_master (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  name text NOT NULL UNIQUE,
-  is_vegetarian boolean DEFAULT true,
-  is_vegan boolean DEFAULT false,
-  search_vector tsvector,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT ingredients_master_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.menu_categories (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -413,10 +387,10 @@ CREATE TABLE public.user_points (
 CREATE TABLE public.user_preferences (
   user_id uuid NOT NULL,
   diet_preference text DEFAULT 'all'::text CHECK (diet_preference = ANY (ARRAY['all'::text, 'vegetarian'::text, 'vegan'::text])),
-  allergies jsonb DEFAULT '{"soy": false, "nuts": false, "gluten": false, "sesame": false, "lactose": false, "peanuts": false, "shellfish": false}'::jsonb,
-  exclude jsonb DEFAULT '{"noEggs": false, "noFish": false, "noMeat": false, "noDairy": false, "noSpicy": false, "noSeafood": false}'::jsonb,
-  diet_types jsonb DEFAULT '{"keto": false, "paleo": false, "lowCarb": false, "diabetic": false, "pescatarian": false}'::jsonb,
-  religious_restrictions jsonb DEFAULT '{"jain": false, "halal": false, "hindu": false, "kosher": false, "buddhist": false}'::jsonb,
+  allergies text[] DEFAULT '{}'::text[],
+  exclude text[] DEFAULT '{}'::text[],
+  diet_types text[] DEFAULT '{}'::text[],
+  religious_restrictions text[] DEFAULT '{}'::text[],
   default_max_distance integer DEFAULT 5,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),

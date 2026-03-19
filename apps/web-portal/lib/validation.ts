@@ -57,11 +57,7 @@ export const dishSchema = z.object({
   calories: z.number().min(0).max(5000).optional().or(z.nan()),
   dietary_tags: z.array(z.string()),
   allergens: z.array(z.string()),
-  ingredients: z.array(z.string()),
-  spice_level: z
-    .union([z.literal(0), z.literal(1), z.literal(3)])
-    .optional()
-    .nullable(),
+  spice_level: z.enum(['none', 'mild', 'hot']).optional().nullable(),
   photo_url: z.string().optional(),
   is_available: z.boolean().optional(),
   description_visibility: z.enum(['menu', 'detail']).optional(),

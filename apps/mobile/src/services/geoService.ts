@@ -61,7 +61,7 @@ export interface RestaurantWithDistance {
       price: number;
       dietary_tags?: string[];
       allergens?: string[];
-      spice_level?: number;
+      spice_level?: 'none' | 'mild' | 'hot';
       is_available: boolean;
     }>;
   }>;

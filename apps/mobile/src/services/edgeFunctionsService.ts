@@ -23,13 +23,12 @@ export interface ServerDish {
   price: number;
   calories?: number;
   image_url?: string;
-  spice_level?: number;
+  spice_level?: 'none' | 'mild' | 'hot';
   is_available: boolean;
 
   // Arrays from database
   allergens: string[];
   dietary_tags: string[];
-  ingredients: string[];
 
   // Restaurant info (joined)
   restaurant?: {
@@ -52,6 +51,12 @@ export interface ServerDish {
    */
   flagged_ingredients: string[];
 }
+
+/** Maps filterStore allergy keys to allergens.code values used in dishes.allergens TEXT[]. */
+const ALLERGY_CODE_MAP: Partial<Record<keyof PermanentFilters['allergies'], string>> = {
+  soy: 'soybeans',
+  nuts: 'tree_nuts',
+};
 
 /**
  * Feed request parameters
@@ -123,7 +128,10 @@ export async function getFeed(
         : undefined,
       allergens: Object.entries(permanentFilters.allergies)
         .filter(([_, active]) => active)
-        .map(([allergen]) => allergen),
+        .map(
+          ([allergen]) =>
+            ALLERGY_CODE_MAP[allergen as keyof PermanentFilters['allergies']] ?? allergen
+        ),
       cuisines: dailyFilters.cuisineTypes,
       flagIngredients:
         permanentFilters.ingredientsToAvoid.length > 0

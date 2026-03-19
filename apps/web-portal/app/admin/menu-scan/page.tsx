@@ -690,7 +690,7 @@ export default function MenuScanPage() {
           ? [...rawTags, 'vegetarian']
           : rawTags;
       const suggestedAllergens: string[] = data.allergens ?? [];
-      const suggestedSpice: number | null = data.spice_level ?? null;
+      const suggestedSpice: 'none' | 'mild' | 'hot' | null = data.spice_level ?? null;
 
       // Compute toast summary from snapshot BEFORE setState (accurate for single-user admin)
       const snap = editableMenus[mIdx]?.categories[cIdx]?.dishes[dIdx];
@@ -832,7 +832,7 @@ export default function MenuScanPage() {
                 ? [...rawTags, 'vegetarian']
                 : rawTags;
             const suggestedAllergens: string[] = data.allergens ?? [];
-            const suggestedSpice: number | null = data.spice_level ?? null;
+            const suggestedSpice: 'none' | 'mild' | 'hot' | null = data.spice_level ?? null;
 
             setEditableMenus(prev =>
               prev.map((m, mi) => {
@@ -1984,15 +1984,17 @@ export default function MenuScanPage() {
                                         onChange={e =>
                                           updateDish(mIdx, cIdx, dIdx, {
                                             spice_level:
-                                              e.target.value === '' ? null : Number(e.target.value),
+                                              e.target.value === ''
+                                                ? null
+                                                : (e.target.value as 'none' | 'mild' | 'hot'),
                                           })
                                         }
                                         className="text-xs border border-gray-200 rounded px-2 py-1.5 bg-white focus:outline-none focus:border-orange-400"
                                       >
                                         <option value="">—</option>
-                                        <option value="0">No spice</option>
-                                        <option value="1">🌶️</option>
-                                        <option value="3">🌶️🌶️🌶️</option>
+                                        <option value="none">No spice</option>
+                                        <option value="mild">🌶️</option>
+                                        <option value="hot">🌶️🌶️🌶️</option>
                                       </select>
                                     </div>
                                     <div>

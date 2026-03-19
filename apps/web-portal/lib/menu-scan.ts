@@ -91,7 +91,7 @@ export interface EditableDish {
   price: string; // string for <input type="number"> handling
   description: string;
   dietary_tags: string[]; // dietary_tags.code values
-  spice_level: number | null;
+  spice_level: 'none' | 'mild' | 'hot' | null;
   calories: number | null;
   dish_category_id: string | null;
   confidence: number;
@@ -121,7 +121,7 @@ export interface ConfirmDish {
   price: number;
   description?: string;
   dietary_tags: string[];
-  spice_level?: number | null;
+  spice_level?: 'none' | 'mild' | 'hot' | null;
   calories?: number | null;
   dish_category_id?: string | null;
   canonical_ingredient_ids: string[];
@@ -314,7 +314,14 @@ export function toEditableMenus(enriched: EnrichedResult): EditableMenu[] {
         price: dish.price != null ? String(dish.price) : '',
         description: dish.description ?? '',
         dietary_tags: dish.mapped_dietary_tags ?? [],
-        spice_level: dish.spice_level ?? null,
+        spice_level:
+          dish.spice_level == null
+            ? null
+            : dish.spice_level === 0
+              ? 'none'
+              : dish.spice_level <= 2
+                ? 'mild'
+                : 'hot',
         calories: dish.calories ?? null,
         dish_category_id: null,
         confidence: dish.confidence,

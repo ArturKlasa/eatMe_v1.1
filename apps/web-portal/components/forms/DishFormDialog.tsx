@@ -94,8 +94,7 @@ export function DishFormDialog({
       calories: undefined,
       dietary_tags: [] as string[],
       allergens: [] as string[],
-      ingredients: [] as string[],
-      spice_level: 0,
+      spice_level: 'none' as const,
       photo_url: '',
       is_available: true,
       dish_category_id: null,
@@ -132,8 +131,7 @@ export function DishFormDialog({
         calories: dish.calories || undefined,
         dietary_tags: dish.dietary_tags || [],
         allergens: dish.allergens || [],
-        ingredients: dish.ingredients || [],
-        spice_level: dish.spice_level || 0,
+        spice_level: (dish.spice_level as 'none' | 'mild' | 'hot') || 'none',
         photo_url: dish.photo_url || '',
         is_available: dish.is_available !== false,
         dish_category_id: dish.dish_category_id ?? null,
@@ -192,8 +190,7 @@ export function DishFormDialog({
         calories: undefined,
         dietary_tags: [],
         allergens: [],
-        ingredients: [],
-        spice_level: 0,
+        spice_level: 'none' as const,
         photo_url: '',
         is_available: true,
         dish_category_id: null,
@@ -206,7 +203,7 @@ export function DishFormDialog({
 
   const dietaryTags = useWatch({ control, name: 'dietary_tags', defaultValue: [] }) || [];
   const allergens = useWatch({ control, name: 'allergens', defaultValue: [] }) || [];
-  const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 0 });
+  const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 'none' });
   const dishCategoryId = useWatch({ control, name: 'dish_category_id', defaultValue: null });
 
   const handleFormSubmit = async (data: DishFormData) => {
@@ -220,8 +217,7 @@ export function DishFormDialog({
         calories: !isNaN(data.calories as number) ? data.calories : undefined,
         dietary_tags: data.dietary_tags || [],
         allergens: data.allergens || [],
-        ingredients: data.ingredients || [],
-        spice_level: !isNaN(data.spice_level as number) ? data.spice_level : undefined,
+        spice_level: data.spice_level || undefined,
         photo_url: data.photo_url,
         is_available: data.is_available !== false,
         dish_category_id: data.dish_category_id ?? null,
@@ -249,8 +245,7 @@ export function DishFormDialog({
         dietary_tags: data.dietary_tags || [],
         allergens: data.allergens || [],
         calories: !isNaN(data.calories as number) && data.calories != null ? data.calories : null,
-        spice_level:
-          !isNaN(data.spice_level as number) && data.spice_level != null ? data.spice_level : null,
+        spice_level: data.spice_level && data.spice_level !== 'none' ? data.spice_level : null,
         description_visibility: data.description_visibility ?? 'menu',
         ingredients_visibility: data.ingredients_visibility ?? 'detail',
       };
@@ -612,13 +607,15 @@ export function DishFormDialog({
             <h3 className="text-sm font-semibold text-gray-700">Spice Level</h3>
 
             <RadioGroup
-              value={spiceLevel?.toString() || '0'}
-              onValueChange={value => setValue('spice_level', value ? parseInt(value) : 0)}
+              value={spiceLevel || 'none'}
+              onValueChange={value =>
+                setValue('spice_level', (value as 'none' | 'mild' | 'hot') || 'none')
+              }
             >
               <div className="grid grid-cols-3 gap-2">
                 {SPICE_LEVELS.map(level => (
                   <div key={level.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={level.value.toString()} id={`spice-${level.value}`} />
+                    <RadioGroupItem value={level.value} id={`spice-${level.value}`} />
                     <Label
                       htmlFor={`spice-${level.value}`}
                       className="text-xs font-normal cursor-pointer flex flex-col items-center"

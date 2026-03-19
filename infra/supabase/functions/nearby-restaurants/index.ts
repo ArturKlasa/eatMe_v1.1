@@ -138,6 +138,16 @@ serve(async req => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // § Phase 2 telemetry gate: log every inbound request so we can monitor whether
+  // any client still calls this endpoint after the feed Edge Function takes over
+  // restaurant filtering. Once production traffic drops to zero for a full week,
+  // this function can be removed from the registry.
+  console.log('[nearby-restaurants] request received', {
+    ts: new Date().toISOString(),
+    ua: req.headers.get('user-agent'),
+    referer: req.headers.get('referer'),
+  });
+
   try {
     // Parse request body
     const {

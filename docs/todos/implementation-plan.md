@@ -422,11 +422,11 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Extend `feed/index.ts`** to accept a `mode` parameter:
+- [x] **Extend `feed/index.ts`** to accept a `mode` parameter:
   - `mode: 'dishes'` — current behaviour (default)
   - `mode: 'restaurants'` — returns filtered + scored restaurants instead of dishes
   - Restaurant mode uses the same hard/soft filter pipeline, then aggregates to restaurant level
-- [ ] **Implement hard/soft filter alignment in the Edge Function:**
+- [x] **Implement hard/soft filter alignment in the Edge Function:**
 
   **Hard filters (permanent — absolute exclusion, SQL WHERE):**
   - `diet_preference` — exclude dishes where `dietary_tags` don't include the required diet tag
@@ -444,22 +444,22 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   - `ingredients_to_avoid` (permanent) — annotate, never exclude
   - `calorieRange` (daily) — boost dishes in range
 
-- [ ] **Update `calculateScore()`** to accept all soft signals and produce boost points for each
-- [ ] **Remove price as a hard filter** from the current feed Edge Function (it is currently a hard exclusion — see review §9.6)
-- [ ] **Remove calorie range as a hard filter** from the current feed Edge Function
+- [x] **Update `calculateScore()`** to accept all soft signals and produce boost points for each
+- [x] **Remove price as a hard filter** from the current feed Edge Function (it is currently a hard exclusion — see review §9.6)
+- [x] **Remove calorie range as a hard filter** from the current feed Edge Function
 
 ### 2.2 Update the mobile app to call the Edge Function for all filtered results
 
 **Tasks:**
 
-- [ ] **Update `edgeFunctionsService.ts`:**
+- [x] **Update `edgeFunctionsService.ts`:**
   - Add `getFilteredRestaurants()` function (or extend `getFeed()` with `mode: 'restaurants'`)
   - Pass all daily + permanent filter fields to the Edge Function
-- [ ] **Update `BasicMapScreen.tsx`:**
+- [x] **Update `BasicMapScreen.tsx`:**
   - Remove `filterService.applyFilters()` call
   - Call the Edge Function for restaurant results instead
   - Handle loading states (edge function has ~200ms latency vs instant client-side)
-- [ ] **Update `filterStore.ts`:**
+- [x] **Update `filterStore.ts`:**
   - Keep as UI state container only
   - Remove any `applyFilters` action if it exists in the store
   - `setDailyFilters()` should trigger a new Edge Function call (via a listener or direct call)
@@ -468,9 +468,9 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Audit usages:** Find all imports of `filterService` across mobile code
-- [ ] **Remove `filterService.ts`** (504 lines) — or keep `estimateAvgPrice()` and `validateFilters()` if still needed, move them to a utility
-- [ ] **Gate `nearby-restaurants` removal behind telemetry:**
+- [x] **Audit usages:** Find all imports of `filterService` across mobile code
+- [ ] **Remove `filterService.ts`** (504 lines) — or keep `estimateAvgPrice()` and `validateFilters()` if still needed, move them to a utility _(deferred: `estimateAvgPrice` still used by BasicMapScreen for map display; remove in follow-up once restaurant data includes avg_price from DB)_
+- [x] **Gate `nearby-restaurants` removal behind telemetry:**
   - Do NOT remove `nearby-restaurants/index.ts` in Phase 2. Add request logging to it first.
   - After Phase 2 ships: monitor for one full week. If production traffic to `nearby-restaurants` drops to zero, proceed with removal in a follow-up migration.
   - If any client still calls it (older app builds), keep as a no-op passthrough until traffic is zero.
@@ -484,22 +484,22 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Load `user_preferences`** in the feed Edge Function (currently it only loads `user_dish_interactions`)
-- [ ] **Wire `religious_restrictions`** as a hard filter (if `['HALAL']` → exclude dishes without HALAL dietary tag)
-- [ ] **Wire `spice_tolerance`** as a soft boost (boost dishes matching user's tolerance level)
-- [ ] **Wire `favorite_cuisines`** as a soft boost (same as daily `cuisineTypes` boost, but persistent)
-- [ ] **Update `filterStore` sync** to cover all persisted preference fields
+- [x] **Load `user_preferences`** in the feed Edge Function (currently it only loads `user_dish_interactions`)
+- [x] **Wire `religious_restrictions`** as a hard filter (if `['HALAL']` → exclude dishes without HALAL dietary tag)
+- [x] **Wire `spice_tolerance`** as a soft boost (boost dishes matching user's tolerance level)
+- [x] **Wire `favorite_cuisines`** as a soft boost (same as daily `cuisineTypes` boost, but persistent)
+- [x] **Update `filterStore` sync** to cover all persisted preference fields
 
 ### Phase 2 — Acceptance Criteria
 
-- [ ] Map screen shows restaurants fetched from the Edge Function, not filtered client-side
-- [ ] `filterService.applyFilters()` is no longer called anywhere
-- [ ] Hard filters (allergies, diet, religious) absolutely exclude violating dishes/restaurants
-- [ ] Soft filters (cuisine, price, spice, protein, distance) boost but never hide
-- [ ] Selecting "Italian" in daily cuisine filter shows Italian at top, but other cuisines still visible below
-- [ ] Price range filter does not hide dishes — dishes near the range score higher
-- [ ] `religious_restrictions`, `spice_tolerance`, `favorite_cuisines` from `user_preferences` are active in the feed
-- [ ] Feed response time < 500ms for typical queries
+- [x] Map screen shows restaurants fetched from the Edge Function, not filtered client-side
+- [x] `filterService.applyFilters()` is no longer called anywhere
+- [x] Hard filters (allergies, diet, religious) absolutely exclude violating dishes/restaurants
+- [x] Soft filters (cuisine, price, spice, protein, distance) boost but never hide
+- [x] Selecting "Italian" in daily cuisine filter shows Italian at top, but other cuisines still visible below
+- [x] Price range filter does not hide dishes — dishes near the range score higher
+- [x] `religious_restrictions`, `spice_tolerance`, `favorite_cuisines` from `user_preferences` are active in the feed
+- [ ] Feed response time < 500ms for typical queries _(to be validated with production traffic)_
 
 **Estimated effort:** 5–7 days
 

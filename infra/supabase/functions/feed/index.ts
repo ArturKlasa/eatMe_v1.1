@@ -29,14 +29,38 @@ function getRedis(): Redis | null {
 interface FeedRequest {
   location: { lat: number; lng: number };
   radius?: number; // km, default 10
+  /**
+   * 'dishes'      — default; returns a ranked list of individual dishes
+   * 'restaurants' — returns filtered + scored restaurants aggregated from dish results
+   */
+  mode?: 'dishes' | 'restaurants';
   filters: {
     priceRange?: [number, number];
-    dietPreference?: string; // hard filter — from permanent filters only
-    preferredDiet?: string; // soft boost — from daily filters
-    calorieRange?: { min: number; max: number };
-    allergens?: string[];
-    cuisines?: string[];
-    /** canonical_ingredient_id UUIDs — dishes containing any are annotated, not excluded. */
+    dietPreference?: string; // hard — permanent filters only
+    preferredDiet?: string; // soft boost — daily diet filter
+    calorieRange?: { min: number; max: number }; // NOW SOFT — boost only, no hard exclusion
+    allergens?: string[]; // hard — absolute exclusion
+    /** TEXT[] of dietary_tag codes — hard exclusion (e.g. ['halal'] excludes non-halal dishes) */
+    religiousRestrictions?: string[];
+    cuisines?: string[]; // soft boost
+    /**
+     * Daily spice preference: 'noSpicy' | 'eitherWay' | 'iLikeSpicy'
+     * Mapped to boost logic in calculateScore
+     */
+    spiceLevel?: string;
+    /** Permanent spice tolerance from user_preferences.spice_tolerance ('none'|'mild'|'hot') */
+    spiceTolerance?: string;
+    /** Permanent favorite cuisines from user_preferences.favorite_cuisines */
+    favoriteCuisines?: string[];
+    /** Sort order for restaurant mode */
+    sortBy?: 'closest' | 'bestMatch' | 'highestRated';
+    /** Hard filter for restaurant mode: exclude restaurants that are closed */
+    openNow?: boolean;
+    /**
+     * canonical_ingredient_id UUIDs from the user's "Ingredients to Avoid" list.
+     * Dishes containing these are still shown but annotated with flagged_ingredients
+     * so the UI can display a warning instead of hiding the dish.
+     */
     flagIngredients?: string[];
   };
   userId?: string;
@@ -54,9 +78,9 @@ serve(async req => {
   try {
     // Parse request
     const body: FeedRequest = await req.json();
-    const { location, radius = 10, filters, userId, limit = 20 } = body;
+    const { location, radius = 10, mode = 'dishes', filters, userId, limit = 20 } = body;
 
-    console.log('[Feed] Request:', { location, radius, filters, userId, limit });
+    console.log('[Feed] Request:', { location, radius, mode, filters, userId, limit });
 
     // Validate location
     if (!location || !location.lat || !location.lng) {
@@ -127,6 +151,51 @@ serve(async req => {
         console.error('[Feed] Error loading user history (non-fatal):', err);
       }
     }
+
+    // 1b. Load user preferences (spice tolerance, favourite cuisines, religious restrictions)
+    //     These supplement filter values sent by the client.
+    let dbSpiceTolerance: string | null = null;
+    let dbFavoriteCuisines: string[] = [];
+    let dbReligiousRestrictions: string[] = [];
+
+    if (userId && userId !== 'anonymous') {
+      try {
+        const { data: prefs } = await supabase
+          .from('user_preferences')
+          .select('spice_tolerance, favorite_cuisines, religious_restrictions')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (prefs) {
+          dbSpiceTolerance = prefs.spice_tolerance ?? null;
+          dbFavoriteCuisines = Array.isArray(prefs.favorite_cuisines)
+            ? prefs.favorite_cuisines
+            : [];
+          // religious_restrictions is now TEXT[] after migration 051
+          dbReligiousRestrictions = Array.isArray(prefs.religious_restrictions)
+            ? prefs.religious_restrictions
+            : [];
+        }
+      } catch (err) {
+        console.error('[Feed] Error loading user preferences (non-fatal):', err);
+      }
+    }
+
+    // Merge client-supplied preferences with DB values; client takes precedence
+    const spiceTolerance = filters.spiceTolerance ?? dbSpiceTolerance;
+    const favoriteCuisines =
+      filters.favoriteCuisines && filters.favoriteCuisines.length > 0
+        ? filters.favoriteCuisines
+        : dbFavoriteCuisines;
+    // Client-supplied religiousRestrictions override DB; fall back to DB if not supplied
+    const religiousRestrictions =
+      filters.religiousRestrictions && filters.religiousRestrictions.length > 0
+        ? filters.religiousRestrictions
+        : dbReligiousRestrictions;
+
+    console.log(
+      `[Feed] User prefs — spiceTolerance: ${spiceTolerance}, favCuisines: ${favoriteCuisines.length}, religious: ${religiousRestrictions.length}`
+    );
 
     // 2. Find nearby restaurants — try PostGIS RPC first, fall back to JS haversine if unavailable
     let nearbyRestaurants: any[] = [];
@@ -228,25 +297,15 @@ serve(async req => {
       );
     }
 
-    // Price filter — min/max are dollar amounts from the app slider (range: 10–50).
-    // The edges are open: min=10 means "no lower bound" (include all cheaper dishes),
-    // max=50 means "no upper bound" (include all more expensive dishes).
-    if (filters.priceRange) {
-      const [min, max] = filters.priceRange;
-      const SLIDER_MIN = 10;
-      const SLIDER_MAX = 50;
-      filteredDishes = filteredDishes.filter((d: any) => {
-        const aboveMin = min <= SLIDER_MIN ? true : d.price >= min;
-        const belowMax = max >= SLIDER_MAX ? true : d.price <= max;
-        return aboveMin && belowMax;
-      });
-      console.log(
-        `[Feed] After price filter (${min <= SLIDER_MIN ? 'no min' : `$${min}`}–${max >= SLIDER_MAX ? 'no max' : `$${max}`}): ${filteredDishes.length}`
-      );
-    }
+    // Price filter — NOW A SOFT BOOST in calculateScore, not a hard exclusion.
+    // Removing dishes based on price harms discovery (the user may not have set the slider
+    // intentionally tight). Dishes outside the range score lower but remain visible.
+    // See calculateScore() for the boost logic.
+
+    // Calorie filter — NOW A SOFT BOOST in calculateScore, not a hard exclusion.
+    // Same rationale: many dishes have no calorie data, hard exclusion would remove too many.
 
     // Diet preference filter — HARD exclusion, permanent filters only.
-    // Daily diet preference is handled as a scoring boost below, not here.
     if (filters.dietPreference && filters.dietPreference !== 'all') {
       console.log(`[Feed] Filtering by diet preference: ${filters.dietPreference}`);
       filteredDishes = filteredDishes.filter((d: any) => {
@@ -271,17 +330,6 @@ serve(async req => {
       console.log(`[Feed] After diet filter: ${filteredDishes.length}`);
     }
 
-    // Calorie filter
-    if (filters.calorieRange) {
-      filteredDishes = filteredDishes.filter(
-        (d: any) =>
-          d.calories &&
-          d.calories >= filters.calorieRange!.min &&
-          d.calories <= filters.calorieRange!.max
-      );
-      console.log(`[Feed] After calorie filter: ${filteredDishes.length}`);
-    }
-
     // Allergen filter (exclude dishes with user's allergens)
     if (filters.allergens && filters.allergens.length > 0) {
       filteredDishes = filteredDishes.filter((d: any) => {
@@ -289,6 +337,19 @@ serve(async req => {
         return !filters.allergens!.some(allergen => dishAllergens.includes(allergen));
       });
       console.log(`[Feed] After allergen filter: ${filteredDishes.length}`);
+    }
+
+    // Religious restrictions filter — HARD exclusion.
+    // Exclude dishes that don't carry the required dietary_tag(s).
+    // e.g. religiousRestrictions = ['halal'] → only dishes where dietary_tags includes 'halal'
+    if (religiousRestrictions.length > 0) {
+      filteredDishes = filteredDishes.filter((d: any) => {
+        const tags: string[] = d.dietary_tags || [];
+        return religiousRestrictions.every(r => tags.includes(r));
+      });
+      console.log(
+        `[Feed] After religious restrictions filter (${religiousRestrictions.join(', ')}): ${filteredDishes.length}`
+      );
     }
 
     // Ingredient flag annotation — soft warning, NOT a hard exclusion.
@@ -352,14 +413,15 @@ serve(async req => {
         distance_km,
         userId,
         userLikes,
-        userLikedCuisines
+        userLikedCuisines,
+        { spiceTolerance, favoriteCuisines }
       );
 
       return {
         ...dish,
         score,
         distance_km,
-        is_personalized: userLikes.length > 0, // Mark if personalized
+        is_personalized: userLikes.length > 0,
       };
     });
 
@@ -369,7 +431,78 @@ serve(async req => {
     // 6. Apply diversity (max 3 dishes per restaurant in results)
     const diversified = applyDiversity(scoredDishes, 3);
 
-    // 7. Take top N
+    // 7a. RESTAURANT MODE — aggregate dishes to restaurant level
+    if (mode === 'restaurants') {
+      const restaurantMap = new Map<string, any>();
+      for (const dish of diversified) {
+        const rid = dish.restaurant_id;
+        if (!restaurantMap.has(rid)) {
+          const r = nearbyRestaurants.find((nr: any) => nr.id === rid);
+          restaurantMap.set(rid, {
+            id: rid,
+            name: dish.restaurant?.name,
+            cuisine_types: dish.restaurant?.cuisine_types ?? [],
+            rating: dish.restaurant?.rating ?? 0,
+            distance_km: dish.distance_km,
+            score: dish.score,
+            // location available from nearbyRestaurants
+            location: r?.location ?? null,
+            is_open: r?.is_open ?? true,
+          });
+        } else {
+          const existing = restaurantMap.get(rid);
+          if (dish.score > existing.score) existing.score = dish.score;
+        }
+      }
+
+      let restaurantList = Array.from(restaurantMap.values());
+
+      // openNow hard filter — requires is_open flag from nearby-restaurants
+      if (filters.openNow) {
+        restaurantList = restaurantList.filter((r: any) => r.is_open);
+      }
+
+      // Sort for restaurant mode
+      switch (filters.sortBy) {
+        case 'closest':
+          restaurantList.sort((a: any, b: any) => a.distance_km - b.distance_km);
+          break;
+        case 'highestRated':
+          restaurantList.sort((a: any, b: any) => b.rating - a.rating);
+          break;
+        case 'bestMatch':
+        default:
+          restaurantList.sort((a: any, b: any) => b.score - a.score);
+      }
+
+      const restaurantResult = restaurantList.slice(0, limit);
+
+      const restaurantResponse = {
+        restaurants: restaurantResult,
+        metadata: {
+          totalAvailable: restaurantMap.size,
+          returned: restaurantResult.length,
+          cached: false,
+          processingTime: Date.now() - startTime,
+          personalized: !!(userId && userId !== 'anonymous'),
+        },
+      };
+
+      if (redis) {
+        try {
+          await redis.setex(cacheKey, 300, JSON.stringify(restaurantResponse));
+        } catch {}
+      }
+
+      console.log(
+        `[Feed] Returning ${restaurantResult.length} restaurants (${Date.now() - startTime}ms)`
+      );
+      return new Response(JSON.stringify(restaurantResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 7b. DISHES MODE (default)
     const result = diversified.slice(0, limit);
 
     const responseData = {
@@ -415,7 +548,8 @@ function calculateScore(
   distance_km: number,
   userId?: string,
   userLikes: string[] = [],
-  userLikedCuisines: string[] = []
+  userLikedCuisines: string[] = [],
+  userPrefs: { spiceTolerance?: string | null; favoriteCuisines?: string[] } = {}
 ): number {
   let score = 50; // Base score
 
@@ -428,89 +562,106 @@ function calculateScore(
   if (dish.analytics?.popularity_score) {
     score += dish.analytics.popularity_score * 15;
   } else if (dish.analytics?.right_swipe_count) {
-    // Fallback: calculate from swipes
     const popularity = Math.min(dish.analytics.right_swipe_count / 100, 1);
     score += popularity * 15;
   }
 
   // Distance bonus (0-15 points, closer is better)
-  const distanceScore = Math.max(0, 15 - distance_km * 2);
-  score += distanceScore;
+  score += Math.max(0, 15 - distance_km * 2);
 
   // Has image (5 points)
-  if (dish.image_url) {
-    score += 5;
-  }
+  if (dish.image_url) score += 5;
 
   // Has description (3 points)
-  if (dish.description && dish.description.length > 20) {
-    score += 3;
-  }
+  if (dish.description && dish.description.length > 20) score += 3;
 
-  // Calorie preference match (bonus)
-  if (filters.calorieRange && dish.calories) {
-    const targetMid = (filters.calorieRange.min + filters.calorieRange.max) / 2;
-    const deviation = Math.abs(dish.calories - targetMid);
-    if (deviation < 100) {
-      score += 5; // Close to target
+  // === SOFT: PRICE PROXIMITY (0-15 points) ===
+  // Dishes close to the midpoint of the user's price range score higher.
+  // No dish is excluded — those outside the range simply score 0 here.
+  if (filters.priceRange && dish.price != null) {
+    const [min, max] = filters.priceRange;
+    const SLIDER_MIN = 10;
+    const SLIDER_MAX = 50;
+    const effectiveMin = min <= SLIDER_MIN ? 0 : min;
+    const effectiveMax = max >= SLIDER_MAX ? Infinity : max;
+    if (dish.price >= effectiveMin && dish.price <= effectiveMax) {
+      const mid = (effectiveMin + effectiveMax) / 2 || dish.price;
+      const deviation = Math.abs(dish.price - mid);
+      const range = Math.max(effectiveMax - effectiveMin, 1);
+      score += Math.max(0, 15 * (1 - deviation / range));
     }
+    // Outside range: 0 bonus (still shown)
   }
 
-  // === DAILY DIET PREFERENCE BOOST ===
-  // When the user picks vegetarian/vegan as a daily (soft) filter,
-  // dishes that match get a significant score bump so they float to the top
-  // without excluding anything.
+  // === SOFT: CALORIE PROXIMITY (0-8 points) ===
+  if (filters.calorieRange && dish.calories) {
+    const { min, max } = filters.calorieRange;
+    if (dish.calories >= min && dish.calories <= max) {
+      const mid = (min + max) / 2;
+      const deviation = Math.abs(dish.calories - mid);
+      const range = Math.max(max - min, 1);
+      score += Math.max(0, 8 * (1 - deviation / range));
+    }
+    // Outside range: 0 bonus (still shown — many dishes have no calorie data)
+  }
+
+  // === SOFT: DAILY DIET PREFERENCE BOOST (30 points) ===
   if (filters.preferredDiet && filters.preferredDiet !== 'all') {
     const tags: string[] = dish.dietary_tags || [];
-    const matchesDailyDiet =
+    const matches =
       filters.preferredDiet === 'vegan'
         ? tags.includes('vegan')
         : tags.includes('vegetarian') || tags.includes('vegan');
-    if (matchesDailyDiet) {
-      score += 30; // strong enough to surface above untagged dishes
-    }
+    if (matches) score += 30;
   }
 
-  // === CUISINE PREFERENCE BOOST ===
-  // Dishes from the selected cuisines float to the top; dishes from other
-  // cuisines still appear so the user always sees something nearby.
+  // === SOFT: DAILY CUISINE BOOST (40 points) ===
   if (filters.cuisines && filters.cuisines.length > 0) {
     const restaurantCuisines: string[] = dish.restaurant?.cuisine_types || [];
-    const matchesCuisine = filters.cuisines.some((c: string) => restaurantCuisines.includes(c));
-    if (matchesCuisine) {
-      score += 40; // strong boost — matching cuisine clearly ranks first
+    if (filters.cuisines.some((c: string) => restaurantCuisines.includes(c))) {
+      score += 40;
     }
   }
 
-  // === PERSONALIZATION BONUSES (if user has history) ===
-  if (userId && userId !== 'anonymous' && userLikes.length > 0) {
-    // Cuisine preference match (0-20 points)
-    if (userLikedCuisines.length > 0) {
-      const dishCuisines = dish.restaurant?.cuisine_types || [];
-      const cuisineMatch = dishCuisines.some((c: string) => userLikedCuisines.includes(c));
-      if (cuisineMatch) {
-        score += 20; // Strong boost for preferred cuisines
-        console.log(`[Score] Cuisine boost for ${dish.name} (+20)`);
-      }
-    }
+  // === SOFT: DAILY SPICE LEVEL PREFERENCE (0-20 points) ===
+  // spiceLevel: 'noSpicy' | 'eitherWay' | 'iLikeSpicy'
+  // dish.spice_level: 'none' | 'mild' | 'hot'
+  if (filters.spiceLevel && filters.spiceLevel !== 'eitherWay') {
+    const dishSpice = dish.spice_level ?? 'none';
+    if (filters.spiceLevel === 'noSpicy' && dishSpice === 'none') score += 20;
+    if (filters.spiceLevel === 'iLikeSpicy' && dishSpice === 'hot') score += 20;
+    if (filters.spiceLevel === 'iLikeSpicy' && dishSpice === 'mild') score += 10;
+    if (filters.spiceLevel === 'noSpicy' && dishSpice === 'hot') score -= 15; // soft penalty
+  }
 
-    // Similar dish from same restaurant (0-15 points)
-    // If user liked other dishes from this restaurant, boost this one
-    const likedFromSameRestaurant = userLikes.filter((likedId: string) => {
-      // This would require fetching the liked dishes' restaurant_ids
-      // For now, we'll skip this optimization
-      return false;
-    }).length;
-    if (likedFromSameRestaurant > 0) {
-      score += Math.min(likedFromSameRestaurant * 5, 15);
-      console.log(
-        `[Score] Same restaurant boost for ${dish.name} (+${Math.min(likedFromSameRestaurant * 5, 15)})`
-      );
+  // === SOFT: PERMANENT SPICE TOLERANCE (0-15 points) ===
+  // spiceTolerance: 'none' | 'mild' | 'hot' (matches dish.spice_level values)
+  if (userPrefs.spiceTolerance) {
+    const dishSpice = dish.spice_level ?? 'none';
+    const toleranceOrder: Record<string, number> = { none: 0, mild: 1, hot: 2 };
+    const dishLevel = toleranceOrder[dishSpice] ?? 0;
+    const toleranceLevel = toleranceOrder[userPrefs.spiceTolerance] ?? 0;
+    if (dishLevel <= toleranceLevel) {
+      score += 15; // dish is within user's tolerance
+    } else {
+      score -= 10; // dish exceeds tolerance — soft penalty
     }
+  }
 
-    // Price similarity to liked dishes (0-5 points)
-    // This would require average price of liked dishes
-    // Skipping for now as it requires additional data
+  // === SOFT: FAVOURITE CUISINES FROM USER PREFERENCES (0-20 points) ===
+  if (userPrefs.favoriteCuisines && userPrefs.favoriteCuisines.length > 0) {
+    const restaurantCuisines: string[] = dish.restaurant?.cuisine_types || [];
+    if (userPrefs.favoriteCuisines.some((c: string) => restaurantCuisines.includes(c))) {
+      score += 20;
+    }
+  }
+
+  // === PERSONALISATION: LIKED CUISINES FROM SWIPE HISTORY (0-20 points) ===
+  if (userId && userId !== 'anonymous' && userLikedCuisines.length > 0) {
+    const dishCuisines = dish.restaurant?.cuisine_types || [];
+    if (dishCuisines.some((c: string) => userLikedCuisines.includes(c))) {
+      score += 20;
+    }
   }
 
   return Math.round(score);

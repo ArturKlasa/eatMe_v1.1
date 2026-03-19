@@ -11,14 +11,13 @@ import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { estimateAvgPrice } from '../services/filterService';
 import {
-  applyFilters,
-  validateFilters,
-  getFilterSuggestions,
-  estimateAvgPrice,
-} from '../services/filterService';
-import type { FilterResult } from '../services/filterService';
-import { getFeed, ServerDish } from '../services/edgeFunctionsService';
+  getFeed,
+  getFilteredRestaurants,
+  ServerDish,
+  ServerRestaurant,
+} from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
 import { isRestaurantOpenNow } from '../utils/i18nUtils';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
@@ -107,6 +106,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const [isRatingFlowVisible, setIsRatingFlowVisible] = useState(false);
   const [feedDishes, setFeedDishes] = useState<ServerDish[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
+  const [filteredRestaurants, setFilteredRestaurants] = useState<ServerRestaurant[]>([]);
 
   // Auth and session
   const user = useAuthStore(state => state.user);
@@ -184,31 +184,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return result;
   }, [nearbyRestaurants]);
 
-  // Apply filters to restaurants with performance optimization
-  const filteredResults = useMemo(() => {
-    if (geoLoading) return { restaurants: [], dishes: [] };
-
-    debugLog('Applying filters to restaurants...');
-    const result = applyFilters(restaurants, daily, permanent);
-    debugLog(`Filtered ${restaurants.length} → ${result.restaurants.length} restaurants`);
-
-    // Validate filters and log any issues
-    const validation = validateFilters(daily, permanent);
-    if (!validation.isValid) {
-      debugLog('Filter validation errors:', validation.errors);
-    }
-
-    // Log filter suggestions if needed
-    const suggestions = getFilterSuggestions(daily, permanent, result.restaurants.length);
-    if (suggestions.length > 0) {
-      debugLog('Filter suggestions:', suggestions);
-    }
-
-    return result;
-  }, [restaurants, daily, permanent, geoLoading]);
+  // filteredRestaurants is now populated by the Edge Function (getFilteredRestaurants)
+  // via the useEffect below. No client-side filtering is performed here.
 
   // Extract restaurants for easy access
-  const displayedRestaurants = filteredResults.restaurants;
+  const displayedRestaurants = filteredRestaurants;
 
   // Map edge-function ServerDish results into the shape MapFooter expects.
   // Limit to 5 dishes, at most one per restaurant.
@@ -329,6 +309,38 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return () => clearTimeout(timeoutId);
   }, [loadNearbyDataStable]);
   */
+
+  // Fetch filtered restaurants from the Edge Function whenever location or filters change.
+  // Replaces the previous client-side filterService.applyFilters() call.
+  useEffect(() => {
+    if (!userLocation) return;
+
+    let cancelled = false;
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await getFilteredRestaurants(
+          { lat: userLocation.latitude, lng: userLocation.longitude },
+          daily,
+          permanent,
+          undefined, // userId omitted until auth is wired
+          10
+        );
+        if (!cancelled) {
+          setFilteredRestaurants(response.restaurants);
+          debugLog(`[BasicMapScreen] Restaurant feed: ${response.restaurants.length} restaurants`);
+        }
+      } catch (err) {
+        console.error('[BasicMapScreen] Failed to load filtered restaurants:', err);
+        // Fallback: show all nearby restaurants unfiltered
+        if (!cancelled) setFilteredRestaurants(restaurants);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [userLocation, daily, permanent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-center map on user location when map is ready and location is available
   useEffect(() => {

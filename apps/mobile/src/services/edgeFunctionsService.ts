@@ -62,22 +62,25 @@ const ALLERGY_CODE_MAP: Partial<Record<keyof PermanentFilters['allergies'], stri
  * Feed request parameters
  */
 export interface FeedRequest {
-  location: {
-    lat: number;
-    lng: number;
-  };
+  location: { lat: number; lng: number };
   radius?: number; // km, default 10
+  mode?: 'dishes' | 'restaurants';
   filters: {
     priceRange?: [number, number];
-    dietPreference?: string; // hard filter — permanent filters
-    preferredDiet?: string; // soft boost — daily filters
-    calorieRange?: { min: number; max: number };
-    allergens?: string[];
-    cuisines?: string[];
+    dietPreference?: string; // hard — permanent
+    preferredDiet?: string; // soft boost — daily
+    calorieRange?: { min: number; max: number }; // soft boost
+    allergens?: string[]; // hard
+    religiousRestrictions?: string[]; // hard
+    cuisines?: string[]; // soft boost
+    spiceLevel?: string; // soft boost — daily spice preference
+    spiceTolerance?: string; // soft boost — permanent spice tolerance
+    favoriteCuisines?: string[]; // soft boost — permanent favourite cuisines
+    sortBy?: 'closest' | 'bestMatch' | 'highestRated';
+    openNow?: boolean; // hard — restaurant mode only
     /**
      * canonical_ingredient_id UUIDs from the user's "Ingredients to Avoid" list.
-     * Dishes containing these are still shown but annotated with flagged_ingredients
-     * so the UI can display a warning instead of hiding the dish.
+     * Dishes containing these are annotated (flagged_ingredients), not excluded.
      */
     flagIngredients?: string[];
   };
@@ -86,7 +89,21 @@ export interface FeedRequest {
 }
 
 /**
- * Feed response from Edge Function
+ * Restaurant returned in mode:'restaurants' response
+ */
+export interface ServerRestaurant {
+  id: string;
+  name: string;
+  cuisine_types: string[];
+  rating: number;
+  distance_km: number;
+  score: number;
+  is_open?: boolean;
+  location?: { lat: number; lng: number } | null;
+}
+
+/**
+ * Feed response from Edge Function (dishes mode)
  */
 export interface FeedResponse {
   dishes: ServerDish[];
@@ -101,7 +118,75 @@ export interface FeedResponse {
 }
 
 /**
- * Get personalized dish feed from server
+ * Feed response from Edge Function (restaurants mode)
+ */
+export interface RestaurantFeedResponse {
+  restaurants: ServerRestaurant[];
+  metadata: {
+    totalAvailable: number;
+    returned: number;
+    cached: boolean;
+    personalized?: boolean;
+    processingTime?: number;
+  };
+}
+
+/** Shared fetch helper to avoid repeating headers. */
+async function callFeedFunction(request: FeedRequest): Promise<Response> {
+  const response = await fetch(`${EDGE_FUNCTIONS_URL}/feed`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error((errorData as any).error || 'Failed to fetch feed');
+  }
+  return response;
+}
+
+/** Build the shared filter payload from store filter state. */
+function buildFilters(
+  dailyFilters: DailyFilters,
+  permanentFilters: PermanentFilters
+): FeedRequest['filters'] {
+  const activeReligious = (
+    Object.entries(permanentFilters.religiousRestrictions) as [string, boolean][]
+  )
+    .filter(([_, active]) => active)
+    .map(([key]) => key);
+
+  return {
+    priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as [number, number],
+    dietPreference: permanentFilters.dietPreference,
+    preferredDiet:
+      Object.entries(dailyFilters.dietPreference)
+        .filter(([_, active]) => active)
+        .map(([key]) => key)[0] ?? undefined,
+    calorieRange: dailyFilters.calorieRange.enabled
+      ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
+      : undefined,
+    allergens: Object.entries(permanentFilters.allergies)
+      .filter(([_, active]) => active)
+      .map(
+        ([allergen]) =>
+          ALLERGY_CODE_MAP[allergen as keyof PermanentFilters['allergies']] ?? allergen
+      ),
+    religiousRestrictions: activeReligious.length > 0 ? activeReligious : undefined,
+    cuisines: dailyFilters.cuisineTypes.length > 0 ? dailyFilters.cuisineTypes : undefined,
+    spiceLevel: dailyFilters.spiceLevel !== 'eitherWay' ? dailyFilters.spiceLevel : undefined,
+    flagIngredients:
+      permanentFilters.ingredientsToAvoid.length > 0
+        ? permanentFilters.ingredientsToAvoid.map(i => i.canonicalIngredientId)
+        : undefined,
+  };
+}
+
+/**
+ * Get personalized dish feed from server (mode: 'dishes')
  */
 // trackSwipe(), SwipeRequest, and generateSessionId() have been shelved.
 // See shelf/swipe-feature/services/swipeService.ts
@@ -115,46 +200,38 @@ export async function getFeed(
   const request: FeedRequest = {
     location,
     radius,
-    filters: {
-      priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as any,
-      // Permanent diet preference → hard filter (excludes non-matching dishes)
-      dietPreference: permanentFilters.dietPreference,
-      // Daily diet preference → soft boost (dishes matching get scored higher)
-      preferredDiet: Object.entries(dailyFilters.dietPreference)
-        .filter(([_, active]) => active)
-        .map(([key]) => key) as any,
-      calorieRange: dailyFilters.calorieRange.enabled
-        ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
-        : undefined,
-      allergens: Object.entries(permanentFilters.allergies)
-        .filter(([_, active]) => active)
-        .map(
-          ([allergen]) =>
-            ALLERGY_CODE_MAP[allergen as keyof PermanentFilters['allergies']] ?? allergen
-        ),
-      cuisines: dailyFilters.cuisineTypes,
-      flagIngredients:
-        permanentFilters.ingredientsToAvoid.length > 0
-          ? permanentFilters.ingredientsToAvoid.map(i => i.canonicalIngredientId)
-          : undefined,
-    },
+    mode: 'dishes',
+    filters: buildFilters(dailyFilters, permanentFilters),
     userId,
     limit: 20,
   };
+  const response = await callFeedFunction(request);
+  return response.json();
+}
 
-  const response = await fetch(`${EDGE_FUNCTIONS_URL}/feed`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+/**
+ * Get filtered and scored restaurant list from the Edge Function (mode: 'restaurants').
+ * Replaces the client-side filterService.applyFilters() call in BasicMapScreen.
+ */
+export async function getFilteredRestaurants(
+  location: { lat: number; lng: number },
+  dailyFilters: DailyFilters,
+  permanentFilters: PermanentFilters,
+  userId?: string,
+  radius: number = 10
+): Promise<RestaurantFeedResponse> {
+  const request: FeedRequest = {
+    location,
+    radius,
+    mode: 'restaurants',
+    filters: {
+      ...buildFilters(dailyFilters, permanentFilters),
+      sortBy: dailyFilters.sortBy,
+      openNow: dailyFilters.openNow,
     },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch feed');
-  }
-
+    userId,
+    limit: 50,
+  };
+  const response = await callFeedFunction(request);
   return response.json();
 }

@@ -35,5 +35,5 @@
     // Skip Checking
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "dist", "build", ".turbo"]
+  "exclude": ["node_modules", "dist", "build", ".turbo", "infra"]
 }

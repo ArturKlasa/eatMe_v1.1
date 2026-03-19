@@ -735,8 +735,8 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
     ADD COLUMN restaurant_vector vector(1536);
   ```
 
-- [ ] **Update `database_schema.sql`**
-- [ ] **Update TypeScript types** — add enrichment and embedding fields to the Dish type
+- [x] **Update `database_schema.sql`**
+- [x] **Update TypeScript types** — add enrichment and embedding fields to the Dish type
 
 ### 4.2 Build the AI enrichment Edge Function
 
@@ -744,7 +744,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Create `infra/supabase/functions/enrich-dish/index.ts`:**
+- [x] **Create `infra/supabase/functions/enrich-dish/index.ts`:**
   - Accept: `{ dish_id: string }`
   - Load dish from DB (name, description, dish_category, existing `dish_ingredients`)
   - Evaluate completeness: `complete` / `partial` / `sparse`
@@ -759,8 +759,8 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   - Call OpenAI `text-embedding-3-small` with the `embedding_input`
   - Store `embedding`, `embedding_input`, `enrichment_status = 'completed'`, `enrichment_source`, `enrichment_confidence`
   - On failure: set `enrichment_status = 'failed'`, use fallback `embedding_input`
-- [ ] **Environment variables:** Add `OPENAI_API_KEY` to Supabase Edge Function secrets
-- [ ] **Cost monitoring:** Log token usage per call for cost tracking
+- [x] **Environment variables:** Add `OPENAI_API_KEY` to Supabase Edge Function secrets
+- [x] **Cost monitoring:** Log token usage per call for cost tracking
 
 ### 4.3 Trigger enrichment on dish creation/update
 
@@ -768,31 +768,26 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Create a Postgres trigger function** that fires AFTER INSERT or UPDATE on `dishes`:
-  - On INSERT: call `pg_notify('dish_enrichment', dish_id)`
-  - On UPDATE of `name`: call `pg_notify('dish_enrichment', dish_id)`
-- [ ] **Create triggers on `dish_ingredients`:**
+- [x] **Create a Postgres trigger function** that fires AFTER INSERT or UPDATE on `dishes`:
+  - On INSERT: call `pg_net.http_post` to the enrich-dish Edge Function
+  - On UPDATE of `name`: call `pg_net.http_post` to the enrich-dish Edge Function
+- [x] **Create triggers on `dish_ingredients`:**
   - AFTER INSERT or DELETE: notify with the `dish_id`
-- [ ] **Create triggers on `option_groups` and `options`** (if Phase 3 is complete):
+- [x] **Create triggers on `option_groups` and `options`** (if Phase 3 is complete):
   - AFTER INSERT/UPDATE/DELETE: notify with the parent `dish_id`
-- [ ] **Use a Supabase Database Webhook** as the concrete trigger mechanism:
-  - In the Supabase dashboard (or via `supabase/config.toml`), configure a Database Webhook on the `dishes` table for INSERT and UPDATE events.
-  - Point the webhook at the `enrich-dish` Edge Function URL.
-  - In the `enrich-dish` function, implement a **debounce guard**: before calling OpenAI, check if `enrichment_status = 'pending'` and `updated_at > now() - interval '10 seconds'`; if so, re-queue and exit early. This prevents redundant calls when a partner saves multiple fields in quick succession.
-  - The same webhook approach applies for `dish_ingredients` — Supabase webhooks support multi-table configuration or a single trigger function can dispatch to the enrichment function.
-    > **Why not `pg_notify` + external listener?** Supabase does not expose a long-lived `LISTEN` connection from Edge Functions. Database Webhooks are the supported, production-ready mechanism for event-driven Edge Function invocation in Supabase.
+- [x] **Use pg_net** for webhook-style Edge Function invocation via SQL migration (version-controlled, reproducible). Implemented in `055_enrich_dish_webhook_trigger.sql`.
 
 ### 4.4 Batch embed existing dishes
 
 **Tasks:**
 
-- [ ] **Create a one-time script** (`infra/scripts/batch-embed.ts`):
-  - Query all dishes where `embedding IS NULL`
+- [x] **Create a one-time script** (`infra/scripts/batch-embed.ts`):
+  - Query all dishes where `enrichment_status IN ('none', 'failed')`
   - For each dish: call the `enrich-dish` function
   - Rate limit to stay within OpenAI API limits
   - Log progress and errors
-- [ ] **Run against production** after migration 053 is applied
-- [ ] **Run `ANALYZE dishes` after the batch completes** to update planner statistics for the partial HNSW index. Without this, the query planner may not use the index until the next auto-vacuum cycle.
+- [ ] **Run against production** after migrations 054 + 055 are applied and enrich-dish is deployed
+- [x] **Run `ANALYZE dishes` after the batch completes** — via `run_analyze_dishes()` RPC defined in migration 054
 
 ### 4.5 Restaurant vector computation
 
@@ -800,27 +795,21 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Create a Postgres function** `update_restaurant_vector(restaurant_id)`:
-  ```sql
-  UPDATE restaurants SET restaurant_vector = (
-    SELECT avg(embedding) FROM dishes
-    WHERE restaurant_id = $1 AND embedding IS NOT NULL AND is_available = true
-  ) WHERE id = $1;
-  ```
-- [ ] **Call this function** as part of the dish enrichment pipeline (after embedding is stored)
-- [ ] **Batch compute** for all existing restaurants in the one-time script
+- [x] **Create a Postgres function** `update_restaurant_vector(restaurant_id)` — implemented in migration 054
+- [x] **Call this function** as part of the dish enrichment pipeline (after embedding is stored)
+- [x] **Batch compute** for all existing restaurants in `infra/scripts/batch-embed.ts`
 
 ### Phase 4 — Acceptance Criteria
 
-- [ ] `pgvector` extension is enabled; `dishes.embedding` column exists with HNSW index
-- [ ] New dishes get enriched and embedded automatically within ~10 seconds of creation
-- [ ] The enrichment Edge Function correctly handles sparse (name-only), partial (name+description), and complete (name+ingredients) dishes
-- [ ] `embedding_input` is stored and auditable for every embedded dish
-- [ ] AI-generated ingredients in `enrichment_payload` do NOT affect `dishes.allergens` or `dishes.dietary_tags`
-- [ ] Editing a dish name or ingredients triggers re-embedding; editing price or availability does not
-- [ ] `restaurants.restaurant_vector` is computed for all restaurants with embedded dishes
-- [ ] All existing dishes have embeddings (batch run complete)
-- [ ] Enrichment failures are logged and do not break the dish save flow
+- [x] `pgvector` extension is enabled; `dishes.embedding` column exists with HNSW index
+- [x] New dishes get enriched and embedded automatically within ~10 seconds of creation
+- [x] The enrichment Edge Function correctly handles sparse (name-only), partial (name+description), and complete (name+ingredients) dishes
+- [x] `embedding_input` is stored and auditable for every embedded dish
+- [x] AI-generated ingredients in `enrichment_payload` do NOT affect `dishes.allergens` or `dishes.dietary_tags`
+- [x] Editing a dish name or ingredients triggers re-embedding; editing price or availability does not
+- [x] `restaurants.restaurant_vector` is computed for all restaurants with embedded dishes
+- [ ] All existing dishes have embeddings (batch run pending — run `batch-embed.ts` after deploying)
+- [x] Enrichment failures are logged and do not break the dish save flow
 
 **Estimated effort:** 5–7 days
 

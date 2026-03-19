@@ -455,6 +455,12 @@ export type Database = {
           dish_category_id: string | null;
           dish_kind: string;
           display_price_prefix: string;
+          embedding: string | null;
+          embedding_input: string | null;
+          enrichment_confidence: string | null;
+          enrichment_payload: Json | null;
+          enrichment_source: string;
+          enrichment_status: string;
           id: string;
           image_url: string | null;
           ingredients_visibility: string;
@@ -476,6 +482,12 @@ export type Database = {
           dish_category_id?: string | null;
           dish_kind?: string;
           display_price_prefix?: string;
+          embedding?: string | null;
+          embedding_input?: string | null;
+          enrichment_confidence?: string | null;
+          enrichment_payload?: Json | null;
+          enrichment_source?: string;
+          enrichment_status?: string;
           id?: string;
           image_url?: string | null;
           ingredients_visibility?: string;
@@ -497,6 +509,12 @@ export type Database = {
           dish_category_id?: string | null;
           dish_kind?: string;
           display_price_prefix?: string;
+          embedding?: string | null;
+          embedding_input?: string | null;
+          enrichment_confidence?: string | null;
+          enrichment_payload?: Json | null;
+          enrichment_source?: string;
+          enrichment_status?: string;
           id?: string;
           image_url?: string | null;
           ingredients_visibility?: string;
@@ -1262,6 +1280,7 @@ export type Database = {
           takeout_available: boolean | null;
           updated_at: string | null;
           website: string | null;
+          restaurant_vector: string | null;
         };
         Insert: {
           accepts_reservations?: boolean | null;
@@ -1295,6 +1314,7 @@ export type Database = {
           takeout_available?: boolean | null;
           updated_at?: string | null;
           website?: string | null;
+          restaurant_vector?: string | null;
         };
         Update: {
           accepts_reservations?: boolean | null;
@@ -1328,6 +1348,7 @@ export type Database = {
           takeout_available?: boolean | null;
           updated_at?: string | null;
           website?: string | null;
+          restaurant_vector?: string | null;
         };
         Relationships: [];
       };
@@ -1436,6 +1457,8 @@ export type Database = {
           super_swipes: number | null;
           total_swipes: number | null;
           user_id: string;
+          preference_vector: string | null;
+          preference_vector_updated_at: string | null;
         };
         Insert: {
           avg_calories_viewed?: number | null;
@@ -1455,6 +1478,8 @@ export type Database = {
           super_swipes?: number | null;
           total_swipes?: number | null;
           user_id: string;
+          preference_vector?: string | null;
+          preference_vector_updated_at?: string | null;
         };
         Update: {
           avg_calories_viewed?: number | null;
@@ -1474,6 +1499,8 @@ export type Database = {
           super_swipes?: number | null;
           total_swipes?: number | null;
           user_id?: string;
+          preference_vector?: string | null;
+          preference_vector_updated_at?: string | null;
         };
         Relationships: [];
       };

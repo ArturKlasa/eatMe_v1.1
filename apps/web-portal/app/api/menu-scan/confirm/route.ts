@@ -40,6 +40,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Count total dishes in the payload for diagnostics.
+  const payloadDishCount = menus.reduce(
+    (t, m) =>
+      t +
+      (m.categories ?? []).reduce(
+        (s: number, c: { dishes?: unknown[] }) => s + (c.dishes?.length ?? 0),
+        0
+      ),
+    0
+  );
+  console.log(
+    `[MenuScan/confirm] Payload: ${menus.length} menu(s), ${payloadDishCount} dish(es) for restaurant ${restaurant_id}`
+  );
+
+  if (payloadDishCount === 0) {
+    return NextResponse.json(
+      { error: 'Payload contains no dishes. Nothing was saved.' },
+      { status: 400 }
+    );
+  }
+
   const supabase = createServerSupabaseClient();
 
   // 3. Verify job exists and belongs to this restaurant

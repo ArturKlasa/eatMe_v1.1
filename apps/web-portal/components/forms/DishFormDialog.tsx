@@ -155,7 +155,12 @@ export function DishFormDialog({
         description_visibility: (dish as any).description_visibility ?? 'menu',
         ingredients_visibility: (dish as any).ingredients_visibility ?? 'detail',
         dish_kind: (dish.dish_kind ?? 'standard') as 'standard' | 'template' | 'experience',
-        display_price_prefix: (dish.display_price_prefix ?? 'exact') as 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server',
+        display_price_prefix: (dish.display_price_prefix ?? 'exact') as
+          | 'exact'
+          | 'from'
+          | 'per_person'
+          | 'market_price'
+          | 'ask_server',
         option_groups: [],
       });
 
@@ -180,6 +185,7 @@ export function DishFormDialog({
               setOptionGroups([]);
             }
           });
+      }
 
       // Load existing dish_ingredients rows so the autocomplete shows them when editing
       if (dish.id) {
@@ -1001,7 +1007,9 @@ export function DishFormDialog({
                 {/* Preset picker — shown only when no groups yet */}
                 {optionGroups.length === 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">Start from a preset or add groups manually:</p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Start from a preset or add groups manually:
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(OPTION_PRESETS).map(([key, preset]) => (
                         <Button
@@ -1053,7 +1061,10 @@ export function DishFormDialog({
                             setOptionGroups(prev =>
                               prev.map((g, i) =>
                                 i === gi
-                                  ? { ...g, selection_type: val as 'single' | 'multiple' | 'quantity' }
+                                  ? {
+                                      ...g,
+                                      selection_type: val as 'single' | 'multiple' | 'quantity',
+                                    }
                                   : g
                               )
                             )
@@ -1148,9 +1159,7 @@ export function DishFormDialog({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-red-500 hover:text-red-700"
-                          onClick={() =>
-                            setOptionGroups(prev => prev.filter((_, i) => i !== gi))
-                          }
+                          onClick={() => setOptionGroups(prev => prev.filter((_, i) => i !== gi))}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>

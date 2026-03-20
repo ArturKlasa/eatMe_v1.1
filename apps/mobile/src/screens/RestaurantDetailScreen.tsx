@@ -325,7 +325,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         ? supabase
             .from('canonical_ingredient_allergens')
             .select('canonical_ingredient_id, allergen_code')
-            .in('canonical_ingredient_id', optionsWithIngredient.map(o => o.ingredientId))
+            .in(
+              'canonical_ingredient_id',
+              optionsWithIngredient.map(o => o.ingredientId)
+            )
         : Promise.resolve({ data: [], error: null }),
     ]);
 
@@ -360,7 +363,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
     // Build option allergen map: option.id → allergen_code[]
     if (allergenResult.status === 'fulfilled') {
-      const { data } = allergenResult.value as { data: { canonical_ingredient_id: string; allergen_code: string }[] | null; error: any };
+      const { data } = allergenResult.value as {
+        data: { canonical_ingredient_id: string; allergen_code: string }[] | null;
+        error: any;
+      };
       if (data && data.length > 0) {
         // ingredient_id → allergen_codes[]
         const byIngredient = new Map<string, string[]>();
@@ -753,7 +759,14 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           displayPricePrefix={(selectedDish as any).display_price_prefix ?? 'exact'}
           optionGroups={dishOptionGroups}
           optionAllergens={optionAllergens}
-          userAllergens={(Object.entries(permanentFilters.allergies) as [keyof typeof permanentFilters.allergies, boolean][]).filter(([, v]) => v).map(([k]) => ALLERGY_TO_DB[k])}
+          userAllergens={(
+            Object.entries(permanentFilters.allergies) as [
+              keyof typeof permanentFilters.allergies,
+              boolean,
+            ][]
+          )
+            .filter(([, v]) => v)
+            .map(([k]) => ALLERGY_TO_DB[k])}
           photos={dishPhotos}
           onPhotoAdded={() => {
             // Refresh photos after upload

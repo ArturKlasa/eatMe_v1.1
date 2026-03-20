@@ -1054,7 +1054,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Create `apps/mobile/src/utils/menuFilterUtils.ts`:**
+- [x] **Create `apps/mobile/src/utils/menuFilterUtils.ts`:**
   - Export `ALLERGY_TO_DB` map (same as `userPreferencesService.ts` — or import from there)
   - Export `classifyDish(dish, permanentFilters, ingredientsToAvoid)` →
     `{ passesHardFilters: boolean, flaggedIngredientNames: string[] }`
@@ -1069,22 +1069,22 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Add `dish_ingredients(ingredient_id)` to the dishes sub-select** in the Supabase restaurant query
-- [ ] **Read permanent filters** from `useFilterStore(state => state.permanent)` + `ingredientsToAvoid`
-- [ ] **In `renderMenuItem`:** call `classifyDish` and:
+- [x] **Add `dish_ingredients(ingredient_id)` to the dishes sub-select** in the Supabase restaurant query
+- [x] **Read permanent filters** from `useFilterStore(state => state.permanent)` + `ingredientsToAvoid`
+- [x] **In `renderMenuItem`:** call `classifyDish` and:
   - If `!passesHardFilters`: wrap item in `opacity: 0.35`, append a `"Not for you"` pill (grey, small text)
   - If `flaggedIngredientNames.length > 0`: append `⚠️ Contains: X, Y` warning line in amber
-- [ ] **Sort dishes within each category:** passing dishes first, greyed-out dishes last
+- [x] **Sort dishes within each category:** passing dishes first, greyed-out dishes last
   - Sort is applied when rendering `category.dishes` — original data is not mutated
 
 ### Phase 8 — Acceptance Criteria
 
-- [ ] A user with `dietPreference = vegetarian` sees non-vegetarian dishes greyed out and at the bottom of each menu category
-- [ ] A user with an active allergen sees dishes containing that allergen greyed out and at the bottom
-- [ ] A user with religious restrictions (e.g. `halal`) sees non-halal dishes greyed out
-- [ ] Dishes with avoided ingredients show an amber `⚠️ Contains: …` warning without being greyed out
-- [ ] All dishes are still visible and tappable — nothing is hidden
-- [ ] Feed behaviour is unchanged — hard filters in the feed still fully exclude non-matching dishes
+- [x] A user with `dietPreference = vegetarian` sees non-vegetarian dishes greyed out and at the bottom of each menu category
+- [x] A user with an active allergen sees dishes containing that allergen greyed out and at the bottom
+- [x] A user with religious restrictions (e.g. `halal`) sees non-halal dishes greyed out
+- [x] Dishes with avoided ingredients show an amber `⚠️ Contains: …` warning without being greyed out
+- [x] All dishes are still visible and tappable — nothing is hidden
+- [x] Feed behaviour is unchanged — hard filters in the feed still fully exclude non-matching dishes
 
 **Estimated effort:** 0.5–1 day
 

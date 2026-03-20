@@ -59,7 +59,11 @@ interface Candidate {
 function parseVector(raw: unknown): number[] | null {
   if (!raw) return null;
   if (typeof raw === 'string') {
-    try { return JSON.parse(raw); } catch { return null; }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   }
   if (Array.isArray(raw)) return raw as number[];
   return null;
@@ -112,7 +116,7 @@ function scoreCandidate(
   members: GroupMember[],
   radiusKm: number
 ): Candidate {
-  const distNorm   = Math.max(0, 1 - (r.distance_m / 1000) / radiusKm);
+  const distNorm = Math.max(0, 1 - r.distance_m / 1000 / radiusKm);
   const ratingNorm = (r.rating ?? 0) / 5;
 
   // Cuisine compatibility: fraction of members whose preferred_cuisines
@@ -121,9 +125,7 @@ function scoreCandidate(
   const cuisineNorm = 0.5;
 
   const vectorSim =
-    groupVector !== null && r.vector_distance !== null
-      ? Math.max(0, 1 - r.vector_distance)
-      : null;
+    groupVector !== null && r.vector_distance !== null ? Math.max(0, 1 - r.vector_distance) : null;
 
   let score: number;
   if (vectorSim !== null) {
@@ -139,10 +141,10 @@ function scoreCandidate(
     compatibilityScore: Math.round(score * 100),
     vectorSimilarity: vectorSim,
     breakdown: {
-      vectorSimilarity:    vectorSim !== null ? Math.round(vectorSim * 100) : 0,
+      vectorSimilarity: vectorSim !== null ? Math.round(vectorSim * 100) : 0,
       cuisineCompatibility: Math.round(cuisineNorm * 100),
-      distanceScore:       Math.round(distNorm * 100),
-      ratingScore:         Math.round(ratingNorm * 100),
+      distanceScore: Math.round(distNorm * 100),
+      ratingScore: Math.round(ratingNorm * 100),
     },
   };
 }
@@ -202,17 +204,22 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const { sessionId, locationMode = 'midpoint', radiusKm = 5 } = await req.json();
     if (!sessionId) {
       return new Response(JSON.stringify({ error: 'sessionId is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -226,7 +233,8 @@ serve(async (req: Request) => {
 
     if (sessionError || !session) {
       return new Response(JSON.stringify({ error: 'Session not found or unauthorized' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -259,21 +267,21 @@ serve(async (req: Request) => {
         .in('user_id', memberIds),
     ]);
 
-    const prefsMap  = new Map((prefsRes.data   ?? []).map((p: any) => [p.user_id, p]));
+    const prefsMap = new Map((prefsRes.data ?? []).map((p: any) => [p.user_id, p]));
     const vectorMap = new Map((behaviorRes.data ?? []).map((b: any) => [b.user_id, b]));
 
     // 4. Build GroupMember array
     const members: GroupMember[] = membersData.map(m => {
       const prefs = prefsMap.get(m.user_id) as any;
-      const beh   = vectorMap.get(m.user_id) as any;
+      const beh = vectorMap.get(m.user_id) as any;
       return {
-        user_id:          m.user_id,
-        profile_name:     (m.users as any).profile_name ?? 'Unknown',
+        user_id: m.user_id,
+        profile_name: (m.users as any).profile_name ?? 'Unknown',
         current_location: parseLocation(m.current_location),
         preferences: {
-          diet_preference:       prefs?.diet_preference       ?? 'all',
-          allergies:             prefs?.allergies              ?? [],
-          exclude:               prefs?.exclude                ?? [],
+          diet_preference: prefs?.diet_preference ?? 'all',
+          allergies: prefs?.allergies ?? [],
+          exclude: prefs?.exclude ?? [],
           religious_restrictions: prefs?.religious_restrictions ?? [],
         },
         preference_vector: parseVector(beh?.preference_vector),
@@ -286,35 +294,38 @@ serve(async (req: Request) => {
     const searchCenter = calculateSearchCenter(members, locationMode);
     if (!searchCenter) {
       return new Response(
-        JSON.stringify({ error: 'Unable to determine search location — members must share location' }),
+        JSON.stringify({
+          error: 'Unable to determine search location — members must share location',
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // 6. Compute group constraints (union) + group vector (average)
-    const constraints      = computeGroupConstraints(members);
-    const groupVector      = computeGroupVector(members);
+    const constraints = computeGroupConstraints(members);
+    const groupVector = computeGroupVector(members);
     const vectorMemberCount = members.filter(m => m.preference_vector !== null).length;
 
     console.log(
       `[GroupRec] diet=${constraints.diet}, allergens=[${constraints.allergens}], ` +
-      `religious=[${constraints.religious}], vectors=${vectorMemberCount}/${members.length}`
+        `religious=[${constraints.religious}], vectors=${vectorMemberCount}/${members.length}`
     );
 
     // 7. Stage 1: get_group_candidates (DB-level hard filter + ANN ordering)
     const candidateParams = {
-      p_lat:            searchCenter.lat,
-      p_lng:            searchCenter.lng,
-      p_radius_m:       radiusKm * 1000,
-      p_group_vector:   groupVector ? JSON.stringify(groupVector) : null,
-      p_allergens:      constraints.allergens.length ? constraints.allergens : null,
-      p_diet_tag:       constraints.diet !== 'all' ? constraints.diet : null,
+      p_lat: searchCenter.lat,
+      p_lng: searchCenter.lng,
+      p_radius_m: radiusKm * 1000,
+      p_group_vector: groupVector ? JSON.stringify(groupVector) : null,
+      p_allergens: constraints.allergens.length ? constraints.allergens : null,
+      p_diet_tag: constraints.diet !== 'all' ? constraints.diet : null,
       p_religious_tags: constraints.religious.length ? constraints.religious : null,
-      p_limit:          40,
+      p_limit: 40,
     };
 
     let { data: candidates, error: candidateError } = await serviceClient.rpc(
-      'get_group_candidates', candidateParams
+      'get_group_candidates',
+      candidateParams
     );
     if (candidateError) throw candidateError;
 
@@ -362,12 +373,12 @@ serve(async (req: Request) => {
 
       await supabaseClient.from('eat_together_recommendations').insert(
         scored.map(r => ({
-          session_id:            sessionId,
-          restaurant_id:         r.id,
-          compatibility_score:   r.compatibilityScore ?? 0,
-          distance_from_center:  r.distance_m / 1000,
-          members_satisfied:     members.length,
-          total_members:         members.length,
+          session_id: sessionId,
+          restaurant_id: r.id,
+          compatibility_score: r.compatibilityScore ?? 0,
+          distance_from_center: r.distance_m / 1000,
+          members_satisfied: members.length,
+          total_members: members.length,
           dietary_compatibility: r.breakdown ?? {},
         }))
       );
@@ -384,22 +395,21 @@ serve(async (req: Request) => {
         metadata: {
           searchCenter,
           radiusKm,
-          totalMembers:       members.length,
+          totalMembers: members.length,
           vectorMemberCount,
-          personalized:       groupVector !== null,
-          totalCandidates:    pool.length,
-          returned:           scored.length,
-          groupConstraints:   constraints,
+          personalized: groupVector !== null,
+          totalCandidates: pool.length,
+          returned: scored.length,
+          groupConstraints: constraints,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
     console.error('[GroupRec] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error?.message ?? 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error?.message ?? 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
-

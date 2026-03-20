@@ -253,10 +253,11 @@ export function mergeExtractionResults(results: RawExtractionResult[]): RawExtra
   for (const result of results) {
     for (const incomingMenu of result.menus) {
       const incomingMenuName = (incomingMenu.name ?? '').toLowerCase().trim();
+      const incomingKey = `${incomingMenu.menu_type}::${incomingMenuName}`;
 
-      // Find existing menu with same name
+      // Find existing menu with same name AND same type
       const existingMenu = mergedMenus.find(
-        m => (m.name ?? '').toLowerCase().trim() === incomingMenuName
+        m => `${m.menu_type}::${(m.name ?? '').toLowerCase().trim()}` === incomingKey
       );
 
       if (!existingMenu) {

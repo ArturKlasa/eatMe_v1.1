@@ -23,8 +23,11 @@ STRICT RULES:
 1. Return ONLY valid JSON matching the schema below. No prose, no markdown fences.
 2. Do NOT hallucinate. If a field is not clearly visible, set it to null.
 3. Do NOT extract or guess currency. Omit currency entirely.
-4. Menu section headers (e.g. "Lunch", "Comidas", "Desayunos", "Bebidas") → use as menu "name".
-5. Sub-section headers within a menu (e.g. "Entradas", "Sopas", "Postres", "Pastas") → use as category "name".
+4. DEFAULT: output exactly ONE food menu (menu_type: "food") and at most ONE drink menu (menu_type: "drink"). Most restaurants have a single menu.
+   - Time-of-day labels (Desayunos, Comidas, Cenas, Breakfast, Lunch, Dinner, Brunch) → use as CATEGORY name, NOT a separate menu.
+   - Course labels (Entradas, Sopas, Ensaladas, Platos Fuertes, Platos Principales, Pastas, Postres, Sides) → use as CATEGORY name.
+   - Only create a second food menu when the physical document is explicitly a separate titled menu (e.g. "Menú de Degustación", "Kids Menu", "Seasonal Menu") with its own branding/cover.
+5. All section and sub-section headers inside a food menu — time-of-day AND course headers — go as category "name" under that single food menu.
 6. If no section headers exist, set name to null for menus and/or categories.
 7. Detect dietary symbols and words:
    - V, (V), "vegetariano/a" → dietary_hints: ["vegetarian"]
@@ -36,7 +39,7 @@ STRICT RULES:
 9. Extract ingredients ONLY when explicitly listed on the menu (typically in parentheses after the dish name). If not listed, set raw_ingredients to null.
 10. confidence: 1.0 = perfectly legible text, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
 11. Menus may be in Spanish or English. Keep all names in their original language.
-12. For "menu_type": use "drink" only for clearly beverage sections (Bebidas, Drinks, Cocktails, Vinos). Use "food" for everything else.
+12. For "menu_type": use "drink" for a clearly separate beverage section/page (Bebidas, Drinks, Cocktails, Vinos, Carta de Vinos). A "Bebidas" column or small section at the bottom of a food page → add as a category inside the food menu (menu_type: "food"), not a separate drink menu. Only use menu_type: "drink" when drinks occupy their own dedicated page or section with a clear header.
 
 JSON SCHEMA (return exactly this structure):
 {

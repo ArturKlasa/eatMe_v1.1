@@ -668,7 +668,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
   - \> 8 options → grouped list / accordion
   - Experience dishes → sectioned card layout
 - [x] **Show price deltas** next to each option (+$2, included)
-- [ ] **Show allergen warnings** per option when `canonical_ingredient_id` is set and the user has matching allergies _(deferred to Phase 5 — requires preference vector)_
+- [x] **Show allergen warnings** per option when `canonical_ingredient_id` is set and the user has matching allergies
 - [x] **Display `display_price_prefix`** in feed cards and detail view ("from $13", "$25/person")
 
 ### Phase 3 — Acceptance Criteria
@@ -678,7 +678,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 - [x] Dish-type presets pre-populate skeleton option groups correctly
 - [ ] Category-level option groups appear on all dishes in that category _(3.4 — deferred)_
 - [x] Mobile dish detail renders option groups with appropriate UI for each selection type
-- [ ] Option-level allergen warnings appear for users with matching allergies _(deferred to Phase 5)_
+- [x] Option-level allergen warnings appear for users with matching allergies
 - [x] Price display shows "from $X" for template dishes and "$X/person" for experience dishes
 - [x] Existing standard dishes are completely unaffected
 - [x] RLS policies allow partners to CRUD only their own option groups

@@ -60,6 +60,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
+  // Maps option.id → allergen codes that apply to that option's canonical ingredient.
+  const [optionAllergens, setOptionAllergens] = useState<Map<string, string[]>>(new Map());
 
   // Single effect: restaurant data, restaurant rating and favourite check fire
   // in parallel via Promise.all; dish ratings follow immediately after the
@@ -286,7 +288,21 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       }));
     setDishOptionGroups(embedded);
 
-    // Track dish view
+    // Reset option allergens when opening a new dish
+    setOptionAllergens(new Map());
+
+    // Collect option IDs that have a canonical_ingredient_id set
+    const optionsWithIngredient: { optionId: string; ingredientId: string }[] = [];
+    for (const group of embedded) {
+      for (const opt of group.options) {
+        if ((opt as any).canonical_ingredient_id) {
+          optionsWithIngredient.push({
+            optionId: opt.id,
+            ingredientId: (opt as any).canonical_ingredient_id,
+          });
+        }
+      }
+    }
     trackDishView(restaurantId, {
       id: dish.id,
       name: dish.name,
@@ -294,8 +310,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       imageUrl: dish.photo_url,
     });
 
-    // Fetch photos and ingredients in parallel
-    const [photosResult, ingredientsResult] = await Promise.allSettled([
+    // Fetch photos, ingredients, and option allergens in parallel
+    const [photosResult, ingredientsResult, allergenResult] = await Promise.allSettled([
       supabase
         .from('dish_photos')
         .select('*')
@@ -305,6 +321,12 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         .from('dish_ingredients')
         .select('canonical_ingredient:canonical_ingredients(canonical_name)')
         .eq('dish_id', dish.id),
+      optionsWithIngredient.length > 0
+        ? supabase
+            .from('canonical_ingredient_allergens')
+            .select('canonical_ingredient_id, allergen_code')
+            .in('canonical_ingredient_id', optionsWithIngredient.map(o => o.ingredientId))
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     // Photos
@@ -335,7 +357,27 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     } else {
       setDishIngredientNames(dish.ingredients || []);
     }
-  };
+
+    // Build option allergen map: option.id → allergen_code[]
+    if (allergenResult.status === 'fulfilled') {
+      const { data } = allergenResult.value as { data: { canonical_ingredient_id: string; allergen_code: string }[] | null; error: any };
+      if (data && data.length > 0) {
+        // ingredient_id → allergen_codes[]
+        const byIngredient = new Map<string, string[]>();
+        for (const row of data) {
+          const existing = byIngredient.get(row.canonical_ingredient_id) ?? [];
+          existing.push(row.allergen_code);
+          byIngredient.set(row.canonical_ingredient_id, existing);
+        }
+        // option.id → allergen_codes[] (via canonical_ingredient_id)
+        const map = new Map<string, string[]>();
+        for (const { optionId, ingredientId } of optionsWithIngredient) {
+          const codes = byIngredient.get(ingredientId);
+          if (codes && codes.length > 0) map.set(optionId, codes);
+        }
+        if (mountedRef.current) setOptionAllergens(map);
+      }
+    }
 
   const renderMenuItem = (item: any) => {
     const rating = dishRatings.get(item.id);
@@ -693,6 +735,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             setDishPhotos([]);
             setDishIngredientNames([]);
             setDishOptionGroups([]);
+            setOptionAllergens(new Map());
           }}
           dishId={selectedDish.id}
           dishName={selectedDish.name}
@@ -708,6 +751,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           dishKind={(selectedDish as any).dish_kind ?? 'standard'}
           displayPricePrefix={(selectedDish as any).display_price_prefix ?? 'exact'}
           optionGroups={dishOptionGroups}
+          optionAllergens={optionAllergens}
+          userAllergens={permanentFilters.allergies}
           photos={dishPhotos}
           onPhotoAdded={() => {
             // Refresh photos after upload

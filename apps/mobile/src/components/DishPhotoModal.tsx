@@ -54,6 +54,8 @@ export function DishPhotoModal({
   dishKind = 'standard',
   displayPricePrefix = 'exact',
   optionGroups = [],
+  optionAllergens = new Map(),
+  userAllergens = [],
   photos,
   onPhotoAdded,
 }: DishPhotoModalProps) {
@@ -272,29 +274,61 @@ export function DishPhotoModal({
                     </View>
                     {useChips ? (
                       <View style={styles.optionChips}>
-                        {group.options.map(opt => (
-                          <View key={opt.id} style={styles.optionChip}>
-                            <Text style={styles.optionChipName}>{opt.name}</Text>
-                            {opt.price_delta !== 0 && (
-                              <Text style={styles.optionChipDelta}>
-                                {opt.price_delta > 0 ? '+' : ''}${opt.price_delta.toFixed(2)}
-                              </Text>
-                            )}
-                          </View>
-                        ))}
+                        {group.options.map(opt => {
+                          const optAllergens = optionAllergens.get(opt.id) ?? [];
+                          const triggered =
+                            userAllergens.length > 0
+                              ? optAllergens.filter(a => userAllergens.includes(a))
+                              : [];
+                          return (
+                            <View
+                              key={opt.id}
+                              style={[
+                                styles.optionChip,
+                                triggered.length > 0 && styles.optionChipFlagged,
+                              ]}
+                            >
+                              <Text style={styles.optionChipName}>{opt.name}</Text>
+                              {opt.price_delta !== 0 && (
+                                <Text style={styles.optionChipDelta}>
+                                  {opt.price_delta > 0 ? '+' : ''}${opt.price_delta.toFixed(2)}
+                                </Text>
+                              )}
+                              {triggered.length > 0 && (
+                                <Text style={styles.optionAllergenWarning}>
+                                  ⚠️ {triggered.join(', ')}
+                                </Text>
+                              )}
+                            </View>
+                          );
+                        })}
                       </View>
                     ) : (
                       <View style={styles.optionList}>
-                        {group.options.map(opt => (
-                          <View key={opt.id} style={styles.optionListRow}>
-                            <Text style={styles.optionListName}>{opt.name}</Text>
-                            {opt.price_delta !== 0 && (
-                              <Text style={styles.optionChipDelta}>
-                                {opt.price_delta > 0 ? '+' : ''}${opt.price_delta.toFixed(2)}
-                              </Text>
-                            )}
-                          </View>
-                        ))}
+                        {group.options.map(opt => {
+                          const optAllergens = optionAllergens.get(opt.id) ?? [];
+                          const triggered =
+                            userAllergens.length > 0
+                              ? optAllergens.filter(a => userAllergens.includes(a))
+                              : [];
+                          return (
+                            <View key={opt.id} style={styles.optionListRow}>
+                              <View style={styles.optionListRowMain}>
+                                <Text style={styles.optionListName}>{opt.name}</Text>
+                                {opt.price_delta !== 0 && (
+                                  <Text style={styles.optionChipDelta}>
+                                    {opt.price_delta > 0 ? '+' : ''}${opt.price_delta.toFixed(2)}
+                                  </Text>
+                                )}
+                              </View>
+                              {triggered.length > 0 && (
+                                <Text style={styles.optionAllergenWarning}>
+                                  ⚠️ {triggered.join(', ')}
+                                </Text>
+                              )}
+                            </View>
+                          );
+                        })}
                       </View>
                     )}
                   </View>
@@ -538,15 +572,28 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     color: colors.accent,
   },
+  // Flagged chip — amber border when the option triggers a user allergen
+  optionChipFlagged: {
+    borderWidth: 1,
+    borderColor: colors.warning ?? '#F59E0B',
+  },
+  optionAllergenWarning: {
+    fontSize: typography.size.xs,
+    color: colors.warning ?? '#F59E0B',
+    marginTop: 2,
+  },
   optionList: {
     gap: spacing.xs,
   },
   optionListRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     paddingVertical: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.darkBorder,
+  },
+  optionListRowMain: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   optionListName: {
     fontSize: typography.size.sm,

@@ -263,6 +263,10 @@ export default function MenuScanPage() {
   const [expandedDishes, setExpandedDishes] = useState<Set<string>>(new Set());
   const [addIngredientTarget, setAddIngredientTarget] = useState<AddIngredientTarget | null>(null);
   const [suggestingDishId, setSuggestingDishId] = useState<string | null>(null);
+  const [suggestAllProgress, setSuggestAllProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [inlineSearchTarget, setInlineSearchTarget] = useState<{
     mIdx: number;
     cIdx: number;

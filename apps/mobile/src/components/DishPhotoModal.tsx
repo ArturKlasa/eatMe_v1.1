@@ -39,6 +39,8 @@ interface DishPhotoModalProps {
   dishKind?: string;
   displayPricePrefix?: string;
   optionGroups?: OptionGroup[];
+  optionAllergens?: Map<string, string[]>;
+  userAllergens?: string[];
   photos: DishPhoto[];
   onPhotoAdded?: () => void;
 }
@@ -278,7 +280,7 @@ export function DishPhotoModal({
                           const optAllergens = optionAllergens.get(opt.id) ?? [];
                           const triggered =
                             userAllergens.length > 0
-                              ? optAllergens.filter(a => userAllergens.includes(a))
+                              ? optAllergens.filter((a: string) => userAllergens.includes(a))
                               : [];
                           return (
                             <View
@@ -309,7 +311,7 @@ export function DishPhotoModal({
                           const optAllergens = optionAllergens.get(opt.id) ?? [];
                           const triggered =
                             userAllergens.length > 0
-                              ? optAllergens.filter(a => userAllergens.includes(a))
+                              ? optAllergens.filter((a: string) => userAllergens.includes(a))
                               : [];
                           return (
                             <View key={opt.id} style={styles.optionListRow}>

@@ -66,7 +66,10 @@ export function DishPhotoModal({
 
   // Check whether the dish is already saved when the modal opens.
   useEffect(() => {
-    if (!visible || !user) { setIsSaved(false); return; }
+    if (!visible || !user) {
+      setIsSaved(false);
+      return;
+    }
     isFavorited(user.id, 'dish', dishId).then(result => {
       if (result.ok) setIsSaved(result.data);
     });
@@ -173,12 +176,13 @@ export function DishPhotoModal({
             style={styles.likeButton}
             accessibilityLabel={isSaved ? 'Remove from saved' : 'Save dish'}
           >
-            {likeLoading
-              ? <ActivityIndicator color={colors.accent} size="small" />
-              : <Text style={[styles.likeIcon, isSaved && styles.likeIconActive]}>
-                  {isSaved ? '❤️' : '🤍'}
-                </Text>
-            }
+            {likeLoading ? (
+              <ActivityIndicator color={colors.accent} size="small" />
+            ) : (
+              <Text style={[styles.likeIcon, isSaved && styles.likeIconActive]}>
+                {isSaved ? '❤️' : '🤍'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 

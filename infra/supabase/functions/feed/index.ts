@@ -38,11 +38,11 @@ function getRedis(): Redis | null {
 // ── Stage 2 weights ───────────────────────────────────────────────────────────
 
 const W = {
-  similarity:  0.40,
-  rating:      0.20,
-  popularity:  0.15,
-  distance:    0.15,
-  quality:     0.10,
+  similarity: 0.4,
+  rating: 0.2,
+  popularity: 0.15,
+  distance: 0.15,
+  quality: 0.1,
 } as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -105,7 +105,11 @@ function rankCandidates(
   filters: FeedRequest['filters'],
   radiusKm: number,
   userLikedCuisines: string[],
-  userPrefs: { spiceTolerance?: string | null; favoriteCuisines?: string[]; preferredPriceRange?: [number, number] | null },
+  userPrefs: {
+    spiceTolerance?: string | null;
+    favoriteCuisines?: string[];
+    preferredPriceRange?: [number, number] | null;
+  },
   hasPreferenceVector: boolean
 ): Candidate[] {
   const SLIDER_MIN = 10;
@@ -116,18 +120,16 @@ function rankCandidates(
 
     // Core signals (0–1 each)
     const similarity =
-      hasPreferenceVector && d.vector_distance !== null
-        ? Math.max(0, 1 - d.vector_distance)
-        : 0;
+      hasPreferenceVector && d.vector_distance !== null ? Math.max(0, 1 - d.vector_distance) : 0;
 
-    const ratingNorm     = (d.restaurant_rating ?? 0) / 5;
+    const ratingNorm = (d.restaurant_rating ?? 0) / 5;
     const popularityNorm = Math.min(1, d.popularity_score ?? 0);
-    const distanceNorm   = Math.max(0, 1 - distKm / radiusKm);
+    const distanceNorm = Math.max(0, 1 - distKm / radiusKm);
 
-    const hasImage       = d.image_url ? 0.5 : 0;
-    const hasDesc        = d.description && d.description.length > 20 ? 0.3 : 0;
+    const hasImage = d.image_url ? 0.5 : 0;
+    const hasDesc = d.description && d.description.length > 20 ? 0.3 : 0;
     const hasIngredients = d.enrichment_status === 'completed' ? 0.2 : 0;
-    const qualityNorm    = hasImage + hasDesc + hasIngredients;
+    const qualityNorm = hasImage + hasDesc + hasIngredients;
 
     // Weighted base score
     let score: number;
@@ -137,14 +139,14 @@ function rankCandidates(
         (W.similarity + W.rating / 2) * ratingNorm +
         (W.similarity / 2 + W.popularity) * popularityNorm +
         W.distance * distanceNorm +
-        W.quality  * qualityNorm;
+        W.quality * qualityNorm;
     } else {
       score =
-        W.similarity  * similarity     +
-        W.rating      * ratingNorm     +
-        W.popularity  * popularityNorm +
-        W.distance    * distanceNorm   +
-        W.quality     * qualityNorm;
+        W.similarity * similarity +
+        W.rating * ratingNorm +
+        W.popularity * popularityNorm +
+        W.distance * distanceNorm +
+        W.quality * qualityNorm;
     }
 
     // Soft daily price proximity boost (+0.08 max)
@@ -153,7 +155,7 @@ function rankCandidates(
       const effMin = min <= SLIDER_MIN ? 0 : min;
       const effMax = max >= SLIDER_MAX ? Infinity : max;
       if (d.price >= effMin && d.price <= effMax) {
-        const mid   = (effMin + (effMax === Infinity ? d.price : effMax)) / 2;
+        const mid = (effMin + (effMax === Infinity ? d.price : effMax)) / 2;
         const range = Math.max((effMax === Infinity ? 1 : effMax) - effMin, 1);
         score += 0.08 * Math.max(0, 1 - Math.abs(d.price - mid) / range);
       }
@@ -180,17 +182,17 @@ function rankCandidates(
 
     // Soft daily cuisine boost (+0.20)
     if (filters.cuisines?.length) {
-      if (filters.cuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.20;
+      if (filters.cuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.2;
     }
 
     // Soft daily spice level
     if (filters.spiceLevel && filters.spiceLevel !== 'eitherWay') {
       const dishSpice = d.spice_level ?? 'none';
       if (filters.spiceLevel === 'noSpicy') {
-        if (dishSpice === 'none') score += 0.10;
-        if (dishSpice === 'hot')  score -= 0.08;
+        if (dishSpice === 'none') score += 0.1;
+        if (dishSpice === 'hot') score -= 0.08;
       } else if (filters.spiceLevel === 'iLikeSpicy') {
-        if (dishSpice === 'hot')  score += 0.10;
+        if (dishSpice === 'hot') score += 0.1;
         if (dishSpice === 'mild') score += 0.05;
       }
     }
@@ -199,19 +201,19 @@ function rankCandidates(
     if (userPrefs.spiceTolerance) {
       const order: Record<string, number> = { none: 0, mild: 1, hot: 2 };
       const dishLevel = order[d.spice_level ?? 'none'] ?? 0;
-      const tolLevel  = order[userPrefs.spiceTolerance] ?? 0;
+      const tolLevel = order[userPrefs.spiceTolerance] ?? 0;
       if (dishLevel <= tolLevel) score += 0.08;
-      else                       score -= 0.05;
+      else score -= 0.05;
     }
 
     // Permanent favourite cuisines (+0.10)
     if (userPrefs.favoriteCuisines?.length) {
-      if (userPrefs.favoriteCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.10;
+      if (userPrefs.favoriteCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.1;
     }
 
     // Historical liked cuisines (+0.10)
     if (userLikedCuisines.length > 0) {
-      if (userLikedCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.10;
+      if (userLikedCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.1;
     }
 
     // Learned price range soft boost (+0.06 max) — from user_behavior_profiles.preferred_price_range
@@ -275,7 +277,10 @@ serve(async (req: Request) => {
         if (cached) {
           console.log('[Feed] Cache hit');
           return new Response(
-            JSON.stringify({ ...(cached as object), metadata: { ...(cached as any).metadata, cached: true } }),
+            JSON.stringify({
+              ...(cached as object),
+              metadata: { ...(cached as any).metadata, cached: true },
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -320,16 +325,22 @@ serve(async (req: Request) => {
         userLikedCuisines = [
           ...new Set(
             interactionsRes.data
-              .filter((i: any) => i.interaction_type === 'liked' && i.dishes?.restaurant?.cuisine_types)
+              .filter(
+                (i: any) => i.interaction_type === 'liked' && i.dishes?.restaurant?.cuisine_types
+              )
               .flatMap((i: any) => i.dishes.restaurant.cuisine_types as string[])
           ),
         ];
       }
 
       if (prefsRes.data) {
-        dbSpiceTolerance    = prefsRes.data.spice_tolerance ?? null;
-        dbFavoriteCuisines  = Array.isArray(prefsRes.data.favorite_cuisines)  ? prefsRes.data.favorite_cuisines  : [];
-        dbReligiousRestrictions = Array.isArray(prefsRes.data.religious_restrictions) ? prefsRes.data.religious_restrictions : [];
+        dbSpiceTolerance = prefsRes.data.spice_tolerance ?? null;
+        dbFavoriteCuisines = Array.isArray(prefsRes.data.favorite_cuisines)
+          ? prefsRes.data.favorite_cuisines
+          : [];
+        dbReligiousRestrictions = Array.isArray(prefsRes.data.religious_restrictions)
+          ? prefsRes.data.religious_restrictions
+          : [];
       }
 
       if (behaviorRes.data?.preference_vector) {
@@ -337,41 +348,53 @@ serve(async (req: Request) => {
         preferenceVector = typeof raw === 'string' ? JSON.parse(raw) : raw;
       }
 
-      if (Array.isArray(behaviorRes.data?.preferred_cuisines) && behaviorRes.data.preferred_cuisines.length > 0) {
-        dbFavoriteCuisines = [...new Set([...dbFavoriteCuisines, ...behaviorRes.data.preferred_cuisines])];
+      if (
+        Array.isArray(behaviorRes.data?.preferred_cuisines) &&
+        behaviorRes.data.preferred_cuisines.length > 0
+      ) {
+        dbFavoriteCuisines = [
+          ...new Set([...dbFavoriteCuisines, ...behaviorRes.data.preferred_cuisines]),
+        ];
       }
 
-      if (Array.isArray(behaviorRes.data?.preferred_price_range) && behaviorRes.data.preferred_price_range.length === 2) {
+      if (
+        Array.isArray(behaviorRes.data?.preferred_price_range) &&
+        behaviorRes.data.preferred_price_range.length === 2
+      ) {
         dbPreferredPriceRange = behaviorRes.data.preferred_price_range as [number, number];
       }
 
-      console.log(`[Feed] User context: ${userDislikes.length} dislikes, vector=${preferenceVector !== null}`);
+      console.log(
+        `[Feed] User context: ${userDislikes.length} dislikes, vector=${preferenceVector !== null}`
+      );
     }
 
-    const spiceTolerance    = filters.spiceTolerance ?? dbSpiceTolerance;
-    const favoriteCuisines  = filters.favoriteCuisines?.length ? filters.favoriteCuisines : dbFavoriteCuisines;
-    const religiousRestrictions = filters.religiousRestrictions?.length ? filters.religiousRestrictions : dbReligiousRestrictions;
+    const spiceTolerance = filters.spiceTolerance ?? dbSpiceTolerance;
+    const favoriteCuisines = filters.favoriteCuisines?.length
+      ? filters.favoriteCuisines
+      : dbFavoriteCuisines;
+    const religiousRestrictions = filters.religiousRestrictions?.length
+      ? filters.religiousRestrictions
+      : dbReligiousRestrictions;
     const preferredPriceRange = dbPreferredPriceRange;
-    const hardDietTag = filters.dietPreference && filters.dietPreference !== 'all' ? filters.dietPreference : null;
+    const hardDietTag =
+      filters.dietPreference && filters.dietPreference !== 'all' ? filters.dietPreference : null;
 
     // ── Stage 1: generate_candidates ─────────────────────────────────────────
 
     console.log('[Feed] Stage 1: generate_candidates');
 
-    const { data: candidates, error: candidateError } = await supabase.rpc(
-      'generate_candidates',
-      {
-        p_lat:               location.lat,
-        p_lng:               location.lng,
-        p_radius_m:          radius * 1000,
-        p_preference_vector: preferenceVector ? JSON.stringify(preferenceVector) : null,
-        p_disliked_dish_ids: userDislikes.length ? userDislikes : null,
-        p_allergens:         filters.allergens?.length ? filters.allergens : null,
-        p_diet_tag:          hardDietTag,
-        p_religious_tags:    religiousRestrictions.length ? religiousRestrictions : null,
-        p_limit:             200,
-      }
-    ) as { data: Candidate[] | null; error: unknown };
+    const { data: candidates, error: candidateError } = (await supabase.rpc('generate_candidates', {
+      p_lat: location.lat,
+      p_lng: location.lng,
+      p_radius_m: radius * 1000,
+      p_preference_vector: preferenceVector ? JSON.stringify(preferenceVector) : null,
+      p_disliked_dish_ids: userDislikes.length ? userDislikes : null,
+      p_allergens: filters.allergens?.length ? filters.allergens : null,
+      p_diet_tag: hardDietTag,
+      p_religious_tags: religiousRestrictions.length ? religiousRestrictions : null,
+      p_limit: 200,
+    })) as { data: Candidate[] | null; error: unknown };
 
     if (candidateError) {
       console.error('[Feed] generate_candidates failed:', candidateError);
@@ -473,9 +496,14 @@ serve(async (req: Request) => {
 
       let restaurantList = Array.from(restaurantMap.values());
       switch (filters.sortBy) {
-        case 'closest':     restaurantList.sort((a, b) => a.distance_km - b.distance_km); break;
-        case 'highestRated': restaurantList.sort((a, b) => b.rating - a.rating); break;
-        default:             restaurantList.sort((a, b) => b.score - a.score);
+        case 'closest':
+          restaurantList.sort((a, b) => a.distance_km - b.distance_km);
+          break;
+        case 'highestRated':
+          restaurantList.sort((a, b) => b.rating - a.rating);
+          break;
+        default:
+          restaurantList.sort((a, b) => b.score - a.score);
       }
 
       const restaurantResult = restaurantList.slice(0, limit);
@@ -491,9 +519,15 @@ serve(async (req: Request) => {
         },
       };
 
-      if (redis) { try { await redis.setex(cacheKey, 300, JSON.stringify(restaurantResponse)); } catch {} }
+      if (redis) {
+        try {
+          await redis.setex(cacheKey, 300, JSON.stringify(restaurantResponse));
+        } catch {}
+      }
 
-      console.log(`[Feed] Returning ${restaurantResult.length} restaurants (${Date.now() - startTime}ms)`);
+      console.log(
+        `[Feed] Returning ${restaurantResult.length} restaurants (${Date.now() - startTime}ms)`
+      );
       return new Response(JSON.stringify(restaurantResponse), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -515,18 +549,21 @@ serve(async (req: Request) => {
       },
     };
 
-    if (redis) { try { await redis.setex(cacheKey, 300, JSON.stringify(responseData)); } catch {} }
+    if (redis) {
+      try {
+        await redis.setex(cacheKey, 300, JSON.stringify(responseData));
+      } catch {}
+    }
 
     console.log(`[Feed] Returning ${result.length} dishes (${Date.now() - startTime}ms)`);
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error: any) {
     console.error('[Feed] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error?.message ?? 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error?.message ?? 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

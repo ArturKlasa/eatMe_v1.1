@@ -126,7 +126,12 @@ export function SwipeScreen() {
     // Note: 'disliked' here is used only for feed exclusion, not vector repulsion
     // (per interactionService / update-preference-vector design).
     if (userId !== 'anonymous') {
-      recordInteraction(userId, currentDish.id, direction === 'right' ? 'liked' : 'disliked', sessionId);
+      recordInteraction(
+        userId,
+        currentDish.id,
+        direction === 'right' ? 'liked' : 'disliked',
+        sessionId
+      );
     }
 
     // Move to next dish

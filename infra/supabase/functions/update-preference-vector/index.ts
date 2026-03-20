@@ -34,10 +34,10 @@ const supabase = createClient(
 // ── Interaction weights ───────────────────────────────────────────────────────
 
 const INTERACTION_WEIGHT: Record<string, number> = {
-  saved:    3.0,
-  liked:    1.5,
-  viewed:   0.5,
-  ordered:  2.0,
+  saved: 3.0,
+  liked: 1.5,
+  viewed: 0.5,
+  ordered: 2.0,
   // 'disliked' is deliberately absent:
   // disliking a dish at one restaurant reflects execution quality, not category
   // preference. Disliked dishes are excluded from the feed via generate_candidates
@@ -76,7 +76,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id } = await req.json() as { user_id: string };
+    const { user_id } = (await req.json()) as { user_id: string };
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'user_id required' }), {
@@ -98,7 +98,11 @@ serve(async (req: Request) => {
       if (age < DEBOUNCE_MINUTES) {
         console.log(`[PrefVector] Debounced for ${user_id} (updated ${age.toFixed(1)}m ago)`);
         return new Response(
-          JSON.stringify({ skipped: true, reason: 'debounce', updated_at: profile.preference_vector_updated_at }),
+          JSON.stringify({
+            skipped: true,
+            reason: 'debounce',
+            updated_at: profile.preference_vector_updated_at,
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -116,20 +120,21 @@ serve(async (req: Request) => {
     if (intErr) throw intErr;
 
     if (!interactions || interactions.length === 0) {
-      return new Response(
-        JSON.stringify({ skipped: true, reason: 'no_interactions' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ skipped: true, reason: 'no_interactions' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[PrefVector] ${interactions.length} interactions for ${user_id}`);
 
     // Collect unique dish IDs (only positive signal types need embeddings)
-    const dishIds = [...new Set(
-      interactions
-        .filter(i => INTERACTION_WEIGHT[i.interaction_type] !== undefined)
-        .map(i => i.dish_id)
-    )];
+    const dishIds = [
+      ...new Set(
+        interactions
+          .filter(i => INTERACTION_WEIGHT[i.interaction_type] !== undefined)
+          .map(i => i.dish_id)
+      ),
+    ];
 
     // ── Load dish embeddings + restaurant info ────────────────────────────────
 
@@ -141,7 +146,10 @@ serve(async (req: Request) => {
 
     if (dishErr) throw dishErr;
 
-    const dishMap = new Map<string, { embedding: number[]; price: number | null; cuisines: string[] }>();
+    const dishMap = new Map<
+      string,
+      { embedding: number[]; price: number | null; cuisines: string[] }
+    >();
     for (const d of dishes ?? []) {
       const raw = d.embedding;
       const vec: number[] = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -153,10 +161,9 @@ serve(async (req: Request) => {
     }
 
     if (dishMap.size === 0) {
-      return new Response(
-        JSON.stringify({ skipped: true, reason: 'no_embeddings' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ skipped: true, reason: 'no_embeddings' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // ── Compute weighted average ──────────────────────────────────────────────
@@ -186,7 +193,10 @@ serve(async (req: Request) => {
         for (const c of dish.cuisines) {
           cuisineCount[c] = (cuisineCount[c] ?? 0) + weight;
         }
-        if (dish.price !== null && (interaction.interaction_type === 'liked' || interaction.interaction_type === 'saved')) {
+        if (
+          dish.price !== null &&
+          (interaction.interaction_type === 'liked' || interaction.interaction_type === 'saved')
+        ) {
           likedPrices.push(dish.price);
         }
       } else if (weight < 0) {
@@ -197,10 +207,9 @@ serve(async (req: Request) => {
     }
 
     if (totalWeight === 0) {
-      return new Response(
-        JSON.stringify({ skipped: true, reason: 'zero_weight' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ skipped: true, reason: 'zero_weight' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Normalise
@@ -228,24 +237,24 @@ serve(async (req: Request) => {
 
     // ── Upsert user_behavior_profiles ────────────────────────────────────────
 
-    const { error: upsertErr } = await supabase
-      .from('user_behavior_profiles')
-      .upsert(
-        {
-          user_id,
-          preference_vector: JSON.stringify(preferenceVector),
-          preference_vector_updated_at: new Date().toISOString(),
-          preferred_cuisines: preferredCuisines,
-          ...(preferredPriceRange && { preferred_price_range: preferredPriceRange }),
-          last_active_at: new Date().toISOString(),
-          profile_updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
+    const { error: upsertErr } = await supabase.from('user_behavior_profiles').upsert(
+      {
+        user_id,
+        preference_vector: JSON.stringify(preferenceVector),
+        preference_vector_updated_at: new Date().toISOString(),
+        preferred_cuisines: preferredCuisines,
+        ...(preferredPriceRange && { preferred_price_range: preferredPriceRange }),
+        last_active_at: new Date().toISOString(),
+        profile_updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
 
     if (upsertErr) throw upsertErr;
 
-    console.log(`[PrefVector] Updated for ${user_id}: ${dishMap.size} dishes, ${preferredCuisines.length} cuisines`);
+    console.log(
+      `[PrefVector] Updated for ${user_id}: ${dishMap.size} dishes, ${preferredCuisines.length} cuisines`
+    );
 
     return new Response(
       JSON.stringify({
@@ -257,12 +266,11 @@ serve(async (req: Request) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: any) {
     console.error('[PrefVector] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error?.message ?? 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error?.message ?? 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -50,19 +50,17 @@ serve(async (req: Request) => {
     console.log('[BatchPrefVector] Starting batch run');
 
     // Find users with stale or missing preference vectors who have recent interactions.
-    const { data: staleUsers, error } = await supabase.rpc(
-      'get_users_needing_vector_update',
-      { p_limit: BATCH_LIMIT }
-    );
+    const { data: staleUsers, error } = await supabase.rpc('get_users_needing_vector_update', {
+      p_limit: BATCH_LIMIT,
+    });
 
     if (error) throw error;
 
     if (!staleUsers || staleUsers.length === 0) {
       console.log('[BatchPrefVector] No users need updating');
-      return new Response(
-        JSON.stringify({ ok: true, processed: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ ok: true, processed: 0 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[BatchPrefVector] Processing ${staleUsers.length} users`);
@@ -99,18 +97,19 @@ serve(async (req: Request) => {
       await sleep(CALL_DELAY_MS);
     }
 
-    console.log(`[BatchPrefVector] Done — processed: ${processed}, skipped: ${skipped}, errors: ${errors}`);
+    console.log(
+      `[BatchPrefVector] Done — processed: ${processed}, skipped: ${skipped}, errors: ${errors}`
+    );
 
     return new Response(
       JSON.stringify({ ok: true, processed, skipped, errors, total: staleUsers.length }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error: any) {
     console.error('[BatchPrefVector] Fatal error:', error);
-    return new Response(
-      JSON.stringify({ error: error?.message ?? 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error?.message ?? 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

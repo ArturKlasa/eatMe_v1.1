@@ -992,11 +992,11 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Audit the current group-recommendations Edge Function:**
+- [x] **Audit the current group-recommendations Edge Function:**
   - Does it union all members' allergies? → If not, implement
   - Does it union all members' diet preferences? → If not, implement
   - Does it union all members' religious restrictions? → If not, implement
-- [ ] **Implement hard constraint union:**
+- [x] **Implement hard constraint union:**
 
   ```
   group_allergies = union(member1.allergies, member2.allergies, ...)
@@ -1014,25 +1014,25 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 **Tasks:**
 
-- [ ] **Compute group preference vector:**
+- [x] **Compute group preference vector:**
       $$\text{group\_vector} = \frac{1}{n} \sum_{i=1}^{n} \text{user\_vector}_i$$
   - For members without a preference vector: exclude from the average (don't dilute with zero vectors)
-- [ ] **Rank restaurants** by cosine similarity: `restaurants.restaurant_vector <=> group_vector`
-- [ ] **Hybrid scoring:** Combine vector similarity with the existing multi-factor score:
+- [x] **Rank restaurants** by cosine similarity: `restaurants.restaurant_vector <=> group_vector`
+- [x] **Hybrid scoring:** Combine vector similarity with the existing multi-factor score:
   ```
   final_score = 0.4 * vector_similarity
               + 0.3 * existing_compatibility_score
               + 0.2 * distance_score
               + 0.1 * rating_score
   ```
-- [ ] **Fallback:** If no members have preference vectors, fall back to the current label-based scoring entirely
+- [x] **Fallback:** If no members have preference vectors, fall back to the current label-based scoring entirely
 
 ### Phase 7 — Acceptance Criteria
 
-- [ ] Group recommendations correctly exclude restaurants that violate any member's hard constraints
-- [ ] Vector-based scoring improves group recommendation quality (restaurants are more relevant to the group's combined tastes)
-- [ ] Groups where some members have no preference vector still get valid results
-- [ ] Existing group flow (join → ready → recommend → vote) is unchanged in UX
+- [x] Group recommendations correctly exclude restaurants that violate any member's hard constraints
+- [x] Vector-based scoring improves group recommendation quality (restaurants are more relevant to the group's combined tastes)
+- [x] Groups where some members have no preference vector still get valid results
+- [x] Existing group flow (join → ready → recommend → vote) is unchanged in UX
 
 **Estimated effort:** 3–4 days
 

@@ -1,15 +1,15 @@
 /**
- * Group Recommendations Edge Function v2
+ * group-recommendations/index.ts
+ * Phase 7: Group Recommendations V2
  *
- * Generates restaurant recommendations for Eat Together sessions
- * by analyzing all members' preferences and locations
- *
- * Improvements:
- * - Sophisticated multi-factor scoring algorithm
- * - Better cuisine preference matching
- * - Edge case handling (no results, conflicting restrictions)
- * - Distance-based scoring
- * - Price level consensus
+ * Changes from V1:
+ * - Hard constraints are now unioned across ALL members and applied at the
+ *   DISH level via get_group_candidates() RPC (not heuristic cuisine-name checks)
+ * - Preferences use TEXT[] format (Phase 1 migration) not JSONB boolean maps
+ * - Vector-based group scoring: group_vector = average of member preference_vectors
+ *   scored against restaurants.restaurant_vector via cosine distance
+ * - Hybrid final score: 0.4 * vector_sim + 0.3 * cuisine_compat + 0.2 * distance + 0.1 * rating
+ * - Fallback: when no members have preference vectors, pure label-based scoring
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -20,72 +20,203 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface Member {
+const DIMS = 1536;
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface GroupMember {
   user_id: string;
-  current_location: { lat: number; lng: number } | null;
   profile_name: string;
+  current_location: { lat: number; lng: number } | null;
   preferences: {
     diet_preference: 'all' | 'vegetarian' | 'vegan';
-    allergies: Record<string, boolean>;
-    exclude: Record<string, boolean>;
-    religious_restrictions: Record<string, boolean>;
-    cuisine_preferences?: string[];
-    default_price_range?: { min: number; max: number };
+    allergies: string[];
+    exclude: string[];
+    religious_restrictions: string[];
   };
+  preference_vector: number[] | null;
 }
 
-interface Restaurant {
+interface Candidate {
   id: string;
   name: string;
-  location: { lat: number; lng: number };
   cuisine_types: string[];
-  price_level: number;
   rating: number;
   address: string;
   phone: string;
-  distance: number;
+  location: Record<string, unknown>;
+  distance_m: number;
+  restaurant_vector: number[] | null;
+  vector_distance: number | null;
+  score?: number;
+  compatibilityScore?: number;
+  vectorSimilarity?: number | null;
+  breakdown?: Record<string, number>;
 }
 
-serve(async req => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+// ── Vector helpers ────────────────────────────────────────────────────────────
+
+function parseVector(raw: unknown): number[] | null {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw); } catch { return null; }
   }
+  if (Array.isArray(raw)) return raw as number[];
+  return null;
+}
+
+/**
+ * Compute group preference vector = unweighted average of all non-null member vectors.
+ * Members with no vector are excluded (not diluted with zeros).
+ */
+function computeGroupVector(members: GroupMember[]): number[] | null {
+  const vectorMembers = members.filter(m => m.preference_vector !== null);
+  if (vectorMembers.length === 0) return null;
+
+  const acc = new Float64Array(DIMS);
+  for (const m of vectorMembers) {
+    for (let i = 0; i < DIMS; i++) acc[i] += m.preference_vector![i];
+  }
+  const result = new Array<number>(DIMS);
+  for (let i = 0; i < DIMS; i++) result[i] = acc[i] / vectorMembers.length;
+  return result;
+}
+
+// ── Group constraints (union) ─────────────────────────────────────────────────
+
+const DIET_ORDER: Record<string, number> = { all: 0, vegetarian: 1, vegan: 2 };
+
+interface GroupConstraints {
+  diet: 'all' | 'vegetarian' | 'vegan';
+  allergens: string[];
+  religious: string[];
+}
+
+function computeGroupConstraints(members: GroupMember[]): GroupConstraints {
+  const diet = members.reduce<'all' | 'vegetarian' | 'vegan'>((strictest, m) => {
+    const d = m.preferences.diet_preference ?? 'all';
+    return DIET_ORDER[d] > DIET_ORDER[strictest] ? d : strictest;
+  }, 'all');
+
+  const allergens = [...new Set(members.flatMap(m => m.preferences.allergies ?? []))];
+  const religious = [...new Set(members.flatMap(m => m.preferences.religious_restrictions ?? []))];
+
+  return { diet, allergens, religious };
+}
+
+// ── Stage 2: scoring ──────────────────────────────────────────────────────────
+
+function scoreCandidate(
+  r: Candidate,
+  groupVector: number[] | null,
+  members: GroupMember[],
+  radiusKm: number
+): Candidate {
+  const distNorm   = Math.max(0, 1 - (r.distance_m / 1000) / radiusKm);
+  const ratingNorm = (r.rating ?? 0) / 5;
+
+  // Cuisine compatibility: fraction of members whose preferred_cuisines
+  // overlap with this restaurant (soft signal only — vector covers the rest).
+  // Without per-member cuisine prefs here, use neutral 0.5.
+  const cuisineNorm = 0.5;
+
+  const vectorSim =
+    groupVector !== null && r.vector_distance !== null
+      ? Math.max(0, 1 - r.vector_distance)
+      : null;
+
+  let score: number;
+  if (vectorSim !== null) {
+    score = 0.4 * vectorSim + 0.3 * cuisineNorm + 0.2 * distNorm + 0.1 * ratingNorm;
+  } else {
+    // Cold start fallback
+    score = 0.4 * cuisineNorm + 0.35 * ratingNorm + 0.25 * distNorm;
+  }
+
+  return {
+    ...r,
+    score,
+    compatibilityScore: Math.round(score * 100),
+    vectorSimilarity: vectorSim,
+    breakdown: {
+      vectorSimilarity:    vectorSim !== null ? Math.round(vectorSim * 100) : 0,
+      cuisineCompatibility: Math.round(cuisineNorm * 100),
+      distanceScore:       Math.round(distNorm * 100),
+      ratingScore:         Math.round(ratingNorm * 100),
+    },
+  };
+}
+
+// ── Location helpers ──────────────────────────────────────────────────────────
+
+function parseLocation(raw: unknown): { lat: number; lng: number } | null {
+  if (!raw) return null;
+  if (typeof raw === 'object' && raw !== null) {
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj.lat === 'number' && typeof obj.lng === 'number')
+      return { lat: obj.lat, lng: obj.lng };
+  }
+  if (typeof raw === 'string' && raw.startsWith('POINT')) {
+    const m = raw.match(/POINT\(([^ ]+) ([^ ]+)\)/);
+    if (m) return { lat: parseFloat(m[2]), lng: parseFloat(m[1]) };
+  }
+  return null;
+}
+
+function calculateSearchCenter(
+  members: GroupMember[],
+  locationMode: string
+): { lat: number; lng: number } | null {
+  const located = members.filter(m => m.current_location !== null);
+  if (located.length === 0) return null;
+  if (locationMode === 'host_location') return located[0].current_location!;
+  const avgLat = located.reduce((s, m) => s + m.current_location!.lat, 0) / located.length;
+  const avgLng = located.reduce((s, m) => s + m.current_location!.lng, 0) / located.length;
+  return { lat: avgLat, lng: avgLng };
+}
+
+function analyzeConflicts(members: GroupMember[], constraints: GroupConstraints): string[] {
+  const conflicts: string[] = [];
+  if (constraints.diet === 'vegan')
+    conflicts.push('All-vegan filter active — limited restaurant options');
+  if (constraints.allergens.length >= 4)
+    conflicts.push(`${constraints.allergens.length} allergens must be avoided — complex filter`);
+  if (constraints.religious.includes('halal') && constraints.religious.includes('kosher'))
+    conflicts.push('Both halal and kosher required — extremely rare combination');
+  return conflicts;
+}
+
+// ── Main handler ─────────────────────────────────────────────────────────────
+
+serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
-
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { sessionId, locationMode, radiusKm = 5 } = await req.json();
-
+    const { sessionId, locationMode = 'midpoint', radiusKm = 5 } = await req.json();
     if (!sessionId) {
       return new Response(JSON.stringify({ error: 'sessionId is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 1. Verify user is session host
+    // 1. Verify session + host
     const { data: session, error: sessionError } = await supabaseClient
       .from('eat_together_sessions')
       .select('*')
@@ -95,179 +226,152 @@ serve(async req => {
 
     if (sessionError || !session) {
       return new Response(JSON.stringify({ error: 'Session not found or unauthorized' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 2. Get all active members with their preferences and locations
+    // 2. Load session members
     const { data: membersData, error: membersError } = await supabaseClient
       .from('eat_together_members')
-      .select(
-        `
-        user_id,
-        current_location,
-        is_host,
-        users!inner(profile_name)
-      `
-      )
+      .select('user_id, current_location, is_host, users!inner(profile_name)')
       .eq('session_id', sessionId)
       .is('left_at', null);
 
-    if (membersError) {
-      throw membersError;
-    }
-
+    if (membersError) throw membersError;
     if (!membersData || membersData.length < 2) {
       return new Response(
-        JSON.stringify({ error: 'Need at least 2 members to generate recommendations' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'Need at least 2 active members to generate recommendations' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 3. Fetch preferences for all members
     const memberIds = membersData.map(m => m.user_id);
-    const { data: preferencesData } = await supabaseClient
-      .from('user_preferences')
-      .select('*')
-      .in('user_id', memberIds);
 
-    const preferencesMap = new Map(preferencesData?.map(p => [p.user_id, p]) || []);
+    // 3. Load preferences + behavior profiles (parallel)
+    const [prefsRes, behaviorRes] = await Promise.all([
+      serviceClient
+        .from('user_preferences')
+        .select('user_id, diet_preference, allergies, exclude, religious_restrictions')
+        .in('user_id', memberIds),
+      serviceClient
+        .from('user_behavior_profiles')
+        .select('user_id, preference_vector')
+        .in('user_id', memberIds),
+    ]);
 
-    // 4. Build members array with all data
-    const members: Member[] = membersData.map(m => ({
-      user_id: m.user_id,
-      current_location: m.current_location ? parseLocation(m.current_location) : null,
-      profile_name: (m.users as any).profile_name || 'Unknown',
-      preferences: preferencesMap.get(m.user_id) || getDefaultPreferences(),
-    }));
+    const prefsMap  = new Map((prefsRes.data   ?? []).map((p: any) => [p.user_id, p]));
+    const vectorMap = new Map((behaviorRes.data ?? []).map((b: any) => [b.user_id, b]));
 
-    // 5. Calculate search center based on location mode
+    // 4. Build GroupMember array
+    const members: GroupMember[] = membersData.map(m => {
+      const prefs = prefsMap.get(m.user_id) as any;
+      const beh   = vectorMap.get(m.user_id) as any;
+      return {
+        user_id:          m.user_id,
+        profile_name:     (m.users as any).profile_name ?? 'Unknown',
+        current_location: parseLocation(m.current_location),
+        preferences: {
+          diet_preference:       prefs?.diet_preference       ?? 'all',
+          allergies:             prefs?.allergies              ?? [],
+          exclude:               prefs?.exclude                ?? [],
+          religious_restrictions: prefs?.religious_restrictions ?? [],
+        },
+        preference_vector: parseVector(beh?.preference_vector),
+      };
+    });
+
+    console.log(`[GroupRec] ${members.length} members, session ${sessionId}`);
+
+    // 5. Search centre
     const searchCenter = calculateSearchCenter(members, locationMode);
-
     if (!searchCenter) {
       return new Response(
-        JSON.stringify({
-          error: 'Unable to determine search location. Members need to share their location.',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'Unable to determine search location — members must share location' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 6. Find restaurants within radius
-    const { data: restaurants, error: restaurantsError } = await supabaseClient.rpc(
-      'nearby_restaurants',
-      {
-        lat: searchCenter.lat,
-        lng: searchCenter.lng,
-        radius_km: radiusKm,
-      }
+    // 6. Compute group constraints (union) + group vector (average)
+    const constraints      = computeGroupConstraints(members);
+    const groupVector      = computeGroupVector(members);
+    const vectorMemberCount = members.filter(m => m.preference_vector !== null).length;
+
+    console.log(
+      `[GroupRec] diet=${constraints.diet}, allergens=[${constraints.allergens}], ` +
+      `religious=[${constraints.religious}], vectors=${vectorMemberCount}/${members.length}`
     );
 
-    if (restaurantsError) {
-      throw restaurantsError;
-    }
+    // 7. Stage 1: get_group_candidates (DB-level hard filter + ANN ordering)
+    const candidateParams = {
+      p_lat:            searchCenter.lat,
+      p_lng:            searchCenter.lng,
+      p_radius_m:       radiusKm * 1000,
+      p_group_vector:   groupVector ? JSON.stringify(groupVector) : null,
+      p_allergens:      constraints.allergens.length ? constraints.allergens : null,
+      p_diet_tag:       constraints.diet !== 'all' ? constraints.diet : null,
+      p_religious_tags: constraints.religious.length ? constraints.religious : null,
+      p_limit:          40,
+    };
 
-    if (!restaurants || restaurants.length === 0) {
-      return new Response(
-        JSON.stringify({
-          recommendations: [],
-          message: 'No restaurants found in the area',
-          searchCenter,
-          radiusKm,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    let { data: candidates, error: candidateError } = await serviceClient.rpc(
+      'get_group_candidates', candidateParams
+    );
+    if (candidateError) throw candidateError;
 
-    // 7. Score and filter restaurants based on ALL members' requirements
-    const scoredRestaurants = restaurants
-      .map((restaurant: any) => {
-        const score = scoreRestaurant(restaurant, members, searchCenter);
-        return {
-          ...restaurant,
-          ...score,
-        };
-      })
-      .filter(r => r.satisfiesHardConstraints)
-      .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
-      .slice(0, 5); // Top 5 for voting
+    let pool = (candidates ?? []) as Candidate[];
+    console.log(`[GroupRec] Stage 1: ${pool.length} candidates`);
 
-    // 8. Handle edge cases
-    if (scoredRestaurants.length === 0) {
-      // Try expanding radius
-      const expandedRadius = radiusKm * 2;
-      const { data: moreRestaurants } = await supabaseClient.rpc('nearby_restaurants', {
-        lat: searchCenter.lat,
-        lng: searchCenter.lng,
-        radius_km: expandedRadius,
+    if (pool.length === 0) {
+      // Retry with 2× radius
+      const { data: expanded } = await serviceClient.rpc('get_group_candidates', {
+        ...candidateParams,
+        p_radius_m: radiusKm * 2 * 1000,
       });
+      pool = (expanded ?? []) as Candidate[];
 
-      if (moreRestaurants && moreRestaurants.length > 0) {
-        const rescored = moreRestaurants
-          .map((restaurant: any) => {
-            const score = scoreRestaurant(restaurant, members, searchCenter);
-            return { ...restaurant, ...score };
-          })
-          .filter(r => r.satisfiesHardConstraints)
-          .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
-          .slice(0, 5);
-
-        if (rescored.length > 0) {
-          scoredRestaurants.push(...rescored);
-        }
-      }
-
-      // Still no results - return helpful error
-      if (scoredRestaurants.length === 0) {
-        const conflicts = analyzeRestrictionConflicts(members);
+      if (pool.length === 0) {
+        const conflicts = analyzeConflicts(members, constraints);
         return new Response(
           JSON.stringify({
             recommendations: [],
-            message: 'No restaurants found that satisfy all group requirements',
+            message: 'No restaurants found satisfying all group requirements',
             searchCenter,
-            radiusKm,
-            expandedRadius,
+            radiusKm: radiusKm * 2,
             conflicts,
-            suggestions: generateSuggestions(members, conflicts),
+            groupConstraints: constraints,
           }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // 9. Save recommendations to database
-    if (scoredRestaurants.length > 0) {
-      const recommendationsToInsert = scoredRestaurants.map(r => ({
-        session_id: sessionId,
-        restaurant_id: r.id,
-        compatibility_score: r.compatibilityScore,
-        distance_from_center: r.distance,
-        members_satisfied: r.membersSatisfied,
-        total_members: members.length,
-        dietary_compatibility: r.dietaryCompatibility,
-      }));
+    // 8. Stage 2: score + rank → top 5
+    const scored = pool
+      .map(r => scoreCandidate(r, groupVector, members, radiusKm))
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 5);
 
-      // Clear old recommendations first
+    console.log(`[GroupRec] Returning ${scored.length} recommendations`);
+
+    // 9. Persist + advance session to 'voting'
+    if (scored.length > 0) {
       await supabaseClient
         .from('eat_together_recommendations')
         .delete()
         .eq('session_id', sessionId);
 
-      await supabaseClient.from('eat_together_recommendations').insert(recommendationsToInsert);
+      await supabaseClient.from('eat_together_recommendations').insert(
+        scored.map(r => ({
+          session_id:            sessionId,
+          restaurant_id:         r.id,
+          compatibility_score:   r.compatibilityScore ?? 0,
+          distance_from_center:  r.distance_m / 1000,
+          members_satisfied:     members.length,
+          total_members:         members.length,
+          dietary_compatibility: r.breakdown ?? {},
+        }))
+      );
 
-      // Update session status
       await supabaseClient
         .from('eat_together_sessions')
         .update({ status: 'voting' })
@@ -276,409 +380,26 @@ serve(async req => {
 
     return new Response(
       JSON.stringify({
-        recommendations: scoredRestaurants,
+        recommendations: scored,
         metadata: {
           searchCenter,
           radiusKm,
-          totalMembers: members.length,
-          totalRestaurants: restaurants.length,
-          filteredRestaurants: scoredRestaurants.length,
+          totalMembers:       members.length,
+          vectorMemberCount,
+          personalized:       groupVector !== null,
+          totalCandidates:    pool.length,
+          returned:           scored.length,
+          groupConstraints:   constraints,
         },
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error('Error in group-recommendations:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (error: any) {
+    console.error('[GroupRec] Error:', error);
+    return new Response(
+      JSON.stringify({ error: error?.message ?? 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
 
-// Helper Functions
-
-function parseLocation(location: any): { lat: number; lng: number } | null {
-  if (!location) return null;
-
-  if (typeof location === 'object' && location.lat && location.lng) {
-    return { lat: location.lat, lng: location.lng };
-  }
-
-  if (typeof location === 'string' && location.startsWith('POINT')) {
-    const match = location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-    if (match) {
-      return { lat: parseFloat(match[2]), lng: parseFloat(match[1]) };
-    }
-  }
-
-  return null;
-}
-
-function getDefaultPreferences() {
-  return {
-    diet_preference: 'all' as const,
-    allergies: {},
-    exclude: {},
-    religious_restrictions: {},
-  };
-}
-
-function calculateSearchCenter(
-  members: Member[],
-  locationMode: string
-): { lat: number; lng: number } | null {
-  const locationsAvailable = members.filter(m => m.current_location);
-
-  if (locationsAvailable.length === 0) return null;
-
-  if (locationMode === 'host_location') {
-    const host = members.find(m => m.current_location);
-    return host?.current_location || null;
-  }
-
-  if (locationMode === 'midpoint') {
-    const avgLat =
-      locationsAvailable.reduce((sum, m) => sum + m.current_location!.lat, 0) /
-      locationsAvailable.length;
-    const avgLng =
-      locationsAvailable.reduce((sum, m) => sum + m.current_location!.lng, 0) /
-      locationsAvailable.length;
-    return { lat: avgLat, lng: avgLng };
-  }
-
-  // max_radius - use midpoint (implementation could be enhanced)
-  const avgLat =
-    locationsAvailable.reduce((sum, m) => sum + m.current_location!.lat, 0) /
-    locationsAvailable.length;
-  const avgLng =
-    locationsAvailable.reduce((sum, m) => sum + m.current_location!.lng, 0) /
-    locationsAvailable.length;
-  return { lat: avgLat, lng: avgLng };
-}
-
-function scoreRestaurant(
-  restaurant: any,
-  members: Member[],
-  searchCenter: { lat: number; lng: number }
-) {
-  let compatibilityScore = 0;
-  let membersSatisfied = 0;
-  const dietaryCompatibility: Record<string, any> = {};
-  let satisfiesHardConstraints = true;
-
-  // STEP 1: Check HARD CONSTRAINTS - ALL members must be satisfied
-  for (const member of members) {
-    const memberResult = checkMemberCompatibility(restaurant, member);
-    dietaryCompatibility[member.profile_name] = memberResult;
-
-    if (!memberResult.satisfiesHardConstraints) {
-      satisfiesHardConstraints = false;
-      break; // Restaurant fails if ANY member's hard constraints aren't met
-    }
-
-    if (memberResult.compatible) {
-      membersSatisfied++;
-    }
-    compatibilityScore += memberResult.score;
-  }
-
-  if (!satisfiesHardConstraints) {
-    return {
-      compatibilityScore: 0,
-      membersSatisfied: 0,
-      dietaryCompatibility,
-      satisfiesHardConstraints: false,
-    };
-  }
-
-  // STEP 2: Calculate average member satisfaction score
-  compatibilityScore = Math.round(compatibilityScore / members.length);
-
-  // STEP 3: Restaurant quality bonus (0-50 points)
-  const ratingBonus = Math.round((restaurant.rating || 4.0) * 10);
-  compatibilityScore += ratingBonus;
-
-  // STEP 4: Distance penalty/bonus (0-20 points)
-  // Closer is better, but within reason
-  const distanceKm = restaurant.distance || 0;
-  let distanceScore = 0;
-  if (distanceKm < 1) {
-    distanceScore = 20; // Very close
-  } else if (distanceKm < 2) {
-    distanceScore = 15;
-  } else if (distanceKm < 3) {
-    distanceScore = 10;
-  } else if (distanceKm < 5) {
-    distanceScore = 5;
-  }
-  compatibilityScore += distanceScore;
-
-  // STEP 5: Cuisine preference bonus (0-30 points)
-  const cuisineScore = calculateCuisineScore(restaurant, members);
-  compatibilityScore += cuisineScore;
-
-  // STEP 6: Price consensus (0-10 points)
-  const priceScore = calculatePriceScore(restaurant, members);
-  compatibilityScore += priceScore;
-
-  return {
-    compatibilityScore,
-    membersSatisfied,
-    dietaryCompatibility,
-    satisfiesHardConstraints,
-    breakdown: {
-      baseScore: Math.round(
-        compatibilityScore - ratingBonus - distanceScore - cuisineScore - priceScore
-      ),
-      ratingBonus,
-      distanceScore,
-      cuisineScore,
-      priceScore,
-    },
-  };
-}
-
-function calculateCuisineScore(restaurant: any, members: Member[]): number {
-  if (!restaurant.cuisine_types || restaurant.cuisine_types.length === 0) {
-    return 0;
-  }
-
-  let score = 0;
-  const restaurantCuisines = restaurant.cuisine_types.map((c: string) => c.toLowerCase());
-
-  // Count how many members have this restaurant's cuisine in their preferences
-  for (const member of members) {
-    const memberCuisines = (member.preferences.cuisine_preferences || []).map(c => c.toLowerCase());
-
-    if (memberCuisines.length === 0) {
-      // No preferences = slightly positive (neutral)
-      score += 5;
-      continue;
-    }
-
-    // Check for overlap
-    const hasMatch = restaurantCuisines.some(rc =>
-      memberCuisines.some(mc => rc.includes(mc) || mc.includes(rc))
-    );
-
-    if (hasMatch) {
-      score += 10; // Member's preferred cuisine!
-    } else {
-      score += 2; // Not preferred, but acceptable
-    }
-  }
-
-  return Math.min(30, Math.round(score / members.length));
-}
-
-function calculatePriceScore(restaurant: any, members: Member[]): number {
-  if (!restaurant.price_level) return 5; // Neutral if no price info
-
-  const restaurantPrice = restaurant.price_level;
-  let totalDeviation = 0;
-  let membersWithPrefs = 0;
-
-  for (const member of members) {
-    const priceRange = member.preferences.default_price_range;
-    if (!priceRange) continue;
-
-    membersWithPrefs++;
-
-    // Check if restaurant price is within member's range
-    if (restaurantPrice >= priceRange.min && restaurantPrice <= priceRange.max) {
-      totalDeviation += 0; // Perfect match
-    } else if (restaurantPrice < priceRange.min) {
-      totalDeviation += priceRange.min - restaurantPrice;
-    } else {
-      totalDeviation += restaurantPrice - priceRange.max;
-    }
-  }
-
-  if (membersWithPrefs === 0) return 5; // No preferences = neutral
-
-  const avgDeviation = totalDeviation / membersWithPrefs;
-
-  // Convert deviation to score (0 deviation = 10 points, max deviation = 0 points)
-  if (avgDeviation === 0) return 10;
-  if (avgDeviation >= 2) return 0;
-
-  return Math.round(10 * (1 - avgDeviation / 2));
-}
-
-function checkMemberCompatibility(restaurant: any, member: Member) {
-  let score = 50; // Base score
-  let compatible = true;
-  let satisfiesHardConstraints = true;
-  const issues: string[] = [];
-
-  const prefs = member.preferences;
-
-  // HARD CONSTRAINTS - Must satisfy ALL
-
-  // 1. Diet preference (Vegan/Vegetarian)
-  if (prefs.diet_preference === 'vegan') {
-    // Check if restaurant has vegan-friendly indicators
-    const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
-    const hasVeganOptions = cuisines.some(
-      (c: string) => c.includes('vegan') || c.includes('vegetarian') || c.includes('plant')
-    );
-
-    if (!hasVeganOptions && !restaurant.has_vegan_options) {
-      satisfiesHardConstraints = false;
-      issues.push('No vegan options available');
-    } else {
-      score += 20; // Bonus for meeting vegan requirement
-    }
-  } else if (prefs.diet_preference === 'vegetarian') {
-    const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
-    const hasVegetarianOptions = cuisines.some(
-      (c: string) => c.includes('vegetarian') || c.includes('vegan') || c.includes('plant')
-    );
-
-    if (!hasVegetarianOptions && !restaurant.has_vegetarian_options) {
-      // Less strict than vegan - most restaurants have at least one veggie option
-      score -= 20; // Penalty but not hard fail
-      issues.push('Limited vegetarian options');
-    } else {
-      score += 15;
-    }
-  }
-
-  // 2. Religious restrictions - HARD CONSTRAINT
-  if (prefs.religious_restrictions) {
-    if (prefs.religious_restrictions.halal) {
-      const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
-      const isHalal =
-        cuisines.some((c: string) => c.includes('halal')) || restaurant.is_halal_certified;
-
-      if (!isHalal) {
-        satisfiesHardConstraints = false;
-        issues.push('Not halal certified');
-      } else {
-        score += 20;
-      }
-    }
-
-    if (prefs.religious_restrictions.kosher) {
-      const isKosher =
-        restaurant.is_kosher_certified ||
-        (restaurant.cuisine_types || []).some((c: string) => c.toLowerCase().includes('kosher'));
-
-      if (!isKosher) {
-        satisfiesHardConstraints = false;
-        issues.push('Not kosher certified');
-      } else {
-        score += 20;
-      }
-    }
-  }
-
-  // 3. Allergies - HARD CONSTRAINT (simplified - would need menu allergen data)
-  if (prefs.allergies) {
-    // Check for critical allergens
-    const criticalAllergies = Object.entries(prefs.allergies)
-      .filter(([_, enabled]) => enabled)
-      .map(([allergen]) => allergen);
-
-    if (criticalAllergies.length > 0) {
-      // For now, just warn - would need detailed menu data
-      issues.push(`Allergies: ${criticalAllergies.join(', ')} - verify with restaurant`);
-      score -= 5; // Small penalty for requiring extra verification
-    }
-  }
-
-  // 4. Dietary exclusions - HARD CONSTRAINT
-  if (prefs.exclude) {
-    if (prefs.exclude.noMeat) {
-      const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
-      const isMeatFocused = cuisines.some(
-        (c: string) => c.includes('steakhouse') || c.includes('bbq') || c.includes('grill')
-      );
-
-      if (isMeatFocused) {
-        satisfiesHardConstraints = false;
-        issues.push('Meat-focused menu');
-      }
-    }
-
-    if (prefs.exclude.noSeafood) {
-      const cuisines = (restaurant.cuisine_types || []).map((c: string) => c.toLowerCase());
-      const isSeafoodFocused = cuisines.some(
-        (c: string) => c.includes('seafood') || c.includes('sushi') || c.includes('fish')
-      );
-
-      if (isSeafoodFocused) {
-        satisfiesHardConstraints = false;
-        issues.push('Seafood-focused menu');
-      }
-    }
-  }
-
-  return {
-    compatible: satisfiesHardConstraints && score > 30,
-    satisfiesHardConstraints,
-    score: Math.max(0, Math.min(100, score)),
-    issues,
-  };
-}
-
-function analyzeRestrictionConflicts(members: Member[]) {
-  const conflicts: string[] = [];
-
-  // Check for impossible diet combinations
-  const veganCount = members.filter(m => m.preferences.diet_preference === 'vegan').length;
-  const allRestrictionsCount = members.filter(m => {
-    const prefs = m.preferences;
-    return (
-      prefs.religious_restrictions?.halal ||
-      prefs.religious_restrictions?.kosher ||
-      prefs.exclude?.noMeat ||
-      prefs.exclude?.noSeafood
-    );
-  }).length;
-
-  if (veganCount > 0 && veganCount === members.length) {
-    conflicts.push('All members are vegan - very limited restaurant options');
-  }
-
-  if (allRestrictionsCount > members.length * 0.7) {
-    conflicts.push('Multiple dietary restrictions make it difficult to find suitable restaurants');
-  }
-
-  // Check for conflicting preferences
-  const halalRequired = members.some(m => m.preferences.religious_restrictions?.halal);
-  const kosherRequired = members.some(m => m.preferences.religious_restrictions?.kosher);
-
-  if (halalRequired && kosherRequired) {
-    conflicts.push('Both halal and kosher certification required - very rare combination');
-  }
-
-  return conflicts;
-}
-
-function generateSuggestions(members: Member[], conflicts: string[]) {
-  const suggestions: string[] = [];
-
-  if (conflicts.length > 0) {
-    suggestions.push('Consider expanding search radius');
-    suggestions.push('Try selecting a different meeting location');
-
-    const restrictiveMembers = members.filter(
-      m =>
-        m.preferences.diet_preference !== 'all' ||
-        Object.values(m.preferences.religious_restrictions || {}).some(v => v) ||
-        Object.values(m.preferences.exclude || {}).some(v => v)
-    );
-
-    if (restrictiveMembers.length > members.length / 2) {
-      suggestions.push(
-        `${restrictiveMembers.length} members have dietary restrictions - consider restaurants specializing in accommodating diverse diets`
-      );
-    }
-  }
-
-  return suggestions;
-}

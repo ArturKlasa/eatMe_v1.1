@@ -32,7 +32,7 @@ import { getDishRatingsBatch, type DishRating } from '../services/dishRatingServ
 import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
 import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
 import { useFilterStore } from '../stores/filterStore';
-import { classifyDish, sortDishesByFilter } from '../utils/menuFilterUtils';
+import { classifyDish, sortDishesByFilter, ALLERGY_TO_DB } from '../utils/menuFilterUtils';
 import { recordInteraction } from '../services/interactionService';
 
 type Props = RootStackScreenProps<'RestaurantDetail'>;
@@ -378,6 +378,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         if (mountedRef.current) setOptionAllergens(map);
       }
     }
+  };
 
   const renderMenuItem = (item: any) => {
     const rating = dishRatings.get(item.id);
@@ -752,7 +753,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           displayPricePrefix={(selectedDish as any).display_price_prefix ?? 'exact'}
           optionGroups={dishOptionGroups}
           optionAllergens={optionAllergens}
-          userAllergens={permanentFilters.allergies}
+          userAllergens={(Object.entries(permanentFilters.allergies) as [keyof typeof permanentFilters.allergies, boolean][]).filter(([, v]) => v).map(([k]) => ALLERGY_TO_DB[k])}
           photos={dishPhotos}
           onPhotoAdded={() => {
             // Refresh photos after upload

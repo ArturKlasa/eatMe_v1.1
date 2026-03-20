@@ -13,7 +13,7 @@ import type { PermanentFilters, IngredientToAvoid } from '../stores/filterStore'
 
 // Mirrors ALLERGY_TO_DB from userPreferencesService.ts.
 // Kept local so this util has no circular dependency on the service.
-const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
+export const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
   lactose: 'lactose',
   gluten: 'gluten',
   peanuts: 'peanuts',

@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 6. Pre-generate UUIDs so we can batch dishes + still link ingredients.
-        const dishRows = validDishes.map((dishData, dishIdx) => ({
+        const dishRows = validDishes.map(dishData => ({
           id: randomUUID() as string,
           restaurant_id,
           menu_category_id: newCat.id,
@@ -153,7 +153,6 @@ export async function POST(request: NextRequest) {
           spice_level: dishData.spice_level ?? null,
           calories: dishData.calories ?? null,
           is_available: true,
-          display_order: dishIdx,
         }));
 
         // Single batch insert for all dishes in this category.
@@ -170,13 +169,18 @@ export async function POST(request: NextRequest) {
         totalDishesInserted += dishRows.length;
 
         // 7. Batch insert all dish_ingredients for this category in one query.
+        // Deduplicate per-dish to avoid primary key violations when the same
+        // ingredient_id appears more than once in canonical_ingredient_ids.
         const ingredientRows: { dish_id: string; ingredient_id: string }[] = [];
         for (let i = 0; i < validDishes.length; i++) {
           const dishData = validDishes[i];
           const dishId = dishRows[i].id;
-          const validIngredients = (dishData.canonical_ingredient_ids ?? []).filter(Boolean);
-          for (const cid of validIngredients) {
-            ingredientRows.push({ dish_id: dishId, ingredient_id: cid });
+          const seen = new Set<string>();
+          for (const cid of (dishData.canonical_ingredient_ids ?? []).filter(Boolean)) {
+            if (!seen.has(cid)) {
+              seen.add(cid);
+              ingredientRows.push({ dish_id: dishId, ingredient_id: cid });
+            }
           }
         }
 

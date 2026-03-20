@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -14,6 +14,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { pickImage, takePhoto, uploadDishPhoto } from '../services/dishPhotoService';
+import { toggleFavorite, isFavorited } from '../services/favoritesService';
+import { recordInteraction } from '../services/interactionService';
 import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
 import type { OptionGroup } from '../lib/supabase';
 
@@ -57,8 +59,38 @@ export function DishPhotoModal({
 }: DishPhotoModalProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
   const user = useAuthStore(state => state.user);
   const { t } = useTranslation();
+
+  // Check whether the dish is already saved when the modal opens.
+  useEffect(() => {
+    if (!visible || !user) { setIsSaved(false); return; }
+    isFavorited(user.id, 'dish', dishId).then(result => {
+      if (result.ok) setIsSaved(result.data);
+    });
+  }, [visible, dishId, user?.id]);
+
+  const handleLike = async () => {
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to save dishes');
+      return;
+    }
+    setLikeLoading(true);
+    try {
+      const result = await toggleFavorite(user.id, 'dish', dishId);
+      if (result.ok) {
+        setIsSaved(result.data);
+        // Only record 'liked' interaction when saving (not when un-saving)
+        if (result.data) {
+          recordInteraction(user.id, dishId, 'liked');
+        }
+      }
+    } finally {
+      setLikeLoading(false);
+    }
+  };
 
   const handleAddPhoto = () => {
     if (!user) {
@@ -134,6 +166,20 @@ export function DishPhotoModal({
                 `$${dishPrice.toFixed(2)}`}
             </Text>
           </View>
+          {/* Like / save button */}
+          <TouchableOpacity
+            onPress={handleLike}
+            disabled={likeLoading}
+            style={styles.likeButton}
+            accessibilityLabel={isSaved ? 'Remove from saved' : 'Save dish'}
+          >
+            {likeLoading
+              ? <ActivityIndicator color={colors.accent} size="small" />
+              : <Text style={[styles.likeIcon, isSaved && styles.likeIconActive]}>
+                  {isSaved ? '❤️' : '🤍'}
+                </Text>
+            }
+          </TouchableOpacity>
         </View>
 
         {/* Main Photo */}
@@ -297,6 +343,20 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  likeButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.xs,
+  },
+  likeIcon: {
+    fontSize: 24,
+    opacity: 0.5,
+  },
+  likeIconActive: {
+    opacity: 1,
   },
   closeButtonText: {
     fontSize: typography.size['2xl'],

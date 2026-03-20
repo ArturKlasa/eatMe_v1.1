@@ -3,9 +3,11 @@
 --
 -- Phase 6: Behaviour Profile Pipeline
 --
--- 1. Partial unique index on user_dish_interactions to prevent duplicate
+-- 1. Unique functional index on user_dish_interactions to prevent duplicate
 --    interaction rows for the same user+dish+type within a 24-hour window.
---    Uses a functional index on date_trunc('day', created_at) so that the
+--    Uses a functional index on date_trunc('day', created_at AT TIME ZONE 'UTC')
+--    (timestamp without time zone) so the expression is IMMUTABLE and indexable.
+--    This ensures a stable UTC day bucket so that the
 --    same user can re-interact with the same dish on different days (e.g.
 --    views the same dish at a restaurant a week later).
 --
@@ -19,7 +21,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_dish_interactions_dedup_idx
     user_id,
     dish_id,
     interaction_type,
-    date_trunc('day', created_at)
+    date_trunc('day', created_at AT TIME ZONE 'UTC')
   );
 
 -- Performance: preference vector computation scans by user_id ordered by created_at

@@ -925,7 +925,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 **Tasks:**
 
 - [x] **Track dish views:** When a user opens a dish detail view for > 3 seconds, insert a `viewed` interaction
-- [ ] **Track dish likes:** When a user likes a dish (via the feed or detail view), insert a `liked` interaction
+- [x] **Track dish likes:** When a user likes a dish (via the feed or detail view), insert a `liked` interaction
 - [x] **Track dish opinions:** When a user submits a `dish_opinion`, insert a corresponding positive interaction (`liked` for `liked` / `okay`; skip `disliked` to avoid over-penalising dish categories)
 - [x] **Track dish saves:** When a user saves a dish to favourites, insert a `saved` interaction
 - [x] **Ensure idempotency:** Don't insert duplicate interactions for the same user+dish+type within a session
@@ -945,7 +945,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
     - Apply time decay: $w_{\text{decayed}} = w \times e^{-0.01 \times \Delta t_{\text{days}}}$
   - Store result in `user_behavior_profiles.preference_vector` + `preference_vector_updated_at`
 - [x] **Trigger:** Call this function after each new interaction (debounced — max once per 5 minutes per user)
-- [ ] **Batch fallback:** Daily cron job that recomputes all profiles where `preference_vector_updated_at < now() - interval '24 hours'` and new interactions exist
+- [x] **Batch fallback:** Daily cron job that recomputes all profiles where `preference_vector_updated_at < now() - interval '24 hours'` and new interactions exist
 
 ### 6.3 Update `user_behavior_profiles` aggregate fields
 
@@ -953,8 +953,8 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 - [x] **Compute `preferred_cuisines`:** Most common `restaurant.cuisine_types` among liked/saved dishes
 - [x] **Compute `preferred_price_range`:** Median price of liked dishes ± 1 std dev
-- [ ] **Compute `interaction_rate`:** Total interactions / distinct session count
-- [ ] **Store all** in the `user_behavior_profiles` row alongside the preference vector
+- [ ] **Compute `interaction_rate`:** Total interactions / distinct session count _(deferred — no dedicated column in user_behavior_profiles yet)_
+- [x] **Store all** in the `user_behavior_profiles` row alongside the preference vector
 
 ### 6.4 Feed integration
 
@@ -965,7 +965,7 @@ The `user_preferences.allergies` JSONB keys are **not a 1:1 match**: `soy` → `
 
 ### Phase 6 — Acceptance Criteria
 
-- [ ] Every dish view (> 3s), like, save, and opinion creates a `user_dish_interactions` row
+- [x] Every dish view (> 3s), like, save, and opinion creates a `user_dish_interactions` row
 - [x] `preference_vector` is computed and stored for users with ≥ 3 interactions
 - [x] Preference vector updates are debounced (not recomputed on every interaction)
 - [x] The feed uses the preference vector for ranking when available

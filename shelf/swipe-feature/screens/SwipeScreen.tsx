@@ -13,6 +13,7 @@ import {
   ServerDish,
   type FeedResponse,
 } from '../services/edgeFunctionsService';
+import { recordInteraction } from '../services/interactionService';
 import { useFilterStore } from '../stores/filterStore';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useAuthStore } from '../stores/authStore';
@@ -108,7 +109,9 @@ export function SwipeScreen() {
 
     // Track swipe to Edge Function (fire and forget).
     // trackSwipe writes to user_swipes via the Edge Function — that is the
-    // single authoritative record. user_dish_interactions is redundant.
+    // single authoritative record for the swipe UI.
+    // recordInteraction writes to user_dish_interactions — used by the
+    // preference vector pipeline (liked → positive signal, disliked → feed exclusion).
     const userId = user?.id || 'anonymous';
     trackSwipe(
       userId,
@@ -118,6 +121,13 @@ export function SwipeScreen() {
       currentIndex,
       sessionId
     ).catch(err => console.error('[SwipeScreen] Failed to track swipe:', err));
+
+    // Preference vector signal: swipe-right = liked, swipe-left = disliked.
+    // Note: 'disliked' here is used only for feed exclusion, not vector repulsion
+    // (per interactionService / update-preference-vector design).
+    if (userId !== 'anonymous') {
+      recordInteraction(userId, currentDish.id, direction === 'right' ? 'liked' : 'disliked', sessionId);
+    }
 
     // Move to next dish
     setCurrentIndex(prev => prev + 1);

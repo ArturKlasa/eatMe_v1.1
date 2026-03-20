@@ -170,13 +170,13 @@ export async function POST(request: NextRequest) {
         totalDishesInserted += dishRows.length;
 
         // 7. Batch insert all dish_ingredients for this category in one query.
-        const ingredientRows: { dish_id: string; canonical_ingredient_id: string }[] = [];
+        const ingredientRows: { dish_id: string; ingredient_id: string }[] = [];
         for (let i = 0; i < validDishes.length; i++) {
           const dishData = validDishes[i];
           const dishId = dishRows[i].id;
           const validIngredients = (dishData.canonical_ingredient_ids ?? []).filter(Boolean);
           for (const cid of validIngredients) {
-            ingredientRows.push({ dish_id: dishId, canonical_ingredient_id: cid });
+            ingredientRows.push({ dish_id: dishId, ingredient_id: cid });
           }
         }
 
@@ -197,8 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Mark job as completed (or failed if nothing was saved)
-    const finalStatus =
-      totalDishesInserted === 0 && errors.length > 0 ? 'failed' : 'completed';
+    const finalStatus = totalDishesInserted === 0 && errors.length > 0 ? 'failed' : 'completed';
     await supabase
       .from('menu_scan_jobs')
       .update({ status: finalStatus, dishes_saved: totalDishesInserted })

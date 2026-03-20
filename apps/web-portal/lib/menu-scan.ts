@@ -20,7 +20,9 @@ export interface RawExtractedDish {
   description: string | null;
   raw_ingredients: string[] | null;
   dietary_hints: string[];
-  spice_level: 0 | 1 | 2 | 3 | 4 | null;
+  // AI prompt asks for 0 (none) | 1 (mild) | 3 (hot) | null.
+  // route.ts normalises any out-of-range value before producing EnrichedDish.
+  spice_level: 0 | 1 | 3 | null;
   calories: number | null;
   confidence: number;
 }

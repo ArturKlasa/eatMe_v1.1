@@ -100,7 +100,7 @@ export function DishFormDialog({
     setValue,
     reset,
   } = useForm<DishFormData>({
-    resolver: zodResolver(dishSchema),
+    resolver: zodResolver(dishSchema) as any,
     defaultValues: {
       name: '',
       description: '',
@@ -258,6 +258,11 @@ export function DishFormDialog({
   const spiceLevel = useWatch({ control, name: 'spice_level', defaultValue: 'none' });
   const dishCategoryId = useWatch({ control, name: 'dish_category_id', defaultValue: null });
   const dishKind = useWatch({ control, name: 'dish_kind', defaultValue: 'standard' });
+  const displayPricePrefix = useWatch({
+    control,
+    name: 'display_price_prefix',
+    defaultValue: 'exact',
+  });
 
   const handleFormSubmit = async (data: DishFormData) => {
     // ── Wizard mode (local state, no immediate DB write) ────────────────────
@@ -360,7 +365,7 @@ export function DishFormDialog({
           const { data: insertedGroup, error: groupError } = await supabase
             .from('option_groups')
             .insert({
-              restaurant_id: restaurantId,
+              restaurant_id: restaurantId!,
               dish_id: dishId,
               name: group.name,
               description: group.description ?? null,
@@ -967,7 +972,7 @@ export function DishFormDialog({
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-gray-700">Price Display</h3>
                 <Select
-                  value={(useWatch({ control, name: 'display_price_prefix' }) as string) ?? 'exact'}
+                  value={(displayPricePrefix as string) ?? 'exact'}
                   onValueChange={val =>
                     setValue(
                       'display_price_prefix',

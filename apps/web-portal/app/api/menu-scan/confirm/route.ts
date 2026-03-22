@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
 import type { ConfirmPayload } from '@/lib/menu-scan';
 
+/** Vegan always implies vegetarian — ensure both tags are present. */
+function normalizeDietaryTags(tags: string[]): string[] {
+  if (tags.includes('vegan') && !tags.includes('vegetarian')) {
+    return [...tags, 'vegetarian'];
+  }
+  return tags;
+}
+
 // ---------------------------------------------------------------------------
 // POST /api/menu-scan/confirm
 // Commits the admin-reviewed extraction results to the database.
@@ -149,7 +157,7 @@ export async function POST(request: NextRequest) {
           name: dishData.name.trim(),
           description: dishData.description?.trim() || null,
           price: dishData.price ?? 0,
-          dietary_tags: dishData.dietary_tags ?? [],
+          dietary_tags: normalizeDietaryTags(dishData.dietary_tags ?? []),
           spice_level: dishData.spice_level ?? null,
           calories: dishData.calories ?? null,
           is_available: true,

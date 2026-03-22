@@ -1,19 +1,19 @@
--- 063_exclude_drinks_desserts_from_feed.sql
--- Created: 2026-03-21
--- Description: Exclude drinks and desserts from the feed / recommended dishes.
+-- 065_fix_diet_filter_and_normalize_vegan.sql
+-- Created: 2026-03-22
 --
---   Problem: generate_candidates returned ALL available dishes including drinks
---   (cocktails, coffee, juice …) and desserts. The map-view recommended-dish
---   carousel should only show main-course / savoury items.
+-- Fixes TWO issues with dietary tag filtering:
 --
---   Approach:
---     1. JOIN dish_categories (via dishes.dish_category_id) and exclude rows
---        where is_drink = true  OR  name = 'Dessert'.
---     2. JOIN through menu_categories → menus and exclude rows where
---        menus.menu_type = 'drink'.
---     Both are LEFT JOINs so dishes with NULL category / menu are still included.
+-- 1. REGRESSION in 063: generate_candidates used `@> ARRAY[p_diet_tag]` which
+--    requires a literal match. Vegetarian filter missed vegan-only dishes.
+--    Restores the CASE-based logic from 061 where vegetarian uses `&&`
+--    (overlap) to match dishes tagged with EITHER 'vegetarian' OR 'vegan'.
+--
+-- 2. BACKFILL: Menu-scan pipeline stored vegan dishes with only ['vegan']
+--    instead of ['vegan','vegetarian']. This UPDATE adds the missing
+--    'vegetarian' tag to all existing dishes that have 'vegan' but not
+--    'vegetarian'.
 
--- ── generate_candidates (replaces 061 version) ───────────────────────────────
+-- ── 1. Fix generate_candidates diet filter ────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION generate_candidates(
   p_lat                    FLOAT,
@@ -97,9 +97,7 @@ BEGIN
   FROM dishes d
   JOIN restaurants r ON r.id = d.restaurant_id
   LEFT JOIN dish_analytics da ON da.dish_id = d.id
-  -- Join category to detect drinks / desserts
   LEFT JOIN dish_categories dc ON dc.id = d.dish_category_id
-  -- Join through menu_categories → menus to detect drink menus
   LEFT JOIN menu_categories mc ON mc.id = d.menu_category_id
   LEFT JOIN menus m            ON m.id  = mc.menu_id
 
@@ -112,24 +110,26 @@ BEGIN
     )
     AND d.is_available = true
 
-    -- ── Exclude drinks ──
-    -- Via dish_categories.is_drink flag
+    -- Exclude drinks
     AND (dc.id IS NULL OR dc.is_drink = false)
-    -- Via menus.menu_type = 'drink'
     AND (m.id IS NULL OR m.menu_type = 'food')
 
-    -- ── Exclude desserts ──
+    -- Exclude desserts
     AND (dc.id IS NULL OR lower(dc.name) <> 'dessert')
 
-    -- Existing hard filters
+    -- Disliked dishes
     AND (
       array_length(p_disliked_dish_ids, 1) IS NULL
       OR d.id <> ALL(p_disliked_dish_ids)
     )
+
+    -- Allergens
     AND (
       array_length(p_allergens, 1) IS NULL
       OR NOT (d.allergens && p_allergens)
     )
+
+    -- Diet tag: vegetarian uses overlap (&&) so vegan dishes also match
     AND (
       p_diet_tag IS NULL
       OR CASE p_diet_tag
@@ -138,6 +138,8 @@ BEGIN
            ELSE d.dietary_tags @> ARRAY[p_diet_tag]
          END
     )
+
+    -- Religious tags
     AND (
       array_length(p_religious_tags, 1) IS NULL
       OR d.dietary_tags @> p_religious_tags
@@ -160,3 +162,10 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION generate_candidates TO anon, authenticated, service_role;
+
+-- ── 2. Backfill: add 'vegetarian' to all vegan dishes missing it ──────────────
+
+UPDATE dishes
+SET dietary_tags = array_append(dietary_tags, 'vegetarian')
+WHERE 'vegan' = ANY(dietary_tags)
+  AND NOT ('vegetarian' = ANY(dietary_tags));

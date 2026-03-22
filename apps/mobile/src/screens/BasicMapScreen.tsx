@@ -255,7 +255,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         coordsMap.set(r.id, [r.location.lng, r.location.lat]);
       }
     }
-    return feedDishes
+    return (feedDishes ?? [])
       .filter(d => coordsMap.has(d.restaurant_id))
       .map(d => {
         const raw = d as any;
@@ -298,9 +298,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           10 // 10km radius
         );
         if (!cancelled) {
-          setFeedDishes(response.dishes);
+          const dishes = response.dishes ?? [];
+          setFeedDishes(dishes);
           debugLog(
-            `[BasicMapScreen] Feed loaded: ${response.dishes.length} dishes (personalized: ${response.metadata.personalized})`
+            `[BasicMapScreen] Feed loaded: ${dishes.length} dishes (personalized: ${response.metadata?.personalized})`
           );
         }
       } catch (err) {
@@ -363,8 +364,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           10
         );
         if (!cancelled) {
-          setFilteredRestaurants(response.restaurants);
-          debugLog(`[BasicMapScreen] Restaurant feed: ${response.restaurants.length} restaurants`);
+          const restaurants = response.restaurants ?? [];
+          setFilteredRestaurants(restaurants);
+          debugLog(`[BasicMapScreen] Restaurant feed: ${restaurants.length} restaurants`);
         }
       } catch (err) {
         console.error('[BasicMapScreen] Failed to load filtered restaurants:', err);

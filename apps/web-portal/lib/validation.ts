@@ -62,10 +62,9 @@ export const dishSchema = z.object({
   is_available: z.boolean().optional(),
   description_visibility: z.enum(['menu', 'detail']).optional(),
   ingredients_visibility: z.enum(['menu', 'detail', 'none']).optional(),
-  dish_kind: z.enum(['standard', 'template', 'experience']).optional().default('standard'),
+  dish_kind: z.enum(['standard', 'template', 'experience']).default('standard'),
   display_price_prefix: z
     .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
-    .optional()
     .default('exact'),
   option_groups: z
     .array(

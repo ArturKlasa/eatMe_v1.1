@@ -247,6 +247,10 @@ export function mapDietaryHints(hints: string[]): string[] {
     const code = DIETARY_HINT_MAP[normalized];
     if (code) codes.add(code);
   }
+  // Vegan always implies vegetarian
+  if (codes.has('vegan') && !codes.has('vegetarian')) {
+    codes.add('vegetarian');
+  }
   return Array.from(codes);
 }
 

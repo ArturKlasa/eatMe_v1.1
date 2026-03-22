@@ -83,6 +83,11 @@ export interface FeedRequest {
      * Dishes containing these are annotated (flagged_ingredients), not excluded.
      */
     flagIngredients?: string[];
+    /**
+     * Dish/meal type keywords selected by the user (e.g. "Pizza", "Burger").
+     * Dishes whose names contain any of these terms receive a strong score boost.
+     */
+    dishNames?: string[];
   };
   userId?: string;
   limit?: number; // default 20
@@ -182,6 +187,7 @@ function buildFilters(
       permanentFilters.ingredientsToAvoid.length > 0
         ? permanentFilters.ingredientsToAvoid.map(i => i.canonicalIngredientId)
         : undefined,
+    dishNames: dailyFilters.meals.length > 0 ? dailyFilters.meals : undefined,
   };
 }
 

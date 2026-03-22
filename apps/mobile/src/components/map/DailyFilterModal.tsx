@@ -54,6 +54,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   // Changes here don’t affect the feed until the user presses Apply.
   const [localFilters, setLocalFilters] = React.useState<DailyFilters>({ ...currentDaily });
   const [cuisineModalVisible, setCuisineModalVisible] = React.useState(false);
+  const [mealModalVisible, setMealModalVisible] = React.useState(false);
 
   // Sync to current applied state each time the modal becomes visible
   React.useEffect(() => {
@@ -349,6 +350,62 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* 3.5. Dish / Meal Section */}
+            <View style={modals.section}>
+              <Text style={[modals.sectionTitle, modals.darkSectionTitle]}>
+                🍔 {t('filters.meal')}
+              </Text>
+              <View style={modals.cuisineGrid}>
+                {[
+                  'Tacos',
+                  'Pizza',
+                  'Burger',
+                  'Pasta',
+                  'Sushi',
+                  'Salad',
+                  'Steak',
+                  'Ramen',
+                  'Sandwich',
+                  'Curry',
+                  'Burrito',
+                ].map(meal => (
+                  <TouchableOpacity
+                    key={meal}
+                    style={[
+                      modals.cuisineOption,
+                      localFilters.meals.includes(meal) && modals.selectedOption,
+                    ]}
+                    onPress={() =>
+                      setLocalFilters(prev => ({
+                        ...prev,
+                        meals: prev.meals.includes(meal)
+                          ? prev.meals.filter(m => m !== meal)
+                          : [...prev.meals, meal],
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        modals.cuisineText,
+                        modals.darkCuisineText,
+                        localFilters.meals.includes(meal) && modals.selectedText,
+                      ]}
+                    >
+                      {t(`filters.meals.${toLocaleKey(meal)}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={modals.cuisineOption}
+                  onPress={() => setMealModalVisible(true)}
+                >
+                  <Text style={[modals.cuisineText, modals.darkCuisineText]}>
+                    {t('common.other')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -367,6 +424,160 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
           }))
         }
       />
+
+      {/* Meal Selection Modal */}
+      <MealSelectionModal
+        visible={mealModalVisible}
+        onClose={() => setMealModalVisible(false)}
+        selectedMeals={localFilters.meals}
+        onToggleMeal={meal =>
+          setLocalFilters(prev => ({
+            ...prev,
+            meals: prev.meals.includes(meal)
+              ? prev.meals.filter(m => m !== meal)
+              : [...prev.meals, meal],
+          }))
+        }
+      />
+    </Modal>
+  );
+};
+
+// Full list used in the Meal Selection Modal
+const ALL_MEALS: string[] = [
+  'Tacos',
+  'Pizza',
+  'Burger',
+  'Pasta',
+  'Sushi',
+  'Salad',
+  'Steak',
+  'Ramen',
+  'Sandwich',
+  'Curry',
+  'Burrito',
+  'Noodles',
+  'Rice Bowl',
+  'Soup',
+  'BBQ',
+  'Wings',
+  'Kebab',
+  'Pho',
+  'Pad Thai',
+  'Dumplings',
+  'Fried Chicken',
+  'Falafel',
+  'Gyros',
+  'Quesadilla',
+  'Nachos',
+  'Tostadas',
+  'Enchiladas',
+  'Bento Box',
+  'Bibimbap',
+  'Paella',
+  'Risotto',
+  'Gnocchi',
+  'Lasagna',
+  'Fettuccine',
+  'Poke Bowl',
+  'Spring Rolls',
+  'Tempura',
+  'Udon',
+  'Soba',
+  'Biryani',
+  'Tikka Masala',
+  'Vindaloo',
+  'Shawarma',
+  'Schnitzel',
+  'Fish & Chips',
+  'Hot Dog',
+  'Philly Cheesesteak',
+  'Club Sandwich',
+  'Banh Mi',
+  'Croissant',
+  'Bagel',
+  'Pancakes',
+  'Waffles',
+  'Omelette',
+  'Breakfast Burrito',
+  'French Toast',
+  'Eggs Benedict',
+  'Huevos Rancheros',
+  'Chilaquiles',
+];
+
+/**
+ * Meal Selection Modal Component
+ *
+ * A modal for selecting specific dishes/meals beyond the popular options
+ */
+interface MealSelectionModalProps {
+  visible: boolean;
+  onClose: () => void;
+  selectedMeals: string[];
+  onToggleMeal: (meal: string) => void;
+}
+
+const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
+  visible,
+  onClose,
+  selectedMeals,
+  onToggleMeal,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+      <View style={modals.overlay}>
+        <View style={[modals.container, modals.darkContainer, { maxHeight: '80%' }]}>
+          <View style={modals.header}>
+            <Text style={[modals.title, modals.darkTitle]}>🍔 {t('filters.selectMeals')}</Text>
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: spacing.base,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.base,
+                backgroundColor: colors.accent,
+              }}
+              onPress={onClose}
+            >
+              <Text
+                style={{
+                  fontSize: typography.size.sm,
+                  color: colors.white,
+                  fontWeight: typography.weight.semibold,
+                }}
+              >
+                {t('common.done')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={modals.content} showsVerticalScrollIndicator={true}>
+            <View style={modals.cuisineGrid}>
+              {ALL_MEALS.map(meal => (
+                <TouchableOpacity
+                  key={meal}
+                  style={[
+                    modals.cuisineOption,
+                    selectedMeals.includes(meal) && modals.selectedOption,
+                  ]}
+                  onPress={() => onToggleMeal(meal)}
+                >
+                  <Text
+                    style={[
+                      modals.cuisineText,
+                      modals.darkCuisineText,
+                      selectedMeals.includes(meal) && modals.selectedText,
+                    ]}
+                  >
+                    {t(`filters.meals.${toLocaleKey(meal)}`)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
     </Modal>
   );
 };

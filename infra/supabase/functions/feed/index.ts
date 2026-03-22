@@ -65,6 +65,11 @@ interface FeedRequest {
     sortBy?: 'closest' | 'bestMatch' | 'highestRated';
     openNow?: boolean;
     flagIngredients?: string[];
+    /**
+     * Dish/meal type keywords selected by the user (e.g. "Pizza", "Burger").
+     * Dishes whose names contain any of these terms receive a strong score boost.
+     */
+    dishNames?: string[];
   };
   userId?: string;
   limit?: number;
@@ -232,6 +237,13 @@ function rankCandidates(
       }
     }
 
+    // Daily dish/meal type boost (+0.25) — explicit craving match
+    if (filters.dishNames?.length) {
+      const nameLower = d.name.toLowerCase();
+      const matches = filters.dishNames.some(m => nameLower.includes(m.toLowerCase()));
+      if (matches) score += 0.25;
+    }
+
     return { ...d, score: Math.max(0, score) };
   });
 }
@@ -337,7 +349,7 @@ serve(async (req: Request) => {
           .filter((i: any) => i.interaction_type === 'disliked')
           .map((i: any) => i.dish_id);
         userLikedCuisines = [
-          ...new Set(
+          ...new Set<string>(
             interactionsRes.data
               .filter(
                 (i: any) => i.interaction_type === 'liked' && i.dishes?.restaurant?.cuisine_types
@@ -555,7 +567,7 @@ serve(async (req: Request) => {
 
       if (redis) {
         try {
-          await redis.setex(cacheKey, 300, JSON.stringify(restaurantResponse));
+          await redis.set(cacheKey, JSON.stringify(restaurantResponse), { ex: 300 });
         } catch {}
       }
 
@@ -607,7 +619,7 @@ serve(async (req: Request) => {
 
     if (redis) {
       try {
-        await redis.setex(cacheKey, 300, JSON.stringify(responseData));
+        await redis.set(cacheKey, JSON.stringify(responseData), { ex: 300 });
       } catch {}
     }
 

@@ -28,6 +28,9 @@ export interface DailyFilters {
   // Cuisine types selection (multiple choice)
   cuisineTypes: string[];
 
+  // Dish/meal selection (multiple choice)
+  meals: string[];
+
   // Diet preference (multi-select: vegetarian, vegan)
   dietPreference: {
     vegetarian: boolean;
@@ -168,6 +171,8 @@ interface FilterActions {
   setDailyPriceRange: (min: number, max: number) => void;
   toggleDailyCuisine: (cuisine: string) => void;
   setDailyCuisines: (cuisines: string[]) => void;
+  toggleDailyMeal: (meal: string) => void;
+  setDailyMeals: (meals: string[]) => void;
   setDietPreference: (key: keyof DailyFilters['dietPreference']) => void;
   toggleProteinType: (protein: keyof DailyFilters['proteinTypes']) => void;
   toggleMeatType: (meatType: keyof DailyFilters['meatTypes']) => void;
@@ -239,6 +244,7 @@ export const defaultDailyFilters: DailyFilters = {
     max: 50,
   },
   cuisineTypes: [],
+  meals: [],
   dietPreference: {
     vegetarian: false,
     vegan: false,
@@ -430,6 +436,30 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       daily: {
         ...state.daily,
         cuisineTypes: cuisines,
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  toggleDailyMeal: (meal: string) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        meals: state.daily.meals.includes(meal)
+          ? state.daily.meals.filter(m => m !== meal)
+          : [...state.daily.meals, meal],
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  setDailyMeals: (meals: string[]) => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        meals,
       },
       activePreset: null,
     }));
@@ -895,6 +925,11 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check cuisines
     if (state.daily.cuisineTypes.length > 0) {
+      count++;
+    }
+
+    // Check meals/dishes (any selected)
+    if (state.daily.meals.length > 0) {
       count++;
     }
 

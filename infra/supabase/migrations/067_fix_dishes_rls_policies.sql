@@ -12,11 +12,15 @@
 -- Fix: use dishes.restaurant_id directly (dishes has this column), joining
 -- to restaurants to check owner_id. Much simpler and correct.
 
--- ── DROP broken policies ──────────────────────────────────────────────────────
+-- ── DROP all existing policies (both old broken names and new names) ─────────
 DROP POLICY IF EXISTS "Admins and owners can view dishes"   ON dishes;
 DROP POLICY IF EXISTS "Admins and owners can update dishes" ON dishes;
 DROP POLICY IF EXISTS "Admins and owners can insert dishes" ON dishes;
 DROP POLICY IF EXISTS "Only admins can delete dishes"       ON dishes;
+-- Also drop new names in case migration was partially run before
+DROP POLICY IF EXISTS "Owners and admins can view dishes"   ON dishes;
+DROP POLICY IF EXISTS "Owners and admins can update dishes" ON dishes;
+DROP POLICY IF EXISTS "Owners and admins can insert dishes" ON dishes;
 
 -- ── Re-create with correct logic ─────────────────────────────────────────────
 

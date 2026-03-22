@@ -110,7 +110,8 @@ function rankCandidates(
     favoriteCuisines?: string[];
     preferredPriceRange?: [number, number] | null;
   },
-  hasPreferenceVector: boolean
+  hasPreferenceVector: boolean,
+  favoritedRestaurantIds: Set<string> = new Set()
 ): Candidate[] {
   const SLIDER_MIN = 10;
   const SLIDER_MAX = 50;
@@ -216,6 +217,11 @@ function rankCandidates(
       if (userLikedCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.1;
     }
 
+    // Favourited restaurant boost (+0.15)
+    if (favoritedRestaurantIds.size > 0 && favoritedRestaurantIds.has(d.restaurant_id)) {
+      score += 0.15;
+    }
+
     // Learned price range soft boost (+0.06 max) — from user_behavior_profiles.preferred_price_range
     if (userPrefs.preferredPriceRange && d.price != null) {
       const [pMin, pMax] = userPrefs.preferredPriceRange;
@@ -299,8 +305,10 @@ serve(async (req: Request) => {
     let dbReligiousRestrictions: string[] = [];
     let dbPreferredPriceRange: [number, number] | null = null;
 
+    let favoritedRestaurantIds = new Set<string>();
+
     if (userId && userId !== 'anonymous') {
-      const [interactionsRes, prefsRes, behaviorRes] = await Promise.all([
+      const [interactionsRes, prefsRes, behaviorRes, favoritesRes] = await Promise.all([
         supabase
           .from('user_dish_interactions')
           .select('dish_id, interaction_type, dishes(restaurant:restaurants(cuisine_types))')
@@ -316,6 +324,12 @@ serve(async (req: Request) => {
           .select('preference_vector, preferred_cuisines, preferred_price_range')
           .eq('user_id', userId)
           .maybeSingle(),
+        // Load favourited restaurants to boost their dishes in scoring
+        supabase
+          .from('favorites')
+          .select('subject_id')
+          .eq('user_id', userId)
+          .eq('subject_type', 'restaurant'),
       ]);
 
       if (interactionsRes.data) {
@@ -331,6 +345,25 @@ serve(async (req: Request) => {
               .flatMap((i: any) => i.dishes.restaurant.cuisine_types as string[])
           ),
         ];
+      }
+
+      // Favourited restaurants → boost their dishes + extract cuisine types
+      if (favoritesRes.data && favoritesRes.data.length > 0) {
+        const favIds = favoritesRes.data.map((f: any) => f.subject_id);
+        favoritedRestaurantIds = new Set(favIds);
+        // Fetch cuisine types of favourited restaurants
+        try {
+          const { data: favRestaurants } = await supabase
+            .from('restaurants')
+            .select('cuisine_types')
+            .in('id', favIds);
+          if (favRestaurants) {
+            const favCuisines = favRestaurants.flatMap((r: any) => r.cuisine_types ?? []);
+            userLikedCuisines = [...new Set([...userLikedCuisines, ...favCuisines])];
+          }
+        } catch (e) {
+          console.error('[Feed] Favourites cuisine lookup failed (non-fatal):', e);
+        }
       }
 
       if (prefsRes.data) {
@@ -466,7 +499,8 @@ serve(async (req: Request) => {
       radius,
       userLikedCuisines,
       { spiceTolerance, favoriteCuisines, preferredPriceRange },
-      preferenceVector !== null
+      preferenceVector !== null,
+      favoritedRestaurantIds
     );
 
     scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
@@ -535,7 +569,29 @@ serve(async (req: Request) => {
 
     // ── Dishes mode ───────────────────────────────────────────────────────────
 
-    const result = diversified.slice(0, limit);
+    const result = diversified.slice(0, limit).map(d => ({
+      id: d.id,
+      restaurant_id: d.restaurant_id,
+      name: d.name,
+      description: d.description,
+      price: d.price,
+      calories: d.calories,
+      image_url: d.image_url,
+      spice_level: d.spice_level,
+      is_available: d.is_available,
+      allergens: d.allergens,
+      dietary_tags: d.dietary_tags,
+      dish_kind: d.dish_kind,
+      restaurant: {
+        id: d.restaurant_id,
+        name: d.restaurant_name,
+        cuisine_types: d.restaurant_cuisines,
+        rating: d.restaurant_rating,
+      },
+      distance_km: d.distance_m / 1000,
+      score: d.score,
+      flagged_ingredients: d.flagged_ingredients ?? [],
+    }));
     const responseData = {
       dishes: result,
       metadata: {

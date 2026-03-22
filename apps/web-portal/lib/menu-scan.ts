@@ -85,6 +85,8 @@ export interface EditableIngredient {
   canonical_ingredient_id?: string;
   canonical_name?: string;
   display_name?: string;
+  /** Sub-ingredients for "choice" ingredients (e.g., meat → beef, chicken, pork) */
+  sub_ingredients?: EditableIngredient[];
 }
 
 export interface EditableDish {
@@ -118,6 +120,15 @@ export interface EditableMenu {
 // Confirm payload types (sent to POST /api/menu-scan/confirm)
 // ---------------------------------------------------------------------------
 
+export interface ConfirmOptionGroup {
+  name: string;
+  selection_type: 'single' | 'multiple';
+  options: {
+    name: string;
+    canonical_ingredient_id?: string;
+  }[];
+}
+
 export interface ConfirmDish {
   name: string;
   price: number;
@@ -127,6 +138,7 @@ export interface ConfirmDish {
   calories?: number | null;
   dish_category_id?: string | null;
   canonical_ingredient_ids: string[];
+  option_groups?: ConfirmOptionGroup[];
 }
 
 export interface ConfirmCategory {

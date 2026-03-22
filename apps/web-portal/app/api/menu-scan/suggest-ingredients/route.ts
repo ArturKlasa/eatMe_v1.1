@@ -64,6 +64,7 @@ interface DishAnalysis {
   dietary_tags: string[];
   allergens: string[];
   spice_level: 'none' | 'mild' | 'hot' | null;
+  dish_category: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,9 +73,14 @@ interface DishAnalysis {
 async function analyseDish(
   dishName: string,
   description: string | null,
-  openai: OpenAI
+  openai: OpenAI,
+  categoryNames: string[] = []
 ): Promise<DishAnalysis> {
   const descPart = description?.trim() ? `\nDescription: "${description.trim()}"` : '';
+  const categoryHint =
+    categoryNames.length > 0
+      ? `\n  "dish_category": string|null — pick the single best match from this list: ${JSON.stringify(categoryNames)}. If none fit, return a short new category name (English, title-case, max 3 words). Return null only if truly uncategorisable.`
+      : '';
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -87,7 +93,8 @@ async function analyseDish(
           '  "dietary_tags": string[] — applicable codes from: vegetarian, vegan, pescatarian, keto, paleo, low_carb, gluten_free, dairy_free, halal, kosher, hindu, jain, organic, diabetic_friendly, heart_healthy\n' +
           '  "allergens": string[]    — applicable codes from: milk, eggs, fish, shellfish, tree_nuts, peanuts, wheat, soybeans, sesame, gluten, lactose, sulfites, mustard, celery\n' +
           '  "spice_level": 0|1|3|null — 0=not spicy, 1=mildly spicy, 3=very spicy, null=unknown\n' +
-          'Use only the exact code values listed above. Return empty arrays when nothing applies.',
+          categoryHint +
+          '\nUse only the exact code values listed above. Return empty arrays when nothing applies.',
       },
       {
         role: 'user',
@@ -95,7 +102,7 @@ async function analyseDish(
       },
     ],
     response_format: { type: 'json_object' },
-    max_tokens: 400,
+    max_tokens: 500,
   });
 
   try {
@@ -128,9 +135,20 @@ async function analyseDish(
             ? 'mild'
             : 'hot';
 
-    return { ingredients, dietary_tags, allergens, spice_level };
+    const dish_category =
+      typeof parsed.dish_category === 'string' && parsed.dish_category.trim()
+        ? parsed.dish_category.trim()
+        : null;
+
+    return { ingredients, dietary_tags, allergens, spice_level, dish_category };
   } catch {
-    return { ingredients: [], dietary_tags: [], allergens: [], spice_level: null };
+    return {
+      ingredients: [],
+      dietary_tags: [],
+      allergens: [],
+      spice_level: null,
+      dish_category: null,
+    };
   }
 }
 
@@ -218,10 +236,16 @@ export async function POST(request: NextRequest) {
 
   let dish_name: string;
   let description: string | null;
+  let dish_category_names: string[] = [];
   try {
     const body = await request.json();
     dish_name = body.dish_name?.trim();
     description = body.description ?? null;
+    if (Array.isArray(body.dish_category_names)) {
+      dish_category_names = body.dish_category_names.filter(
+        (n: unknown): n is string => typeof n === 'string'
+      );
+    }
     if (!dish_name) throw new Error('dish_name is required');
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });
@@ -230,16 +254,49 @@ export async function POST(request: NextRequest) {
   const openai = getOpenAIClient();
   const supabase = createServerSupabaseClient();
 
-  // 1. Single AI call — ingredients + dietary/allergen/spice in one shot
-  const analysis = await analyseDish(dish_name, description, openai);
+  // 1. Single AI call — ingredients + dietary/allergen/spice + dish category in one shot
+  const analysis = await analyseDish(dish_name, description, openai, dish_category_names);
 
   // 2. Batch-match ingredient names against the DB (2 queries total)
   const ingredients = await matchNames(analysis.ingredients, supabase);
+
+  // 3. Resolve dish_category to an ID
+  let dish_category_id: string | null = null;
+  let dish_category_name: string | null = analysis.dish_category;
+
+  if (analysis.dish_category) {
+    // Try exact match first (case-insensitive)
+    const { data: existing } = await supabase
+      .from('dish_categories')
+      .select('id, name')
+      .ilike('name', analysis.dish_category)
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+
+    if (existing) {
+      dish_category_id = existing.id;
+      dish_category_name = existing.name;
+    } else {
+      // Create new category
+      const { data: created } = await supabase
+        .from('dish_categories')
+        .insert({ name: analysis.dish_category, is_drink: false, is_active: true })
+        .select('id, name')
+        .single();
+      if (created) {
+        dish_category_id = created.id;
+        dish_category_name = created.name;
+      }
+    }
+  }
 
   return NextResponse.json({
     ingredients,
     dietary_tags: analysis.dietary_tags,
     allergens: analysis.allergens,
     spice_level: analysis.spice_level,
+    dish_category_id,
+    dish_category_name,
   });
 }

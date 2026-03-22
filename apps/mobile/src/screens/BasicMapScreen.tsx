@@ -192,13 +192,22 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
   // Map edge-function ServerDish results into the shape MapFooter expects.
   // Limit to 5 dishes, at most one per restaurant.
+  // Drinks and desserts are excluded server-side (generate_candidates) but we
+  // also apply a lightweight client-side check as a safety net for uncategorised items.
   const recommendedDishes = useMemo(() => {
+    const DRINK_KEYWORDS =
+      /\b(coffee|espresso|latte|cappuccino|americano|macchiato|mocha|tea|chai|matcha|juice|smoothie|milkshake|soda|cola|lemonade|limeade|water|sparkling|mocktail|cocktail|beer|wine|sangria|margarita|mojito|spritz|kombucha|hot chocolate|iced tea)\b/i;
+    const DESSERT_KEYWORDS =
+      /\b(cake|cupcake|brownie|cookie|ice cream|gelato|sorbet|tiramisu|cheesecake|pudding|mousse|crème brûlée|creme brulee|macaron|donut|doughnut|muffin|pie à la mode|sundae|churro|baklava|flan|panna cotta|parfait)\b/i;
+
     const seen = new Set<string>();
     const result: ReturnType<typeof buildDish>[] = [];
 
     for (const dish of feedDishes ?? []) {
       if (result.length >= 5) break;
       if (seen.has(dish.restaurant_id)) continue;
+      // Skip drinks and desserts that slipped past the server filter
+      if (DRINK_KEYWORDS.test(dish.name) || DESSERT_KEYWORDS.test(dish.name)) continue;
       seen.add(dish.restaurant_id);
       result.push(buildDish(dish));
     }
@@ -206,31 +215,59 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   }, [feedDishes]);
 
   function buildDish(dish: ServerDish) {
+    // The Edge Function may return restaurant info nested (restaurant.name)
+    // or flat (restaurant_name) depending on version. Handle both.
+    const raw = dish as any;
     return {
       id: dish.id,
       name: dish.name,
       restaurantId: dish.restaurant_id,
-      restaurantName: dish.restaurant?.name || 'Unknown Restaurant',
+      restaurantName: dish.restaurant?.name || raw.restaurant_name || 'Unknown Restaurant',
       price: dish.price,
-      cuisine: dish.restaurant?.cuisine_types?.[0] || 'Unknown',
+      cuisine: dish.restaurant?.cuisine_types?.[0] || raw.restaurant_cuisines?.[0] || 'Unknown',
       imageUrl: dish.image_url || undefined,
-      rating: dish.restaurant?.rating || 0,
+      rating: dish.restaurant?.rating || raw.restaurant_rating || 0,
       isAvailable: dish.is_available,
       dietary_tags: dish.dietary_tags || [],
       allergens: dish.allergens || [],
     };
   }
 
-  // For the map pins, show only one pin per restaurant that has a recommended dish
-  const pinnedRestaurants = useMemo(() => {
-    const recommendedIds = new Set(recommendedDishes.map(d => d.restaurantId));
-    const seen = new Set<string>();
-    return (displayedRestaurants ?? []).filter(r => {
-      if (!recommendedIds.has(r.id) || seen.has(r.id)) return false;
-      seen.add(r.id);
-      return true;
-    });
-  }, [displayedRestaurants, recommendedDishes]);
+  // Convert ServerRestaurant[] from the Edge Function to the shape RestaurantMarkers expects.
+  // Shows ALL filtered restaurants (not just ones with recommended dishes).
+  const mapPinRestaurants = useMemo(() => {
+    return filteredRestaurants
+      .filter(r => r.location?.lat != null && r.location?.lng != null)
+      .map(r => ({
+        id: r.id,
+        name: r.name,
+        coordinates: [r.location!.lng, r.location!.lat] as [number, number],
+        isOpen: r.is_open ?? true,
+      }));
+  }, [filteredRestaurants]);
+
+  // Convert feed dishes to map pin shape, looking up restaurant coordinates
+  // from filteredRestaurants (since feedDishes don't carry location data).
+  const mapPinDishes = useMemo(() => {
+    const coordsMap = new Map<string, [number, number]>();
+    for (const r of filteredRestaurants) {
+      if (r.location?.lat != null && r.location?.lng != null) {
+        coordsMap.set(r.id, [r.location.lng, r.location.lat]);
+      }
+    }
+    return feedDishes
+      .filter(d => coordsMap.has(d.restaurant_id))
+      .map(d => {
+        const raw = d as any;
+        return {
+          id: d.id,
+          name: d.name,
+          restaurantId: d.restaurant_id,
+          coordinates: coordsMap.get(d.restaurant_id)!,
+          price: d.price,
+        };
+      });
+  }, [feedDishes, filteredRestaurants]);
 
   const {
     location: userLocation,
@@ -331,8 +368,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         }
       } catch (err) {
         console.error('[BasicMapScreen] Failed to load filtered restaurants:', err);
-        // Fallback: show all nearby restaurants unfiltered
-        if (!cancelled) setFilteredRestaurants(restaurants);
+        // On error, keep whatever restaurants we already have
       }
     }, 300);
 
@@ -647,9 +683,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
         {/* Conditional markers based on view mode */}
         {mode === 'restaurant' ? (
-          <RestaurantMarkers restaurants={pinnedRestaurants} onMarkerPress={handleMarkerPress} />
+          <RestaurantMarkers restaurants={mapPinRestaurants} onMarkerPress={handleMarkerPress} />
         ) : (
-          <DishMarkers dishes={dishes} onMarkerPress={handleDishMarkerPress} />
+          <DishMarkers dishes={mapPinDishes} onMarkerPress={handleDishMarkerPress} />
         )}
       </MapView>
 

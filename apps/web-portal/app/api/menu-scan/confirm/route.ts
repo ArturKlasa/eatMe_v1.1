@@ -197,6 +197,59 @@ export async function POST(request: NextRequest) {
             // Non-fatal: dishes are inserted, just without ingredient links
           }
         }
+
+        // 8. Insert option_groups and options for dishes with variant ingredients
+        for (let i = 0; i < validDishes.length; i++) {
+          const dishData = validDishes[i];
+          const dishId = dishRows[i].id;
+          const groups = dishData.option_groups;
+          if (!groups?.length) continue;
+
+          for (let gIdx = 0; gIdx < groups.length; gIdx++) {
+            const group = groups[gIdx];
+            const { data: newGroup, error: groupError } = await supabase
+              .from('option_groups')
+              .insert({
+                restaurant_id,
+                dish_id: dishId,
+                name: group.name,
+                selection_type: group.selection_type,
+                min_selections: 1,
+                max_selections: 1,
+                display_order: gIdx,
+                is_active: true,
+              })
+              .select('id')
+              .single();
+
+            if (groupError || !newGroup) {
+              console.warn(
+                `[MenuScan/confirm] Option group insert failed for dish "${validDishes[i].name}":`,
+                groupError?.message
+              );
+              continue;
+            }
+
+            const optionRows = group.options.map((opt, oIdx) => ({
+              option_group_id: newGroup.id,
+              name: opt.name,
+              canonical_ingredient_id: opt.canonical_ingredient_id || null,
+              price_delta: 0,
+              display_order: oIdx,
+              is_available: true,
+            }));
+
+            if (optionRows.length > 0) {
+              const { error: optError } = await supabase.from('options').insert(optionRows);
+              if (optError) {
+                console.warn(
+                  `[MenuScan/confirm] Options insert failed for group "${group.name}":`,
+                  optError.message
+                );
+              }
+            }
+          }
+        }
       }
     }
 

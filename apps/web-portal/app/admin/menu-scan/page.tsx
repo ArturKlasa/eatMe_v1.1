@@ -19,8 +19,8 @@ import {
   Store,
   ZoomIn,
   MapPin,
-  Pencil,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -41,7 +41,7 @@ import {
   newEmptyDish,
   countDishes,
 } from '@/lib/menu-scan';
-import { fetchDishCategories, type DishCategory } from '@/lib/dish-categories';
+import { fetchDishCategories, createDishCategory, type DishCategory } from '@/lib/dish-categories';
 import dynamic from 'next/dynamic';
 import { formatLocationForSupabase } from '@/lib/supabase';
 
@@ -197,18 +197,44 @@ function buildConfirmPayload(
             name: cat.name.trim() || 'General',
             dishes: cat.dishes
               .filter(d => d.name.trim().length > 0)
-              .map(d => ({
-                name: d.name.trim(),
-                price: parseFloat(d.price) || 0,
-                description: d.description.trim() || undefined,
-                dietary_tags: d.dietary_tags,
-                spice_level: d.spice_level,
-                calories: d.calories,
-                dish_category_id: d.dish_category_id,
-                canonical_ingredient_ids: d.ingredients
-                  .filter(ing => ing.status === 'matched' && ing.canonical_ingredient_id)
-                  .map(ing => ing.canonical_ingredient_id!),
-              })),
+              .map(d => {
+                // Collect all matched ingredient IDs (including sub-ingredients for allergens)
+                const ingredientIds = d.ingredients.flatMap(ing => {
+                  if (ing.status !== 'matched' || !ing.canonical_ingredient_id) return [];
+                  const ids = [ing.canonical_ingredient_id];
+                  for (const sub of ing.sub_ingredients ?? []) {
+                    if (sub.status === 'matched' && sub.canonical_ingredient_id) {
+                      ids.push(sub.canonical_ingredient_id);
+                    }
+                  }
+                  return ids;
+                });
+                // Build option groups from ingredients with sub-ingredients
+                const optionGroups = d.ingredients
+                  .filter(ing => ing.status === 'matched' && (ing.sub_ingredients?.length ?? 0) > 0)
+                  .map(ing => ({
+                    name: `Choice of ${ing.display_name || ing.raw_text}`,
+                    selection_type: 'single' as const,
+                    options: (ing.sub_ingredients ?? [])
+                      .filter(s => s.status === 'matched')
+                      .map(s => ({
+                        name: s.display_name || s.raw_text,
+                        canonical_ingredient_id: s.canonical_ingredient_id,
+                      })),
+                  }))
+                  .filter(og => og.options.length > 0);
+                return {
+                  name: d.name.trim(),
+                  price: parseFloat(d.price) || 0,
+                  description: d.description.trim() || undefined,
+                  dietary_tags: d.dietary_tags,
+                  spice_level: d.spice_level,
+                  calories: d.calories,
+                  dish_category_id: d.dish_category_id,
+                  canonical_ingredient_ids: ingredientIds,
+                  ...(optionGroups.length > 0 ? { option_groups: optionGroups } : {}),
+                };
+              }),
           }))
           .filter(cat => cat.dishes.length > 0),
       }))
@@ -272,6 +298,12 @@ export default function MenuScanPage() {
     mIdx: number;
     cIdx: number;
     dIdx: number;
+  } | null>(null);
+  const [subIngredientEditTarget, setSubIngredientEditTarget] = useState<{
+    mIdx: number;
+    cIdx: number;
+    dIdx: number;
+    ingIdx: number;
   } | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -658,6 +690,114 @@ export default function MenuScanPage() {
     );
   };
 
+  const removeIngredientFromDish = (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => {
+    // Clear/adjust sub-ingredient editor if it targets this ingredient or one after it
+    if (
+      subIngredientEditTarget?.mIdx === mIdx &&
+      subIngredientEditTarget?.cIdx === cIdx &&
+      subIngredientEditTarget?.dIdx === dIdx
+    ) {
+      if (subIngredientEditTarget.ingIdx === ingIdx) {
+        setSubIngredientEditTarget(null);
+      } else if (subIngredientEditTarget.ingIdx > ingIdx) {
+        setSubIngredientEditTarget(prev => (prev ? { ...prev, ingIdx: prev.ingIdx - 1 } : null));
+      }
+    }
+    setEditableMenus(prev =>
+      prev.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return { ...d, ingredients: d.ingredients.filter((_, ii) => ii !== ingIdx) };
+              }),
+            };
+          }),
+        };
+      })
+    );
+  };
+
+  const addSubIngredient = (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ingIdx: number,
+    sub: import('@/lib/menu-scan').EditableIngredient
+  ) => {
+    setEditableMenus(prev =>
+      prev.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return {
+                  ...d,
+                  ingredients: d.ingredients.map((ing, ii) => {
+                    if (ii !== ingIdx) return ing;
+                    const existing = ing.sub_ingredients ?? [];
+                    if (
+                      sub.canonical_ingredient_id &&
+                      existing.some(s => s.canonical_ingredient_id === sub.canonical_ingredient_id)
+                    )
+                      return ing;
+                    return { ...ing, sub_ingredients: [...existing, sub] };
+                  }),
+                };
+              }),
+            };
+          }),
+        };
+      })
+    );
+  };
+
+  const removeSubIngredient = (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ingIdx: number,
+    subIdx: number
+  ) => {
+    setEditableMenus(prev =>
+      prev.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return {
+                  ...d,
+                  ingredients: d.ingredients.map((ing, ii) => {
+                    if (ii !== ingIdx) return ing;
+                    return {
+                      ...ing,
+                      sub_ingredients: (ing.sub_ingredients ?? []).filter((_, si) => si !== subIdx),
+                    };
+                  }),
+                };
+              }),
+            };
+          }),
+        };
+      })
+    );
+  };
+
   const suggestIngredients = async (
     dishId: string,
     dishName: string,
@@ -682,7 +822,11 @@ export default function MenuScanPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ dish_name: dishName, description: description || null }),
+        body: JSON.stringify({
+          dish_name: dishName,
+          description: description || null,
+          dish_category_names: dishCategories.map(dc => dc.name),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Suggestion failed');
@@ -696,6 +840,13 @@ export default function MenuScanPage() {
           : rawTags;
       const suggestedAllergens: string[] = data.allergens ?? [];
       const suggestedSpice: 'none' | 'mild' | 'hot' | null = data.spice_level ?? null;
+      const suggestedCategoryId: string | null = data.dish_category_id ?? null;
+      const suggestedCategoryName: string | null = data.dish_category_name ?? null;
+
+      // If AI created a new category, refresh the local list
+      if (suggestedCategoryId && !dishCategories.some(dc => dc.id === suggestedCategoryId)) {
+        fetchDishCategories().then(({ data: freshCats }) => setDishCategories(freshCats));
+      }
 
       // Compute toast summary from snapshot BEFORE setState (accurate for single-user admin)
       const snap = editableMenus[mIdx]?.categories[cIdx]?.dishes[dIdx];
@@ -717,6 +868,8 @@ export default function MenuScanPage() {
         parts.push(
           `${suggestedAllergens.length} allergen hint${suggestedAllergens.length !== 1 ? 's' : ''}`
         );
+      if (suggestedCategoryId && !snap?.dish_category_id)
+        parts.push(`category: ${suggestedCategoryName ?? 'assigned'}`);
 
       // Fix: dedup inside updater uses `prev` state, not stale closure
       setEditableMenus(prev =>
@@ -752,6 +905,9 @@ export default function MenuScanPage() {
                     patch.spice_level = suggestedSpice;
 
                   if (suggestedAllergens.length > 0) patch.suggested_allergens = suggestedAllergens;
+
+                  if (suggestedCategoryId && !d.dish_category_id)
+                    patch.dish_category_id = suggestedCategoryId;
 
                   return Object.keys(patch).length > 0 ? { ...d, ...patch } : d;
                 }),
@@ -812,6 +968,7 @@ export default function MenuScanPage() {
 
     const CONCURRENCY = 3;
     let done = 0;
+    let needCategoryRefresh = false;
 
     for (let i = 0; i < targets.length; i += CONCURRENCY) {
       const batch = targets.slice(i, i + CONCURRENCY);
@@ -824,7 +981,11 @@ export default function MenuScanPage() {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${session.access_token}`,
               },
-              body: JSON.stringify({ dish_name: name, description: description || null }),
+              body: JSON.stringify({
+                dish_name: name,
+                description: description || null,
+                dish_category_names: dishCategories.map(dc => dc.name),
+              }),
             });
             const data = await res.json();
             if (!res.ok) return;
@@ -838,6 +999,11 @@ export default function MenuScanPage() {
                 : rawTags;
             const suggestedAllergens: string[] = data.allergens ?? [];
             const suggestedSpice: 'none' | 'mild' | 'hot' | null = data.spice_level ?? null;
+            const suggestedCatId: string | null = data.dish_category_id ?? null;
+
+            if (suggestedCatId && !dishCategories.some(dc => dc.id === suggestedCatId)) {
+              needCategoryRefresh = true;
+            }
 
             setEditableMenus(prev =>
               prev.map((m, mi) => {
@@ -871,6 +1037,8 @@ export default function MenuScanPage() {
                           patch.spice_level = suggestedSpice;
                         if (suggestedAllergens.length > 0)
                           patch.suggested_allergens = suggestedAllergens;
+                        if (suggestedCatId && !d.dish_category_id)
+                          patch.dish_category_id = suggestedCatId;
                         return Object.keys(patch).length > 0 ? { ...d, ...patch } : d;
                       }),
                     };
@@ -889,6 +1057,12 @@ export default function MenuScanPage() {
 
     setIsSuggestingAll(false);
     setSuggestAllProgress(null);
+
+    // Refresh dish categories if AI created new ones
+    if (needCategoryRefresh) {
+      fetchDishCategories().then(({ data: freshCats }) => setDishCategories(freshCats));
+    }
+
     toast.success(
       `AI analysis complete for ${targets.length} dish${targets.length !== 1 ? 'es' : ''}`
     );
@@ -1882,46 +2056,188 @@ export default function MenuScanPage() {
                                       <div className="flex flex-wrap gap-1.5 mb-1.5">
                                         {dish.ingredients.map((ing, ingIdx) => {
                                           const matched = ing.status === 'matched';
-                                          return matched ? (
-                                            <button
+                                          const hasSubs = (ing.sub_ingredients?.length ?? 0) > 0;
+                                          const isVariantActive =
+                                            matched &&
+                                            subIngredientEditTarget?.mIdx === mIdx &&
+                                            subIngredientEditTarget?.cIdx === cIdx &&
+                                            subIngredientEditTarget?.dIdx === dIdx &&
+                                            subIngredientEditTarget?.ingIdx === ingIdx;
+
+                                          return (
+                                            <div
                                               key={ingIdx}
-                                              type="button"
-                                              title={`Re-link: ${ing.canonical_name}`}
-                                              onClick={() =>
-                                                setAddIngredientTarget({
-                                                  menuIdx: mIdx,
-                                                  catIdx: cIdx,
-                                                  dishIdx: dIdx,
-                                                  rawText: ing.display_name || ing.raw_text,
-                                                })
-                                              }
-                                              className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full hover:bg-gray-200 flex items-center gap-1 group"
+                                              className={cn(
+                                                'text-xs rounded-full flex items-center',
+                                                matched
+                                                  ? 'bg-gray-100 text-gray-700'
+                                                  : 'bg-orange-50 text-orange-700 border border-orange-200'
+                                              )}
                                             >
-                                              {ing.display_name || ing.raw_text}
-                                              <Pencil className="h-2.5 w-2.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </button>
-                                          ) : (
-                                            <button
-                                              key={ingIdx}
-                                              type="button"
-                                              onClick={() =>
-                                                setAddIngredientTarget({
-                                                  menuIdx: mIdx,
-                                                  catIdx: cIdx,
-                                                  dishIdx: dIdx,
-                                                  rawText: ing.raw_text,
-                                                })
-                                              }
-                                              className="text-xs bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full hover:bg-orange-100 flex items-center gap-1"
-                                            >
-                                              <AlertTriangle className="h-3 w-3" />
-                                              {ing.raw_text}
-                                              <Plus className="h-3 w-3" />
-                                            </button>
+                                              {/* Pill body — opens re-link / link panel */}
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setAddIngredientTarget({
+                                                    menuIdx: mIdx,
+                                                    catIdx: cIdx,
+                                                    dishIdx: dIdx,
+                                                    rawText: matched
+                                                      ? ing.display_name || ing.raw_text
+                                                      : ing.raw_text,
+                                                  })
+                                                }
+                                                className={cn(
+                                                  'flex items-center gap-1 pl-2 pr-0.5 py-0.5 rounded-l-full transition-colors',
+                                                  matched
+                                                    ? 'hover:bg-gray-200'
+                                                    : 'hover:bg-orange-100'
+                                                )}
+                                                title={
+                                                  matched
+                                                    ? `Re-link: ${ing.canonical_name}`
+                                                    : 'Link to ingredient'
+                                                }
+                                              >
+                                                {!matched && (
+                                                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                                                )}
+                                                {hasSubs && (
+                                                  <Layers className="h-2.5 w-2.5 text-indigo-400 shrink-0" />
+                                                )}
+                                                <span>{ing.display_name || ing.raw_text}</span>
+                                                {hasSubs && (
+                                                  <span className="text-indigo-400 text-[10px]">
+                                                    ({ing.sub_ingredients!.length})
+                                                  </span>
+                                                )}
+                                              </button>
+                                              {/* Variant toggle (matched only) */}
+                                              {matched && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setSubIngredientEditTarget(
+                                                      isVariantActive
+                                                        ? null
+                                                        : { mIdx, cIdx, dIdx, ingIdx }
+                                                    )
+                                                  }
+                                                  className={cn(
+                                                    'px-0.5 py-0.5 transition-colors',
+                                                    isVariantActive
+                                                      ? 'text-indigo-500 bg-indigo-50 rounded'
+                                                      : 'text-gray-300 hover:text-indigo-500'
+                                                  )}
+                                                  title="Add/edit variants (e.g., choice of meat)"
+                                                >
+                                                  <Layers className="h-2.5 w-2.5" />
+                                                </button>
+                                              )}
+                                              {/* Delete ingredient */}
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeIngredientFromDish(mIdx, cIdx, dIdx, ingIdx)
+                                                }
+                                                className={cn(
+                                                  'flex items-center pr-1.5 py-0.5 rounded-r-full transition-colors',
+                                                  matched
+                                                    ? 'text-gray-300 hover:text-red-500 hover:bg-red-50'
+                                                    : 'text-orange-300 hover:text-red-500 hover:bg-red-50'
+                                                )}
+                                                title="Remove ingredient"
+                                              >
+                                                <X className="h-2.5 w-2.5" />
+                                              </button>
+                                            </div>
                                           );
                                         })}
                                       </div>
                                     )}
+
+                                    {/* Sub-ingredient / variant editor */}
+                                    {(() => {
+                                      if (
+                                        !subIngredientEditTarget ||
+                                        subIngredientEditTarget.mIdx !== mIdx ||
+                                        subIngredientEditTarget.cIdx !== cIdx ||
+                                        subIngredientEditTarget.dIdx !== dIdx
+                                      )
+                                        return null;
+                                      const parentIngIdx = subIngredientEditTarget.ingIdx;
+                                      const parentIng = dish.ingredients[parentIngIdx];
+                                      if (!parentIng || parentIng.status !== 'matched') return null;
+                                      const subs = parentIng.sub_ingredients ?? [];
+                                      return (
+                                        <div className="border border-indigo-200 bg-indigo-50/40 rounded-lg p-2 mb-1.5">
+                                          <div className="flex items-center justify-between mb-1.5">
+                                            <p className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                                              <Layers className="h-3 w-3" />
+                                              Variants of &ldquo;
+                                              {parentIng.display_name || parentIng.raw_text}
+                                              &rdquo;
+                                            </p>
+                                            <button
+                                              type="button"
+                                              onClick={() => setSubIngredientEditTarget(null)}
+                                              className="text-gray-400 hover:text-gray-600"
+                                            >
+                                              <X className="h-3.5 w-3.5" />
+                                            </button>
+                                          </div>
+                                          {subs.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mb-1.5">
+                                              {subs.map((sub, subIdx) => (
+                                                <div
+                                                  key={subIdx}
+                                                  className="text-xs bg-indigo-100 text-indigo-700 rounded-full flex items-center"
+                                                >
+                                                  <span className="pl-2 pr-0.5 py-0.5">
+                                                    {sub.display_name || sub.raw_text}
+                                                  </span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      removeSubIngredient(
+                                                        mIdx,
+                                                        cIdx,
+                                                        dIdx,
+                                                        parentIngIdx,
+                                                        subIdx
+                                                      )
+                                                    }
+                                                    className="pr-1.5 py-0.5 text-indigo-400 hover:text-red-500 rounded-r-full transition-colors"
+                                                    title="Remove variant"
+                                                  >
+                                                    <X className="h-2.5 w-2.5" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <p className="text-[10px] text-indigo-400 mb-1">
+                                            Search for specific variants (e.g., beef, chicken, pork)
+                                          </p>
+                                          <InlineIngredientSearch
+                                            existingIds={
+                                              new Set([
+                                                ...(parentIng.canonical_ingredient_id
+                                                  ? [parentIng.canonical_ingredient_id]
+                                                  : []),
+                                                ...subs
+                                                  .map(s => s.canonical_ingredient_id)
+                                                  .filter((id): id is string => Boolean(id)),
+                                              ])
+                                            }
+                                            onAdd={sub =>
+                                              addSubIngredient(mIdx, cIdx, dIdx, parentIngIdx, sub)
+                                            }
+                                            onClose={() => setSubIngredientEditTarget(null)}
+                                          />
+                                        </div>
+                                      );
+                                    })()}
 
                                     {/* Inline ingredient search */}
                                     {inlineSearchTarget?.mIdx === mIdx &&
@@ -1967,11 +2283,37 @@ export default function MenuScanPage() {
                                       <p className="text-xs text-gray-500 mb-1">Dish Category</p>
                                       <select
                                         value={dish.dish_category_id ?? ''}
-                                        onChange={e =>
-                                          updateDish(mIdx, cIdx, dIdx, {
-                                            dish_category_id: e.target.value || null,
-                                          })
-                                        }
+                                        onChange={async e => {
+                                          const val = e.target.value;
+                                          if (val === '__new__') {
+                                            const name = prompt('New category name:');
+                                            if (!name?.trim()) return;
+                                            const { data: created, error } =
+                                              await createDishCategory({
+                                                name: name.trim(),
+                                                is_drink: false,
+                                              });
+                                            if (error || !created) {
+                                              toast.error(
+                                                `Failed to create category: ${error?.message ?? 'unknown'}`
+                                              );
+                                              return;
+                                            }
+                                            setDishCategories(prev =>
+                                              [...prev, created].sort((a, b) =>
+                                                a.name.localeCompare(b.name)
+                                              )
+                                            );
+                                            updateDish(mIdx, cIdx, dIdx, {
+                                              dish_category_id: created.id,
+                                            });
+                                            toast.success(`Category "${created.name}" created`);
+                                          } else {
+                                            updateDish(mIdx, cIdx, dIdx, {
+                                              dish_category_id: val || null,
+                                            });
+                                          }
+                                        }}
                                         className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 bg-white focus:outline-none focus:border-orange-400"
                                       >
                                         <option value="">— None —</option>
@@ -1980,6 +2322,7 @@ export default function MenuScanPage() {
                                             {dc.name}
                                           </option>
                                         ))}
+                                        <option value="__new__">➕ New category…</option>
                                       </select>
                                     </div>
                                     <div>

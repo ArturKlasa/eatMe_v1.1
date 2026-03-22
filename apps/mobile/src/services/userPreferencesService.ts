@@ -273,7 +273,7 @@ export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<Perman
 export async function trackDishInteraction(
   userId: string,
   dishId: string,
-  interactionType: 'viewed' | 'liked' | 'disliked' | 'ordered' | 'saved',
+  interactionType: 'viewed' | 'liked' | 'disliked' | 'saved',
   sessionId?: string
 ): Promise<Result<void>> {
   try {

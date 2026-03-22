@@ -17,7 +17,7 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 const UPDATE_VECTOR_URL = `${SUPABASE_URL}/functions/v1/update-preference-vector`;
 
-export type InteractionType = 'viewed' | 'liked' | 'disliked' | 'saved' | 'ordered';
+export type InteractionType = 'viewed' | 'liked' | 'disliked' | 'saved';
 
 /**
  * Records a dish interaction and asynchronously triggers preference vector

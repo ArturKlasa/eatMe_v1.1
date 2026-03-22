@@ -11,7 +11,7 @@
 //   2. Load dish embeddings for interacted dishes
 //   3. Compute time-decayed weighted average:
 //        weight = base_weight × e^(-0.01 × days_since_interaction)
-//        base weights: saved=3.0, liked=1.5, viewed=0.5, disliked=-1.0
+//        base weights: saved=3.0, liked=1.5, viewed=0.5
 //   4. Normalise to unit vector (cosine space)
 //   5. Write back to user_behavior_profiles + compute aggregate fields
 //
@@ -37,7 +37,6 @@ const INTERACTION_WEIGHT: Record<string, number> = {
   saved: 3.0,
   liked: 1.5,
   viewed: 0.5,
-  ordered: 2.0,
   // 'disliked' is deliberately absent:
   // disliking a dish at one restaurant reflects execution quality, not category
   // preference. Disliked dishes are excluded from the feed via generate_candidates

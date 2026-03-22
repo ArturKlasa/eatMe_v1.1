@@ -9,13 +9,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Modal,
   Alert,
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
 import { supabase, type RestaurantWithMenus, type Dish, type OptionGroup } from '../lib/supabase';
@@ -152,6 +152,16 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     loadAll();
   }, [restaurantId, user, trackRestaurantView]);
 
+  // Record 'viewed' interaction after the dish detail has been open for 3+ seconds.
+  // Timer is cleared if the user dismisses before 3s.
+  useEffect(() => {
+    if (!selectedDish || !user) return;
+    const timer = setTimeout(() => {
+      recordInteraction(user.id, selectedDish.id, 'viewed');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [selectedDish?.id, user?.id]);
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -263,16 +273,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         break;
     }
   };
-
-  // Record 'viewed' interaction after the dish detail has been open for 3+ seconds.
-  // Timer is cleared if the user dismisses before 3s.
-  useEffect(() => {
-    if (!selectedDish || !user) return;
-    const timer = setTimeout(() => {
-      recordInteraction(user.id, selectedDish.id, 'viewed');
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [selectedDish?.id, user?.id]);
 
   const handleDishPress = async (dish: any) => {
     setSelectedDish(dish);
@@ -531,7 +531,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+          nestedScrollEnabled
         >
           {restaurant.menus?.map((menu: any) => (
             <View key={menu.id} style={styles.menuSection}>
@@ -558,34 +559,47 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.hoursTabContent}
+          nestedScrollEnabled
+          contentContainerStyle={[styles.hoursTabContent, { paddingBottom: insets.bottom + 24 }]}
         >
           {/* Opening Hours Section */}
           <View style={styles.hoursMoreSection}>
+            <Text style={styles.hoursMoreSectionTitle}>{t('time.openingHours')}</Text>
+
+            {/* Today's hours — always visible, with expand arrow on the right */}
             <TouchableOpacity
-              style={styles.hoursMoreTitleRow}
+              style={styles.weekDayRow}
               onPress={() => setHoursExpanded(!hoursExpanded)}
               activeOpacity={0.7}
             >
-              <Text style={styles.hoursMoreSectionTitle}>{t('time.openingHours')}</Text>
-              <Text style={styles.hoursExpandIcon}>{hoursExpanded ? '▾' : '▸'}</Text>
+              <Text style={[styles.weekDayName, { fontWeight: typography.weight.bold }]}>
+                {t(`time.${getCurrentDayName().toLowerCase()}`)}
+              </Text>
+              {todayHours ? (
+                <Text style={[styles.weekDayHours, { flex: 1 }]}>
+                  {formatOpeningHours(todayHours.open, todayHours.close)}
+                </Text>
+              ) : (
+                <Text style={[styles.weekDayHoursClosed, { flex: 1 }]}>
+                  {t('restaurant.closed')}
+                </Text>
+              )}
+              <Text style={styles.hoursExpandIcon}>{hoursExpanded ? '▴' : '▾'}</Text>
             </TouchableOpacity>
             {hoursExpanded && (
               <View style={styles.fullWeekHours}>
-                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(
-                  day => {
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+                  .filter(day => day !== getCurrentDayName().toLowerCase())
+                  .map(day => {
                     const hours = (
                       restaurant.open_hours as Record<
                         string,
                         { open: string; close: string }
                       > | null
                     )?.[day];
-                    const isToday = day === getCurrentDayName().toLowerCase();
                     return (
                       <View key={day} style={styles.weekDayRow}>
-                        <Text style={[styles.weekDayName, isToday && styles.weekDayNameToday]}>
-                          {t(`time.${day}`)}
-                        </Text>
+                        <Text style={styles.weekDayName}>{t(`time.${day}`)}</Text>
                         {hours ? (
                           <Text style={styles.weekDayHours}>
                             {formatOpeningHours(hours.open, hours.close)}
@@ -595,8 +609,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                         )}
                       </View>
                     );
-                  }
-                )}
+                  })}
               </View>
             )}
           </View>

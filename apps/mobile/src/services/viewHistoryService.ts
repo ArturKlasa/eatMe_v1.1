@@ -23,58 +23,62 @@ export async function getViewedRestaurants(
   limit: number = 15
 ): Promise<ViewedRestaurant[]> {
   try {
-    // Get distinct restaurant views with most recent timestamp
-    const { data, error } = await supabase
+    // Step 1: Get recent restaurant views (session_views has no FK to restaurants
+    // because entity_id is polymorphic, so we can't use a PostgREST join).
+    const { data: views, error: viewsError } = await supabase
       .from('session_views')
-      .select(
-        `
-        entity_id,
-        viewed_at,
-        restaurants!inner(
-          id,
-          name,
-          cuisine_types,
-          image_url
-        )
-      `
-      )
+      .select('entity_id, viewed_at')
       .eq('user_id', userId)
       .eq('entity_type', 'restaurant')
       .order('viewed_at', { ascending: false });
 
-    if (error) {
-      console.error('[ViewHistory] Error fetching viewed restaurants:', error);
+    if (viewsError) {
+      console.error('[ViewHistory] Error fetching viewed restaurants:', viewsError);
       return [];
     }
 
-    if (!data || data.length === 0) {
+    if (!views || views.length === 0) {
       return [];
     }
 
-    // Deduplicate by restaurant ID, keeping most recent view
-    const uniqueRestaurants = new Map<string, ViewedRestaurant>();
-
-    for (const view of data) {
-      const restaurant = (view as any).restaurants;
-      if (!restaurant || uniqueRestaurants.has(restaurant.id)) {
-        continue;
-      }
-
-      uniqueRestaurants.set(restaurant.id, {
-        id: restaurant.id,
-        name: restaurant.name,
-        cuisine: restaurant.cuisine_types?.[0] || 'Restaurant',
-        imageUrl: (restaurant as any).image_url,
-        viewedAt: new Date(view.viewed_at ?? Date.now()),
-      });
-
-      // Stop after we have enough unique restaurants
-      if (uniqueRestaurants.size >= limit) {
-        break;
+    // Deduplicate entity_ids, keeping the most recent viewed_at per restaurant
+    const uniqueIds = new Map<string, string>(); // entity_id → viewed_at
+    for (const v of views) {
+      if (!uniqueIds.has(v.entity_id)) {
+        uniqueIds.set(v.entity_id, v.viewed_at ?? new Date().toISOString());
+        if (uniqueIds.size >= limit) break;
       }
     }
 
-    return Array.from(uniqueRestaurants.values());
+    // Step 2: Fetch restaurant details for the unique IDs
+    const { data: restaurants, error: restError } = await supabase
+      .from('restaurants')
+      .select('id, name, cuisine_types, image_url')
+      .in('id', Array.from(uniqueIds.keys()));
+
+    if (restError) {
+      console.error('[ViewHistory] Error fetching restaurant details:', restError);
+      return [];
+    }
+
+    // Build result in most-recent-first order
+    const restaurantMap = new Map((restaurants ?? []).map(r => [r.id, r]));
+
+    const result: ViewedRestaurant[] = [];
+    for (const [entityId, viewedAt] of uniqueIds) {
+      const r = restaurantMap.get(entityId);
+      if (r) {
+        result.push({
+          id: r.id,
+          name: r.name,
+          cuisine: r.cuisine_types?.[0] || 'Restaurant',
+          imageUrl: r.image_url ?? undefined,
+          viewedAt: new Date(viewedAt),
+        });
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error('[ViewHistory] Error in getViewedRestaurants:', error);
     return [];

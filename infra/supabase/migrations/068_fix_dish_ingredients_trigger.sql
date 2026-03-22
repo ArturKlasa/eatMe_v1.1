@@ -2,29 +2,23 @@
 -- Created: 2026-03-22
 --
 -- ROOT CAUSE FIX: The dish_ingredients_update_attributes trigger called
--- update_dish_attributes(), which recalculated BOTH allergens AND dietary_tags.
+-- update_dish_attributes(), which recalculated BOTH allergens AND dietary_tags
+-- after every INSERT/UPDATE/DELETE on dish_ingredients, silently overwriting
+-- whatever the form had just saved.
 --
--- This caused: every time DishFormDialog saved a dish and then ran its
--- dish_ingredients DELETE (to sync the junction table), the trigger fired and
--- called calculate_dish_dietary_tags(). With 0 ingredients, that function
--- returns ARRAY[]::TEXT[] and overwrites whatever dietary_tags the user just
--- saved. Result: dietary_tags always ends up empty after editing a dish.
+-- Both allergens and dietary_tags are user-managed labels set via checkboxes
+-- in DishFormDialog. The ingredient-based allergen calculation (calculate_dish_allergens)
+-- is display-only in the UI (AllergenWarnings component) and is never merged back
+-- into the form's allergens field.
 --
--- Fix: rewrite update_dish_attributes() to update ONLY allergens.
--- dietary_tags are user-managed labels set in the form UI and must never be
--- auto-calculated from ingredient links.
+-- Fix: make update_dish_attributes() a no-op. The trigger definition stays in place
+-- but no longer overwrites dish columns when ingredients change.
 
 CREATE OR REPLACE FUNCTION update_dish_attributes()
 RETURNS TRIGGER AS $$
-DECLARE
-  v_dish_id UUID;
 BEGIN
-  v_dish_id := COALESCE(NEW.dish_id, OLD.dish_id);
-
-  UPDATE dishes
-  SET allergens = calculate_dish_allergens(v_dish_id)
-  WHERE id = v_dish_id;
-
+  -- allergens and dietary_tags are user-managed via the form UI.
+  -- They must not be auto-calculated from ingredient links.
   RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql

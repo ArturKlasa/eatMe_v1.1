@@ -316,8 +316,15 @@ export function DishFormDialog({
       let dishId: string;
 
       if (dish?.id) {
-        const { error } = await supabase.from('dishes').update(dishData).eq('id', dish.id);
+        const { data: updated, error } = await supabase
+          .from('dishes')
+          .update(dishData)
+          .eq('id', dish.id)
+          .select('id');
         if (error) throw error;
+        if (!updated || updated.length === 0) {
+          throw new Error('Update blocked — check you are logged in as the restaurant owner.');
+        }
         dishId = dish.id;
         toast.success('Dish updated successfully');
       } else {

@@ -274,20 +274,24 @@ serve(async (req: Request) => {
       });
     }
 
-    // ── Debounce guard ────────────────────────────────────────────────────────
-    // If the dish was saved very recently, a follow-up webhook may arrive within
-    // seconds (e.g. ingredients saved after the dish row). Skip if the dish has
-    // already been marked 'pending' and was updated fewer than DEBOUNCE_SECONDS ago.
+    // Note: debounce guard was removed because the trigger (_trg_notify_enrich_dish)
+    // now sets enrichment_status='pending' AND updates updated_at before calling
+    // this function. The old guard (pending + age < 8s) would always evaluate true,
+    // causing every call to be skipped.
+    //
+    // Duplicate protection: if a dish is already 'completed' and updated_at is
+    // very recent, skip re-enrichment to avoid redundant OpenAI calls from
+    // rapid back-to-back trigger firings.
     const updatedAt = new Date(dish.updated_at).getTime();
     const ageSeconds = (Date.now() - updatedAt) / 1000;
-    if (dish.enrichment_status === 'pending' && ageSeconds < DEBOUNCE_SECONDS) {
-      console.log(`[enrich-dish] Debounced (age ${ageSeconds.toFixed(1)}s) — skipping`);
-      return new Response(JSON.stringify({ skipped: true, reason: 'debounce' }), {
+    if (dish.enrichment_status === 'completed' && ageSeconds < DEBOUNCE_SECONDS) {
+      console.log(`[enrich-dish] Already completed ${ageSeconds.toFixed(1)}s ago — skipping`);
+      return new Response(JSON.stringify({ skipped: true, reason: 'recently_completed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Mark as pending immediately (prevents duplicate concurrent enrichments)
+    // Mark as pending (may already be pending from trigger, but ensures consistency)
     await supabase.from('dishes').update({ enrichment_status: 'pending' }).eq('id', dishId);
 
     // ── Load canonical ingredients ────────────────────────────────────────────

@@ -70,6 +70,14 @@ interface FeedRequest {
      * Dishes whose names contain any of these terms receive a strong score boost.
      */
     dishNames?: string[];
+    /** Active protein type keys from daily filter (e.g. ['meat', 'fish', 'seafood', 'egg']). */
+    proteinTypes?: string[];
+    /** Active meat subtype keys from daily filter (e.g. ['chicken', 'beef', 'pork']). */
+    meatTypes?: string[];
+    /** Ingredient families to hard-exclude (permanent noMeat/noFish/noSeafood/noEggs/noDairy). */
+    excludeFamilies?: string[];
+    /** When true, dishes with spice_level='hot' are hard-excluded (permanent noSpicy). */
+    excludeSpicy?: boolean;
   };
   userId?: string;
   limit?: number;
@@ -101,6 +109,8 @@ interface Candidate {
   right_swipe_count: number;
   score?: number;
   flagged_ingredients?: string[];
+  protein_families?: string[];
+  protein_canonical_names?: string[];
 }
 
 // ── Stage 2 scoring ───────────────────────────────────────────────────────────
@@ -176,14 +186,18 @@ function rankCandidates(
       }
     }
 
-    // Soft daily diet boost (+0.15)
+    // Soft daily diet boost (+0.50)
+    // Large enough that any decent vegetarian/vegan dish (base ~0.75) will
+    // outrank even a top-rated non-veg dish (base ~1.10) when the daily
+    // toggle is on. Only a genuinely poor veg option (base <0.35) would
+    // lose to the very best non-veg dish, which is the desired behaviour.
     if (filters.preferredDiet && filters.preferredDiet !== 'all') {
       const tags = d.dietary_tags ?? [];
       const matches =
         filters.preferredDiet === 'vegan'
           ? tags.includes('vegan')
           : tags.includes('vegetarian') || tags.includes('vegan');
-      if (matches) score += 0.15;
+      if (matches) score += 0.5;
     }
 
     // Soft daily cuisine boost (+0.20)
@@ -244,6 +258,57 @@ function rankCandidates(
       if (matches) score += 0.25;
     }
 
+    // Soft daily protein type boost (+0.20)
+    if (filters.proteinTypes?.length && d.protein_families?.length) {
+      const familyMap: Record<string, string[]> = {
+        meat: ['meat', 'poultry'],
+        fish: ['fish'],
+        seafood: ['shellfish'],
+        egg: ['eggs'],
+      };
+      const wantedFamilies = new Set(filters.proteinTypes.flatMap(p => familyMap[p] ?? []));
+      if (d.protein_families.some(f => wantedFamilies.has(f))) score += 0.2;
+    }
+
+    // Soft daily meat subtype boost (+0.10 additional on top of protein match)
+    if (filters.meatTypes?.length && d.protein_families?.length) {
+      const meatNameMap: Record<string, string[]> = {
+        chicken: ['chicken', 'chicken_livers', 'chicken_fat'],
+        beef: ['beef', 'beef_liver', 'beef_tongue', 'beef_fat', 'beef_jerky', 'oxtail'],
+        pork: [
+          'pork',
+          'ham',
+          'pancetta',
+          'prosciutto',
+          'pepperoni',
+          'lard',
+          'italian_sausage',
+          'pork_ribs',
+        ],
+        lamb: ['lamb'],
+        duck: ['duck', 'duck_fat'],
+      };
+
+      // Collect all concrete canonical names from named types (used for 'other' fallback)
+      const allConcreteNames = new Set(Object.values(meatNameMap).flat());
+
+      const namedTypes = filters.meatTypes.filter(m => m !== 'other');
+      const wantedNames = new Set(namedTypes.flatMap(m => meatNameMap[m] ?? []));
+
+      let matched =
+        wantedNames.size > 0 && d.protein_canonical_names?.some(n => wantedNames.has(n));
+
+      // 'other' = dish has meat/poultry protein but none of its canonical names are
+      // in the known chicken/beef/pork/lamb/duck lists (turkey, veal, venison, etc.)
+      if (!matched && filters.meatTypes.includes('other')) {
+        const hasMeatFamily = d.protein_families.some(f => f === 'meat' || f === 'poultry');
+        const hasConcreteMatch = d.protein_canonical_names?.some(n => allConcreteNames.has(n));
+        matched = hasMeatFamily && !hasConcreteMatch;
+      }
+
+      if (matched) score += 0.1;
+    }
+
     return { ...d, score: Math.max(0, score) };
   });
 }
@@ -261,6 +326,28 @@ function applyDiversity(dishes: Candidate[], maxPerRestaurant: number): Candidat
     }
   }
   return result;
+}
+
+// ── isOpenNow helper ─────────────────────────────────────────────────────────
+// Ported from apps/mobile/src/utils/i18nUtils.ts — same logic, no dependency.
+
+function isOpenNow(
+  openHours: Record<string, { open: string; close: string }> | null | undefined
+): boolean {
+  if (!openHours) return false;
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[new Date().getDay()];
+  const entry = openHours[today];
+  if (!entry) return false;
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = entry.open.split(':').map(Number);
+  const [ch, cm] = entry.close.split(':').map(Number);
+  const openMin = oh * 60 + om;
+  const closeMin = ch * 60 + cm;
+  // Handle overnight spans (e.g. open 22:00, close 02:00)
+  if (closeMin < openMin) return cur >= openMin || cur < closeMin;
+  return cur >= openMin && cur < closeMin;
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
@@ -409,9 +496,16 @@ serve(async (req: Request) => {
         dbPreferredPriceRange = behaviorRes.data.preferred_price_range as [number, number];
       }
 
-      console.log(
-        `[Feed] User context: ${userDislikes.length} dislikes, vector=${preferenceVector !== null}`
-      );
+      console.log('[Feed] User context:', {
+        userId,
+        hasPrefVector: preferenceVector !== null,
+        dislikeCount: userDislikes.length,
+        likedCuisineCount: userLikedCuisines.length,
+        favRestaurantCount: favoritedRestaurantIds.size,
+        hasFavCuisines: dbFavoriteCuisines.length > 0,
+        hasSpiceTolerance: dbSpiceTolerance !== null,
+        hasPriceRange: dbPreferredPriceRange !== null,
+      });
     }
 
     const spiceTolerance = filters.spiceTolerance ?? dbSpiceTolerance;
@@ -438,6 +532,8 @@ serve(async (req: Request) => {
       p_allergens: filters.allergens?.length ? filters.allergens : null,
       p_diet_tag: hardDietTag,
       p_religious_tags: religiousRestrictions.length ? religiousRestrictions : null,
+      p_exclude_families: filters.excludeFamilies?.length ? filters.excludeFamilies : null,
+      p_exclude_spicy: filters.excludeSpicy ?? false,
       p_limit: 200,
     })) as { data: Candidate[] | null; error: unknown };
 
@@ -501,6 +597,12 @@ serve(async (req: Request) => {
       annotated = pool.map(d => ({ ...d, flagged_ingredients: [] }));
     }
 
+    // ── Protein family annotation ─────────────────────────────────────────────
+    // protein_families and protein_canonical_names are now precomputed columns
+    // on dishes, returned directly by generate_candidates() (migration 070).
+    // No extra DB query needed here — rankCandidates() uses d.protein_families
+    // and d.protein_canonical_names that are already present in the candidate rows.
+
     // ── Stage 2: rank ─────────────────────────────────────────────────────────
 
     console.log('[Feed] Stage 2: scoring');
@@ -540,7 +642,36 @@ serve(async (req: Request) => {
         }
       }
 
+      // ── Fetch open_hours and annotate is_open for all result restaurants ────
+      // This also powers the openNow hard filter below.
+      const rIds = Array.from(restaurantMap.keys());
+      const openHoursMap = new Map<
+        string,
+        Record<string, { open: string; close: string }> | null
+      >();
+      try {
+        const { data: hourRows } = await supabase
+          .from('restaurants')
+          .select('id, open_hours')
+          .in('id', rIds);
+        for (const row of hourRows ?? []) {
+          openHoursMap.set(row.id, row.open_hours ?? null);
+        }
+      } catch (e) {
+        console.error('[Feed] open_hours fetch failed (non-fatal):', e);
+      }
+
+      for (const [rid, r] of restaurantMap) {
+        r.is_open = isOpenNow(openHoursMap.get(rid));
+      }
+
       let restaurantList = Array.from(restaurantMap.values());
+
+      // Apply openNow hard filter after is_open is set
+      if (filters.openNow) {
+        restaurantList = restaurantList.filter(r => r.is_open);
+      }
+
       switch (filters.sortBy) {
         case 'closest':
           restaurantList.sort((a, b) => a.distance_km - b.distance_km);

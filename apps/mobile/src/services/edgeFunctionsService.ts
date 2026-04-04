@@ -88,6 +88,24 @@ export interface FeedRequest {
      * Dishes whose names contain any of these terms receive a strong score boost.
      */
     dishNames?: string[];
+    /**
+     * Active protein type selections from the daily filter (e.g. ['meat', 'fish', 'seafood', 'egg']).
+     * Mapped from daily.proteinTypes booleans. Dishes matching these families receive a +0.20 boost.
+     */
+    proteinTypes?: string[];
+    /**
+     * Active meat subtype selections from the daily filter (e.g. ['chicken', 'beef']).
+     * Only relevant when 'meat' is in proteinTypes. Adds a further +0.10 boost for exact matches.
+     */
+    meatTypes?: string[];
+    /**
+     * Ingredient families to hard-exclude from the candidate pool (permanent permanent settings:
+     * noMeat → ['meat','poultry'], noFish → ['fish'], noSeafood → ['shellfish'],
+     * noEggs → ['eggs'], noDairy → ['dairy']). Matches dishes.protein_families.
+     */
+    excludeFamilies?: string[];
+    /** When true, dishes with spice_level='hot' are hard-excluded (permanent noSpicy setting). */
+    excludeSpicy?: boolean;
   };
   userId?: string;
   limit?: number; // default 20
@@ -164,13 +182,19 @@ function buildFilters(
     .filter(([_, active]) => active)
     .map(([key]) => key);
 
+  // preferredDiet carries the daily toggle as a strong soft signal (+0.50 boost
+  // in the ranker). This is intentionally NOT a hard block: if no vegetarian
+  // dishes are available nearby, non-veg dishes will still fill the feed.
+  const dailyDietKey =
+    Object.entries(dailyFilters.dietPreference)
+      .filter(([_, active]) => active)
+      .map(([key]) => key)[0] ?? undefined;
+
   return {
     priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as [number, number],
+    // dietPreference is the permanent, hard-block level (profile setting only).
     dietPreference: permanentFilters.dietPreference,
-    preferredDiet:
-      Object.entries(dailyFilters.dietPreference)
-        .filter(([_, active]) => active)
-        .map(([key]) => key)[0] ?? undefined,
+    preferredDiet: dailyDietKey,
     calorieRange: dailyFilters.calorieRange.enabled
       ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
       : undefined,
@@ -188,6 +212,32 @@ function buildFilters(
         ? permanentFilters.ingredientsToAvoid.map(i => i.canonicalIngredientId)
         : undefined,
     dishNames: dailyFilters.meals.length > 0 ? dailyFilters.meals : undefined,
+    proteinTypes: (() => {
+      const active = (Object.entries(dailyFilters.proteinTypes) as [string, boolean][])
+        .filter(([_, on]) => on)
+        .map(([key]) => key);
+      return active.length > 0 ? active : undefined;
+    })(),
+    meatTypes: (() => {
+      const active = (Object.entries(dailyFilters.meatTypes) as [string, boolean][])
+        .filter(([_, on]) => on)
+        .map(([key]) => key);
+      return active.length > 0 ? active : undefined;
+    })(),
+    excludeFamilies: (() => {
+      const map: Record<string, string[]> = {
+        noMeat: ['meat', 'poultry'],
+        noFish: ['fish'],
+        noSeafood: ['shellfish'],
+        noEggs: ['eggs'],
+        noDairy: ['dairy'],
+      };
+      const families = (Object.entries(permanentFilters.exclude) as [string, boolean][])
+        .filter(([_, on]) => on)
+        .flatMap(([key]) => map[key] ?? []);
+      return families.length > 0 ? families : undefined;
+    })(),
+    excludeSpicy: permanentFilters.exclude.noSpicy || undefined,
   };
 }
 

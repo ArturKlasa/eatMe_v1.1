@@ -294,8 +294,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           { lat: userLocation.latitude, lng: userLocation.longitude },
           daily,
           permanent,
-          undefined, // userId intentionally omitted — swipe-based personalisation not active yet
-          10 // 10km radius
+          user?.id,
+          Math.max(2, daily.maxDistance) // respect user's distance preference (min 2km floor)
         );
         if (!cancelled) {
           const dishes = response.dishes ?? [];
@@ -360,8 +360,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           { lat: userLocation.latitude, lng: userLocation.longitude },
           daily,
           permanent,
-          undefined, // userId omitted until auth is wired
-          10
+          user?.id,
+          Math.max(2, daily.maxDistance)
         );
         if (!cancelled) {
           const restaurants = response.restaurants ?? [];

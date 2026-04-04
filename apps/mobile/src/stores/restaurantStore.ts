@@ -8,12 +8,32 @@ import {
 } from '../services/geoService';
 import { DailyFilters, PermanentFilters } from './filterStore';
 
+/**
+ * Zustand store for restaurant and dish data.
+ *
+ * Holds two data layers:
+ *  - `restaurants` / `dishes`: full Supabase records fetched directly from the DB
+ *    (used by the web portal and admin screens).
+ *  - `nearbyRestaurants`: geospatially filtered records returned by the nearby-
+ *    restaurants Edge Function, used by the map/swipe feed on mobile.
+ *
+ * Typical mobile flow:
+ *   1. BasicMapScreen calls `loadNearbyRestaurants()` with the user's location.
+ *   2. The store proxies to geoService which calls the feed Edge Function.
+ *   3. Results are stored in `nearbyRestaurants` together with the search center
+ *      and radius so the map can display the coverage circle.
+ */
 interface RestaurantStore {
+  /** Full restaurant records including nested menus/categories/dishes. */
   restaurants: RestaurantWithMenus[];
+  /** Available dishes with their parent menu-category and restaurant joined. */
   dishes: DishWithRelations[];
-  nearbyRestaurants: RestaurantWithDistance[]; // NEW: restaurants from geospatial search
-  searchCenter: { latitude: number; longitude: number } | null; // NEW: last search location
-  searchRadius: number; // NEW: last search radius
+  /** Geospatially filtered restaurants returned by the feed Edge Function. */
+  nearbyRestaurants: RestaurantWithDistance[];
+  /** Latitude/longitude of the last geospatial search (used to draw map coverage circle). */
+  searchCenter: { latitude: number; longitude: number } | null;
+  /** Radius (km) of the last geospatial search. */
+  searchRadius: number;
   loading: boolean;
   error: Error | null;
 
@@ -22,7 +42,10 @@ interface RestaurantStore {
   loadDishes: () => Promise<void>;
   refreshData: () => Promise<void>;
 
-  // NEW: Geospatial actions
+  /**
+   * Fetch restaurants near a fixed latitude/longitude via the feed Edge Function.
+   * Optionally applies daily and permanent filters server-side before returning results.
+   */
   loadNearbyRestaurants: (
     latitude: number,
     longitude: number,
@@ -30,6 +53,11 @@ interface RestaurantStore {
     dailyFilters?: DailyFilters,
     permanentFilters?: PermanentFilters
   ) => Promise<void>;
+  /**
+   * Fetch restaurants near the device's current GPS location.
+   * Accepts a `getCurrentLocation` callback so the store is decoupled from the
+   * geolocation API — callers inject the permission-aware hook result.
+   */
   loadNearbyRestaurantsFromCurrentLocation: (
     getCurrentLocation: () => Promise<{ latitude: number; longitude: number }>,
     radiusKm?: number,
@@ -115,7 +143,6 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
     await Promise.all([loadRestaurants(), loadDishes()]);
   },
 
-  // NEW: Load restaurants near a specific location
   loadNearbyRestaurants: async (
     latitude: number,
     longitude: number,
@@ -149,7 +176,6 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
     }
   },
 
-  // NEW: Load restaurants near current device location
   loadNearbyRestaurantsFromCurrentLocation: async (
     getCurrentLocation: () => Promise<{ latitude: number; longitude: number }>,
     radiusKm = 5,

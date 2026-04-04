@@ -1,5 +1,24 @@
 'use client';
 
+/**
+ * Interactive map component for picking a restaurant's physical location.
+ *
+ * Uses Leaflet (dynamically imported to avoid SSR crashes) with OpenStreetMap
+ * tiles. When the user clicks the map:
+ *   1. A draggable marker is placed at the clicked coordinates.
+ *   2. `onLocationSelect(lat, lng)` fires so the parent form can update its
+ *      hidden lat/lng fields.
+ *   3. Nominatim reverse-geocoding is called to derive a human-readable
+ *      street address and structured location details (city, postal code, etc.).
+ *
+ * The Leaflet instance is created only once (when `userLocation` is first
+ * resolved) and never re-created on subsequent clicks — marker position is
+ * updated in place via `setLatLng()` to avoid flickering and map resets.
+ *
+ * Geolocation falls back to New York (40.71, -74.00) when the browser
+ * doesn't support the API or the user denies the permission prompt.
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import type L from 'leaflet';
 import { parseNominatimAddress, type ParsedLocationDetails } from '@/lib/parseAddress';
@@ -69,6 +88,9 @@ export default function LocationPicker({
     }
   }, []);
 
+  // ── Initialise Leaflet map once we know the user's starting location ──────
+  // Leaflet is imported dynamically here because it accesses `window` and
+  // `document` directly — importing it at the top level crashes Next.js SSR.
   useEffect(() => {
     // Only initialize map when we have a location and the container is ready
     if (!userLocation || !mapContainerRef.current) return;

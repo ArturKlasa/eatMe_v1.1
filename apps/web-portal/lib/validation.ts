@@ -1,5 +1,22 @@
+/**
+ * Zod validation schemas for the restaurant partner onboarding wizard.
+ *
+ * Each schema corresponds to one step of the multi-page form:
+ *   basicInfoSchema    — Step 1: restaurant identity, address, cuisines
+ *   operationsSchema   — Step 1 (cont.): hours, services, payment
+ *   dishSchema         — Step 2: individual dish definition
+ *   menuSchema         — Step 2 (wrapper): full menu submitted at once
+ *   restaurantDataSchema — Final review payload: restaurant + dishes merged
+ *
+ * The inferred TypeScript types (exported at the bottom) are used as the
+ * form data types for React Hook Form throughout the onboarding pages.
+ */
 import { z } from 'zod';
 
+/**
+ * Basic restaurant identity and location information.
+ * Submitted on the /onboard/basic-info page.
+ */
 export const basicInfoSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
   description: z
@@ -23,11 +40,16 @@ export const basicInfoSchema = z.object({
   cuisines: z.array(z.string()).min(1, 'Please select at least one cuisine'),
 });
 
+/** HH:MM time string used for individual day open/close hours. */
 const timeSchema = z.object({
   open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
   close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
 });
 
+/**
+ * Restaurant operating details submitted alongside basicInfoSchema.
+ * Each weekday in operating_hours is optional — omitting a day means closed.
+ */
 export const operationsSchema = z.object({
   operating_hours: z.object({
     monday: timeSchema.optional(),
@@ -44,6 +66,22 @@ export const operationsSchema = z.object({
   accepts_reservations: z.boolean(),
 });
 
+/**
+ * Single dish definition.
+ * Used both for the dish editor inside the onboarding wizard and for later
+ * dish-edit flows in the restaurant dashboard.
+ *
+ * Notes:
+ *  - `price` is validated positive and capped at 10,000 to catch obvious data
+ *    entry mistakes, not to enforce a hard business rule.
+ *  - `calories` accepts NaN (via `.or(z.nan())`) because RHF number inputs
+ *    return NaN for an empty field.
+ *  - `dietary_tags` and `allergens` are auto-populated by a Postgres trigger
+ *    when ingredient links are saved; the arrays on this schema are the UI
+ *    state before the dish is persisted.
+ *  - `option_groups` holds customisation groups (size, sauce, etc.) for
+ *    template and experience dish kinds.
+ */
 export const dishSchema = z.object({
   id: z.string().optional(),
   menu_id: z.string().optional(),
@@ -95,14 +133,25 @@ export const dishSchema = z.object({
     .default([]),
 });
 
+/** Wrapper schema that validates the full menu submitted on /onboard/menu. */
 export const menuSchema = z.object({
   dishes: z.array(dishSchema).min(1, 'Please add at least one dish'),
 });
 
+/**
+ * Full submission payload used on the /onboard/review page.
+ * Merges basicInfoSchema and operationsSchema into a single restaurant object
+ * alongside the array of dishes, so the entire restaurant can be persisted
+ * in one atomic operation.
+ */
 export const restaurantDataSchema = z.object({
   restaurant: basicInfoSchema.merge(operationsSchema),
   dishes: z.array(dishSchema).min(1, 'Please add at least one dish'),
 });
+
+// ─── Inferred TypeScript types ──────────────────────────────────────────────
+// These are the canonical form-data types used with React Hook Form across the
+// onboarding wizard. Always derive from the schema to keep validation and types in sync.
 
 export type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
 export type OperationsFormData = z.infer<typeof operationsSchema>;

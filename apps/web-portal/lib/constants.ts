@@ -1,5 +1,18 @@
+/**
+ * Shared UI constants for the web portal.
+ *
+ * Defines all static option lists used across the onboarding wizard and
+ * restaurant dashboard (days, countries, restaurant types, menu categories,
+ * allergens, dietary tags, etc.).
+ *
+ * Keep these in sync with the corresponding Postgres enum/check constraints
+ * in infra/supabase/migrations/ whenever values are added or renamed.
+ */
 import { RestaurantType } from '@/types/restaurant';
 
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+
+/** Ordered list of weekdays used for operating-hours form rendering. */
 export const DAYS_OF_WEEK = [
   { key: 'monday', label: 'Monday' },
   { key: 'tuesday', label: 'Tuesday' },
@@ -10,8 +23,12 @@ export const DAYS_OF_WEEK = [
   { key: 'sunday', label: 'Sunday' },
 ] as const;
 
+/** Union of the seven day-name keys, matching the `operating_hours` JSONB structure. */
 export type DayKey = (typeof DAYS_OF_WEEK)[number]['key'];
 
+// ─── Geography ────────────────────────────────────────────────────────────────
+
+/** Supported countries for phone-number and address validation. */
 export const COUNTRIES = [
   { value: 'US', label: 'United States' },
   { value: 'CA', label: 'Canada' },
@@ -19,6 +36,9 @@ export const COUNTRIES = [
   { value: 'PL', label: 'Poland' },
 ];
 
+// ─── Venue classification ─────────────────────────────────────────────────────
+
+/** All restaurant venue types backed by the `restaurant_type` DB enum. */
 export const RESTAURANT_TYPES: { value: RestaurantType; label: string; description: string }[] = [
   { value: 'restaurant', label: 'Restaurant', description: 'Full-service dining establishment' },
   { value: 'fine_dining', label: 'Fine Dining', description: 'Upscale, formal dining experience' },
@@ -36,11 +56,13 @@ export const RESTAURANT_TYPES: { value: RestaurantType; label: string; descripti
   { value: 'other', label: 'Other', description: 'Other type of food establishment' },
 ];
 
+/** Service-speed options (maps to `service_speed` DB column). */
 export const SERVICE_SPEED_OPTIONS = [
   { value: 'regular', label: 'Regular Restaurant', description: 'Standard preparation time' },
   { value: 'fast-food', label: 'Fast Food', description: 'Food ready immediately' },
 ];
 
+/** Accepted payment method options displayed on the operations form. */
 export const PAYMENT_METHOD_OPTIONS = [
   {
     value: 'cash_and_card',
@@ -62,8 +84,12 @@ export const PAYMENT_METHOD_OPTIONS = [
   },
 ] as const;
 
+/** Union of valid payment method string values. */
 export type PaymentMethodValue = 'cash_and_card' | 'card_only' | 'cash_only';
 
+// ─── Menus ────────────────────────────────────────────────────────────────────
+
+/** Menu time-slot categories (maps to the `category` column on the `menus` table). */
 export const MENU_CATEGORIES = [
   { value: 'all_day', label: 'All-Day', description: 'Available all day' },
   { value: 'breakfast', label: 'Breakfast', description: 'Morning menu' },
@@ -73,8 +99,12 @@ export const MENU_CATEGORIES = [
   { value: 'happy_hours', label: 'Happy Hours', description: 'Special offers' },
 ] as const;
 
+/** Union of valid menu category string values. */
 export type MenuCategory = (typeof MENU_CATEGORIES)[number]['value'];
 
+// ─── Cuisines ─────────────────────────────────────────────────────────────────
+
+/** Shorter curated list surfaced in the onboarding "quick-pick" cuisine chips. */
 export const POPULAR_CUISINES = [
   'American',
   'Italian',
@@ -90,6 +120,7 @@ export const POPULAR_CUISINES = [
   'Sushi',
 ];
 
+/** Full alphabetical list of cuisine types shown in the expanded cuisine selector. */
 export const CUISINES = [
   'Afghan',
   'African',
@@ -155,6 +186,12 @@ export const CUISINES = [
   'Other',
 ] as const;
 
+// ─── Dietary & allergen tags ───────────────────────────────────────────────────
+
+/**
+ * Dietary tags displayed as badges on dish cards (vegetarian, vegan, halal, etc.).
+ * Values must match `dietary_tags.code` in the database.
+ */
 export const DIETARY_TAGS = [
   { value: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
   { value: 'vegan', label: 'Vegan', icon: '🌱' },
@@ -168,8 +205,13 @@ export const DIETARY_TAGS = [
   { value: 'jain', label: 'Jain', icon: '☸️' },
 ] as const;
 
+/** Subset of dietary tag codes that represent religious dietary laws. */
 export const RELIGIOUS_REQUIREMENTS = ['halal', 'hindu', 'kosher', 'jain'] as const;
 
+/**
+ * Allergen options displayed as warnings on dish detail views.
+ * Values must match `allergens.code` in the database.
+ */
 export const ALLERGENS = [
   { value: 'lactose', label: 'Lactose', icon: '🥛' },
   { value: 'gluten', label: 'Gluten', icon: '🌾' },
@@ -180,14 +222,19 @@ export const ALLERGENS = [
   { value: 'nuts', label: 'Nuts', icon: '🌰' },
 ] as const;
 
+// ─── Pricing & spice ──────────────────────────────────────────────────────────
+
+/** Dollar-sign price-tier indicators used in filter and display UI. */
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
 
+/** Spice level options (maps to the `spice_level` DB enum). */
 export const SPICE_LEVELS = [
   { value: 'none' as const, label: 'No spice', icon: '' },
   { value: 'mild' as const, label: '🌶️', icon: '🌶️' },
   { value: 'hot' as const, label: '🌶️🌶️🌶️', icon: '🌶️🌶️🌶️' },
 ] as const;
 
+/** Union of valid spice level string values. */
 export type SpiceLevel = (typeof SPICE_LEVELS)[number]['value'];
 
 /** Map a spice_level text value to its chilli-icon string. */
@@ -195,6 +242,14 @@ export function spiceIcon(level: string | null | undefined): string {
   return SPICE_LEVELS.find(l => l.value === level)?.icon ?? '';
 }
 
+// ─── Dish configuration ──────────────────────────────────────────────────────
+
+/**
+ * Dish kind options controlling how a dish is presented and customised.
+ *  - standard:   Single fixed item (most dishes).
+ *  - template:   Customer builds from components (e.g. "build-your-own bowl").
+ *  - experience: Multi-course or group format (e.g. hot pot, tasting menu).
+ */
 export const DISH_KINDS = [
   {
     value: 'standard' as const,
@@ -216,8 +271,10 @@ export const DISH_KINDS = [
   },
 ] as const;
 
+/** Union of valid dish kind string values. */
 export type DishKindValue = (typeof DISH_KINDS)[number]['value'];
 
+/** How the dish price is labelled on the menu (exact, from, per-person, etc.). */
 export const DISPLAY_PRICE_PREFIXES = [
   { value: 'exact' as const, label: 'Exact price', example: '$14.00' },
   { value: 'from' as const, label: 'From', example: 'from $14.00' },
@@ -226,13 +283,17 @@ export const DISPLAY_PRICE_PREFIXES = [
   { value: 'ask_server' as const, label: 'Ask server', example: 'Ask server' },
 ] as const;
 
+/** Union of valid display price prefix string values. */
 export type DisplayPricePrefixValue = (typeof DISPLAY_PRICE_PREFIXES)[number]['value'];
 
+/** Selection types available for option groups within a dish. */
 export const SELECTION_TYPES = [
   { value: 'single' as const, label: 'Single choice', description: 'Pick exactly one option' },
   { value: 'multiple' as const, label: 'Multiple choice', description: 'Pick one or more options' },
   { value: 'quantity' as const, label: 'Quantity', description: 'Set amount per option' },
 ] as const;
+
+// ─── Onboarding wizard ────────────────────────────────────────────────────────
 
 /**
  * Dish-type presets — skeleton option groups pre-populated when a partner
@@ -296,6 +357,7 @@ export const OPTION_PRESETS: Record<
   },
 };
 
+/** Step definitions for the restaurant onboarding wizard progress indicator. */
 export const WIZARD_STEPS = [
   { id: 1, title: 'Basic Information', path: '/onboard/basic-info' },
   { id: 2, title: 'Operations', path: '/onboard/operations' },

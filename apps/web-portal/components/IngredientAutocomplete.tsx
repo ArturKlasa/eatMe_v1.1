@@ -1,5 +1,18 @@
 'use client';
 
+/**
+ * Ingredient autocomplete component for the dish editor.
+ *
+ * Searches `ingredient_aliases` via `searchIngredients()` as the user types,
+ * debouncing requests by 300 ms to avoid hammering the DB on every keystroke.
+ * Already-selected ingredients are filtered out of the suggestion list.
+ *
+ * When an ingredient is added or removed the full updated array is passed to
+ * `onIngredientsChange` — the parent form stores the array and sends it with
+ * the dish payload; a Postgres trigger then auto-calculates allergens and
+ * dietary tags from the linked canonical ingredients.
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { Check, X, Plus } from 'lucide-react';
 import { searchIngredients, type Ingredient } from '@/lib/ingredients';
@@ -7,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
+/** Ingredient extended with an optional free-text quantity note (e.g. "100g"). */
 interface SelectedIngredient extends Ingredient {
   quantity?: string;
 }
@@ -29,6 +43,8 @@ export function IngredientAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Debounced search: wait 300 ms after the user stops typing before hitting the DB.
+  // Requires at least 2 characters to avoid returning the entire ingredient table.
   useEffect(() => {
     const search = async () => {
       if (query.trim().length < 2) {
@@ -40,7 +56,7 @@ export function IngredientAutocomplete({
       const { data, error } = await searchIngredients(query);
 
       if (!error && data) {
-        // Filter out already selected ingredients
+        // Filter out already selected ingredients so the dropdown never shows duplicates.
         const filtered = data.filter(
           ing => !selectedIngredients.find(selected => selected.id === ing.id)
         );
@@ -54,6 +70,7 @@ export function IngredientAutocomplete({
     return () => clearTimeout(debounce);
   }, [query, selectedIngredients]);
 
+  // Close the dropdown when the user clicks anywhere outside the input or the list.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

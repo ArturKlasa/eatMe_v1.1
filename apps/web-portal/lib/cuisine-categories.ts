@@ -1,3 +1,15 @@
+/**
+ * Cuisine-to-dish-category mapping for the web portal menu builder.
+ *
+ * Used on the /onboard/menu page to display quick-select dish name chips
+ * when a partner starts adding dishes, reducing friction for common menus.
+ *
+ * Note: keys in CUISINE_CATEGORIES use underscores to separate words
+ * (e.g. `Middle_Eastern`). `getCuisineCategories` normalises the incoming
+ * `cuisine` string the same way before lookup, so "Middle Eastern" (with a
+ * space) resolves correctly.
+ */
+
 // Popular dish categories by cuisine for quick-select buttons
 export const CUISINE_CATEGORIES: Record<string, string[]> = {
   Mexican: ['Tacos', 'Burrito', 'Quesadilla', 'Enchiladas', 'Nachos'],
@@ -20,7 +32,8 @@ export const CUISINE_CATEGORIES: Record<string, string[]> = {
 export function getCuisineCategories(cuisine?: string): string[] {
   if (!cuisine) return CUISINE_CATEGORIES._default;
 
-  // Normalize cuisine name (remove spaces, lowercase)
+  // Normalise cuisine name: replace spaces with underscores so "Middle Eastern"
+  // matches the `Middle_Eastern` key (case-sensitive match against CUISINE_CATEGORIES).
   const normalized = cuisine.replace(/\s+/g, '_');
 
   return CUISINE_CATEGORIES[normalized] || CUISINE_CATEGORIES._default;

@@ -81,15 +81,27 @@ export async function searchIngredients(
     .order('display_name')
     .limit(limit);
 
+  type AliasRow = {
+    id: string;
+    display_name: string;
+    canonical_ingredient_id: string;
+    canonical_ingredient?: {
+      canonical_name?: string;
+      ingredient_family_name?: string;
+      is_vegetarian?: boolean | null;
+      is_vegan?: boolean | null;
+    } | null;
+  };
+
   // Flatten nested canonical_ingredient into the Ingredient shape
-  const flat: Ingredient[] = (data ?? []).map((row: any) => ({
+  const flat: Ingredient[] = (data ?? []).map((row: AliasRow) => ({
     id: row.id,
     display_name: row.display_name,
     canonical_ingredient_id: row.canonical_ingredient_id,
     canonical_name: row.canonical_ingredient?.canonical_name,
     ingredient_family_name: row.canonical_ingredient?.ingredient_family_name,
-    is_vegetarian: row.canonical_ingredient?.is_vegetarian,
-    is_vegan: row.canonical_ingredient?.is_vegan,
+    is_vegetarian: row.canonical_ingredient?.is_vegetarian ?? undefined,
+    is_vegan: row.canonical_ingredient?.is_vegan ?? undefined,
   }));
 
   return { data: flat, error };
@@ -131,7 +143,10 @@ export async function getAllergens() {
  * Get all dietary tags
  */
 export async function getDietaryTags() {
-  const { data, error } = await supabase.from('dietary_tags').select('id, code, name, category').order('name');
+  const { data, error } = await supabase
+    .from('dietary_tags')
+    .select('id, code, name, category')
+    .order('name');
 
   return { data: data as DietaryTag[] | null, error };
 }

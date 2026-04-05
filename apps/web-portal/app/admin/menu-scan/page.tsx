@@ -164,7 +164,8 @@ async function pdfToImages(file: File, maxPagesPerFile = 20): Promise<File[]> {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D context unavailable');
     await page.render({
-      canvasContext: ctx as Parameters<typeof page.render>[0]['canvasContext'],
+      canvasContext: ctx,
+      canvas,
       viewport,
     }).promise;
     const blob = await new Promise<Blob>((resolve, reject) =>

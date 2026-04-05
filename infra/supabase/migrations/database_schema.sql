@@ -150,47 +150,13 @@ CREATE TABLE public.dishes (
   enrichment_confidence text CHECK (enrichment_confidence = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])),
   enrichment_payload jsonb,
   embedding_input text,
-  embedding vector(1536),
+  embedding USER-DEFINED,
+  protein_families ARRAY DEFAULT '{}'::text[],
+  protein_canonical_names ARRAY DEFAULT '{}'::text[],
   CONSTRAINT dishes_pkey PRIMARY KEY (id),
   CONSTRAINT dishes_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
   CONSTRAINT dishes_menu_id_fkey FOREIGN KEY (menu_category_id) REFERENCES public.menu_categories(id),
   CONSTRAINT dishes_dish_category_id_fkey FOREIGN KEY (dish_category_id) REFERENCES public.dish_categories(id)
-);
-CREATE TABLE public.option_groups (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  restaurant_id uuid NOT NULL,
-  dish_id uuid,
-  menu_category_id uuid,
-  name text NOT NULL,
-  description text,
-  selection_type text NOT NULL CHECK (selection_type = ANY (ARRAY['single'::text, 'multiple'::text, 'quantity'::text])),
-  min_selections integer NOT NULL DEFAULT 0,
-  max_selections integer,
-  display_order integer NOT NULL DEFAULT 0,
-  is_active boolean NOT NULL DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT option_groups_pkey PRIMARY KEY (id),
-  CONSTRAINT option_groups_owner_check CHECK ((dish_id IS NOT NULL AND menu_category_id IS NULL) OR (dish_id IS NULL AND menu_category_id IS NOT NULL)),
-  CONSTRAINT option_groups_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id) ON DELETE CASCADE,
-  CONSTRAINT option_groups_dish_id_fkey FOREIGN KEY (dish_id) REFERENCES public.dishes(id) ON DELETE CASCADE,
-  CONSTRAINT option_groups_menu_category_id_fkey FOREIGN KEY (menu_category_id) REFERENCES public.menu_categories(id) ON DELETE CASCADE
-);
-CREATE TABLE public.options (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  option_group_id uuid NOT NULL,
-  name text NOT NULL,
-  description text,
-  price_delta numeric NOT NULL DEFAULT 0,
-  calories_delta integer,
-  canonical_ingredient_id uuid,
-  is_available boolean NOT NULL DEFAULT true,
-  display_order integer NOT NULL DEFAULT 0,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT options_pkey PRIMARY KEY (id),
-  CONSTRAINT options_option_group_id_fkey FOREIGN KEY (option_group_id) REFERENCES public.option_groups(id) ON DELETE CASCADE,
-  CONSTRAINT options_ingredient_id_fkey FOREIGN KEY (canonical_ingredient_id) REFERENCES public.canonical_ingredients(id) ON DELETE SET NULL
 );
 CREATE TABLE public.eat_together_members (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -242,6 +208,15 @@ CREATE TABLE public.eat_together_votes (
   CONSTRAINT eat_together_votes_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.eat_together_sessions(id),
   CONSTRAINT eat_together_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT eat_together_votes_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
+);
+CREATE TABLE public.favorites (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  subject_type USER-DEFINED NOT NULL,
+  subject_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT favorites_pkey PRIMARY KEY (id),
+  CONSTRAINT favorites_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.ingredient_aliases (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -304,6 +279,41 @@ CREATE TABLE public.menus (
   CONSTRAINT menus_pkey PRIMARY KEY (id),
   CONSTRAINT menus_new_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
 );
+CREATE TABLE public.option_groups (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  dish_id uuid,
+  menu_category_id uuid,
+  name text NOT NULL,
+  description text,
+  selection_type text NOT NULL CHECK (selection_type = ANY (ARRAY['single'::text, 'multiple'::text, 'quantity'::text])),
+  min_selections integer NOT NULL DEFAULT 0,
+  max_selections integer,
+  display_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT option_groups_pkey PRIMARY KEY (id),
+  CONSTRAINT option_groups_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
+  CONSTRAINT option_groups_dish_id_fkey FOREIGN KEY (dish_id) REFERENCES public.dishes(id),
+  CONSTRAINT option_groups_menu_category_id_fkey FOREIGN KEY (menu_category_id) REFERENCES public.menu_categories(id)
+);
+CREATE TABLE public.options (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  option_group_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  price_delta numeric NOT NULL DEFAULT 0,
+  calories_delta integer,
+  canonical_ingredient_id uuid,
+  is_available boolean NOT NULL DEFAULT true,
+  display_order integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT options_pkey PRIMARY KEY (id),
+  CONSTRAINT options_option_group_id_fkey FOREIGN KEY (option_group_id) REFERENCES public.option_groups(id),
+  CONSTRAINT options_canonical_ingredient_id_fkey FOREIGN KEY (canonical_ingredient_id) REFERENCES public.canonical_ingredients(id)
+);
 CREATE TABLE public.restaurant_experience_responses (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -349,7 +359,7 @@ CREATE TABLE public.restaurants (
   neighbourhood text,
   state text,
   payment_methods text CHECK (payment_methods = ANY (ARRAY['cash_only'::text, 'card_only'::text, 'cash_and_card'::text])),
-  restaurant_vector vector(1536),
+  restaurant_vector USER-DEFINED,
   CONSTRAINT restaurants_pkey PRIMARY KEY (id),
   CONSTRAINT restaurants_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id),
   CONSTRAINT restaurants_suspended_by_fkey FOREIGN KEY (suspended_by) REFERENCES auth.users(id)
@@ -404,7 +414,7 @@ END,
   last_active_at timestamp with time zone DEFAULT now(),
   profile_updated_at timestamp with time zone DEFAULT now(),
   profile_version integer DEFAULT 1,
-  preference_vector vector(1536),
+  preference_vector USER-DEFINED,
   preference_vector_updated_at timestamp with time zone,
   CONSTRAINT user_behavior_profiles_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_behavior_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
@@ -434,10 +444,6 @@ CREATE TABLE public.user_points (
 CREATE TABLE public.user_preferences (
   user_id uuid NOT NULL,
   diet_preference text DEFAULT 'all'::text CHECK (diet_preference = ANY (ARRAY['all'::text, 'vegetarian'::text, 'vegan'::text])),
-  allergies text[] DEFAULT '{}'::text[],
-  exclude text[] DEFAULT '{}'::text[],
-  diet_types text[] DEFAULT '{}'::text[],
-  religious_restrictions text[] DEFAULT '{}'::text[],
   default_max_distance integer DEFAULT 5,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
@@ -450,6 +456,10 @@ CREATE TABLE public.user_preferences (
   onboarding_completed boolean DEFAULT false,
   onboarding_completed_at timestamp with time zone,
   ingredients_to_avoid jsonb NOT NULL DEFAULT '[]'::jsonb,
+  allergies ARRAY DEFAULT '{}'::text[],
+  exclude ARRAY DEFAULT '{}'::text[],
+  diet_types ARRAY DEFAULT '{}'::text[],
+  religious_restrictions ARRAY DEFAULT '{}'::text[],
   CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

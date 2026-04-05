@@ -108,9 +108,10 @@ export default function IngredientsPage() {
         is_vegan: false,
       });
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding canonical ingredient:', error);
-      toast.error('Failed to add: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to add: ' + message);
     }
   };
 
@@ -132,9 +133,10 @@ export default function IngredientsPage() {
         canonical_ingredient_id: '',
       });
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding alias:', error);
-      toast.error('Failed to add: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to add: ' + message);
     }
   };
 
@@ -149,9 +151,10 @@ export default function IngredientsPage() {
 
       toast.success('Canonical ingredient deleted');
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting:', error);
-      toast.error('Failed to delete: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to delete: ' + message);
     }
   };
 
@@ -165,9 +168,10 @@ export default function IngredientsPage() {
 
       toast.success('Alias deleted');
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting:', error);
-      toast.error('Failed to delete: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to delete: ' + message);
     }
   };
 

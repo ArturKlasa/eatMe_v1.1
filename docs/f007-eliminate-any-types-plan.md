@@ -28,16 +28,16 @@
 
 Eight patterns account for all 35 occurrences (some occurrences fall into multiple patterns):
 
-| Pattern | Count | Root cause |
-|---|---|---|
-| `catch (error: any)` / `(error as any)` | 13 | Pre-TS 4.4 habit; `catch` binding defaults to `unknown` now. 12 catch blocks + 1 `as any` cast in logging. |
-| Supabase nested query result lambdas | 10 | No local types for deeply-nested select responses |
-| `as any` casts to bridge type mismatches | 6 | Two separate `Dish` types (`Tables<'dishes'>` vs `types/restaurant.Dish`), untyped `insertData`, untyped `selectedIngredients` access |
-| Form library / Hook Form resolver cast | 1 | Version mismatch between `@hookform/resolvers` and `react-hook-form` generics |
-| `(dish as any).field` — accessing fields that exist on the type | 2 | Unnecessary casts; fields are declared on `Partial<Dish>` already |
-| `selectedIngredients` element typed as `any` in `.map()` | 1 | DishCard uses `(ing: any)` inside `.map()` — separate from the `as any` cast on the array itself |
-| `useState<any>` for Supabase User | 1 | Missing `User` import from `@supabase/supabase-js` |
-| `:any` annotation in DishFormDialog Supabase callbacks | 2 | Supabase query results mapped without types |
+| Pattern                                                         | Count | Root cause                                                                                                                            |
+| --------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `catch (error: any)` / `(error as any)`                         | 13    | Pre-TS 4.4 habit; `catch` binding defaults to `unknown` now. 12 catch blocks + 1 `as any` cast in logging.                            |
+| Supabase nested query result lambdas                            | 10    | No local types for deeply-nested select responses                                                                                     |
+| `as any` casts to bridge type mismatches                        | 6     | Two separate `Dish` types (`Tables<'dishes'>` vs `types/restaurant.Dish`), untyped `insertData`, untyped `selectedIngredients` access |
+| Form library / Hook Form resolver cast                          | 1     | Version mismatch between `@hookform/resolvers` and `react-hook-form` generics                                                         |
+| `(dish as any).field` — accessing fields that exist on the type | 2     | Unnecessary casts; fields are declared on `Partial<Dish>` already                                                                     |
+| `selectedIngredients` element typed as `any` in `.map()`        | 1     | DishCard uses `(ing: any)` inside `.map()` — separate from the `as any` cast on the array itself                                      |
+| `useState<any>` for Supabase User                               | 1     | Missing `User` import from `@supabase/supabase-js`                                                                                    |
+| `:any` annotation in DishFormDialog Supabase callbacks          | 2     | Supabase query results mapped without types                                                                                           |
 
 ---
 
@@ -46,6 +46,7 @@ Eight patterns account for all 35 occurrences (some occurrences fall into multip
 ### Phase 1 — `catch (error: any)` → `catch (error: unknown)` (13 occurrences)
 
 **Files affected (12 catch blocks + 1 `as any` cast):**
+
 - `app/admin/ingredients/page.tsx` — 4 catches
 - `app/admin/restaurants/[id]/menus/page.tsx` — 6 catches
 - `components/admin/NewRestaurantForm.tsx` — 1 catch (`err: any`)
@@ -79,7 +80,7 @@ if (error) {
     code: error.code,
     details: error.details,
     hint: error.hint,
-    statusCode: (error as any).statusCode,  // wrong field name, always undefined
+    statusCode: (error as any).statusCode, // wrong field name, always undefined
   });
 }
 
@@ -101,9 +102,11 @@ if (error) {
 ### Phase 2 — Type Supabase nested query responses in `restaurantService.ts` (10 occurrences)
 
 All 10 occurrences are lambda parameters for mapping results of:
+
 ```typescript
-supabase.from('restaurants')
-  .select('*, menus(*, menu_categories(*, dishes(*, option_groups(*, options(*)))))')
+supabase
+  .from('restaurants')
+  .select('*, menus(*, menu_categories(*, dishes(*, option_groups(*, options(*)))))');
 ```
 
 Supabase JS v2 can infer the nested shape via `Database` generics, but the current code overrides with `as FormProgress`, losing the inferred type mid-map. The fix is to define local raw-result interfaces that match the select shape, then use them as lambda types.
@@ -260,7 +263,7 @@ ingredients_visibility: dish.ingredients_visibility ?? 'detail',
 data.map((g: any) => ({
   ...g,
   options: (g.options ?? []).sort((a: any, b: any) => a.display_order - b.display_order),
-}))
+}));
 
 // After — reuse exported RawOptionGroup from Phase 2
 import type { RawOptionGroup } from '@/lib/restaurantService';
@@ -268,7 +271,7 @@ import type { RawOptionGroup } from '@/lib/restaurantService';
 data.map((g: RawOptionGroup) => ({
   ...g,
   options: (g.options ?? []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
-}))
+}));
 ```
 
 #### 4d — `dish_ingredients` query result mapping (line 211)
@@ -318,12 +321,14 @@ const loaded = data.map((row: DishIngredientRow): Ingredient => {
 **Current state of `SelectedIngredient`:**
 
 There are actually **two** `SelectedIngredient` interfaces:
+
 1. `types/restaurant.ts` — `{ id: string; quantity?: string | null }` (minimal)
 2. `components/IngredientAutocomplete.tsx` — `extends Ingredient { quantity?: string }` (full)
 
 The `IngredientAutocomplete` component's local interface is the correct shape — it has all the `Ingredient` fields plus `quantity`. The `types/restaurant.ts` one is incomplete.
 
 Importantly, `SelectedIngredient` from `types/restaurant.ts` is imported by:
+
 - `lib/restaurantService.ts` line 21 + 429 (used in `submitRestaurantProfile`)
 - `app/onboard/menu/page.tsx` line 23
 
@@ -518,16 +523,16 @@ Phases 1–7 can all be done in a single PR. Phase 8 (ESLint) should be the last
 
 ## Risk Assessment
 
-| Change | Risk | Notes |
-|---|---|---|
-| `catch (error: any)` → `unknown` | **Low** | Pure type change, no runtime impact |
-| `restaurantService.ts` raw types | **Low** | Adds types, no logic changes |
-| `layout.tsx` `User` type | **Low** | Tightens null safety, behavior identical |
-| `DishFormDialog` resolver cast | **Low** | Confirmed: `@hookform/resolvers` v5.2 + Zod v4 work without a cast |
-| `DishFormDialog` `(dish as any)` removal | **Low** | Fields already exist on the type |
-| `DishCard` `selectedIngredients` fix | **Medium** | `ing.name` → `ing.display_name` — test wizard mode to confirm display |
-| `NewRestaurantForm` typed insertData | **Medium** | Verify `RestaurantInsert` covers all inserted fields |
-| `menus/page.tsx` dish mapping function | **Low–Medium** | Verify field mapping covers all fields used in form |
+| Change                                   | Risk           | Notes                                                                 |
+| ---------------------------------------- | -------------- | --------------------------------------------------------------------- |
+| `catch (error: any)` → `unknown`         | **Low**        | Pure type change, no runtime impact                                   |
+| `restaurantService.ts` raw types         | **Low**        | Adds types, no logic changes                                          |
+| `layout.tsx` `User` type                 | **Low**        | Tightens null safety, behavior identical                              |
+| `DishFormDialog` resolver cast           | **Low**        | Confirmed: `@hookform/resolvers` v5.2 + Zod v4 work without a cast    |
+| `DishFormDialog` `(dish as any)` removal | **Low**        | Fields already exist on the type                                      |
+| `DishCard` `selectedIngredients` fix     | **Medium**     | `ing.name` → `ing.display_name` — test wizard mode to confirm display |
+| `NewRestaurantForm` typed insertData     | **Medium**     | Verify `RestaurantInsert` covers all inserted fields                  |
+| `menus/page.tsx` dish mapping function   | **Low–Medium** | Verify field mapping covers all fields used in form                   |
 
 ---
 
@@ -542,6 +547,7 @@ pnpm lint           # Should produce 0 ESLint errors for no-explicit-any
 ```
 
 Manual test:
+
 - [ ] Restaurant onboarding wizard: create a restaurant end-to-end
 - [ ] Add a dish with ingredients in wizard mode → ingredients display in `DishCard`
 - [ ] Admin panel: admin login, view stats

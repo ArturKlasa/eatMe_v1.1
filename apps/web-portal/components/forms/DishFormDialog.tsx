@@ -40,6 +40,7 @@ import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
 import { fetchDishCategories, type DishCategory } from '@/lib/dish-categories';
 import { getCuisineCategories } from '@/lib/cuisine-categories';
 import { supabase } from '@/lib/supabase';
+import type { RawOptionGroup } from '@/lib/restaurantService';
 import { toast } from 'sonner';
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -100,7 +101,7 @@ export function DishFormDialog({
     setValue,
     reset,
   } = useForm<DishFormData>({
-    resolver: zodResolver(dishSchema) as any,
+    resolver: zodResolver(dishSchema),
     defaultValues: {
       name: '',
       description: '',
@@ -152,8 +153,8 @@ export function DishFormDialog({
         photo_url: dish.photo_url || '',
         is_available: dish.is_available !== false,
         dish_category_id: dish.dish_category_id ?? null,
-        description_visibility: (dish as any).description_visibility ?? 'menu',
-        ingredients_visibility: (dish as any).ingredients_visibility ?? 'detail',
+        description_visibility: dish.description_visibility ?? 'menu',
+        ingredients_visibility: dish.ingredients_visibility ?? 'detail',
         dish_kind: (dish.dish_kind ?? 'standard') as 'standard' | 'template' | 'experience',
         display_price_prefix: (dish.display_price_prefix ?? 'exact') as
           | 'exact'
@@ -174,10 +175,10 @@ export function DishFormDialog({
           .then(({ data }) => {
             if (data && data.length > 0) {
               setOptionGroups(
-                data.map((g: any) => ({
+                data.map((g: RawOptionGroup) => ({
                   ...g,
                   options: (g.options ?? []).sort(
-                    (a: any, b: any) => a.display_order - b.display_order
+                    (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
                   ),
                 }))
               );
@@ -208,7 +209,19 @@ export function DishFormDialog({
           .eq('dish_id', dish.id)
           .then(({ data }) => {
             if (data && data.length > 0) {
-              const loaded = data.map((row: any) => {
+              type DishIngredientRow = {
+                ingredient_id: string;
+                quantity: string | null;
+                canonical_ingredient: {
+                  id: string;
+                  canonical_name: string;
+                  ingredient_family_name: string | null;
+                  is_vegetarian: boolean;
+                  is_vegan: boolean;
+                  ingredient_aliases: Array<{ id: string; display_name: string }>;
+                } | null;
+              };
+              const loaded = data.map((row: DishIngredientRow): Ingredient => {
                 const alias = row.canonical_ingredient?.ingredient_aliases?.[0];
                 return {
                   id: alias?.id ?? row.ingredient_id,
@@ -216,11 +229,12 @@ export function DishFormDialog({
                     alias?.display_name ?? row.canonical_ingredient?.canonical_name ?? '',
                   canonical_ingredient_id: row.ingredient_id,
                   canonical_name: row.canonical_ingredient?.canonical_name,
-                  ingredient_family_name: row.canonical_ingredient?.ingredient_family_name,
+                  ingredient_family_name:
+                    row.canonical_ingredient?.ingredient_family_name ?? undefined,
                   is_vegetarian: row.canonical_ingredient?.is_vegetarian,
                   is_vegan: row.canonical_ingredient?.is_vegan,
                   quantity: row.quantity ?? undefined,
-                } as Ingredient;
+                };
               });
               setSelectedIngredients(loaded);
             } else {
@@ -416,9 +430,10 @@ export function DishFormDialog({
       setOptionGroups([]);
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DishForm] Error saving dish:', error);
-      toast.error('Failed to save dish: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to save dish: ' + message);
     }
   };
 

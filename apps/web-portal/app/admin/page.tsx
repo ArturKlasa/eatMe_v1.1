@@ -37,7 +37,6 @@ export default function AdminDashboardPage() {
           code: error.code,
           details: error.details,
           hint: error.hint,
-          statusCode: (error as any).statusCode,
         });
         return;
       }

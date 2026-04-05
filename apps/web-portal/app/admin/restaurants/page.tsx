@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { Store, Utensils, Users, Activity, AlertCircle, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import type { Restaurant } from '@/lib/supabase';
 import { RestaurantTable } from '@/components/admin/RestaurantTable';
 import { Search } from 'lucide-react';
+
+type RestaurantWithCounts = Restaurant & { menuCount: number; dishCount: number };
 
 /**
  * SECURITY: Admin Restaurants Management Page
@@ -20,7 +23,7 @@ import { Search } from 'lucide-react';
  */
 
 export default function AdminRestaurantsPage() {
-  const [restaurantsWithCounts, setRestaurantsWithCounts] = useState<any[]>([]);
+  const [restaurantsWithCounts, setRestaurantsWithCounts] = useState<RestaurantWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

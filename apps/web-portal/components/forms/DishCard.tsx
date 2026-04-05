@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dish } from '@/types/restaurant';
 import { Edit, Trash2, Copy, Layers } from 'lucide-react';
-import { SPICE_LEVELS, DISH_KINDS, DISPLAY_PRICE_PREFIXES } from '@/lib/constants';
+import { SPICE_LEVELS, DISH_KINDS } from '@/lib/constants';
 
 interface DishCardProps {
   dish: Dish;
@@ -101,13 +101,13 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
       <CardContent>
         <div className="space-y-3">
           {/* Ingredients — shown in wizard mode only (selectedIngredients from autocomplete) */}
-          {(dish as any).selectedIngredients?.length > 0 && (
+          {dish.selectedIngredients && dish.selectedIngredients.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-1">Ingredients:</p>
               <div className="flex flex-wrap gap-1">
-                {(dish as any).selectedIngredients.map((ing: any, idx: number) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
-                    {ing.name}
+                {dish.selectedIngredients.map((ing, idx) => (
+                  <Badge key={ing.id ?? idx} variant="secondary" className="text-xs">
+                    {ing.display_name}
                   </Badge>
                 ))}
               </div>

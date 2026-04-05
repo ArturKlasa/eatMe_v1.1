@@ -21,6 +21,70 @@ import type {
   SelectedIngredient,
 } from '@/types/restaurant';
 
+// ─── Raw Supabase select result shapes (exported for reuse in DishFormDialog) ──
+
+/** Raw option row as returned by nested select. */
+export type RawOption = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price_delta: number;
+  calories_delta?: number | null;
+  canonical_ingredient_id?: string | null;
+  is_available?: boolean | null;
+  display_order?: number | null;
+};
+
+/** Raw option_group row with nested options as returned by nested select. */
+export type RawOptionGroup = {
+  id: string;
+  name: string;
+  description?: string | null;
+  selection_type: string;
+  min_selections?: number | null;
+  max_selections?: number | null;
+  display_order?: number | null;
+  is_active?: boolean | null;
+  options?: RawOption[];
+};
+
+/** Raw dish row with nested option_groups as returned by nested select. */
+type RawDish = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  calories?: number | null;
+  dietary_tags?: string[] | null;
+  allergens?: string[] | null;
+  spice_level?: string | null;
+  image_url?: string | null;
+  is_available?: boolean | null;
+  dish_category_id?: string | null;
+  description_visibility?: string | null;
+  ingredients_visibility?: string | null;
+  dish_kind?: string | null;
+  display_price_prefix?: string | null;
+  option_groups?: RawOptionGroup[];
+};
+
+/** Raw menu_category row with nested dishes as returned by nested select. */
+type RawMenuCategory = {
+  id: string;
+  dishes?: RawDish[];
+};
+
+/** Raw menu row with nested menu_categories as returned by nested select. */
+type RawMenu = {
+  id: string;
+  name: string;
+  description?: string | null;
+  menu_type?: string | null;
+  is_active?: boolean | null;
+  display_order?: number | null;
+  menu_categories?: RawMenuCategory[];
+};
+
 // ─── Shared types ──────────────────────────────────────────────────────────────
 
 /** Minimal restaurant shape used by the dashboard stats panel. */
@@ -107,7 +171,7 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
       payment_methods:
         (restaurant.payment_methods as 'cash_only' | 'card_only' | 'cash_and_card') ?? undefined,
     },
-    menus: (restaurant.menus ?? []).map((menu: any) => ({
+    menus: ((restaurant.menus ?? []) as RawMenu[]).map(menu => ({
       id: menu.id,
       name: menu.name,
       description: menu.description ?? undefined,
@@ -115,25 +179,25 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
       is_active: menu.is_active ?? true,
       display_order: menu.display_order ?? 0,
       // Flatten dishes from menu_categories onto the menu (portal UI has no category level)
-      dishes: (menu.menu_categories ?? []).flatMap((cat: any) =>
-        (cat.dishes ?? []).map((d: any) => ({
+      dishes: ((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat =>
+        ((cat.dishes ?? []) as RawDish[]).map(d => ({
           ...d,
           photo_url: d.image_url,
           dish_kind: d.dish_kind ?? 'standard',
           display_price_prefix: d.display_price_prefix ?? 'exact',
-          option_groups: (d.option_groups ?? [])
-            .sort((a: any, b: any) => a.display_order - b.display_order)
-            .map((g: any) => ({
+          option_groups: ((d.option_groups ?? []) as RawOptionGroup[])
+            .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+            .map(g => ({
               ...g,
               options: (g.options ?? []).sort(
-                (a: any, b: any) => a.display_order - b.display_order
+                (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
               ),
             })),
         }))
       ),
     })),
-    dishes: (restaurant.menus ?? []).flatMap((m: any) =>
-      (m.menu_categories ?? []).flatMap((cat: any) => cat.dishes ?? [])
+    dishes: ((restaurant.menus ?? []) as RawMenu[]).flatMap(m =>
+      ((m.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])
     ),
     currentStep: 3,
   };
@@ -158,14 +222,14 @@ export async function getRestaurantWithMenus(
   }
   if (!restaurant) return null;
 
-  const menus: AppMenu[] = (restaurant.menus ?? []).map((menu: any) => ({
+  const menus: AppMenu[] = ((restaurant.menus ?? []) as RawMenu[]).map(menu => ({
     id: menu.id,
     name: menu.name,
     description: menu.description ?? undefined,
     menu_type: (menu.menu_type ?? 'food') as 'food' | 'drink',
     is_active: menu.is_active ?? true,
     display_order: menu.display_order ?? 0,
-    dishes: (menu.menu_categories ?? []).flatMap((cat: any) => cat.dishes ?? []),
+    dishes: ((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? []),
   }));
 
   return { id: restaurant.id, menus };

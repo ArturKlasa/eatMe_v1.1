@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { Loader2, MapPin, Clock, X, Utensils, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase, formatLocationForSupabase } from '@/lib/supabase';
+import type { RestaurantInsert } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -284,13 +285,12 @@ export function NewRestaurantForm({
       };
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (insertData as any).location = { lat, lng };
+        insertData['location'] = { lat, lng };
       }
 
       const { data: created, error } = await supabase
         .from('restaurants')
-        .insert(insertData as any)
+        .insert(insertData as RestaurantInsert)
         .select('id, name, city, country_code')
         .single();
 
@@ -298,9 +298,10 @@ export function NewRestaurantForm({
 
       toast.success(`"${created.name}" created!`);
       onSave(created as NewRestaurantResult);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[NewRestaurantForm] Error:', err);
-      toast.error(err.message ?? 'Failed to create restaurant');
+      const message = err instanceof Error ? err.message : 'Failed to create restaurant';
+      toast.error(message);
     } finally {
       setSaving(false);
     }

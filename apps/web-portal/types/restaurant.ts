@@ -1,12 +1,13 @@
+import type { Ingredient } from '@/lib/ingredients';
+
 export interface Location {
   lat: number;
   lng: number;
 }
 
-/** UI-only: ingredients selected via IngredientAutocomplete, linked to DB on save. */
-export interface SelectedIngredient {
-  id: string; // ingredient alias ID
-  quantity?: string | null;
+/** UI-only: ingredient selected via IngredientAutocomplete, with optional quantity. */
+export interface SelectedIngredient extends Ingredient {
+  quantity?: string;
 }
 
 export type DishKind = 'standard' | 'template' | 'experience';

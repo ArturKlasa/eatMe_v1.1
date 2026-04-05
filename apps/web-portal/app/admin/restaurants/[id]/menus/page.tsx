@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Menu, MenuCategory, Dish } from '@/lib/supabase';
+import type { Dish as FormDish } from '@/types/restaurant';
 import {
   ArrowLeft,
   Plus,
@@ -41,6 +42,27 @@ interface MenuWithCategories extends Menu {
 
 interface MenuCategoryWithDishes extends MenuCategory {
   dishes?: Dish[];
+}
+
+/** Map a DB Dish row to the shape expected by DishFormDialog. */
+function dbDishToFormDish(d: Dish): Partial<FormDish> & { id?: string } {
+  return {
+    id: d.id,
+    name: d.name,
+    description: d.description ?? undefined,
+    price: d.price,
+    calories: d.calories ?? undefined,
+    dietary_tags: (d.dietary_tags as string[]) ?? [],
+    allergens: (d.allergens as string[]) ?? [],
+    spice_level: d.spice_level as FormDish['spice_level'],
+    photo_url: d.image_url ?? undefined,
+    is_available: d.is_available ?? true,
+    dish_category_id: d.dish_category_id,
+    description_visibility: d.description_visibility as FormDish['description_visibility'],
+    ingredients_visibility: d.ingredients_visibility as FormDish['ingredients_visibility'],
+    dish_kind: d.dish_kind as FormDish['dish_kind'],
+    display_price_prefix: d.display_price_prefix as FormDish['display_price_prefix'],
+  };
 }
 
 export default function RestaurantMenusPage() {
@@ -151,15 +173,14 @@ export default function RestaurantMenusPage() {
       }));
 
       setMenus(menusWithCategories);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Admin] Error fetching data:', error);
-      console.error('[Admin] Error details:', {
-        message: error?.message,
-        details: error?.details,
-        hint: error?.hint,
-        code: error?.code,
-      });
-      toast.error(error?.message || 'Failed to load menus');
+      if (error instanceof Error) {
+        console.error('[Admin] Error details:', { message: error.message });
+        toast.error(error.message || 'Failed to load menus');
+      } else {
+        toast.error('Failed to load menus');
+      }
     } finally {
       setLoading(false);
     }
@@ -215,9 +236,10 @@ export default function RestaurantMenusPage() {
 
       setIsMenuDialogOpen(false);
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Admin] Error saving menu:', error);
-      toast.error('Failed to save menu: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to save menu: ' + message);
     }
   };
 
@@ -236,9 +258,10 @@ export default function RestaurantMenusPage() {
 
       toast.success('Menu deleted');
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Admin] Error deleting menu:', error);
-      toast.error('Failed to delete: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to delete: ' + message);
     }
   };
 
@@ -296,9 +319,10 @@ export default function RestaurantMenusPage() {
 
       setIsCategoryDialogOpen(false);
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Admin] Error saving category:', error);
-      toast.error('Failed to save category: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to save category: ' + message);
     }
   };
 
@@ -315,9 +339,10 @@ export default function RestaurantMenusPage() {
 
       toast.success('Category deleted');
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Admin] Error deleting category:', error);
-      toast.error('Failed to delete: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to delete: ' + message);
     }
   };
 
@@ -344,9 +369,10 @@ export default function RestaurantMenusPage() {
 
       toast.success('Dish deleted');
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Admin] Error deleting dish:', error);
-      toast.error('Failed to delete: ' + error.message);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to delete: ' + message);
     }
   };
 
@@ -659,7 +685,7 @@ export default function RestaurantMenusPage() {
           }}
           restaurantId={restaurantId}
           menuCategoryId={selectedCategoryForDish}
-          dish={editingDish as any}
+          dish={editingDish ? dbDishToFormDish(editingDish) : null}
           onSuccess={fetchData}
           restaurantCuisine={restaurantCuisine}
         />

@@ -1,0 +1,32 @@
+[2m2026-04-04T23:59:36.541682Z[0m [33m WARN[0m [2mralph::loop_runner[0m[2m:[0m Interactive mode requested but stdout is not a TTY, falling back to autonomous
+[2m2026-04-04T23:59:36.542288Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory injection check: enabled=true, inject=Auto, workspace_root="/home/art/Documents/eatMe_v1"
+[2m2026-04-04T23:59:36.542299Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Looking for memories at: "/home/art/Documents/eatMe_v1/.ralph/agent/memories.md" (exists: false)
+[2m2026-04-04T23:59:36.542308Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Successfully loaded 0 memories from store
+[2m2026-04-04T23:59:36.542312Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory store is empty - no memories to inject
+[2m2026-04-05T00:00:52.697742Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory injection check: enabled=true, inject=Auto, workspace_root="/home/art/Documents/eatMe_v1"
+[2m2026-04-05T00:00:52.697775Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Looking for memories at: "/home/art/Documents/eatMe_v1/.ralph/agent/memories.md" (exists: false)
+[2m2026-04-05T00:00:52.697785Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Successfully loaded 0 memories from store
+[2m2026-04-05T00:00:52.697792Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory store is empty - no memories to inject
+[2m2026-04-05T00:00:52.697905Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Injecting ready tasks (1 ready, 1 open, 0 closed) into prompt
+[2m2026-04-05T00:02:20.115041Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory injection check: enabled=true, inject=Auto, workspace_root="/home/art/Documents/eatMe_v1"
+[2m2026-04-05T00:02:20.115072Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Looking for memories at: "/home/art/Documents/eatMe_v1/.ralph/agent/memories.md" (exists: false)
+[2m2026-04-05T00:02:20.115083Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Successfully loaded 0 memories from store
+[2m2026-04-05T00:02:20.115089Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory store is empty - no memories to inject
+[2m2026-04-05T00:02:20.115128Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Injecting scratchpad (421 chars) into prompt
+[2m2026-04-05T00:02:20.115229Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Injecting ready tasks (0 ready, 1 open, 0 closed) into prompt
+[2m2026-04-05T00:03:12.768989Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory injection check: enabled=true, inject=Auto, workspace_root="/home/art/Documents/eatMe_v1"
+[2m2026-04-05T00:03:12.769018Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Looking for memories at: "/home/art/Documents/eatMe_v1/.ralph/agent/memories.md" (exists: false)
+[2m2026-04-05T00:03:12.769030Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Successfully loaded 0 memories from store
+[2m2026-04-05T00:03:12.769038Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Memory store is empty - no memories to inject
+[2m2026-04-05T00:03:12.769075Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Injecting scratchpad (421 chars) into prompt
+[2m2026-04-05T00:03:12.769269Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Injecting ready tasks (0 ready, 1 open, 0 closed) into prompt
+[2m2026-04-05T00:03:56.221335Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Completion event detected in JSONL [3mtopic[0m[2m=[0mLOOP_COMPLETE
+[2m2026-04-05T00:03:56.221483Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Completion event detected - terminating
+[2m2026-04-05T00:03:56.221495Z[0m [32m INFO[0m [2mralph::loop_runner[0m[2m:[0m Completion event LOOP_COMPLETE detected.
+[2m2026-04-05T00:03:56.221515Z[0m [32m INFO[0m [2mralph_core::event_loop[0m[2m:[0m Wrapping up: completed. 4 iterations in 4m 19s. [3mreason[0m[2m=[0mcompleted [3miterations[0m[2m=[0m4 [3mduration[0m[2m=[0m4m 19s
+[2m2026-04-05T00:03:56.225009Z[0m [32m INFO[0m [2mralph_core::landing[0m[2m:[0m Beginning landing sequence [3mloop_id[0m[2m=[0mprimary
+[2m2026-04-05T00:03:56.225092Z[0m [33m WARN[0m [2mralph_core::landing[0m[2m:[0m Landing with 2 open tasks [3mloop_id[0m[2m=[0mprimary [3mopen_tasks[0m[2m=[0m["task-1775344105-6981", "task-1775344110-cb84"]
+[2m2026-04-05T00:03:56.261929Z[0m [32m INFO[0m [2mralph_core::landing[0m[2m:[0m Auto-committed changes during landing [3mloop_id[0m[2m=[0mprimary [3mcommit[0m[2m=[0mSome("b80137110e980b81cba42c89c1631e4ebfe0c8eb") [3mfiles[0m[2m=[0m31
+[2m2026-04-05T00:03:57.157571Z[0m [32m INFO[0m [2mralph_core::landing[0m[2m:[0m Generated handoff file [3mloop_id[0m[2m=[0mprimary [3mpath[0m[2m=[0m/home/art/Documents/eatMe_v1/.ralph/agent/handoff.md [3mcompleted[0m[2m=[0m5 [3mopen[0m[2m=[0m2
+[2m2026-04-05T00:03:57.166625Z[0m [32m INFO[0m [2mralph_core::loop_completion[0m[2m:[0m Landing completed with auto-commit [3mcommit[0m[2m=[0mSome("b80137110e980b81cba42c89c1631e4ebfe0c8eb") [3mhandoff[0m[2m=[0m/home/art/Documents/eatMe_v1/.ralph/agent/handoff.md
+[2m2026-04-05T00:03:57.166661Z[0m [32m INFO[0m [2mralph::loop_runner[0m[2m:[0m Primary loop landed successfully [3mcommitted[0m[2m=[0mtrue [3mhandoff[0m[2m=[0m/home/art/Documents/eatMe_v1/.ralph/agent/handoff.md [3mopen_tasks[0m[2m=[0m2

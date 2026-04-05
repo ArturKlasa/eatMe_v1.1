@@ -117,3 +117,5 @@ out/
 # EAS build config — contains secrets, managed via EAS environment variables
 # EAS build config - must be tracked for EAS Build cloud builds
 # apps/mobile/eas.json
+
+infra/supabase/.temp

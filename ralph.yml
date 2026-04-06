@@ -1,6 +1,6 @@
 # Ralph Orchestrator Configuration
-# Task: EatMe v1 Project Documentation Generation
-# Docs: https://github.com/mikeyobrien/ralph-orchestrator
+# Task: Universal Dish Structure — Schema Migration & Implementation
+# Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
   backend: "claude"
@@ -9,22 +9,26 @@ cli:
 event_loop:
   prompt_file: "PROMPT.md"
   completion_promise: "LOOP_COMPLETE"
-  max_iterations: 60
-  max_runtime_seconds: 10800     # 3 hours — 20 files is substantial
+  max_iterations: 80
+  max_runtime_seconds: 14400     # 4 hours — complex multi-layer changes across DB, backend, mobile, web
   idle_timeout_secs: 1800        # 30 min idle safety net
-  checkpoint_interval: 3         # Git checkpoint every 3 iterations (frequent saves for docs)
+  checkpoint_interval: 3         # Git checkpoint every 3 iterations
 
 core:
-  specs_dir: ".agents/planning/2026-04-05-project-documentation/"
+  specs_dir: ".agents/planning/2026-04-05-universal-dish-structure/"
   guardrails:
-    - "Only create or modify files inside docs/project/. Do not touch source code, migrations, configs, or any other files."
-    - "Read the detailed design at .agents/planning/2026-04-05-project-documentation/design/detailed-design.md before writing any file."
-    - "Read the corresponding research file in .agents/planning/2026-04-05-project-documentation/research/ before writing each documentation file."
-    - "When research notes lack detail, read the actual source code to fill gaps. Never invent information."
-    - "Use Mermaid sequenceDiagram syntax for all diagrams. Validate syntax before writing."
-    - "Mark missing information with <!-- TODO: description --> HTML comments."
-    - "Update the Progress Log checkboxes in PROMPT.md after completing each file."
-    - "Do not describe planned or future features. Document only what is currently implemented."
+    - "Read the detailed design at .agents/planning/2026-04-05-universal-dish-structure/design/detailed-design.md before implementing any change."
+    - "Read the corresponding research files in .agents/planning/2026-04-05-universal-dish-structure/research/ for decision rationale."
+    - "Always read a file before modifying it. The codebase has recent changes."
+    - "The database migration must be additive only — no data loss, no breaking changes to existing rows. All new columns must have sensible defaults."
+    - "Do not create new tables. Use self-referential FK on dishes table as specified in the design."
+    - "Do not add new dependencies. Use existing libraries and patterns."
+    - "After database migration, regenerate types: supabase gen types typescript --project-id tqroqqvxabolydyznewa > packages/database/src/types.ts"
+    - "Parent dishes (is_parent=true) must be excluded from feed, have no embedding, price=0, and exist only for menu display grouping."
+    - "All existing dishes must continue working unchanged with default values (parent_dish_id=null, is_parent=false, serves=1)."
+    - "Update the Progress Log checkboxes in PROMPT.md after completing each item."
+    - "Do not deviate from schema definitions, field names, or enum values specified in the design document."
+    - "When modifying edge functions, preserve existing functionality — only add new filter parameters and parent exclusion logic."
 
 memories:
   enabled: true
@@ -37,7 +41,7 @@ tasks:
   enabled: true
 
 features:
-  parallel: false              # Sequential — docs must build on each other
+  parallel: false              # Sequential — migration must precede type generation, types must precede code changes
   auto_merge: false
   preflight:
     enabled: true

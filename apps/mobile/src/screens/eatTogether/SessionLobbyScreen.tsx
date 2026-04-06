@@ -4,6 +4,8 @@ import { styles } from './SessionLobbyScreen.styles';
 import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@/types/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -31,7 +33,7 @@ type SessionLobbyScreenRouteParams = {
  */
 export function SessionLobbyScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<SessionLobbyScreenRouteParams, 'SessionLobby'>>();
   const { sessionId, isHost } = route.params;
   const user = useAuthStore(state => state.user);
@@ -105,7 +107,7 @@ export function SessionLobbyScreen() {
         payload => {
           if (payload.new.status === 'voting') {
             // Navigate to recommendations screen
-            navigation.navigate('Recommendations' as any, { sessionId });
+            navigation.navigate('Recommendations', { sessionId });
           }
         }
       )
@@ -135,7 +137,7 @@ export function SessionLobbyScreen() {
       }
 
       if (data && data.length > 0) {
-        navigation.navigate('Recommendations' as any, { sessionId });
+        navigation.navigate('Recommendations', { sessionId });
       } else {
         Alert.alert(t('sessionLobby.noRestaurants'), t('sessionLobby.noRestaurantsMessage'));
       }
@@ -275,7 +277,9 @@ export function SessionLobbyScreen() {
                     styles.locationModeOption,
                     locationMode === mode.key && styles.locationModeOptionSelected,
                   ]}
-                  onPress={() => setLocationMode(mode.key as any)}
+                  onPress={() =>
+                    setLocationMode(mode.key as 'host_location' | 'midpoint' | 'max_radius')
+                  }
                 >
                   <View style={styles.radio}>
                     {locationMode === mode.key && <View style={styles.radioSelected} />}

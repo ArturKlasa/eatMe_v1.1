@@ -59,6 +59,7 @@ export interface RestaurantWithDistance {
       id: string;
       name: string;
       price: number;
+      image_url?: string | null;
       dietary_tags?: string[];
       allergens?: string[];
       spice_level?: 'none' | 'mild' | 'hot';
@@ -67,19 +68,31 @@ export interface RestaurantWithDistance {
   }>;
 }
 
+type EdgeFunctionFilters = {
+  cuisines?: string[];
+  priceMin?: number;
+  priceMax?: number;
+  dietaryTags?: string[];
+  excludeAllergens?: string[];
+  flagIngredients?: string[];
+  maxDistance?: number;
+  proteinTypes?: string[];
+  proteinFamilies?: string[];
+};
+
 export interface NearbyRestaurantsResponse {
   restaurants: RestaurantWithDistance[];
   totalCount: number;
   searchRadius: number;
   centerPoint: { latitude: number; longitude: number };
-  appliedFilters: any;
+  appliedFilters: EdgeFunctionFilters;
 }
 
 /**
  * Convert app filters to Edge Function filter format
  */
 function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilters) {
-  const filters: any = {};
+  const filters: EdgeFunctionFilters = {};
 
   // Cuisines filter
   if (daily.cuisineTypes && daily.cuisineTypes.length > 0) {

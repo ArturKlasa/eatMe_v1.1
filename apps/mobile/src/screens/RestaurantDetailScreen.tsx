@@ -18,7 +18,13 @@ import {
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
-import { supabase, type RestaurantWithMenus, type Dish, type OptionGroup } from '../lib/supabase';
+import {
+  supabase,
+  type RestaurantWithMenus,
+  type Dish,
+  type OptionGroup,
+  type Option,
+} from '../lib/supabase';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing, typography } from '@/styles/theme';
 import { useAuthStore } from '../stores/authStore';
@@ -56,7 +62,15 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [dishOptionGroups, setDishOptionGroups] = useState<OptionGroup[]>([]);
-  const [dishPhotos, setDishPhotos] = useState<any[]>([]);
+  const [dishPhotos, setDishPhotos] = useState<
+    Array<{
+      id: string;
+      photo_url: string;
+      user_id: string;
+      created_at: string;
+      dish_id: string;
+    }>
+  >([]);
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
@@ -208,7 +222,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
   // Determine payment note from DB column
   const getPaymentNote = () => {
-    switch ((restaurant as any).payment_methods) {
+    switch (restaurant.payment_methods) {
       case 'cash_only':
         return { icon: '💵', label: 'Cash only' };
       case 'card_only':
@@ -274,7 +288,19 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleDishPress = async (dish: any) => {
+  /**
+   * DishWithGroups augments the generated Dish type with:
+   * - option_groups: embedded option groups from the nested query
+   * - photo_url: legacy alias for image_url (may be present from older data/queries)
+   * - ingredients: legacy text array column (superseded by dish_ingredients join table)
+   */
+  type DishWithGroups = Dish & {
+    option_groups?: OptionGroup[];
+    photo_url?: string | null;
+    ingredients?: string[];
+  };
+
+  const handleDishPress = async (dish: DishWithGroups) => {
     setSelectedDish(dish);
     // Option groups are already embedded in the dish from the query
     const embedded: OptionGroup[] = (dish.option_groups ?? [])
@@ -283,8 +309,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       .map((g: OptionGroup) => ({
         ...g,
         options: (g.options ?? [])
-          .filter((o: any) => o.is_available)
-          .sort((a: any, b: any) => a.display_order - b.display_order),
+          .filter((o: Option) => o.is_available)
+          .sort((a: Option, b: Option) => a.display_order - b.display_order),
       }));
     setDishOptionGroups(embedded);
 
@@ -295,10 +321,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     const optionsWithIngredient: { optionId: string; ingredientId: string }[] = [];
     for (const group of embedded) {
       for (const opt of group.options) {
-        if ((opt as any).canonical_ingredient_id) {
+        if (opt.canonical_ingredient_id) {
           optionsWithIngredient.push({
             optionId: opt.id,
-            ingredientId: (opt as any).canonical_ingredient_id,
+            ingredientId: opt.canonical_ingredient_id,
           });
         }
       }
@@ -307,7 +333,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       id: dish.id,
       name: dish.name,
       price: dish.price,
-      imageUrl: dish.photo_url,
+      imageUrl: dish.photo_url ?? undefined,
     });
 
     // Fetch photos, ingredients, and option allergens in parallel
@@ -339,7 +365,13 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         console.error('Error fetching dish photos:', error);
         setDishPhotos([]);
       } else {
-        setDishPhotos(data || []);
+        setDishPhotos(
+          (data || []).map(row => ({
+            ...row,
+            created_at: row.created_at ?? '',
+            updated_at: row.updated_at ?? '',
+          }))
+        );
       }
     } else {
       setDishPhotos([]);
@@ -350,7 +382,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       const { data, error } = ingredientsResult.value;
       if (!error && data && data.length > 0) {
         const names = data
-          .map((row: any) => row.canonical_ingredient?.canonical_name)
+          .map(
+            (row: { canonical_ingredient: { canonical_name: string } | null }) =>
+              row.canonical_ingredient?.canonical_name
+          )
           .filter(Boolean) as string[];
         setDishIngredientNames(names);
       } else {
@@ -365,7 +400,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     if (allergenResult.status === 'fulfilled') {
       const { data } = allergenResult.value as {
         data: { canonical_ingredient_id: string; allergen_code: string }[] | null;
-        error: any;
+        error: { message: string } | null;
       };
       if (data && data.length > 0) {
         // ingredient_id → allergen_codes[]
@@ -386,7 +421,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     }
   };
 
-  const renderMenuItem = (item: any) => {
+  const renderMenuItem = (item: DishWithGroups) => {
     const rating = dishRatings.get(item.id);
     const pricePrefix = item.display_price_prefix;
     let priceLabel: string;
@@ -447,8 +482,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         {item.description && item.description_visibility !== 'detail' && (
           <Text style={styles.menuItemIngredients}>{item.description}</Text>
         )}
-        {item.ingredients_visibility === 'menu' && item.ingredients?.length > 0 && (
-          <Text style={styles.menuItemIngredients}>{item.ingredients.join(', ')}</Text>
+        {item.ingredients_visibility === 'menu' && (item.ingredients?.length ?? 0) > 0 && (
+          <Text style={styles.menuItemIngredients}>{item.ingredients!.join(', ')}</Text>
         )}
         {flaggedIngredientNames.length > 0 && (
           <Text style={styles.flaggedIngredientsWarning}>
@@ -463,7 +498,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
    * Returns dishes sorted so those passing hard filters appear first.
    * Preserves the restaurant-defined order within each group.
    */
-  const sortedDishes = (dishes: any[]): any[] => {
+  const sortedDishes = (dishes: DishWithGroups[]): DishWithGroups[] => {
     const classified = dishes.map(d => ({
       ...d,
       passesHardFilters: classifyDish(d, permanentFilters, ingredientsToAvoid).passesHardFilters,
@@ -534,11 +569,11 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
           nestedScrollEnabled
         >
-          {restaurant.menus?.map((menu: any) => (
+          {restaurant.menus?.map(menu => (
             <View key={menu.id} style={styles.menuSection}>
               <Text style={styles.menuName}>{menu.name}</Text>
               {menu.description && <Text style={styles.menuDescription}>{menu.description}</Text>}
-              {menu.menu_categories?.map((category: any) => (
+              {menu.menu_categories?.map(category => (
                 <View key={category.id} style={styles.menuCategory}>
                   <Text style={styles.categoryName}>{category.name}</Text>
                   {sortedDishes(category.dishes ?? []).map(renderMenuItem)}
@@ -768,8 +803,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             selectedDish.ingredients_visibility === 'detail' ? dishIngredientNames : []
           }
           dishPrice={selectedDish.price}
-          dishKind={(selectedDish as any).dish_kind ?? 'standard'}
-          displayPricePrefix={(selectedDish as any).display_price_prefix ?? 'exact'}
+          dishKind={selectedDish.dish_kind ?? 'standard'}
+          displayPricePrefix={selectedDish.display_price_prefix ?? 'exact'}
           optionGroups={dishOptionGroups}
           optionAllergens={optionAllergens}
           userAllergens={(

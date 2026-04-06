@@ -396,7 +396,7 @@ export const drawerFiltersStyles = StyleSheet.create({
     height: 40,
     color: colors.darkText,
     fontSize: 14,
-  } as any, // RN TextStyle
+  } as TextStyle, // RN requires explicit cast for mixed View/Text style keys
 
   ingredientSearchSpinner: {
     marginLeft: 8,
@@ -409,7 +409,7 @@ export const drawerFiltersStyles = StyleSheet.create({
     color: colors.darkTextLight,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-  } as any,
+  } as TextStyle,
 
   modalFooter: {
     padding: 20,

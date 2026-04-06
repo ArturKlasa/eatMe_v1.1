@@ -159,7 +159,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   <TouchableOpacity
                     key={option.key}
                     style={[modals.tab, daily.dietPreference === option.key && modals.selectedTab]}
-                    onPress={() => setDietPreference(option.key as any)}
+                    onPress={() => setDietPreference(option.key as keyof typeof daily.dietPreference)}
                   >
                     <Text
                       style={[

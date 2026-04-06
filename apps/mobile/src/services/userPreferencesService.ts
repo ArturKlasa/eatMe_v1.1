@@ -164,14 +164,14 @@ export async function saveUserPreferences(
   preferences: Partial<UserPreferencesDB>
 ): Promise<Result<void>> {
   try {
-    const { error } = await (supabase.from('user_preferences') as any).upsert(
+    const { error } = (await supabase.from('user_preferences').upsert(
       {
         user_id: userId,
         ...preferences,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
-    );
+    )) as unknown as { error: { message: string } | null };
 
     if (error) {
       console.error('[UserPreferences] Error saving preferences:', error);

@@ -37,7 +37,7 @@ import { RatingFlowModal } from '../components/rating';
 import { ProfileCompletionBanner } from '../components/ProfileCompletionBanner';
 import { useAuthStore } from '../stores/authStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
-import { DishRatingInput, RestaurantFeedbackInput } from '../types/rating';
+import { DishRatingInput, RestaurantFeedbackInput, type PointsEarned } from '../types/rating';
 
 /** Map-display view model built from DB data. Not the same as the DB Restaurant type — includes pre-computed map fields (coordinates, isOpen, etc.). */
 interface MapRestaurant {
@@ -163,7 +163,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     for (const r of nearbyRestaurants) {
       const coords: [number, number] = [r.location.lng, r.location.lat];
       for (const menu of r.menus ?? []) {
-        for (const dish of (menu as any).dishes ?? []) {
+        for (const dish of menu.dishes ?? []) {
           result.push({
             id: dish.id,
             name: dish.name,
@@ -217,16 +217,21 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   function buildDish(dish: ServerDish) {
     // The Edge Function may return restaurant info nested (restaurant.name)
     // or flat (restaurant_name) depending on version. Handle both.
-    const raw = dish as any;
+    const flatDish = dish as ServerDish & {
+      restaurant_name?: string;
+      restaurant_cuisines?: string[];
+      restaurant_rating?: number;
+    };
     return {
       id: dish.id,
       name: dish.name,
       restaurantId: dish.restaurant_id,
-      restaurantName: dish.restaurant?.name || raw.restaurant_name || 'Unknown Restaurant',
+      restaurantName: dish.restaurant?.name || flatDish.restaurant_name || 'Unknown Restaurant',
       price: dish.price,
-      cuisine: dish.restaurant?.cuisine_types?.[0] || raw.restaurant_cuisines?.[0] || 'Unknown',
+      cuisine:
+        dish.restaurant?.cuisine_types?.[0] || flatDish.restaurant_cuisines?.[0] || 'Unknown',
       imageUrl: dish.image_url || undefined,
-      rating: dish.restaurant?.rating || raw.restaurant_rating || 0,
+      rating: dish.restaurant?.rating || flatDish.restaurant_rating || 0,
       isAvailable: dish.is_available,
       dietary_tags: dish.dietary_tags || [],
       allergens: dish.allergens || [],
@@ -258,7 +263,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return (feedDishes ?? [])
       .filter(d => coordsMap.has(d.restaurant_id))
       .map(d => {
-        const raw = d as any;
         return {
           id: d.id,
           name: d.name,
@@ -516,7 +520,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     restaurantId: string;
     dishRatings: DishRatingInput[];
     restaurantFeedback: RestaurantFeedbackInput | null;
-    pointsEarned: any;
+    pointsEarned: PointsEarned;
   }) => {
     if (!user) {
       Alert.alert('Error', 'You must be logged in to submit ratings');

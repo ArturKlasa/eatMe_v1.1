@@ -4,6 +4,8 @@
  */
 
 import { supabase } from '../lib/supabase';
+import type { Restaurant } from '../lib/supabase';
+import type { Tables } from '@eatme/database';
 
 export interface EatTogetherSession {
   id: string;
@@ -23,10 +25,13 @@ export interface SessionMember {
   user_id: string;
   is_host: boolean;
   current_location: { lat: number; lng: number } | null;
-  joined_at: string;
+  joined_at: string | null;
   left_at: string | null;
   profile_name?: string;
 }
+
+/** Compatibility breakdown by dietary category. */
+type DietaryCompatibility = Record<string, boolean | number>;
 
 export interface RestaurantRecommendation {
   id: string;
@@ -36,18 +41,21 @@ export interface RestaurantRecommendation {
   distance_from_center: number;
   members_satisfied: number;
   total_members: number;
-  dietary_compatibility: any;
-  restaurant?: any; // Full restaurant details
+  dietary_compatibility: DietaryCompatibility | null;
+  restaurant?: Restaurant;
 }
 
 /** Alias — screens import this name */
 export type SessionRecommendation = RestaurantRecommendation;
 
-/** Vote result row returned by get_vote_results RPC */
 export interface VoteResult {
   restaurant_id: string;
-  restaurant_name: string;
+  restaurant_name?: string;
   vote_count: number;
+  percentage?: number;
+  total_voters?: number;
+  user_id?: string;
+  restaurant?: Pick<Restaurant, 'id' | 'name' | 'address' | 'cuisine_types'>;
   [key: string]: unknown;
 }
 
@@ -206,8 +214,11 @@ export async function getSessionMembers(
     }
 
     // Parse the data to include profile_name
-    const members = data.map((m: any) => ({
+    type MemberRow = Tables<'eat_together_members'> & { users: { profile_name: string } | null };
+    const members = (data as unknown as MemberRow[]).map((m: MemberRow) => ({
       ...m,
+      is_host: m.is_host ?? false,
+      current_location: m.current_location as { lat: number; lng: number } | null,
       profile_name: m.users?.profile_name || 'Unknown',
     }));
 
@@ -354,7 +365,7 @@ export async function submitVote(
  */
 export async function getVoteResults(
   sessionId: string
-): Promise<{ data: any[] | null; error: Error | null }> {
+): Promise<{ data: VoteResult[] | null; error: Error | null }> {
   try {
     const { data, error } = await supabase.rpc('get_vote_results', {
       p_session_id: sessionId,
@@ -421,9 +432,11 @@ export async function finalizeSelection(
 /**
  * Search users by profile name
  */
+type UserSearchResult = { id: string; profile_name: string | null; email: string | null };
+
 export async function searchUsersByProfileName(
   searchQuery: string
-): Promise<{ data: any[] | null; error: Error | null }> {
+): Promise<{ data: UserSearchResult[] | null; error: Error | null }> {
   try {
     const { data, error } = await supabase
       .from('users')

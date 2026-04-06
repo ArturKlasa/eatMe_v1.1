@@ -4,6 +4,8 @@ import { styles } from './JoinSessionScreen.styles';
 import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@/types/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useUserLocation } from '../../hooks/useUserLocation';
@@ -14,7 +16,7 @@ import { joinSession } from '../../services/eatTogetherService';
  */
 export function JoinSessionScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useAuthStore(state => state.user);
   const { location } = useUserLocation();
 
@@ -47,7 +49,7 @@ export function JoinSessionScreen() {
       }
 
       // Navigate to session lobby
-      navigation.navigate('SessionLobby' as any, { sessionId: data.id });
+      navigation.navigate('SessionLobby', { sessionId: data.id });
     } catch (err) {
       Alert.alert(t('common.error'), t('common.somethingWrong'));
       console.error(err);

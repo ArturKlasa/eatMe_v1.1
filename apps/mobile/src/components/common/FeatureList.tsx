@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import type { StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { commonStyles } from '@/styles';
 
 interface FeatureListProps {
   title: string;
   features: string[];
   customStyles?: {
-    container?: any;
-    title?: any;
-    item?: any;
+    container?: StyleProp<ViewStyle>;
+    title?: StyleProp<TextStyle>;
+    item?: StyleProp<TextStyle>;
   };
 }
 

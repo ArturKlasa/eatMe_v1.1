@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { commonStyles } from '@/styles';
 import { ScreenHeader } from './ScreenHeader';
 
@@ -12,8 +13,8 @@ interface ScreenLayoutProps {
   children: React.ReactNode;
   scrollable?: boolean;
   customStyles?: {
-    container?: any;
-    content?: any;
+    container?: StyleProp<ViewStyle>;
+    content?: StyleProp<ViewStyle>;
   };
 }
 

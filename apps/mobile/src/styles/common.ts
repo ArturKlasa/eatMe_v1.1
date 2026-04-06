@@ -86,7 +86,7 @@ export const createRounded = (radius: number, positions?: string[]): ViewStyle =
   if (!positions) {
     return { borderRadius: radius };
   }
-  const style: any = {};
+  const style: Record<string, number> = {};
   positions.forEach(pos => {
     style[`border${pos}Radius`] = radius;
   });

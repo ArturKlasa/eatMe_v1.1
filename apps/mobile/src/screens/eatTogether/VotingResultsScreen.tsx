@@ -4,6 +4,8 @@ import { styles } from './VotingResultsScreen.styles';
 import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@/types/navigation';
 import { useTranslation } from 'react-i18next';
 import {
   getSessionDetails,
@@ -23,7 +25,7 @@ type VotingResultsScreenRouteParams = {
  */
 export function VotingResultsScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<VotingResultsScreenRouteParams, 'VotingResults'>>();
   const { sessionId } = route.params;
 
@@ -56,7 +58,11 @@ export function VotingResultsScreen() {
     }
   }
 
-  function openMaps(restaurant: any) {
+  function openMaps(
+    restaurant:
+      | { name?: string; location?: { lat: number; lng: number }; address?: string }
+      | undefined
+  ) {
     if (!restaurant) return;
 
     const lat = restaurant.location?.lat || 0;
@@ -85,7 +91,7 @@ export function VotingResultsScreen() {
           <Text style={styles.errorText}>{t('votingResults.noResults')}</Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.navigate('EatTogether' as any)}
+            onPress={() => navigation.navigate('EatTogether')}
           >
             <Text style={styles.buttonText}>{t('votingResults.goToEatTogether')}</Text>
           </TouchableOpacity>
@@ -95,7 +101,7 @@ export function VotingResultsScreen() {
   }
 
   const winner = voteResults[0]; // Results are sorted by vote count
-  const totalVotes = voteResults.reduce((sum: number, v: any) => sum + (v.vote_count || 0), 0);
+  const totalVotes = voteResults.reduce((sum: number, v) => sum + (v.vote_count || 0), 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,8 +120,8 @@ export function VotingResultsScreen() {
             <Text style={styles.crownEmoji}>👑</Text>
           </View>
           <Text style={styles.winnerLabel}>{t('votingResults.winner')}</Text>
-          <Text style={styles.winnerName}>{(winner as any).restaurant?.name}</Text>
-          <Text style={styles.winnerAddress}>{(winner as any).restaurant?.address}</Text>
+          <Text style={styles.winnerName}>{winner.restaurant?.name}</Text>
+          <Text style={styles.winnerAddress}>{winner.restaurant?.address}</Text>
 
           <View style={styles.winnerStats}>
             <View style={styles.statItem}>
@@ -123,7 +129,7 @@ export function VotingResultsScreen() {
               <Text style={styles.statLabel}>{t('votingResults.votes')}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{(winner as any).percentage?.toFixed(0)}%</Text>
+              <Text style={styles.statValue}>{winner.percentage?.toFixed(0)}%</Text>
               <Text style={styles.statLabel}>{t('votingResults.majority')}</Text>
             </View>
           </View>
@@ -139,7 +145,7 @@ export function VotingResultsScreen() {
         {/* All Results */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('votingResults.allResults')}</Text>
-          {voteResults.map((result: any, index) => (
+          {voteResults.map((result, index) => (
             <View key={result.restaurant_id} style={styles.resultCard}>
               <View style={styles.resultRank}>
                 <Text style={styles.resultRankText}>#{index + 1}</Text>
@@ -166,10 +172,7 @@ export function VotingResultsScreen() {
 
       {/* Bottom Actions */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('EatTogether' as any)}
-        >
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('EatTogether')}>
           <Text style={styles.buttonText}>{t('votingResults.backToEatTogether')}</Text>
         </TouchableOpacity>
       </View>

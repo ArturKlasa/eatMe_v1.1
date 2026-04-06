@@ -4,10 +4,11 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { useViewModeStore } from '../../stores/viewModeStore';
 import { viewModeToggleStyles } from '@/styles';
 
-export const ViewModeToggle: React.FC<{ style?: any }> = ({ style }) => {
+export const ViewModeToggle: React.FC<{ style?: StyleProp<ViewStyle> }> = ({ style }) => {
   const { mode, setMode } = useViewModeStore();
 
   return (

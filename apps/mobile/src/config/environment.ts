@@ -94,7 +94,7 @@ export const isDevelopment = (): boolean => ENV.app.environment === 'development
 /**
  * Helper function to log debug information (only in development)
  */
-export const debugLog = (message: string, ...args: any[]): void => {
+export const debugLog = (message: string, ...args: unknown[]): void => {
   if (ENV.app.debug && isDevelopment()) {
     console.log(`[EatMe Debug] ${message}`, ...args);
   }

@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import type { StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { commonStyles } from '@/styles';
 
 interface SectionContainerProps {
   title?: string;
   children: React.ReactNode;
   customStyles?: {
-    container?: any;
-    title?: any;
+    container?: StyleProp<ViewStyle>;
+    title?: StyleProp<TextStyle>;
   };
 }
 

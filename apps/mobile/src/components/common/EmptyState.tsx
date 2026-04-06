@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import type { StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { commonStyles } from '@/styles';
 
 interface EmptyStateProps {
@@ -7,10 +8,10 @@ interface EmptyStateProps {
   title: string;
   description: string;
   customStyles?: {
-    container?: any;
-    icon?: any;
-    title?: any;
-    description?: any;
+    container?: StyleProp<ViewStyle>;
+    icon?: StyleProp<TextStyle>;
+    title?: StyleProp<TextStyle>;
+    description?: StyleProp<TextStyle>;
   };
 }
 

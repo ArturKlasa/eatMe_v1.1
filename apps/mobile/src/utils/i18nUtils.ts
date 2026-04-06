@@ -22,8 +22,11 @@ export const formatCurrency = (amount: number, currencyCode?: string): string =>
 
   const supportedLanguages = getSupportedLanguages();
   const currentLanguage = getCurrentLanguage();
-  const langCurrency = (supportedLanguages.find(lang => lang.code === currentLanguage) as any)
-    ?.currency;
+  const langCurrency = (
+    supportedLanguages.find(lang => lang.code === currentLanguage) as
+      | { code: string; name: string; flag: string; currency?: string }
+      | undefined
+  )?.currency;
 
   const currency = (currencyCode ?? storeCurrency ?? langCurrency ?? 'USD') as SupportedCurrency;
   return formatPrice(amount, currency);
@@ -245,8 +248,11 @@ export const getCurrencySymbol = (currencyCode?: string): string => {
   })();
   const supportedLanguages = getSupportedLanguages();
   const currentLanguage = getCurrentLanguage();
-  const langCurrency = (supportedLanguages.find(lang => lang.code === currentLanguage) as any)
-    ?.currency;
+  const langCurrency = (
+    supportedLanguages.find(lang => lang.code === currentLanguage) as
+      | { code: string; name: string; flag: string; currency?: string }
+      | undefined
+  )?.currency;
   const currency = (currencyCode ?? storeCurrency ?? langCurrency ?? 'USD') as SupportedCurrency;
   return getCurrencyInfo(currency).symbol;
 };

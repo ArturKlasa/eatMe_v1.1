@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './ProfileScreen.styles';
 import { colors } from '@eatme/tokens';
 import { useFocusEffect } from '@react-navigation/native';
@@ -115,16 +116,16 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
     })
   ).current;
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollOffsetY.current = event.nativeEvent.contentOffset.y;
   };
 
   const handleEditProfile = () => {
-    navigation.navigate('ProfileEdit' as any);
+    navigation.navigate('ProfileEdit');
   };
 
   const handleCustomizePreferences = () => {
-    navigation.navigate('OnboardingStep1' as any);
+    navigation.navigate('OnboardingStep1');
   };
 
   const handleSignOut = async () => {

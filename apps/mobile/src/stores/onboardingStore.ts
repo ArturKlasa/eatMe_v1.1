@@ -234,7 +234,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       if (data) {
         // Map database columns to form data
         // Ensure arrays are always arrays (handle null, undefined, and non-array values)
-        const ensureArray = (value: any): string[] => {
+        const ensureArray = (value: unknown): string[] => {
           if (Array.isArray(value)) return value;
           if (!value) return [];
           return [];

@@ -90,3 +90,21 @@ export interface RestaurantWithMenus extends Restaurant {
     }
   >;
 }
+
+// ============================================================================
+// TABLES WITHOUT GENERATED TYPES
+// Add manual types here for tables not yet in packages/database/src/types.ts.
+// Run `supabase gen types typescript` after each migration to graduate these.
+// ============================================================================
+
+/**
+ * Row shape for the `favorites` table (added in migration 064).
+ * Remove this once `supabase gen types` is re-run and Tables<'favorites'> exists.
+ */
+export interface FavoriteRow {
+  id: string;
+  user_id: string;
+  subject_type: 'restaurant' | 'dish';
+  subject_id: string;
+  created_at: string;
+}

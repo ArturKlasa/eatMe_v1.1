@@ -9,6 +9,7 @@ import {
   Switch,
   Modal,
 } from 'react-native';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,7 +71,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     })
   ).current;
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollOffsetY.current = event.nativeEvent.contentOffset.y;
   };
 

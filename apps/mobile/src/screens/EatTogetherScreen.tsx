@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Animated, PanResponder } from 'react-native';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './EatTogetherScreen.styles';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +53,7 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
     })
   ).current;
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollOffsetY.current = event.nativeEvent.contentOffset.y;
   };
 
@@ -90,7 +91,7 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
               <View style={styles.actionsContainer}>
                 <TouchableOpacity
                   style={styles.primaryAction}
-                  onPress={() => navigation.navigate('CreateSession' as any)}
+                  onPress={() => navigation.navigate('CreateSession')}
                 >
                   <Text style={styles.actionIcon}>🎯</Text>
                   <Text style={styles.actionTitle}>{t('eatTogether.startSession')}</Text>
@@ -99,7 +100,7 @@ export function EatTogetherScreen({ navigation }: EatTogetherScreenProps) {
 
                 <TouchableOpacity
                   style={styles.secondaryAction}
-                  onPress={() => navigation.navigate('JoinSession' as any)}
+                  onPress={() => navigation.navigate('JoinSession')}
                 >
                   <Text style={styles.actionIcon}>🔗</Text>
                   <Text style={styles.actionTitle}>{t('eatTogether.joinSession')}</Text>

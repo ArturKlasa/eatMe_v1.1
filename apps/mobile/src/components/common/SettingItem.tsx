@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Switch } from 'react-native';
+import type { StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { commonStyles, switchConfig } from '@/styles';
 
 interface SettingItemProps {
@@ -8,9 +9,9 @@ interface SettingItemProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
   customStyles?: {
-    container?: any;
-    label?: any;
-    description?: any;
+    container?: StyleProp<ViewStyle>;
+    label?: StyleProp<TextStyle>;
+    description?: StyleProp<TextStyle>;
   };
 }
 

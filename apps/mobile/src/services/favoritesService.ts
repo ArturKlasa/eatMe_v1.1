@@ -4,9 +4,11 @@
  */
 
 import { supabase as _supabase } from '../lib/supabase';
+import type { FavoriteRow } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
 import { recordInteraction } from './interactionService';
-// favorites table is not yet in the generated DB types — use untyped client
+// favorites table is not in generated DB types yet (migration 064).
+// Narrow cast to bypass the table union until supabase gen types is re-run.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
 
@@ -29,14 +31,18 @@ export async function addToFavorites(
   subjectId: string
 ): Promise<Result<Favorite>> {
   try {
-    const { data, error } = (await (supabase.from('favorites') as any)
+    const { data, error } = (await supabase
+      .from('favorites')
       .insert({
         user_id: userId,
         subject_type: subjectType,
         subject_id: subjectId,
       })
       .select()
-      .single()) as { data: any; error: any };
+      .single()) as unknown as {
+      data: FavoriteRow | null;
+      error: { message: string; code: string } | null;
+    };
 
     if (error) {
       if (error.code === '23505') return err('Already in favorites');
@@ -58,11 +64,14 @@ export async function removeFromFavorites(
   subjectId: string
 ): Promise<Result<void>> {
   try {
-    const { error } = (await (supabase.from('favorites') as any)
+    const { error } = (await supabase
+      .from('favorites')
       .delete()
       .eq('user_id', userId)
       .eq('subject_type', subjectType)
-      .eq('subject_id', subjectId)) as { error: any };
+      .eq('subject_id', subjectId)) as unknown as {
+      error: { message: string; code: string } | null;
+    };
 
     if (error) return err(error.message);
     return ok(undefined);
@@ -81,12 +90,16 @@ export async function isFavorited(
   subjectId: string
 ): Promise<Result<boolean>> {
   try {
-    const { data, error } = await (supabase.from('favorites') as any)
+    const { data, error } = (await supabase
+      .from('favorites')
       .select('id')
       .eq('user_id', userId)
       .eq('subject_type', subjectType)
       .eq('subject_id', subjectId)
-      .single();
+      .single()) as unknown as {
+      data: { id: string } | null;
+      error: { message: string; code: string } | null;
+    };
 
     if (error) {
       // PGRST116 = no rows returned → not favorited (not an error)
@@ -108,7 +121,8 @@ export async function getUserFavorites(
   subjectType?: FavoriteSubjectType
 ): Promise<Result<Favorite[]>> {
   try {
-    let query = (supabase.from('favorites') as any)
+    let query = supabase
+      .from('favorites')
       .select('id, user_id, subject_type, subject_id, created_at')
       .eq('user_id', userId);
 
@@ -116,9 +130,9 @@ export async function getUserFavorites(
       query = query.eq('subject_type', subjectType);
     }
 
-    const { data, error } = (await query.order('created_at', { ascending: false })) as {
-      data: any;
-      error: any;
+    const { data, error } = (await query.order('created_at', { ascending: false })) as unknown as {
+      data: FavoriteRow[] | null;
+      error: { message: string; code: string } | null;
     };
 
     if (error) return err(error.message);

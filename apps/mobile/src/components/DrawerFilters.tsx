@@ -21,6 +21,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFilterStore } from '../stores/filterStore';
 import type { IngredientToAvoid } from '../stores/filterStore';
@@ -33,7 +34,7 @@ import {
 
 interface DrawerFiltersProps {
   onClose?: () => void;
-  onScroll?: (event: any) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
 export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll }) => {

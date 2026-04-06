@@ -12,6 +12,8 @@ import { styles } from './RecommendationsScreen.styles';
 import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@/types/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -35,7 +37,7 @@ type RecommendationsScreenRouteParams = {
  */
 export function RecommendationsScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RecommendationsScreenRouteParams, 'Recommendations'>>();
   const { sessionId } = route.params;
   const user = useAuthStore(state => state.user);
@@ -62,7 +64,7 @@ export function RecommendationsScreen() {
       }
 
       if (data) {
-        setRecommendations(data as any);
+        setRecommendations(data);
       }
     } catch (error) {
       console.error('[Recommendations] Unexpected error:', error);
@@ -79,7 +81,7 @@ export function RecommendationsScreen() {
 
         // Check if user has voted
         if (user) {
-          const userVote = data.find((v: any) => v.user_id === user.id);
+          const userVote = data.find(v => (v.user_id as string) === user.id);
           if (userVote) {
             setMyVote(userVote.restaurant_id);
           }
@@ -117,7 +119,7 @@ export function RecommendationsScreen() {
         payload => {
           if (payload.new.status === 'decided') {
             // Navigate to results screen
-            navigation.navigate('VotingResults' as any, { sessionId });
+            navigation.navigate('VotingResults', { sessionId });
           }
         }
       )
@@ -151,16 +153,16 @@ export function RecommendationsScreen() {
   }
 
   function getVoteCount(restaurantId: string): number {
-    const result = voteResults.find((v: any) => v.restaurant_id === restaurantId);
+    const result = voteResults.find(v => v.restaurant_id === restaurantId);
     return result ? result.vote_count || 0 : 0;
   }
 
   function getVotePercentage(restaurantId: string): number {
-    const result = voteResults.find((v: any) => v.restaurant_id === restaurantId);
+    const result = voteResults.find(v => v.restaurant_id === restaurantId);
     return result ? Number(result.percentage) || 0 : 0;
   }
 
-  const totalVotes = voteResults.reduce((sum: number, v: any) => sum + (v.vote_count || 0), 0);
+  const totalVotes = voteResults.reduce((sum: number, v) => sum + (v.vote_count || 0), 0);
 
   if (loading) {
     return (

@@ -9,7 +9,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import Slider from 'react-native-slider';
 import { useTranslation } from 'react-i18next';
-import { useFilterStore, DAILY_FILTER_PRESETS } from '../stores/filterStore';
+import { useFilterStore, DAILY_FILTER_PRESETS, type DailyFilters } from '../stores/filterStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { getCurrencyInfo, formatPrice } from '../utils/currencyConfig';
 import { commonStyles, theme, filterComponentsStyles } from '@/styles';
@@ -238,13 +238,17 @@ export const DietToggleFilter: React.FC = () => {
   const { daily, setDietPreference, toggleProteinType } = useFilterStore();
   const { t } = useTranslation();
 
-  const dietPreferenceOptions = [
-    { key: 'all', label: t('filters.dietOption.all') },
-    { key: 'vegetarian', label: t('filters.dietOption.vegetarian') },
-    { key: 'vegan', label: t('filters.dietOption.vegan') },
-  ];
+  const dietPreferenceOptions: Array<{ key: keyof DailyFilters['dietPreference']; label: string }> =
+    [
+      { key: 'vegetarian', label: t('filters.dietOption.vegetarian') },
+      { key: 'vegan', label: t('filters.dietOption.vegan') },
+    ];
 
-  const proteinOptions = [
+  const proteinOptions: Array<{
+    key: keyof DailyFilters['proteinTypes'];
+    label: string;
+    icon: string;
+  }> = [
     { key: 'meat', label: t('filters.proteinLabel.meat'), icon: '🥩' },
     { key: 'fish', label: t('filters.proteinLabel.fish'), icon: '🐟' },
     { key: 'seafood', label: t('filters.proteinLabel.seafood'), icon: '🦐' },
@@ -268,7 +272,7 @@ export const DietToggleFilter: React.FC = () => {
                 backgroundColor: theme.colors.primary,
               },
             ]}
-            onPress={() => setDietPreference(option.key as any)}
+            onPress={() => setDietPreference(option.key)}
           >
             <Text
               style={[
@@ -297,7 +301,7 @@ export const DietToggleFilter: React.FC = () => {
             </View>
             <Switch
               value={daily.proteinTypes[option.key as keyof typeof daily.proteinTypes]}
-              onValueChange={() => toggleProteinType(option.key as any)}
+              onValueChange={() => toggleProteinType(option.key)}
               trackColor={{ false: theme.colors.gray200, true: theme.colors.primary }}
               thumbColor={theme.colors.white}
             />

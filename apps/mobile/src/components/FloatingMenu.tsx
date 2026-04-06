@@ -41,7 +41,7 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({ visible, onClose }) 
 
   const handleMenuItemPress = (screen: keyof RootStackParamList) => {
     onClose();
-    navigation.navigate(screen as any);
+    navigation.navigate(screen as never);
   };
 
   if (!visible) return null;

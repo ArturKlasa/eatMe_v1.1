@@ -165,8 +165,8 @@ async function callFeedFunction(request: FeedRequest): Promise<Response> {
     body: JSON.stringify(request),
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error((errorData as any).error || 'Failed to fetch feed');
+    const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(errorData.error || 'Failed to fetch feed');
   }
   return response;
 }

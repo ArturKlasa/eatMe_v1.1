@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '../../stores/onboardingStore';
 import { debugLog } from '../../config/environment';
 
-const DIET_TYPES = [
+const DIET_TYPES: Array<{ value: 'all' | 'vegetarian' | 'vegan'; key: string; emoji: string }> = [
   { value: 'all', key: 'dietEverything', emoji: '🍽️' },
   { value: 'vegetarian', key: 'dietVegetarian', emoji: '🥗' },
   { value: 'vegan', key: 'dietVegan', emoji: '🌱' },
@@ -56,7 +56,7 @@ export function OnboardingStep1Screen() {
   debugLog('[OnboardingStep1] allergies value:', formData.allergies);
 
   // Helper to safely get array values
-  const safeArrayValue = (value: any): string[] => {
+  const safeArrayValue = (value: unknown): string[] => {
     if (Array.isArray(value)) return value;
     console.warn('[OnboardingStep1] Non-array value detected:', value);
     return [];
@@ -115,7 +115,7 @@ export function OnboardingStep1Screen() {
                   styles.optionCard,
                   formData?.dietType === diet.value && styles.optionCardSelected,
                 ]}
-                onPress={() => handleDietSelect(diet.value as any)}
+                onPress={() => handleDietSelect(diet.value)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.optionEmoji}>{diet.emoji}</Text>

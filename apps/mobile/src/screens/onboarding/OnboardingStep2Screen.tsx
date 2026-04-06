@@ -42,7 +42,7 @@ const DISH_OPTIONS = [
   { value: 'Pho', key: 'dishPho', emoji: '🍲' },
 ];
 
-const SPICE_LEVELS = [
+const SPICE_LEVELS: Array<{ value: 'none' | 'mild' | 'hot'; key: string; emoji: string }> = [
   { value: 'none', key: 'spiceNone', emoji: '' },
   { value: 'mild', key: 'spiceMild', emoji: '🌶️' },
   { value: 'hot', key: 'spiceHot', emoji: '🌶️🌶️🌶️' },
@@ -60,7 +60,7 @@ export function OnboardingStep2Screen() {
   }
 
   // Helper to safely get array values
-  const safeArrayValue = (value: any): string[] => {
+  const safeArrayValue = (value: unknown): string[] => {
     if (Array.isArray(value)) return value;
     console.warn('[OnboardingStep2] Non-array value detected:', value);
     return [];

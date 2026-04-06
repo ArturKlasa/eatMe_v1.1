@@ -12,18 +12,24 @@ import { styles } from './CreateSessionScreen.styles';
 import { colors } from '@eatme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@/types/navigation';
 import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useUserLocation } from '../../hooks/useUserLocation';
-import { createSession, updateMemberLocation } from '../../services/eatTogetherService';
+import {
+  createSession,
+  updateMemberLocation,
+  type EatTogetherSession,
+} from '../../services/eatTogetherService';
 
 /**
  * CreateSessionScreen - Host creates Eat Together session
  */
 export function CreateSessionScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useAuthStore(state => state.user);
   const { location } = useUserLocation();
 
@@ -31,7 +37,7 @@ export function CreateSessionScreen() {
   const [locationMode, setLocationMode] = useState<'host_location' | 'midpoint' | 'max_radius'>(
     'host_location'
   );
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<EatTogetherSession | null>(null);
   const [shareLink, setShareLink] = useState('');
 
   useEffect(() => {
@@ -67,7 +73,7 @@ export function CreateSessionScreen() {
       setShareLink(link);
 
       // Navigate to session lobby
-      navigation.navigate('SessionLobby' as any, { sessionId: data.id });
+      navigation.navigate('SessionLobby', { sessionId: data.id });
     } catch (err) {
       Alert.alert(t('common.error'), t('common.somethingWrong'));
       console.error(err);
@@ -118,7 +124,7 @@ export function CreateSessionScreen() {
 
           <TouchableOpacity
             style={styles.continueButton}
-            onPress={() => navigation.navigate('SessionLobby' as any, { sessionId: session.id })}
+            onPress={() => navigation.navigate('SessionLobby', { sessionId: session!.id })}
           >
             <Text style={styles.continueButtonText}>{t('eatTogether.goToLobby')}</Text>
           </TouchableOpacity>

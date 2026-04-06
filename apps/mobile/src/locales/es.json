@@ -615,10 +615,6 @@
     "comingSoon3": "Análisis de perfil de gustos",
     "comingSoon4": "Funciones sociales",
     "comingSoon5": "Compartir y recomendaciones",
-    "totalSwipes": "Total de Deslizadas",
-    "dishesLiked": "Platillos que Gustaron",
-    "dishesPassed": "Platillos Pasados",
-    "likeRate": "Tasa de Likes",
     "account": "Cuenta"
   },
   "profileEdit": {
@@ -654,19 +650,6 @@
     "removedFromFavorites": "Removido de favoritos",
     "updateFailed": "Falló la actualización de favoritos",
     "signInToAdd": "Por favor inicia sesión para agregar favoritos"
-  },
-  "swipe": {
-    "title": "Demo de Deslizar",
-    "gettingLocation": "Obteniendo tu ubicación...",
-    "loadingDishes": "Cargando platillos...",
-    "noMoreDishes": "¡No hay más platillos cerca!",
-    "noMoreDishesHint": "Intenta ajustar tus filtros o expandir tu radio de búsqueda",
-    "startOver": "Comenzar de Nuevo",
-    "sessionStats": "Estadísticas de Sesión:",
-    "liked": "❤️ Me Gustó:",
-    "passed": "✕ Pasado:",
-    "personalizedBanner": "✨ Personalizado para ti basado en {count} interacciones",
-    "noImage": "Sin Imagen"
   },
   "viewedHistory": {
     "title": "Vistos Recientemente",

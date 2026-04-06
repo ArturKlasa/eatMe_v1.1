@@ -244,8 +244,6 @@ function buildFilters(
 /**
  * Get personalized dish feed from server (mode: 'dishes')
  */
-// trackSwipe(), SwipeRequest, and generateSessionId() have been shelved.
-// See shelf/swipe-feature/services/swipeService.ts
 export async function getFeed(
   location: { lat: number; lng: number },
   dailyFilters: DailyFilters,

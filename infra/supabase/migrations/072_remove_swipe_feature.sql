@@ -1,27 +1,42 @@
--- 071_generate_candidates_exclude_params.sql
--- Created: 2026-04-03
+-- 072_remove_swipe_feature.sql
+-- Created: 2026-04-06
 --
--- Adds two hard-exclusion parameters to generate_candidates():
+-- Removes all database artefacts belonging to the dish-preference swipe feature.
+-- The swipe Edge Function (/functions/v1/swipe) must be undeployed before this
+-- migration runs, otherwise active calls would fail.
 --
---   p_exclude_families TEXT[]    — ingredient families to exclude entirely.
---                                  Matched against dishes.protein_families (added in 070).
---                                  Maps from permanent filter toggles:
---                                    noMeat    → ['meat', 'poultry']
---                                    noFish    → ['fish']
---                                    noSeafood → ['shellfish']
---                                    noEggs    → ['eggs']
---                                    noDairy   → ['dairy']
+-- Preserved (not touched here):
+--   - preference_vector / preference_vector_updated_at  (written by update-preference-vector)
+--   - user_dish_interactions  (used by interaction + preference vector pipeline)
+--   - popularity_score, view_count in dish_analytics    (used by the feed function)
+--   - super_like_count in dish_analytics                (used for future explicit ratings)
+
+-- ── 1. Drop user_swipes table ─────────────────────────────────────────────────
+-- No other table has a FK pointing TO user_swipes, so a plain DROP is safe.
+
+DROP TABLE IF EXISTS public.user_swipes;
+
+-- ── 2. Remove swipe counters from dish_analytics ─────────────────────────────
+
+ALTER TABLE public.dish_analytics
+  DROP COLUMN IF EXISTS right_swipe_count,
+  DROP COLUMN IF EXISTS left_swipe_count,
+  DROP COLUMN IF EXISTS recent_swipes_24h;
+
+-- ── 3. Remove swipe counters from user_behavior_profiles ─────────────────────
+
+ALTER TABLE public.user_behavior_profiles
+  DROP COLUMN IF EXISTS total_swipes,
+  DROP COLUMN IF EXISTS right_swipes,
+  DROP COLUMN IF EXISTS left_swipes,
+  DROP COLUMN IF EXISTS super_swipes,
+  DROP COLUMN IF EXISTS right_swipe_rate;
+
+-- ── 4. Recreate generate_candidates without right_swipe_count ────────────────
 --
---   p_exclude_spicy BOOLEAN      — when true, dishes with spice_level = 'hot' are excluded.
---                                  Maps from permanent filter toggle: noSpicy.
---
--- Both are hard filters applied in the WHERE clause before vector scoring.
--- A dish matching an excluded family never enters the candidate pool,
--- regardless of its similarity score.
---
--- Because adding new parameters changes the function signature, PostgreSQL treats
--- this as a new overload rather than a replacement, causing ambiguity.
--- We must DROP the current 9-parameter version (created by migration 070) first.
+-- The existing function (migration 071) returns right_swipe_count in its result
+-- set.  Because we just dropped the source column, we must replace the function
+-- before any caller can invoke it.  The return-type change requires DROP + CREATE.
 
 DROP FUNCTION IF EXISTS generate_candidates(
   double precision,   -- p_lat
@@ -32,6 +47,8 @@ DROP FUNCTION IF EXISTS generate_candidates(
   text[],             -- p_allergens
   text,               -- p_diet_tag
   text[],             -- p_religious_tags
+  text[],             -- p_exclude_families
+  boolean,            -- p_exclude_spicy
   integer             -- p_limit
 );
 
@@ -171,7 +188,6 @@ BEGIN
     )
 
     -- Permanent protein family exclusions (noMeat, noFish, noSeafood, noEggs, noDairy)
-    -- Uses the precomputed dishes.protein_families column from migration 070.
     AND (
       array_length(p_exclude_families, 1) IS NULL
       OR NOT (COALESCE(d.protein_families, '{}') && p_exclude_families)

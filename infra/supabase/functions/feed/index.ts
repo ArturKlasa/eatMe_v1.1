@@ -106,7 +106,6 @@ interface Candidate {
   restaurant_location: Record<string, unknown>;
   popularity_score: number;
   view_count: number;
-  right_swipe_count: number;
   score?: number;
   flagged_ingredients?: string[];
   protein_families?: string[];

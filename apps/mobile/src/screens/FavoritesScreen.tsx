@@ -10,7 +10,6 @@ import { useSwipeToClose } from '../hooks';
  * FavoritesScreen Component
  *
  * Placeholder screen for favorite restaurants and dishes.
- * Will be enhanced with swipe preferences integration in later tasks.
  * Dark mode styling to match the app theme.
  * Supports swipe-down gesture to close.
  */

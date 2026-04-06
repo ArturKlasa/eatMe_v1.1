@@ -63,8 +63,6 @@ CREATE TABLE public.dietary_tags (
 CREATE TABLE public.dish_analytics (
   dish_id uuid NOT NULL,
   view_count integer DEFAULT 0,
-  right_swipe_count integer DEFAULT 0,
-  left_swipe_count integer DEFAULT 0,
   super_like_count integer DEFAULT 0,
   favorite_count integer DEFAULT 0,
   order_count integer DEFAULT 0,
@@ -394,15 +392,6 @@ CREATE TABLE public.spatial_ref_sys (
 );
 CREATE TABLE public.user_behavior_profiles (
   user_id uuid NOT NULL,
-  total_swipes integer DEFAULT 0,
-  right_swipes integer DEFAULT 0,
-  left_swipes integer DEFAULT 0,
-  super_swipes integer DEFAULT 0,
-  right_swipe_rate double precision DEFAULT 
-CASE
-    WHEN (total_swipes > 0) THEN ((right_swipes)::double precision / (total_swipes)::double precision)
-    ELSE (0)::double precision
-END,
   preferred_cuisines ARRAY DEFAULT ARRAY[]::text[],
   preferred_dish_types ARRAY DEFAULT ARRAY[]::text[],
   preferred_price_range ARRAY,
@@ -472,20 +461,6 @@ CREATE TABLE public.user_sessions (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT user_sessions_pkey PRIMARY KEY (id),
   CONSTRAINT user_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
-);
-CREATE TABLE public.user_swipes (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL,
-  dish_id uuid NOT NULL,
-  action text NOT NULL CHECK (action = ANY (ARRAY['left'::text, 'right'::text, 'super'::text])),
-  view_duration integer,
-  position_in_feed integer,
-  session_id text,
-  context jsonb DEFAULT '{}'::jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT user_swipes_pkey PRIMARY KEY (id),
-  CONSTRAINT user_swipes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  CONSTRAINT user_swipes_dish_id_fkey FOREIGN KEY (dish_id) REFERENCES public.dishes(id)
 );
 CREATE TABLE public.user_visits (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

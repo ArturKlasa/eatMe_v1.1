@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,9 @@ import {
   Animated,
   PanResponder,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { styles } from './ProfileScreen.styles';
-import { colors } from '@eatme/tokens';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,7 +19,6 @@ import { useAuthStore } from '../stores/authStore';
 import { useFilterStore } from '../stores/filterStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { ProfileCompletionCard } from '../components/ProfileCompletionCard';
-import { supabase } from '../lib/supabase';
 
 /**
  * ProfileScreen Component
@@ -42,48 +39,6 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
 
   const translateY = useRef(new Animated.Value(0)).current;
   const scrollOffsetY = useRef(0);
-
-  const [stats, setStats] = useState({
-    interactions: 0,
-    likes: 0,
-    dislikes: 0,
-  });
-  const [loadingStats, setLoadingStats] = useState(true);
-
-  // Load user stats
-  useEffect(() => {
-    loadUserStats();
-  }, [user]);
-
-  async function loadUserStats() {
-    if (!user) {
-      setLoadingStats(false);
-      return;
-    }
-
-    try {
-      // user_swipes is the canonical swipe record (user_dish_interactions was
-      // a redundant duplicate that is no longer written to).
-      const { data, error } = await supabase
-        .from('user_swipes')
-        .select('action')
-        .eq('user_id', user.id);
-
-      if (!error && data) {
-        const likes = data.filter(i => i.action === 'right' || i.action === 'super').length;
-        const dislikes = data.filter(i => i.action === 'left').length;
-        setStats({
-          interactions: data.length,
-          likes,
-          dislikes,
-        });
-      }
-    } catch (error) {
-      console.error('[Profile] Failed to load stats:', error);
-    } finally {
-      setLoadingStats(false);
-    }
-  }
 
   useFocusEffect(
     React.useCallback(() => {
@@ -259,38 +214,6 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                 </Text>
               ))}
             </View>
-          </View>
-
-          {/* Stats Section */}
-          <View style={modalScreenStyles.section}>
-            <Text style={modalScreenStyles.sectionTitle}>{t('profile.yourActivity')}</Text>
-            {loadingStats ? (
-              <ActivityIndicator color={colors.accent} />
-            ) : (
-              <View style={modalScreenStyles.statsGrid}>
-                <View style={modalScreenStyles.statItem}>
-                  <Text style={modalScreenStyles.statNumber}>{stats.interactions}</Text>
-                  <Text style={modalScreenStyles.statLabel}>{t('profile.totalSwipes')}</Text>
-                </View>
-                <View style={modalScreenStyles.statItem}>
-                  <Text style={modalScreenStyles.statNumber}>{stats.likes}</Text>
-                  <Text style={modalScreenStyles.statLabel}>{t('profile.dishesLiked')}</Text>
-                </View>
-                <View style={modalScreenStyles.statItem}>
-                  <Text style={modalScreenStyles.statNumber}>{stats.dislikes}</Text>
-                  <Text style={modalScreenStyles.statLabel}>{t('profile.dishesPassed')}</Text>
-                </View>
-                <View style={modalScreenStyles.statItem}>
-                  <Text style={modalScreenStyles.statNumber}>
-                    {stats.interactions > 0
-                      ? Math.round((stats.likes / stats.interactions) * 100)
-                      : 0}
-                    %
-                  </Text>
-                  <Text style={modalScreenStyles.statLabel}>{t('profile.likeRate')}</Text>
-                </View>
-              </View>
-            )}
           </View>
 
           {/* Account Actions */}

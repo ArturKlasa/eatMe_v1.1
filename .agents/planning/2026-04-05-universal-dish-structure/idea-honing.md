@@ -33,3 +33,27 @@ The app no longer has swipe functionality. Current flow:
 
 **Key insight:** The data model must serve two masters — clean presentation AND granular recommendation. These may require different "views" of the same underlying data.
 
+### Q3: How specific should recommendations be — base dish, fully resolved variant, or either?
+
+**Proposed answer: Option A — recommend fully resolved variants. Here's why:**
+
+The recommendation engine relies heavily on per-dish attributes for both hard filtering and soft ranking:
+
+**Hard filters that break without resolved variants:**
+- A "Poke Bowl" base dish can't answer "is this vegan?" — it depends on whether you pick tofu or salmon. A vegan user's allergen/diet hard filter would either wrongly exclude the whole dish, or wrongly include a non-vegan variant.
+- Same for allergens (salmon = fish allergy), protein family exclusions (`noFish`), religious restrictions (halal/kosher meat choices).
+
+**Soft boosts that lose precision without resolved variants:**
+- Protein type boost (+0.20) and meat subtype boost (+0.10) need to know the specific protein
+- Price can vary by variant (salmon bowl vs tofu bowl)
+- Calories differ per variant
+- The 1536-dim preference vector embedding would be too generic for a base dish — "Poke Bowl with Salmon" and "Poke Bowl with Tofu" attract fundamentally different user profiles
+
+**The recommendation pin on the map should say "Poke Bowl with Salmon" not just "Poke Bowl"** — this is more compelling, more specific, and matches what the engine actually scored.
+
+**But we need a parent-child relationship** so the menu view can group all variants back under one presentable "Poke Bowl" entry with its options shown nicely underneath.
+
+**Confirmed by user.**
+
+### Q4: How should we handle the "variant explosion" problem?
+

@@ -615,10 +615,6 @@
     "comingSoon3": "Taste profile analysis",
     "comingSoon4": "Social features",
     "comingSoon5": "Sharing & recommendations",
-    "totalSwipes": "Total Swipes",
-    "dishesLiked": "Dishes Liked",
-    "dishesPassed": "Dishes Passed",
-    "likeRate": "Like Rate",
     "account": "Account"
   },
   "profileEdit": {
@@ -654,19 +650,6 @@
     "removedFromFavorites": "Removed from favorites",
     "updateFailed": "Failed to update favorites",
     "signInToAdd": "Please sign in to add favorites"
-  },
-  "swipe": {
-    "title": "Swipe Demo",
-    "gettingLocation": "Getting your location...",
-    "loadingDishes": "Loading dishes...",
-    "noMoreDishes": "No more dishes nearby!",
-    "noMoreDishesHint": "Try adjusting your filters or expanding your search radius",
-    "startOver": "Start Over",
-    "sessionStats": "Session Stats:",
-    "liked": "❤️ Liked:",
-    "passed": "✕ Passed:",
-    "personalizedBanner": "✨ Personalized for you based on {count} interactions",
-    "noImage": "No Image"
   },
   "viewedHistory": {
     "title": "Recently Viewed",

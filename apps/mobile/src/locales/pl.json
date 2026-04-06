@@ -615,10 +615,6 @@
     "comingSoon3": "Analiza profilu smakowego",
     "comingSoon4": "Funkcje społecznościowe",
     "comingSoon5": "Udostępnianie i rekomendacje",
-    "totalSwipes": "Łączne Przesunięcia",
-    "dishesLiked": "Polubione Dania",
-    "dishesPassed": "Pominięte Dania",
-    "likeRate": "Wskaźnik Polubiń",
     "account": "Konto"
   },
   "profileEdit": {
@@ -654,19 +650,6 @@
     "removedFromFavorites": "Usunięto z ulubionych",
     "updateFailed": "Nie udało się zaktualizować ulubionych",
     "signInToAdd": "Proszę się zalogować, aby dodać ulubione"
-  },
-  "swipe": {
-    "title": "Demo Przesuwania",
-    "gettingLocation": "Pobieranie lokalizacji...",
-    "loadingDishes": "Ładowanie dań...",
-    "noMoreDishes": "Brak więcej dań w pobliżu!",
-    "noMoreDishesHint": "Spróbuj dostosować filtry lub rozszerzyć promień wyszukiwania",
-    "startOver": "Zacznij Od Nowa",
-    "sessionStats": "Statystyki Sesji:",
-    "liked": "❤️ Polubiono:",
-    "passed": "✕ Pominięto:",
-    "personalizedBanner": "✨ Spersonalizowane dla Ciebie na podstawie {count} interakcji",
-    "noImage": "Brak Obrazu"
   },
   "viewedHistory": {
     "title": "Ostatnio Oglądane",

@@ -88,45 +88,6 @@ fi
 echo ""
 
 # ============================================================================
-# Test 3: Swipe Function (requires user authentication)
-# ============================================================================
-
-echo -e "${YELLOW}Test 3: Testing /functions/v1/swipe${NC}"
-
-# Note: This requires a valid user UUID
-# You'll need to replace this with an actual user ID from your auth.users table
-TEST_USER_ID="00000000-0000-0000-0000-000000000000"
-
-if [ -n "$FIRST_DISH_ID" ] && [ "$FIRST_DISH_ID" != "" ]; then
-  echo "Using dish ID from previous test: $FIRST_DISH_ID"
-  
-  SWIPE_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/functions/v1/swipe" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-    -d "{
-      \"userId\": \"${TEST_USER_ID}\",
-      \"dishId\": \"${FIRST_DISH_ID}\",
-      \"action\": \"right\",
-      \"viewDuration\": 3500,
-      \"position\": 1,
-      \"sessionId\": \"test-session-$(date +%s)\"
-    }")
-
-  if echo "$SWIPE_RESPONSE" | grep -q "success"; then
-    echo -e "${GREEN}✓ Swipe function working!${NC}"
-    echo "Response: $SWIPE_RESPONSE"
-  else
-    echo -e "${RED}✗ Swipe function failed!${NC}"
-    echo "Response:"
-    echo "$SWIPE_RESPONSE" | jq '.' || echo "$SWIPE_RESPONSE"
-  fi
-else
-  echo -e "${YELLOW}⊘ Skipping swipe test (no dish ID available)${NC}"
-fi
-
-echo ""
-
-# ============================================================================
 # Test 4: Cache Test (call feed twice)
 # ============================================================================
 

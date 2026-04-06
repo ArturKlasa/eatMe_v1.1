@@ -73,6 +73,9 @@ export interface DailyFilters {
 
   // Sort by preference
   sortBy: 'closest' | 'bestMatch' | 'highestRated';
+
+  // Group / Family Meals — show only dishes with serves >= 2
+  groupMeals: boolean;
 }
 
 /** A single ingredient entry in the "Ingredients to Avoid" permanent filter. */
@@ -180,6 +183,7 @@ interface FilterActions {
   setDailyCalorieRange: (min: number, max: number, enabled?: boolean) => void;
   setDailyMaxDistance: (distance: number) => void;
   toggleOpenNow: () => void;
+  toggleGroupMeals: () => void;
   setSortBy: (sortBy: DailyFilters['sortBy']) => void;
   /** Replaces the entire daily filter state atomically (used by the daily filter modal on Apply). */
   replaceDailyFilters: (filters: DailyFilters) => void;
@@ -272,6 +276,7 @@ export const defaultDailyFilters: DailyFilters = {
   maxDistance: 5, // 5km default
   openNow: false,
   sortBy: 'bestMatch',
+  groupMeals: false,
 };
 
 /**
@@ -546,6 +551,17 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
       daily: {
         ...state.daily,
         openNow: !state.daily.openNow,
+      },
+      activePreset: null,
+    }));
+    get().saveFilters();
+  },
+
+  toggleGroupMeals: () => {
+    set(state => ({
+      daily: {
+        ...state.daily,
+        groupMeals: !state.daily.groupMeals,
       },
       activePreset: null,
     }));
@@ -961,6 +977,11 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check open now
     if (state.daily.openNow) {
+      count++;
+    }
+
+    // Check group/family meals
+    if (state.daily.groupMeals) {
       count++;
     }
 

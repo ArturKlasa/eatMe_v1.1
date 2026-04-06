@@ -81,11 +81,27 @@ export interface DishWithRelations extends Dish {
   restaurant: Restaurant;
 }
 
+/** A dish that may have variant children (for parent dishes) or a parent link (for variants). */
+export interface DishWithVariants extends Dish {
+  /** If this dish is a variant, its parent (display-only container). */
+  parent_dish: Dish | null;
+  /** If this dish is a parent, its variant children with their option groups. */
+  variants: Array<Dish & { option_groups?: OptionGroup[] }>;
+}
+
 export interface RestaurantWithMenus extends Restaurant {
   menus: Array<
     Menu & {
       menu_categories: Array<
-        MenuCategory & { dishes: Array<Dish & { option_groups?: OptionGroup[] }> }
+        MenuCategory & {
+          dishes: Array<
+            Dish & {
+              option_groups?: OptionGroup[];
+              /** Variant children, loaded for parent dishes in menu view. */
+              variants?: Array<Dish & { option_groups?: OptionGroup[] }>;
+            }
+          >;
+        }
       >;
     }
   >;

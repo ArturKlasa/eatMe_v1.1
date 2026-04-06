@@ -445,51 +445,126 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     .select('id');
   if (categoryError) throw new Error(`Failed to insert menu categories: ${categoryError.message}`);
 
-  // ── Step 3: Batch insert all dishes across all menus ───────────────────────
-  // Build a flat list preserving the dish → category mapping via index.
-  type DishWithCategoryId = { dish: AppMenu['dishes'][number]; categoryId: string };
-  const allDishes: DishWithCategoryId[] = [];
+  // ── Step 3: Insert dishes — parents first, then variants ──────────────────
+  // Dishes with is_parent=true are inserted first to obtain their IDs.
+  // Their variants (dish.variants[]) are then inserted with parent_dish_id set.
+  // Standalone dishes (no parent, no variants) are batch-inserted together with parents.
 
+  type DishWithCategoryId = { dish: AppMenu['dishes'][number]; categoryId: string };
+
+  const buildDishPayload = (
+    dish: AppMenu['dishes'][number],
+    categoryId: string,
+    overrides: { parent_dish_id?: string | null; is_parent?: boolean } = {}
+  ) => ({
+    restaurant_id: restaurantId,
+    menu_category_id: categoryId,
+    name: dish.name,
+    description: dish.description || null,
+    price: dish.price,
+    dietary_tags: dish.dietary_tags || [],
+    allergens: dish.allergens || [],
+    calories: dish.calories || null,
+    spice_level: dish.spice_level || null,
+    image_url: dish.photo_url || null,
+    is_available: dish.is_available !== undefined ? dish.is_available : true,
+    description_visibility: dish.description_visibility ?? 'menu',
+    ingredients_visibility: dish.ingredients_visibility ?? 'detail',
+    dish_kind: dish.dish_kind ?? 'standard',
+    display_price_prefix: dish.display_price_prefix ?? 'exact',
+    serves: dish.serves ?? 1,
+    is_parent: overrides.is_parent ?? dish.is_parent ?? false,
+    parent_dish_id: overrides.parent_dish_id ?? dish.parent_dish_id ?? null,
+  });
+
+  // Build the first-pass list: parents + standalones (not explicit variants)
+  // Result: a list of { dish, categoryId } pairs in insertion order.
+  const firstPassDishes: DishWithCategoryId[] = [];
   for (let i = 0; i < menus.length; i++) {
     const categoryId = insertedCategories[i].id;
     for (const dish of menus[i].dishes ?? []) {
-      allDishes.push({ dish, categoryId });
+      // Skip dishes that are already pointing to a parent (explicit variants handled in pass 2)
+      if (!dish.parent_dish_id) {
+        firstPassDishes.push({ dish, categoryId });
+      }
     }
   }
 
-  if (!allDishes.length) return;
+  if (!firstPassDishes.length) return;
 
-  const { data: insertedDishes, error: dishesError } = await supabase
+  const { data: firstInserted, error: dishesError } = await supabase
     .from('dishes')
     .insert(
-      allDishes.map(({ dish, categoryId }) => ({
-        restaurant_id: restaurantId,
-        menu_category_id: categoryId, // correct FK — not menu_id
-        name: dish.name,
-        description: dish.description || null,
-        price: dish.price,
-        dietary_tags: dish.dietary_tags || [],
-        allergens: dish.allergens || [],
-        calories: dish.calories || null,
-        spice_level: dish.spice_level || null,
-        image_url: dish.photo_url || null,
-        is_available: dish.is_available !== undefined ? dish.is_available : true,
-        description_visibility: dish.description_visibility ?? 'menu',
-        ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-        dish_kind: dish.dish_kind ?? 'standard',
-        display_price_prefix: dish.display_price_prefix ?? 'exact',
-      }))
+      firstPassDishes.map(({ dish, categoryId }) =>
+        buildDishPayload(dish, categoryId, {
+          // Mark as parent if is_parent=true OR if dish has inline variants
+          is_parent: !!(dish.is_parent || (dish.variants && dish.variants.length > 0)),
+        })
+      )
     )
     .select('id');
   if (dishesError) throw new Error(`Failed to insert dishes: ${dishesError.message}`);
 
+  // Build mapping: inserted dish ID → source dish (for steps 4+5)
+  type InsertedWithDish = { id: string; dish: AppMenu['dishes'][number] };
+  const insertedWithDish: InsertedWithDish[] = firstInserted.map((row, i) => ({
+    id: row.id,
+    dish: firstPassDishes[i].dish,
+  }));
+
+  // Insert inline variants (dish.variants[]) using the now-known parent IDs
+  for (let i = 0; i < firstPassDishes.length; i++) {
+    const { dish, categoryId } = firstPassDishes[i];
+    const parentId = firstInserted[i].id;
+    if (!dish.variants?.length) continue;
+
+    const { data: variantInserted, error: variantError } = await supabase
+      .from('dishes')
+      .insert(
+        dish.variants.map(variant =>
+          buildDishPayload(variant, categoryId, { parent_dish_id: parentId, is_parent: false })
+        )
+      )
+      .select('id');
+    if (variantError) throw new Error(`Failed to insert variant dishes: ${variantError.message}`);
+
+    // Track variants for ingredient/option-group linking
+    for (let j = 0; j < variantInserted.length; j++) {
+      insertedWithDish.push({ id: variantInserted[j].id, dish: dish.variants[j] });
+    }
+  }
+
+  // Insert explicit variants (dishes with parent_dish_id already set in source data)
+  const explicitVariants: DishWithCategoryId[] = [];
+  for (let i = 0; i < menus.length; i++) {
+    const categoryId = insertedCategories[i].id;
+    for (const dish of menus[i].dishes ?? []) {
+      if (dish.parent_dish_id && !dish.is_parent) {
+        explicitVariants.push({ dish, categoryId });
+      }
+    }
+  }
+  if (explicitVariants.length > 0) {
+    const { data: explicitInserted, error: explicitError } = await supabase
+      .from('dishes')
+      .insert(explicitVariants.map(({ dish, categoryId }) => buildDishPayload(dish, categoryId)))
+      .select('id');
+    if (explicitError) throw new Error(`Failed to insert explicit variant dishes: ${explicitError.message}`);
+    for (let j = 0; j < explicitInserted.length; j++) {
+      insertedWithDish.push({ id: explicitInserted[j].id, dish: explicitVariants[j].dish });
+    }
+  }
+
+  // Alias for steps 4+5 — flat list of all inserted dishes with source dish reference
+  const insertedDishes = insertedWithDish;
+  // (allDishes is no longer needed — insertedWithDish carries both id and dish)
+
   // ── Step 4: Link canonical ingredients in parallel (non-fatal) ────────────
   await Promise.all(
-    insertedDishes.map(async (insertedDish, i) => {
-      const { dish } = allDishes[i];
+    insertedDishes.map(async ({ id: insertedId, dish }) => {
       if (!dish.selectedIngredients?.length) return;
       const { error: ingError } = await addDishIngredients(
-        insertedDish.id,
+        insertedId,
         dish.selectedIngredients.map((ing: SelectedIngredient) => ({
           ingredient_id: ing.id,
           quantity: ing.quantity || null,
@@ -506,10 +581,9 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
 
   // ── Step 5: Save option groups for template/experience dishes (non-fatal) ───
   await Promise.all(
-    insertedDishes.map(async (insertedDish, i) => {
-      const { dish } = allDishes[i];
+    insertedDishes.map(async ({ id: insertedId, dish }) => {
       if (!dish.option_groups?.length) return;
-      await saveOptionGroupsForDish(insertedDish.id, restaurantId, dish.option_groups);
+      await saveOptionGroupsForDish(insertedId, restaurantId, dish.option_groups);
     })
   );
 }

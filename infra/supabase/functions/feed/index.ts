@@ -78,6 +78,14 @@ interface FeedRequest {
     excludeFamilies?: string[];
     /** When true, dishes with spice_level='hot' are hard-excluded (permanent noSpicy). */
     excludeSpicy?: boolean;
+    /** Filter for daily/rotating menus only. null = all menus. */
+    scheduleType?: 'daily' | 'rotating';
+    /** When true, only return dishes with serves >= 2 (group/family meals). */
+    groupMeals?: boolean;
+    /** Current time in HH:MM format for time-based menu filtering. */
+    currentTime?: string;
+    /** Current day of week: 'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun' */
+    currentDayOfWeek?: string;
   };
   userId?: string;
   limit?: number;
@@ -110,6 +118,10 @@ interface Candidate {
   flagged_ingredients?: string[];
   protein_families?: string[];
   protein_canonical_names?: string[];
+  // Universal dish structure fields
+  parent_dish_id?: string | null;
+  serves?: number;
+  price_per_person?: number | null;
 }
 
 // ── Stage 2 scoring ───────────────────────────────────────────────────────────
@@ -316,13 +328,21 @@ function rankCandidates(
 
 function applyDiversity(dishes: Candidate[], maxPerRestaurant: number): Candidate[] {
   const result: Candidate[] = [];
-  const counts = new Map<string, number>();
+  const restaurantCounts = new Map<string, number>();
+  const parentCounts = new Map<string, number>();
   for (const d of dishes) {
-    const n = counts.get(d.restaurant_id) ?? 0;
-    if (n < maxPerRestaurant) {
-      result.push(d);
-      counts.set(d.restaurant_id, n + 1);
+    const rn = restaurantCounts.get(d.restaurant_id) ?? 0;
+    if (rn >= maxPerRestaurant) continue;
+
+    // Max 1 variant per parent_dish_id to avoid flooding feed with variants of the same dish
+    if (d.parent_dish_id) {
+      const pn = parentCounts.get(d.parent_dish_id) ?? 0;
+      if (pn >= 1) continue;
+      parentCounts.set(d.parent_dish_id, pn + 1);
     }
+
+    result.push(d);
+    restaurantCounts.set(d.restaurant_id, rn + 1);
   }
   return result;
 }
@@ -534,6 +554,11 @@ serve(async (req: Request) => {
       p_exclude_families: filters.excludeFamilies?.length ? filters.excludeFamilies : null,
       p_exclude_spicy: filters.excludeSpicy ?? false,
       p_limit: 200,
+      // Universal dish structure: new filter parameters
+      p_current_time: filters.currentTime ?? null,
+      p_current_day: filters.currentDayOfWeek ?? null,
+      p_schedule_type: filters.scheduleType ?? null,
+      p_group_meals: filters.groupMeals ?? false,
     })) as { data: Candidate[] | null; error: unknown };
 
     if (candidateError) {

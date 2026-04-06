@@ -293,12 +293,62 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
    * - option_groups: embedded option groups from the nested query
    * - photo_url: legacy alias for image_url (may be present from older data/queries)
    * - ingredients: legacy text array column (superseded by dish_ingredients join table)
+   * - parent_dish_id / is_parent: universal dish structure fields
    */
   type DishWithGroups = Dish & {
     option_groups?: OptionGroup[];
     photo_url?: string | null;
     ingredients?: string[];
+    parent_dish_id?: string | null;
+    is_parent?: boolean;
   };
+
+  /**
+   * Groups dishes within a category by parent_dish_id.
+   * Returns an ordered list of render items:
+   *   - ParentGroup: parent dish + its variant children
+   *   - standalone: dishes with no parent and is_parent=false
+   * Parent display-only containers without variants are omitted.
+   */
+  function groupDishesByParent(dishes: DishWithGroups[]): Array<
+    | { type: 'standalone'; dish: DishWithGroups }
+    | { type: 'parent'; parent: DishWithGroups; variants: DishWithGroups[] }
+  > {
+    const parentMap = new Map<string, DishWithGroups>();
+    const variantsByParent = new Map<string, DishWithGroups[]>();
+    const standalones: DishWithGroups[] = [];
+
+    for (const dish of dishes) {
+      if (dish.is_parent) {
+        parentMap.set(dish.id, dish);
+        if (!variantsByParent.has(dish.id)) variantsByParent.set(dish.id, []);
+      } else if (dish.parent_dish_id) {
+        const list = variantsByParent.get(dish.parent_dish_id) ?? [];
+        list.push(dish);
+        variantsByParent.set(dish.parent_dish_id, list);
+      } else {
+        standalones.push(dish);
+      }
+    }
+
+    const result: ReturnType<typeof groupDishesByParent> = [];
+
+    // Walk original dish order to preserve restaurant-defined ordering
+    for (const dish of dishes) {
+      if (dish.is_parent) {
+        const variants = variantsByParent.get(dish.id) ?? [];
+        if (variants.length > 0) {
+          result.push({ type: 'parent', parent: dish, variants });
+        }
+        // Skip parent with no variants (shouldn't happen in practice)
+      } else if (!dish.parent_dish_id) {
+        result.push({ type: 'standalone', dish });
+      }
+      // Variants are rendered inside their parent group, skip here
+    }
+
+    return result;
+  }
 
   const handleDishPress = async (dish: DishWithGroups) => {
     setSelectedDish(dish);
@@ -573,12 +623,29 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             <View key={menu.id} style={styles.menuSection}>
               <Text style={styles.menuName}>{menu.name}</Text>
               {menu.description && <Text style={styles.menuDescription}>{menu.description}</Text>}
-              {menu.menu_categories?.map(category => (
-                <View key={category.id} style={styles.menuCategory}>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  {sortedDishes(category.dishes ?? []).map(renderMenuItem)}
-                </View>
-              ))}
+              {menu.menu_categories?.map(category => {
+                const grouped = groupDishesByParent(sortedDishes(category.dishes ?? []));
+                return (
+                  <View key={category.id} style={styles.menuCategory}>
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    {grouped.map(item => {
+                      if (item.type === 'standalone') {
+                        return renderMenuItem(item.dish);
+                      }
+                      // Parent group: render parent name as sub-header, then variants
+                      return (
+                        <View key={item.parent.id}>
+                          <Text style={[styles.menuItemName, { marginTop: 8, marginBottom: 2, opacity: 0.6, fontStyle: 'italic' }]}>
+                            {item.parent.name}
+                            {item.parent.description ? ` — ${item.parent.description}` : ''}
+                          </Text>
+                          {item.variants.map(variant => renderMenuItem(variant))}
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })}
             </View>
           ))}
           {(!restaurant.menus || restaurant.menus.length === 0) && (

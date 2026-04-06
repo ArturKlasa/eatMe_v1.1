@@ -465,10 +465,14 @@ export type Database = {
           image_url: string | null;
           ingredients_visibility: string;
           is_available: boolean | null;
+          is_parent: boolean;
           menu_category_id: string | null;
           name: string;
+          parent_dish_id: string | null;
           price: number;
+          price_per_person: number | null;
           restaurant_id: string | null;
+          serves: number;
           spice_level: string | null;
           updated_at: string | null;
         };
@@ -492,10 +496,14 @@ export type Database = {
           image_url?: string | null;
           ingredients_visibility?: string;
           is_available?: boolean | null;
+          is_parent?: boolean;
           menu_category_id?: string | null;
           name?: string;
+          parent_dish_id?: string | null;
           price?: number;
+          price_per_person?: never;
           restaurant_id?: string | null;
+          serves?: number;
           spice_level?: string | null;
           updated_at?: string | null;
         };
@@ -519,10 +527,14 @@ export type Database = {
           image_url?: string | null;
           ingredients_visibility?: string;
           is_available?: boolean | null;
+          is_parent?: boolean;
           menu_category_id?: string | null;
           name?: string;
+          parent_dish_id?: string | null;
           price?: number;
+          price_per_person?: never;
           restaurant_id?: string | null;
+          serves?: number;
           spice_level?: string | null;
           updated_at?: string | null;
         };
@@ -539,6 +551,13 @@ export type Database = {
             columns: ['menu_category_id'];
             isOneToOne: false;
             referencedRelation: 'menu_categories';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dishes_parent_dish_id_fkey';
+            columns: ['parent_dish_id'];
+            isOneToOne: false;
+            referencedRelation: 'dishes';
             referencedColumns: ['id'];
           },
           {
@@ -1148,6 +1167,7 @@ export type Database = {
           menu_type: string;
           name: string;
           restaurant_id: string;
+          schedule_type: string;
           updated_at: string | null;
         };
         Insert: {
@@ -1162,6 +1182,7 @@ export type Database = {
           menu_type?: string;
           name: string;
           restaurant_id: string;
+          schedule_type?: string;
           updated_at?: string | null;
         };
         Update: {
@@ -1176,6 +1197,7 @@ export type Database = {
           menu_type?: string;
           name?: string;
           restaurant_id?: string;
+          schedule_type?: string;
           updated_at?: string | null;
         };
         Relationships: [

@@ -40,6 +40,13 @@ STRICT RULES:
 10. confidence: 1.0 = perfectly legible text, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
 11. Menus may be in Spanish or English. Keep all names in their original language.
 12. For "menu_type": use "drink" for a clearly separate beverage section/page (Bebidas, Drinks, Cocktails, Vinos, Carta de Vinos). A "Bebidas" column or small section at the bottom of a food page → add as a category inside the food menu (menu_type: "food"), not a separate drink menu. Only use menu_type: "drink" when drinks occupy their own dedicated page or section with a clear header.
+13. PARENT-CHILD VARIANT DETECTION: When a dish has a "choose your protein/base/main" pattern — i.e., one base concept with multiple protein or main-ingredient options at different prices/allergen profiles — model it as a PARENT dish with VARIANTS:
+    - is_parent: true on the base concept (e.g. "Poke Bowl"), price: 0, dish_kind = "template" | "combo" | "experience"
+    - Each protein/main option becomes a VARIANT dish with a descriptive name (e.g. "Poke Bowl — Salmon"), its own price, dietary_hints, and raw_ingredients
+    - variants is an array of variant dishes nested under the parent in the output
+    - DO NOT use this pattern for simple add-ons, sides, or size variations — keep those as regular dishes with option groups
+    - EXAMPLES of primary dimension patterns: "Poke Bowl (choose: Salmon / Tofu / Shrimp)", "Lunch Combo — choose your main", "Buffet / Build-Your-Own" with named protein options at different prices, all-you-can-eat with dietary profile tracks (Seafood / Vegetarian)
+    - If unsure, default to a regular single dish (is_parent: false, no variants)
 
 JSON SCHEMA (return exactly this structure):
 {
@@ -59,14 +66,36 @@ JSON SCHEMA (return exactly this structure):
               "dietary_hints": string[],
               "spice_level": 0 | 1 | 3 | null,
               "calories": number | null,
-              "confidence": number
+              "confidence": number,
+              "is_parent": boolean,
+              "dish_kind": "standard" | "template" | "combo" | "experience",
+              "variants": [
+                {
+                  "name": string,
+                  "price": number | null,
+                  "description": string | null,
+                  "raw_ingredients": string[] | null,
+                  "dietary_hints": string[],
+                  "spice_level": 0 | 1 | 3 | null,
+                  "calories": number | null,
+                  "confidence": number,
+                  "is_parent": false,
+                  "dish_kind": "standard" | "template" | "combo" | "experience"
+                }
+              ]
             }
           ]
         }
       ]
     }
   ]
-}`;
+}
+
+NOTES on new fields:
+- "is_parent": true only for display-only container dishes; false (default) for all other dishes.
+- "dish_kind": default "standard". Use "template" for build-your-own/choose-protein patterns, "combo" for lunch combos/meal deals, "experience" for buffets/all-you-can-eat.
+- "variants": only present on parent dishes (is_parent: true). Omit or set to [] for regular dishes.
+- For regular dishes (is_parent: false, no variants), you may omit is_parent, dish_kind (defaults to "standard"), and variants entirely.`;
 
 // ---------------------------------------------------------------------------
 // OpenAI client (lazy init to avoid crashing at import time if key missing)

@@ -10,7 +10,8 @@ export interface SelectedIngredient extends Ingredient {
   quantity?: string;
 }
 
-export type DishKind = 'standard' | 'template' | 'experience';
+export type DishKind = 'standard' | 'template' | 'experience' | 'combo';
+export type ScheduleType = 'regular' | 'daily' | 'rotating';
 export type DisplayPricePrefix = 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
 
 export interface Option {
@@ -64,6 +65,11 @@ export interface Dish {
   id?: string;
   menu_id?: string; // Reference to which menu this dish belongs to
   dish_category_id?: string | null; // Canonical category FK (e.g. "Pizza", "Pasta")
+
+  // Parent-child variant relationship
+  parent_dish_id?: string | null; // Links variant to its parent. null = standalone or parent.
+  is_parent?: boolean;            // true = display-only container, excluded from feed.
+
   name: string;
   description?: string;
   price: number;
@@ -73,6 +79,11 @@ export interface Dish {
   spice_level?: 'none' | 'mild' | 'hot' | null;
   photo_url?: string;
   is_available?: boolean;
+
+  // Serving size
+  serves?: number;           // Number of people this dish feeds. Default 1.
+  price_per_person?: number; // Computed: price / serves. Read-only (generated column).
+
   /** Where the description is shown in the mobile app. Defaults to 'menu'. */
   description_visibility?: 'menu' | 'detail';
   /** Where ingredients are shown in the mobile app. Defaults to 'detail'. */
@@ -85,6 +96,8 @@ export interface Dish {
   option_groups?: OptionGroup[];
   /** UI-only: canonical ingredients selected via autocomplete; not persisted on this object. */
   selectedIngredients?: SelectedIngredient[];
+  /** UI-only: variant children loaded for menu display grouping (not persisted on this object). */
+  variants?: Dish[];
 }
 
 export interface Menu {
@@ -93,8 +106,12 @@ export interface Menu {
   description?: string;
   category?: string; // all_day, breakfast, lunch, dinner, drinks, happy_hours
   menu_type?: 'food' | 'drink'; // food menu vs drink menu
+  schedule_type?: ScheduleType;  // Availability pattern: regular | daily | rotating
   is_active: boolean;
   display_order: number;
+  available_start_time?: string | null;
+  available_end_time?: string | null;
+  available_days?: string[] | null;
   dishes: Dish[];
 }
 

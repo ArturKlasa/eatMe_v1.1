@@ -65,6 +65,8 @@ interface DishRow {
   dish_kind: string;
   enrichment_status: string;
   updated_at: string;
+  is_parent: boolean;
+  parent_dish_id: string | null;
 }
 
 interface EnrichmentPayload {
@@ -262,7 +264,7 @@ serve(async (req: Request) => {
 
     const { data: dish, error: dishError } = (await supabase
       .from('dishes')
-      .select('id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at')
+      .select('id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id')
       .eq('id', dishId)
       .single()) as { data: DishRow | null; error: unknown };
 
@@ -270,6 +272,14 @@ serve(async (req: Request) => {
       console.error('[enrich-dish] Dish not found:', dishError);
       return new Response(JSON.stringify({ error: 'Dish not found' }), {
         status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Parent dishes are display-only containers with no embedding — skip enrichment.
+    if (dish.is_parent) {
+      console.log('[enrich-dish] Dish is a parent (display-only) — skipping enrichment:', dishId);
+      return new Response(JSON.stringify({ skipped: true, reason: 'is_parent' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

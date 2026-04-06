@@ -26,11 +26,11 @@ ALTER TABLE public.dish_analytics
 -- ── 3. Remove swipe counters from user_behavior_profiles ─────────────────────
 
 ALTER TABLE public.user_behavior_profiles
+  DROP COLUMN IF EXISTS right_swipe_rate,
   DROP COLUMN IF EXISTS total_swipes,
   DROP COLUMN IF EXISTS right_swipes,
   DROP COLUMN IF EXISTS left_swipes,
-  DROP COLUMN IF EXISTS super_swipes,
-  DROP COLUMN IF EXISTS right_swipe_rate;
+  DROP COLUMN IF EXISTS super_swipes;
 
 -- ── 4. Recreate generate_candidates without right_swipe_count ────────────────
 --

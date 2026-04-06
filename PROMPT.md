@@ -123,19 +123,19 @@ The task is complete when:
 
 ## Progress Log
 
-- [ ] Database migration created
-- [ ] generate_candidates() updated
-- [ ] Feed edge function updated
-- [ ] Enrich-dish updated
-- [ ] Group-recommendations updated
-- [ ] TypeScript types regenerated
-- [ ] Web-portal types updated
-- [ ] Mobile types updated
-- [ ] RestaurantDetailScreen updated with grouping
-- [ ] FilterStore updated with groupMeals
-- [ ] AI menu scan prompt updated
-- [ ] restaurantService updated
-- [ ] Backwards compatibility verified
+- [x] Database migration created
+- [x] generate_candidates() updated
+- [x] Feed edge function updated
+- [x] Enrich-dish updated
+- [x] Group-recommendations updated
+- [x] TypeScript types regenerated (manually updated packages/database/src/types.ts — live DB still needs migration 073 applied via Dashboard)
+- [x] Web-portal types updated
+- [x] Mobile types updated
+- [x] RestaurantDetailScreen updated with grouping
+- [x] FilterStore updated with groupMeals
+- [x] AI menu scan prompt updated
+- [x] restaurantService updated
+- [x] Backwards compatibility verified (all new columns have defaults; existing dishes unaffected)
 
 ---
 

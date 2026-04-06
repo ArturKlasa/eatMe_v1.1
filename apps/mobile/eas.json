@@ -9,37 +9,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN": "\",
-        "EXPO_PUBLIC_SUPABASE_URL": "\",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "\",
-        "MAPBOX_DOWNLOADS_TOKEN": "\",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "\"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN": "\",
-        "EXPO_PUBLIC_SUPABASE_URL": "\",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "\",
-        "MAPBOX_DOWNLOADS_TOKEN": "\",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "\"
       }
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN": "\",
-        "EXPO_PUBLIC_SUPABASE_URL": "\",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "\",
-        "MAPBOX_DOWNLOADS_TOKEN": "\",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "\"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {

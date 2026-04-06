@@ -119,3 +119,6 @@ out/
 # apps/mobile/eas.json
 
 infra/supabase/.temp
+
+# Local secrets reference — contains all plaintext credentials, never commit
+docs/SECRETS.md

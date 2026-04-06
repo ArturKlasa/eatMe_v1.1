@@ -1,86 +1,159 @@
-# EatMe Codebase Audit, Documentation & Improvement Discovery
+# EatMe v1 Comprehensive Project Documentation
 
 ## Objective
 
-Perform a thorough end-to-end audit of the entire EatMe monorepo, produce comprehensive technical documentation in `/home/art/Documents/eatMe_v1/docs/agentic-docs`, and surface concrete recommendations for code quality, service architecture, product experience, and developer-experience improvements.
+Generate complete developer-facing project documentation for the EatMe v1 monorepo — 20 Markdown files organized in `docs/project/` covering every implemented feature, system, workflow, and operational concern — so that a new developer can understand the entire platform without reading source code.
 
 ## Context
 
-EatMe is a food discovery platform built as a pnpm + Turborepo monorepo with three main components:
+EatMe is a food discovery platform built as a pnpm + Turborepo monorepo with:
 
-- **`apps/mobile`** — React Native 0.81 + Expo Bare, Mapbox for map-based discovery, Zustand for UI state, swipe-based preference learning.
-- **`apps/web-portal`** — Next.js 14 + shadcn/ui, restaurant partner portal for onboarding, menu management, and ingredient/allergen tracking.
-- **Backend** — Supabase (PostgreSQL + PostGIS), Row-Level Security on every table, ingredient/allergen system via Postgres triggers, migrations in `infra/supabase/migrations/` (001–040, authoritative snapshot at `infra/supabase/migrations/database_schema.sql`).
-- **Shared packages** — `packages/database` (Supabase client, partially adopted), `packages/ui` (minimal), `packages/typescript-config`, `packages/eslint-config`.
+- **`apps/mobile`** — React Native 0.81 + Expo 54 (bare workflow), Mapbox-based map discovery, Zustand state management, swipe-based preference learning, Eat Together group sessions, i18n (en/es/pl).
+- **`apps/web-portal`** — Next.js 16 + React 19 + shadcn/ui, restaurant owner portal for onboarding, menu management, ingredient/allergen tracking, admin dashboard, AI-powered menu scanning (GPT-4o Vision).
+- **Backend** — Supabase (PostgreSQL + PostGIS + pgvector), 36 tables, 7 Deno-based Edge Functions (feed, nearby-restaurants, enrich-dish, group-recommendations, swipe, update-preference-vector, batch-update-preference-vectors), Upstash Redis caching.
+- **Shared packages** — `packages/database` (Supabase client + generated types), `packages/tokens` (design tokens).
+- **Infrastructure** — `infra/supabase/migrations/` (schema + functions), `infra/scripts/` (batch jobs). CI/CD planned but not yet implemented.
 
-Key feature areas: restaurant onboarding wizard (multi-step LocalStorage draft → Supabase submission), ingredient autocomplete with allergen/dietary-tag auto-calculation via DB triggers, geospatial restaurant discovery (PostGIS POINT(lng lat)), OAuth + email auth, and a planned swipe/recommendation interface.
+A detailed design document exists at `.agents/planning/2026-04-05-project-documentation/design/detailed-design.md` — it specifies the exact file structure, section contents, diagram requirements, and content for every file. **You must follow this design document precisely.**
 
-The `docs/agentic-docs/` folder is currently empty and is the designated output location for all documentation produced by this task.
+Research notes with raw data for each area are in `.agents/planning/2026-04-05-project-documentation/research/`:
+- `web-portal.md` — Routes, components, contexts, API routes, auth, features
+- `mobile-app.md` — Screens, navigation, services, stores, hooks, i18n, features
+- `database-schema.md` — All 36 tables, columns, types, functions, views, enums
+- `edge-functions.md` — All 7 functions with request/response shapes, algorithms, scoring
+- `environment-deployment.md` — Env vars, EAS config, CI/CD status, CLI commands
+
+**Read both the design document and the relevant research file before writing each documentation file.** When the research notes lack detail, read the actual source code to fill gaps.
 
 ## Requirements
 
-1. **Full codebase read-through** — Traverse every file in `apps/mobile/src/`, `apps/web-portal/app/`, `apps/web-portal/components/`, `apps/web-portal/lib/`, `apps/web-portal/contexts/`, `apps/web-portal/types/`, `packages/`, and `infra/supabase/migrations/` (including `database_schema.sql`). Read `docs/` files for existing documentation context before writing new content to avoid duplication.
-2. **Produce structured documentation** in `docs/agentic-docs/` covering at minimum:
-   - `architecture-overview.md` — System architecture, component boundaries, data flow diagrams (Mermaid), deployment topology.
-   - `database-schema.md` — Every table, column, type, index, RLS policy, trigger, and function derived from the authoritative schema snapshot.
-   - `api-and-data-layer.md` — Supabase client usage, RLS patterns, all queries/mutations in the web portal and mobile app, edge function stubs.
-   - `web-portal-features.md` — Route map, component inventory, form flows (onboarding wizard, ingredient system), auth lifecycle, LocalStorage draft strategy.
-   - `mobile-app-features.md` — Screen inventory, navigation structure, Zustand store map, Mapbox integration, planned Supabase integration points.
-   - `shared-packages.md` — Current state of each package, what is and is not yet shared, migration path for `packages/database`.
-   - `improvement-recommendations.md` — Ranked list of findings (see Requirements 3 & 4).
-   - `docs-audit.md` — Catalogue of outdated, inaccurate, or superseded content found across the existing `docs/` folder (see Requirement 5).
-   - `onboarding-guide.md` — How to set up a local dev environment from scratch, run each app, apply migrations, and run the test scenarios described in the copilot instructions.
-3. **Code & service improvement analysis** — Identify and document:
-   - Security issues (OWASP Top 10 lens): missing RLS policies, unvalidated inputs, insecure storage, exposed secrets in env files, SSRF risks from Mapbox token handling, etc.
-   - TypeScript type gaps, `any` usage, missing Zod schemas, unhandled promise rejections.
-   - Dead code, duplicate logic, components that could be consolidated.
-   - Error handling gaps (missing try-catch, silent failures, unhandled Supabase errors).
-   - Performance concerns (unnecessary re-renders, missing indexes, N+1 query patterns, large bundle contributors).
-   - Accessibility issues in web portal components (missing ARIA labels, keyboard nav gaps).
-4. **Product & developer-experience improvement analysis** — Identify and document:
-   - UX flows that could be simplified or made more resilient (e.g., onboarding draft recovery, ingredient search latency).
-   - Missing features that are referenced in docs/workflows but not yet implemented (swipe interface, mobile Supabase auth, recommendation engine, eat-together feature).
-   - Monorepo hygiene: dependency version mismatches, unused packages, missing turbo pipeline tasks.
-   - Testing strategy gaps and concrete suggestions for unit/integration/E2E coverage.
-   - CI/CD readiness (referring to `docs/todos/cicd-implementation-plan.md`).
-5. **Audit & flag outdated documentation** — Treat the entire `docs/` folder (including `docs/workflows/`, `docs/todos/`, and all top-level `.md` files) as potentially stale. For every doc file reviewed:
-   - Compare stated facts against the actual codebase and database schema.
-   - Flag any content that is outdated, no longer accurate, or superseded by a later migration or code change.
-   - Produce a dedicated `docs/agentic-docs/docs-audit.md` file cataloguing each outdated section: the source file path, the inaccurate claim, what the code/schema actually shows, and a suggested correction or deletion.
-   - Where existing documentation is merely incomplete (correct but missing detail), note it as a gap rather than an error.
+### Output Structure
+All files go in `docs/project/`. Create this exact structure:
+
+```
+docs/project/
+├── README.md
+├── 01-project-overview.md
+├── 02-tech-stack.md
+├── 03-cli-commands.md
+├── 04-web-portal.md
+├── 05-mobile-app.md
+├── 06-database-schema.md
+├── 07-edge-functions.md
+├── 08-environment-setup.md
+├── 09-deployment.md
+├── 10-contributing.md
+├── 11-troubleshooting.md
+└── workflows/
+    ├── auth-flow.md
+    ├── restaurant-onboarding.md
+    ├── dish-creation-enrichment.md
+    ├── feed-discovery.md
+    ├── eat-together.md
+    ├── menu-management.md
+    ├── preference-learning.md
+    └── rating-review.md
+```
+
+### Content Rules
+1. **Audience:** Developers onboarding to the project. Write for someone who has never seen the codebase.
+2. **Scope:** Document only what is currently implemented. Do not describe planned or future features.
+3. **Diagrams:** Use Mermaid `sequenceDiagram` syntax for all workflow and architecture diagrams. Each workflow file must have at least one sequence diagram.
+4. **Standalone files:** Each file must be readable on its own without needing other files for context.
+5. **Cross-references:** Use relative Markdown links between files (e.g., `[Database Schema](./06-database-schema.md)`).
+6. **Tables:** Use Markdown tables for structured data (columns, env vars, CLI commands, component references).
+7. **Code examples:** Use TypeScript/SQL syntax highlighting in fenced code blocks.
+8. **Missing information:** Mark with `<!-- TODO: description -->` HTML comments. Do not invent information.
+9. **Edge functions:** Include full example JSON request and response payloads for each function (derive from the TypeScript interfaces in the research notes and source code).
+10. **Database schema:** Document every table with all columns, types, constraints, and foreign keys. Group by domain (Restaurant/Menu, Ingredient System, User System, Interactions, Eat Together, Admin).
+
+### Workflow File Structure
+Each workflow file must follow this template:
+1. Overview — What the workflow accomplishes
+2. Actors — Systems and users involved
+3. Preconditions — What must be true before the flow starts
+4. Flow Steps — Numbered steps with detail
+5. Sequence Diagram — Mermaid `sequenceDiagram`
+6. Key Files — Source file paths involved
+7. Error Handling — Failure modes
+8. Notes — Edge cases, limitations
+
+### Execution Order
+Write files in this order to build context incrementally:
+1. `README.md` (index — update links as files are created)
+2. `01-project-overview.md`
+3. `02-tech-stack.md`
+4. `03-cli-commands.md`
+5. `08-environment-setup.md`
+6. `06-database-schema.md` (foundation for other docs)
+7. `07-edge-functions.md`
+8. `04-web-portal.md`
+9. `05-mobile-app.md`
+10. All 8 workflow files in `workflows/`
+11. `09-deployment.md`
+12. `10-contributing.md`
+13. `11-troubleshooting.md`
+14. Final pass: update `README.md` with all links and descriptions
 
 ## Constraints
 
-- Do not modify any source code or migration files — this is a read-only audit; all output goes to `docs/agentic-docs/` as new Markdown files.
-- Do not run the database schema SQL file (`database_schema.sql`) — read it for documentation purposes only.
-- Do not expose or log any secret values found in `.env*` files; reference their existence and key names only.
-- Migration numbering is sequential 001–040; document the current highest number and flag any gaps or naming inconsistencies found.
-- All Mermaid diagrams must be valid and renderable (test mentally before writing).
-- Each `agentic-docs/` output file must be self-contained with a table of contents for files longer than 100 lines.
+- **Read-only on source code** — Do not modify any source files, migrations, or configs. Only create/modify files in `docs/project/`.
+- **No secrets** — Reference environment variable names only; never log or include actual secret values.
+- **Valid Mermaid** — All diagrams must use correct Mermaid syntax and render without errors. Test by reviewing syntax before writing.
+- **No duplication** — If a concept (e.g., "canonical ingredients") appears in multiple docs, define it fully in one place and cross-reference from others.
+- **Accuracy** — Cross-reference against actual source code. If research notes conflict with code, trust the code.
+- **Table of contents** — Include a TOC at the top of any file longer than 100 lines.
+- **File size** — Keep individual files manageable. The database schema doc will be the longest; aim for clear organization over brevity.
 
 ## Success Criteria
 
 The task is complete when:
 
-- [ ] All required `docs/agentic-docs/` files listed in Requirement 2 exist and are populated with accurate, non-trivial content derived from the actual codebase.
-- [ ] `database-schema.md` documents every table and RLS policy present in `database_schema.sql`.
-- [ ] `improvement-recommendations.md` contains at least 15 distinct, actionable findings across security, code quality, performance, product, and DX categories — each with a severity rating (Critical / High / Medium / Low), affected file(s), and a suggested remedy.
-- [ ] `architecture-overview.md` includes at least one Mermaid diagram accurately representing data flow or system topology.
-- [ ] `onboarding-guide.md` contains step-by-step instructions that a new developer could follow to run the full stack locally.
-- [ ] No source files outside `docs/agentic-docs/` have been created or modified.
-- [ ] All cross-references to existing `docs/` files are accurate (correct filenames, no broken links).
-- [ ] `docs-audit.md` exists in `docs/agentic-docs/` and lists every identified outdated, inaccurate, or superseded claim found across the `docs/` folder, with file path, the stale claim, ground-truth finding, and suggested fix.
+- [ ] All 20 files exist in `docs/project/` (12 root + 8 workflows) and contain substantive, accurate content
+- [ ] `README.md` links to every file with a brief description
+- [ ] `06-database-schema.md` documents all 36 tables with columns, types, and constraints
+- [ ] `07-edge-functions.md` includes example request/response JSON for all 7 functions
+- [ ] Every workflow file contains at least one Mermaid `sequenceDiagram`
+- [ ] `01-project-overview.md` includes a system architecture sequence diagram
+- [ ] `04-web-portal.md` documents all routes, components, services, and API routes
+- [ ] `05-mobile-app.md` documents all screens, stores, services, and hooks
+- [ ] All cross-references between files use valid relative links
+- [ ] No source files outside `docs/project/` have been created or modified
+- [ ] All `<!-- TODO -->` placeholders clearly describe what information is missing
+
+## Progress Log
+
+- [x] README.md created
+- [x] 01-project-overview.md
+- [x] 02-tech-stack.md
+- [x] 03-cli-commands.md
+- [x] 08-environment-setup.md
+- [x] 06-database-schema.md
+- [x] 07-edge-functions.md
+- [x] 04-web-portal.md
+- [x] 05-mobile-app.md
+- [x] workflows/auth-flow.md
+- [x] workflows/restaurant-onboarding.md
+- [x] workflows/dish-creation-enrichment.md
+- [x] workflows/feed-discovery.md
+- [x] workflows/eat-together.md
+- [x] workflows/menu-management.md
+- [x] workflows/preference-learning.md
+- [x] workflows/rating-review.md
+- [x] 09-deployment.md
+- [x] 10-contributing.md
+- [x] 11-troubleshooting.md
+- [x] Final README.md update with all links
 
 ## Notes
 
-- Start by reading `infra/supabase/migrations/database_schema.sql` and the copilot instructions (`/.github/copilot-instructions.md`) to establish ground truth before reading individual migration files.
-- The `docs/workflows/` folder contains intended user journey specs (MOB-01 through MOB-10, SHARED-01, SHARED-02, etc.) — use these to identify gaps between spec and implementation.
-- `docs/todos/` contains implementation plans at various stages of completion — cross-reference against the actual code to determine what has and has not been built.
-- The `shelf/swipe-feature/` folder may contain shelved work relevant to the planned swipe interface — include it in the audit.
-- Prefer reading large file sections in parallel to avoid unnecessary sequential reads.
-- If a concept appears in multiple layers (e.g., "ingredient" in DB schema, lib/ingredients.ts, IngredientAutocomplete.tsx, and workflow docs), document it holistically in a single place and cross-reference from other documents.
-- Many docs were written ahead of implementation and may describe planned features as if completed, or reference file paths that no longer exist. Treat "last updated" dates and status claims (e.g., "✅ complete") with scepticism and verify against actual code.
-- Pay particular attention to `docs/supabase-integration-status.md`, `INTEGRATION_COMPLETE_SUMMARY.md`, `docs/todos/*.md`, and any workflow doc that references a screen or component — these are the most likely to be stale.
+- Start by reading the detailed design at `.agents/planning/2026-04-05-project-documentation/design/detailed-design.md` to understand the exact specifications for each file.
+- Read the corresponding research file before writing each doc. When research is insufficient, read the actual source code.
+- The database schema source of truth is `infra/supabase/migrations/database_schema.sql` and `packages/database/src/types.ts`.
+- Edge function source code is in both `supabase/functions/` and `infra/supabase/functions/` (mirrored).
+- For environment variables, check `.env.example` files, `eas.json`, and grep for `process.env` / `EXPO_PUBLIC_` / `NEXT_PUBLIC_` / `Deno.env`.
+- Mermaid sequence diagram tips: use `participant` for actors, `->>`  for async calls, `-->>` for responses, `Note over` for annotations, `alt`/`else` for branching.
+- Mark the Progress Log checkboxes as you complete each file so the orchestrator can track progress.
 
 ---
 

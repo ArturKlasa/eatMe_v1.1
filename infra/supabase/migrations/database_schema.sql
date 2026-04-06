@@ -69,7 +69,6 @@ CREATE TABLE public.dish_analytics (
   engagement_rate double precision,
   popularity_score double precision,
   recent_views_24h integer DEFAULT 0,
-  recent_swipes_24h integer DEFAULT 0,
   is_trending boolean DEFAULT false,
   last_updated_at timestamp with time zone DEFAULT now(),
   first_tracked_at timestamp with time zone DEFAULT now(),
@@ -141,7 +140,7 @@ CREATE TABLE public.dishes (
   dish_category_id uuid,
   description_visibility text NOT NULL DEFAULT 'menu'::text CHECK (description_visibility = ANY (ARRAY['menu'::text, 'detail'::text])),
   ingredients_visibility text NOT NULL DEFAULT 'detail'::text CHECK (ingredients_visibility = ANY (ARRAY['menu'::text, 'detail'::text, 'none'::text])),
-  dish_kind text NOT NULL DEFAULT 'standard'::text CHECK (dish_kind = ANY (ARRAY['standard'::text, 'template'::text, 'experience'::text])),
+  dish_kind text NOT NULL DEFAULT 'standard'::text CHECK (dish_kind = ANY (ARRAY['standard'::text, 'template'::text, 'experience'::text, 'combo'::text])),
   display_price_prefix text NOT NULL DEFAULT 'exact'::text CHECK (display_price_prefix = ANY (ARRAY['exact'::text, 'from'::text, 'per_person'::text, 'market_price'::text, 'ask_server'::text])),
   enrichment_status text NOT NULL DEFAULT 'none'::text CHECK (enrichment_status = ANY (ARRAY['none'::text, 'pending'::text, 'completed'::text, 'failed'::text])),
   enrichment_source text NOT NULL DEFAULT 'none'::text CHECK (enrichment_source = ANY (ARRAY['none'::text, 'ai'::text, 'manual'::text])),
@@ -151,10 +150,19 @@ CREATE TABLE public.dishes (
   embedding USER-DEFINED,
   protein_families ARRAY DEFAULT '{}'::text[],
   protein_canonical_names ARRAY DEFAULT '{}'::text[],
+  parent_dish_id uuid,
+  is_parent boolean NOT NULL DEFAULT false,
+  serves integer NOT NULL DEFAULT 1 CHECK (serves >= 1),
+  price_per_person numeric DEFAULT 
+CASE
+    WHEN (serves > 0) THEN round((price / (serves)::numeric), 2)
+    ELSE price
+END,
   CONSTRAINT dishes_pkey PRIMARY KEY (id),
   CONSTRAINT dishes_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
   CONSTRAINT dishes_menu_id_fkey FOREIGN KEY (menu_category_id) REFERENCES public.menu_categories(id),
-  CONSTRAINT dishes_dish_category_id_fkey FOREIGN KEY (dish_category_id) REFERENCES public.dish_categories(id)
+  CONSTRAINT dishes_dish_category_id_fkey FOREIGN KEY (dish_category_id) REFERENCES public.dish_categories(id),
+  CONSTRAINT dishes_parent_dish_id_fkey FOREIGN KEY (parent_dish_id) REFERENCES public.dishes(id)
 );
 CREATE TABLE public.eat_together_members (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -274,6 +282,7 @@ CREATE TABLE public.menus (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   menu_type text NOT NULL DEFAULT 'food'::text CHECK (menu_type = ANY (ARRAY['food'::text, 'drink'::text])),
+  schedule_type text NOT NULL DEFAULT 'regular'::text CHECK (schedule_type = ANY (ARRAY['regular'::text, 'daily'::text, 'rotating'::text])),
   CONSTRAINT menus_pkey PRIMARY KEY (id),
   CONSTRAINT menus_new_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
 );

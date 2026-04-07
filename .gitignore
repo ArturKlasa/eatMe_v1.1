@@ -122,3 +122,6 @@ infra/supabase/.temp
 
 # Local secrets reference — contains all plaintext credentials, never commit
 docs/SECRETS.md
+
+# AI agent runtime files (ralph agent state, logs, lock files)
+.ralph/

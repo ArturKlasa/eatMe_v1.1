@@ -1,5 +1,5 @@
 # Ralph Orchestrator Configuration
-# Task: Universal Dish Structure — Schema Migration & Implementation
+# Task: Menu Ingestion & Enrichment Improvements
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -9,26 +9,29 @@ cli:
 event_loop:
   prompt_file: "PROMPT.md"
   completion_promise: "LOOP_COMPLETE"
-  max_iterations: 80
-  max_runtime_seconds: 14400     # 4 hours — complex multi-layer changes across DB, backend, mobile, web
-  idle_timeout_secs: 1800        # 30 min idle safety net
-  checkpoint_interval: 3         # Git checkpoint every 3 iterations
+  max_iterations: 120               # Complex task: 11 deliverables across 8 files, UI work, prompt engineering, enrichment rewrite
+  max_runtime_seconds: 21600         # 6 hours — large scope: types, GPT prompt, merge rewrite, review UI (2500+ line file), confirm endpoint, enrichment edge function, migration, onboarding
+  idle_timeout_secs: 2400            # 40 min idle — some steps (review UI) are large and may take time
+  checkpoint_interval: 3             # Git checkpoint every 3 iterations
 
 core:
-  specs_dir: ".agents/planning/2026-04-05-universal-dish-structure/"
+  specs_dir: ".agents/planning/2026-04-06-menu-ingestion-enrichment/"
   guardrails:
-    - "Read the detailed design at .agents/planning/2026-04-05-universal-dish-structure/design/detailed-design.md before implementing any change."
-    - "Read the corresponding research files in .agents/planning/2026-04-05-universal-dish-structure/research/ for decision rationale."
-    - "Always read a file before modifying it. The codebase has recent changes."
-    - "The database migration must be additive only — no data loss, no breaking changes to existing rows. All new columns must have sensible defaults."
-    - "Do not create new tables. Use self-referential FK on dishes table as specified in the design."
-    - "Do not add new dependencies. Use existing libraries and patterns."
-    - "After database migration, regenerate types: supabase gen types typescript --project-id tqroqqvxabolydyznewa > packages/database/src/types.ts"
-    - "Parent dishes (is_parent=true) must be excluded from feed, have no embedding, price=0, and exist only for menu display grouping."
-    - "All existing dishes must continue working unchanged with default values (parent_dish_id=null, is_parent=false, serves=1)."
+    - "Read the detailed design at .agents/planning/2026-04-06-menu-ingestion-enrichment/design/detailed-design.md before implementing any change."
+    - "Read the research files in .agents/planning/2026-04-06-menu-ingestion-enrichment/research/ for decision rationale."
+    - "Read the idea-honing.md in .agents/planning/2026-04-06-menu-ingestion-enrichment/ for all confirmed decisions and scope boundaries."
+    - "Always read a file before modifying it. The codebase has recent changes from the universal dish structure initiative (migration 073)."
+    - "The only new database migration is 074_enrichment_review_status.sql. All other columns (is_parent, parent_dish_id, dish_kind, serves, display_price_prefix) already exist."
+    - "Do not add new dependencies except string-similarity for fuzzy matching."
+    - "Reuse the existing three-pass parent-child insertion logic in restaurantService.ts — do not duplicate it in the confirm endpoint."
+    - "When switching to Structured Outputs, use Zod schemas with zodResponseFormat() from openai/helpers/zod. Use z.lazy() for recursive variant types."
+    - "Embeddings represent dish identity only — never include price, spice_level, dietary_tags, or allergens in embedding input."
+    - "AI-inferred data must NEVER be auto-applied. Store in enrichment_payload with enrichment_review_status='pending_review' for admin approval."
+    - "All existing menu scan flows must continue working for simple standard-dish menus. No regressions."
+    - "When modifying menu-scan/page.tsx (2489 lines), extract new components into separate files to manage complexity."
     - "Update the Progress Log checkboxes in PROMPT.md after completing each item."
-    - "Do not deviate from schema definitions, field names, or enum values specified in the design document."
-    - "When modifying edge functions, preserve existing functionality — only add new filter parameters and parent exclusion logic."
+    - "Do not deviate from type definitions, field names, or enum values in the design document."
+    - "Parent dishes have is_parent=true, price=0, no embedding, excluded from feed. This is already implemented — don't break it."
 
 memories:
   enabled: true
@@ -41,7 +44,7 @@ tasks:
   enabled: true
 
 features:
-  parallel: false              # Sequential — migration must precede type generation, types must precede code changes
+  parallel: false              # Sequential — types must be updated before UI work, migration before enrichment changes
   auto_merge: false
   preflight:
     enabled: true

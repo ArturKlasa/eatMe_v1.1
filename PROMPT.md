@@ -1,8 +1,8 @@
-# Universal Dish Structure — Schema Migration & Implementation
+# Menu Ingestion & Enrichment Improvements
 
 ## Objective
 
-Implement the universal dish structure redesign: add parent-child variant model to the dishes table, expand dish_kind, add menu schedule_type, add serves/price_per_person fields, update the feed/recommendation engine, update mobile menu view grouping, update admin/AI data entry flows, and update all TypeScript types — so that the platform can represent any dish pattern (template, combo, buffet, experience, group meals) through one unified data model.
+Improve the restaurant menu scanning, dish pattern detection, and enrichment pipeline so that the menu-scan flow can create template, combo, and experience dishes (not just standard), with better embeddings, smarter merge logic, and staged AI suggestion approval.
 
 ## Context
 
@@ -15,127 +15,179 @@ EatMe is a food discovery platform (pnpm + Turborepo monorepo) with:
 
 ### The Problem
 
-The current dish model only supports flat dishes with option_groups. It cannot properly represent configurable dishes (poke bowls, build-your-own, combos, buffets) in a way that works for both:
-1. **Recommendation engine** — needs individually addressable variants with accurate allergens, dietary_tags, price, and embeddings
-2. **Menu presentation** — needs to group variants under a parent dish for clean display
+GPT-4o Vision already extracts `is_parent`, `dish_kind`, and `variants[]` from menu images, but this data is **silently discarded** because TypeScript types throughout the pipeline (`RawExtractedDish`, `EnrichedDish`, `EditableDish`, `ConfirmDish`) omit these fields. The DB schema (migration 073) fully supports parent-child variants, but no UI can manage them. Additionally, the enrichment pipeline produces weak embeddings and doesn't leverage AI-inferred data.
 
 ### The Solution (Designed & Approved)
 
-A complete design document exists at `.agents/planning/2026-04-05-universal-dish-structure/design/detailed-design.md`. **You must follow this design document precisely.** It specifies:
+A complete design document exists at `.agents/planning/2026-04-06-menu-ingestion-enrichment/design/detailed-design.md`. **You must follow this design document precisely.** It specifies:
 
-- **Parent-child variant model**: `parent_dish_id` FK + `is_parent` boolean on dishes table
-- **Primary dimension approach**: resolve the most dietary-significant choice (usually protein) into separate dish rows; secondary choices (sauce, size) stay as option_groups
-- **New fields**: `serves` (integer), `price_per_person` (generated column), `schedule_type` on menus
-- **Expanded `dish_kind`**: `'standard' | 'template' | 'experience' | 'combo'`
-- **Feed changes**: exclude parents from candidates, diversity cap per parent_dish_id, new filters (daily menu, group meals, time-based)
-- **Mobile changes**: client-side grouping by parent_dish_id for menu view
-- **AI extraction changes**: updated GPT prompt to detect primary dimension patterns
+- **Pipeline wiring**: Add `is_parent`, `dish_kind`, `variants`, `serves`, `display_price_prefix` to all TypeScript types and preserve through the full pipeline
+- **GPT-4o Vision prompt overhaul**: Switch to Structured Outputs, cover all dish patterns, extract new fields
+- **Multi-page merge improvements**: 3-layer fuzzy category matching, variant detection on duplicates, null-category fix
+- **Admin review UI**: Hybrid AI-proposes / admin-reviews with grouped variant cards, accept/reject/override controls
+- **Confirm endpoint update**: Three-pass insert (parents → children → options) with new fields
+- **Enrichment improvements**: Better embeddings (labeled NL format, 300 char descriptions, cuisine context, parent inheritance), smarter completeness (dish_kind-aware), staged AI suggestions
 
-### Supporting Research
+### Planning Artifacts
 
-Research notes with analysis and decision rationale are in `.agents/planning/2026-04-05-universal-dish-structure/research/`:
-- `variant-explosion-analysis.md` — Why primary dimension approach was chosen (scored 8.4/10 vs alternatives)
-- `buffet-model-analysis.md` — Why buffets use dietary-profile variants
-- `combo-model-analysis.md` — Why combos are first-class entities with main-dish variants
-- `small-plates-group-meals-analysis.md` — Why `serves` integer is sufficient
+**Design & requirements** (read these before implementing):
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/design/detailed-design.md` — Complete design with architecture, components, interfaces, data models, error handling, testing strategy
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/idea-honing.md` — Requirements Q&A with all decisions and rationale
+
+**Research notes** (consult for decision rationale):
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/research/dish-pattern-detection-approach.md` — Why hybrid AI+admin approach was chosen
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/research/gpt4o-vision-prompt-engineering.md` — Structured Outputs, decision tree patterns, few-shot examples
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/research/embedding-quality-strategies.md` — Labeled NL format, signal ranking, input length sweet spot
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/research/fuzzy-category-matching.md` — 3-layer matching algorithm, synonym map, string-similarity library
+- `.agents/planning/2026-04-06-menu-ingestion-enrichment/research/review-ui-patterns.md` — Card clusters, accept/reject/edit UX, batch operations
+
+**Prior initiative** (background context for dish model):
+- `.agents/planning/2026-04-05-universal-dish-structure/design/detailed-design.md` — Universal dish structure design (already implemented in migration 073)
+- `.agents/planning/2026-04-05-universal-dish-structure/rough-idea.md` — All dish patterns the platform needs to support
 
 ### Key Source Files
 
-**Database schema** (source of truth):
-- `infra/supabase/migrations/database_schema.sql` — current table definitions
-- `packages/database/src/types.ts` — auto-generated TypeScript types
+**Menu scan pipeline** (primary focus):
+- `apps/web-portal/app/api/menu-scan/route.ts` — GPT-4o Vision extraction, system prompt, JSON parsing
+- `apps/web-portal/lib/menu-scan.ts` — Types (RawExtractedDish, EnrichedDish, EditableDish, ConfirmDish), merge logic, toEditableMenus, DIETARY_HINT_MAP
+- `apps/web-portal/app/api/menu-scan/confirm/route.ts` — Commit scanned menu to DB
+- `apps/web-portal/app/api/menu-scan/suggest-ingredients/route.ts` — AI ingredient suggestions
+- `apps/web-portal/app/admin/menu-scan/page.tsx` — Admin review UI (2,489 lines)
 
-**Feed/recommendation engine**:
-- `infra/supabase/functions/feed/index.ts` — two-stage pipeline (generate_candidates SQL + rankCandidates JS)
-- `infra/supabase/migrations/072_remove_swipe_feature.sql` — latest generate_candidates() function
-- `infra/supabase/functions/enrich-dish/index.ts` — embedding generation, must skip parent dishes
+**Enrichment pipeline**:
+- `infra/supabase/functions/enrich-dish/index.ts` — Edge function: completeness evaluation, AI enrichment, embedding generation
 
-**Mobile app**:
-- `apps/mobile/src/screens/RestaurantDetailScreen.tsx` — menu view (needs parent-child grouping)
-- `apps/mobile/src/lib/supabase.ts` — types (needs DishWithVariants, updated RestaurantWithMenus)
-- `apps/mobile/src/stores/filterStore.ts` — filter definitions (needs groupMeals daily filter)
+**Restaurant service layer**:
+- `apps/web-portal/lib/restaurantService.ts` — submitRestaurantProfile(), three-pass insert (parents → children → options)
+- `apps/web-portal/types/restaurant.ts` — Dish, Menu, DishKind, DisplayPricePrefix types
 
-**Web portal**:
-- `apps/web-portal/types/restaurant.ts` — Dish, Menu types (needs new fields)
-- `apps/web-portal/app/api/menu-scan/route.ts` — AI extraction (needs updated GPT prompt)
-- `apps/web-portal/lib/restaurantService.ts` — restaurant/menu CRUD services
-- `apps/web-portal/app/admin/menu-scan/page.tsx` — admin menu scan UI
+**Constants & shared**:
+- `apps/web-portal/lib/constants.ts` — DISH_KINDS array (missing 'combo')
 
-**Group recommendations**:
-- `infra/supabase/functions/group-recommendations/index.ts` — must exclude parent dishes
+**Onboarding**:
+- `apps/web-portal/app/onboard/menu/page.tsx` — Restaurant owner dish creation (needs serves + display_price_prefix)
+
+**Database**:
+- `infra/supabase/migrations/database_schema.sql` — Full schema
+- `infra/supabase/migrations/073_universal_dish_structure.sql` — Parent-child model (already applied)
 
 ## Requirements
 
-1. **Database migration**: Add `parent_dish_id` (uuid FK self-referencing with ON DELETE CASCADE), `is_parent` (boolean, default false), `serves` (integer, default 1, CHECK >= 1), `price_per_person` (generated stored column: price/serves) to dishes table. Expand `dish_kind` CHECK to include `'combo'`. Add `schedule_type` (`'regular' | 'daily' | 'rotating'`, default 'regular') to menus table. Add indexes on `parent_dish_id` and `is_parent`.
-2. **Update generate_candidates() SQL function**: Add `WHERE d.is_parent = false` to exclude parent dishes. Add time-based menu filtering using existing `available_start_time`/`available_end_time`/`available_days`. Add `schedule_type` filter parameter. Add `serves >= 2` filter parameter for group meals. Add new parameters: `p_current_time`, `p_current_day`, `p_schedule_type`, `p_group_meals`.
-3. **Update feed edge function (rankCandidates + applyDiversity)**: Add parent-dish-level diversity cap (max 1 variant per `parent_dish_id`) in `applyDiversity()`. Pass new filter parameters from request to generate_candidates. Add `groupMeals` and `scheduleType` to request interface.
-4. **Update enrich-dish edge function**: Skip enrichment/embedding for dishes with `is_parent = true`. Ensure variant dishes build embedding input including their variant-specific name and ingredients.
-5. **Update group-recommendations edge function**: Add `is_parent = false` filter to candidate query.
-6. **Regenerate TypeScript types**: Run `supabase gen types typescript` after migration. Update `packages/database/src/types.ts`.
-7. **Update web-portal types**: Add `parent_dish_id`, `is_parent`, `serves`, `price_per_person`, `variants` to Dish interface. Add `DishKind: 'combo'`. Add `ScheduleType` and `schedule_type` to Menu interface. Update `apps/web-portal/types/restaurant.ts`.
-8. **Update mobile types**: Add updated compound query shapes (`DishWithVariants`, updated `RestaurantWithMenus`). Update `apps/mobile/src/lib/supabase.ts`.
-9. **Update mobile RestaurantDetailScreen**: Implement client-side grouping logic — group dishes by `parent_dish_id`, render parent as header with variants listed underneath showing individual prices, option_groups on variants. Standalone dishes render as before.
-10. **Update mobile filterStore**: Add `groupMeals` boolean to daily filters. Pass to feed request.
-11. **Update AI menu scan prompt**: Update GPT-4o Vision system prompt in `/api/menu-scan/route.ts` to detect "choose your protein" patterns and output parent + variant dish structures with correct `parent_dish_id` references and per-variant pricing/ingredients.
-12. **Update restaurantService**: Ensure `saveMenus()` and `submitRestaurantProfile()` handle parent + variant dish creation (insert parent first, then variants with parent_dish_id).
-13. **Verify backwards compatibility**: All existing dishes must work unchanged with default values (`parent_dish_id: null`, `is_parent: false`, `serves: 1`). No data migration needed.
+1. **Pipeline wiring**: Add `is_parent` (boolean), `dish_kind` (enum), `variants` (array), `serves` (integer), `display_price_prefix` (enum) to `RawExtractedDish`, `EnrichedDish`, `EditableDish`, `ConfirmDish` in `lib/menu-scan.ts`. Update `toEditableMenus()` to preserve these fields. Update `buildConfirmPayload()` to include them. Ensure no field is silently dropped at any stage.
+
+2. **GPT-4o Vision prompt overhaul**: In `app/api/menu-scan/route.ts`, switch from `response_format: { type: 'json_object' }` to Structured Outputs (`{ type: 'json_schema', json_schema: { ... } }`). Define schema using Zod + `zodResponseFormat()`. Move JSON schema out of system prompt text. Rewrite pattern detection rules as a prioritized decision tree (template → combo → experience → size variants → market price → family/sharing → standard). Add `serves` and `display_price_prefix` extraction. Add 2-3 few-shot examples. Add multi-page context note. Remove `repairTruncatedJson()` (Structured Outputs guarantees schema compliance).
+
+3. **Multi-page merge improvements**: In `lib/menu-scan.ts`, rewrite `mergeExtractionResults()` with 3-layer category matching: (a) normalization (lowercase, strip accents, replace &/+), (b) synonym map (~40 canonical categories covering English/Spanish), (c) string similarity fallback (Jaro-Winkler > 0.85 via `string-similarity` library). When duplicate dish names have different prices, flag as potential variants instead of dropping. Assign page-indexed placeholders for null categories. Preserve `is_parent`, `dish_kind`, `variants` through merge. Add `string-similarity` npm dependency.
+
+4. **Menu-scan review UI**: In `app/admin/menu-scan/page.tsx`, add variant group display: `DishGroupCard` component showing parent as header with indented variant cards beneath (left-border connector). Add Accept/Reject/Edit button trio per group. Add keyboard shortcuts (A=accept, R=reject, E=edit). Add `BatchToolbar` component with "Accept all high-confidence", multi-select checkboxes, filter by confidence/dish_kind/has_grouping, progress counter. Add dish_kind dropdown per dish. Add "Ungroup" button to eject variants from a group. Add "Group as variants" typeahead to manually group standalone dishes. Add `serves` number input and `display_price_prefix` dropdown per dish. Show confidence badge per group. Use progressive disclosure for AI reasoning. Add `FlaggedDuplicateCard` for merge-detected potential variants.
+
+5. **Confirm endpoint update**: In `app/api/menu-scan/confirm/route.ts`, accept `dish_kind`, `is_parent`, `serves`, `display_price_prefix` in `ConfirmDish`. Accept nested `variant_dishes[]` on parent dishes. Insert parents first (with `is_parent: true`, `price: 0`), collect IDs, then insert children with `parent_dish_id`. Pass `dish_kind`, `serves`, `display_price_prefix` to dish insert. Return `{ status: 'completed_with_warnings', dishes_saved, dishes_failed, errors[] }` instead of binary completed/failed.
+
+6. **Enrichment: better embeddings**: In `infra/supabase/functions/enrich-dish/index.ts`, rewrite `buildEmbeddingInput()` to use labeled natural-language format targeting 60-120 tokens: `"{name}. {dish_type}, {cuisine_types}. {description (300 chars)}. Ingredients: {ingredients}. {structured options}."`. Load restaurant `cuisine_types` from DB and include. For child variants (`parent_dish_id` is set), fetch parent name + ingredients and prepend. Include `enrichment_payload.notes` when available. Increase description from 120 to 300 chars. Load option groups with structured group names (not flat option names).
+
+7. **Enrichment: smarter completeness**: In `enrich-dish/index.ts`, rewrite `evaluateCompleteness()` to be dish_kind-aware: template/experience dishes are `complete` if ≥3 option names exist (regardless of ingredient count). Standard dishes: `complete` if ≥3 ingredients OR (≥1 ingredient + description ≥100 chars). Combo: `complete` if ≥2 options. `partial` if any signal exists. `sparse` if nothing.
+
+8. **Enrichment: staged AI suggestions**: Extend `enrichment_payload` schema to include `inferred_allergens` (string[]) and `inferred_dish_category` (string). Create migration `074_enrichment_review_status.sql` adding `enrichment_review_status` column to dishes table (`CHECK: 'pending_review' | 'accepted' | 'rejected' | NULL`). After AI enrichment, set `enrichment_review_status = 'pending_review'`. Extend the enrichWithAI GPT prompt to also return `inferred_allergens` and `inferred_dish_category`.
+
+9. **Add 'combo' to DISH_KINDS**: In `apps/web-portal/lib/constants.ts`, add `{ value: 'combo', label: 'Combo', description: 'Bundle of multiple items (burger + fries + drink)', icon: '🎁' }` to the `DISH_KINDS` array. Update `DishKindValue` type accordingly.
+
+10. **Onboarding minor additions**: In `apps/web-portal/app/onboard/menu/page.tsx` (and the `DishFormDialog` component), add a `serves` number input (integer, min 1, default 1) and a `display_price_prefix` dropdown (exact/from/per_person/market_price/ask_server, default 'exact'). Wire through to `submitRestaurantProfile()` in `restaurantService.ts`.
+
+11. **Expand DIETARY_HINT_MAP**: In `lib/menu-scan.ts`, add to the existing `DIETARY_HINT_MAP`: regional spellings ('végétarien', 'végétalien', 'senza glutine', 'sin lácteos', 'sans gluten', 'sans lactose'), common abbreviations ('egg-free', 'eggfree', 'soy-free', 'soyfree', 'paleo', 'keto', 'low-sodium', 'pescatarian'), emoji variants ('🌿'→vegetarian, '🌱'→vegan). Add a `normalizeDietaryHint()` function that strips brackets, asterisks, and periods before lookup.
 
 ## Constraints
 
-- **Follow the design document**: `.agents/planning/2026-04-05-universal-dish-structure/design/detailed-design.md` is the specification. Do not deviate from schema definitions, field names, or enum values specified there.
-- **Read research notes**: Consult the research files in `.agents/planning/2026-04-05-universal-dish-structure/research/` for decision rationale when making implementation choices.
-- **Read before writing**: Always read the current state of a file before modifying it. The codebase has recent changes that may not match older assumptions.
-- **Migration safety**: The migration must be additive only — no data loss, no breaking changes to existing rows. All new columns must have sensible defaults.
-- **Type generation**: After the database migration, regenerate types with `supabase gen types typescript --project-id tqroqqvxabolydyznewa > packages/database/src/types.ts`. Manually authored types must match the generated schema.
-- **Test with existing data**: Existing dishes (standard, template, experience kinds) must continue to work. The feed must return the same results for restaurants without variants.
-- **No new tables**: The design uses self-referential FK on dishes table, not separate variant tables.
-- **No new dependencies**: Use existing libraries and patterns in the codebase.
+- **Follow the design document**: `.agents/planning/2026-04-06-menu-ingestion-enrichment/design/detailed-design.md` is the specification. Do not deviate from type definitions, field names, enum values, or architecture specified there.
+- **Read research notes**: Consult the research files in `.agents/planning/2026-04-06-menu-ingestion-enrichment/research/` for decision rationale when making implementation choices.
+- **Read before writing**: Always read the current state of a file before modifying it. The codebase has recent changes from the universal dish structure initiative.
+- **Migration safety**: The new migration (074) must be additive only — no data loss, no breaking changes. The `enrichment_review_status` column must be nullable with no default.
+- **No new tables**: Use existing tables. Only one new column (`enrichment_review_status` on dishes).
+- **Minimal new dependencies**: Only add `string-similarity` for fuzzy matching. Use existing libraries for everything else.
+- **Existing parent-child insert logic**: `restaurantService.ts` already has three-pass insertion (parents → inline variants → explicit variants). Reuse this logic in the confirm endpoint, don't duplicate it.
+- **Structured Outputs compatibility**: When using `json_schema` response format, the Zod schema must avoid `additionalProperties` and must handle recursive types (variants[] containing DishSchema). Use `z.lazy()`.
+- **Embedding design principle**: Embeddings represent dish identity (what the dish IS), not commercial attributes. Never include price in embedding input. Keep spice_level, dietary_tags, allergens as SQL filter columns only.
+- **Staged approval model**: AI-inferred ingredients, allergens, and categories must NEVER be auto-applied. They are stored in `enrichment_payload` and `enrichment_review_status='pending_review'` until admin explicitly accepts.
+- **Backwards compatibility**: All existing dishes must continue working. New fields have sensible defaults. Menu-scan without variant detection still produces valid standard dishes.
+- **No regressions**: Existing menu scan → review → confirm flow must continue working for simple standard-dish menus.
 
 ## Success Criteria
 
 The task is complete when:
 
-- [ ] Database migration file created and applies cleanly (new columns, constraints, indexes on dishes + menus tables)
-- [ ] `generate_candidates()` SQL function updated with parent exclusion, time-based filtering, schedule_type filter, and group meals filter
-- [ ] Feed edge function updated: new filters passed through, applyDiversity enforces max 1 per parent_dish_id
-- [ ] Enrich-dish edge function skips `is_parent = true` dishes
-- [ ] Group-recommendations edge function excludes parent dishes
-- [ ] `packages/database/src/types.ts` regenerated with new columns
-- [ ] Web-portal TypeScript types updated (Dish, Menu, DishKind, ScheduleType)
-- [ ] Mobile TypeScript types updated (DishWithVariants, RestaurantWithMenus)
-- [ ] Mobile RestaurantDetailScreen groups dishes by parent_dish_id with clean variant rendering
-- [ ] Mobile filterStore has `groupMeals` daily filter wired to feed request
-- [ ] AI menu scan GPT prompt updated to detect and output parent + variant structures
-- [ ] restaurantService handles parent + variant dish creation/saving
-- [ ] All existing dishes continue to work with default values (backwards compatible)
-- [ ] No regressions in feed results for restaurants without variants
+- [x] `RawExtractedDish`, `EnrichedDish`, `EditableDish`, `ConfirmDish` types include is_parent, dish_kind, variants, serves, display_price_prefix
+- [x] `toEditableMenus()` and `buildConfirmPayload()` preserve all new fields
+- [x] GPT-4o Vision uses Structured Outputs (`json_schema` mode) with Zod schema
+- [x] `repairTruncatedJson()` removed (no longer needed)
+- [x] System prompt rewritten as decision tree covering all dish patterns with 2-3 few-shot examples
+- [x] GPT extracts `serves` and `display_price_prefix` from menu images
+- [x] Multi-page merge uses 3-layer fuzzy category matching (normalize → synonym → string similarity)
+- [x] Duplicate dish names with different prices flagged as potential variants
+- [x] Null categories get page-indexed placeholders instead of merging together
+- [x] Admin review UI shows variant groups as indented card clusters with parent header
+- [x] Accept/Reject/Edit buttons work on variant groups with keyboard shortcuts (A/R/E)
+- [x] BatchToolbar allows "Accept all high-confidence" and multi-select operations
+- [x] dish_kind dropdown, serves input, display_price_prefix dropdown available per dish
+- [x] Admin can ungroup wrong AI groupings and manually group dishes AI missed
+- [x] Confirm endpoint inserts parents first, then children with parent_dish_id
+- [x] Confirm returns completed_with_warnings status for partial failures
+- [x] `buildEmbeddingInput()` uses labeled NL format targeting 60-120 tokens
+- [x] Embedding includes cuisine context from restaurant and parent context for child variants
+- [x] Description truncation increased to 300 chars; AI notes included
+- [x] `evaluateCompleteness()` is dish_kind-aware (templates use option count, not ingredient count)
+- [x] `enrichment_payload` includes inferred_allergens and inferred_dish_category
+- [x] Migration 074 adds enrichment_review_status column
+- [x] enrichment_review_status set to 'pending_review' after AI enrichment
+- [x] 'combo' added to DISH_KINDS in constants.ts
+- [x] Onboarding DishFormDialog has serves and display_price_prefix fields
+- [x] DIETARY_HINT_MAP expanded with regional spellings, abbreviations, emoji variants
+- [x] normalizeDietaryHint() strips brackets, asterisks, periods before lookup
+- [x] All existing menu scan → review → confirm flows still work for standard dishes
+- [x] No regressions in feed results for restaurants without variants
 
 ## Notes
 
-- The database already has `available_start_time`, `available_end_time`, and `available_days` on the menus table — these just need to be used in `generate_candidates()`.
-- The existing `menu_type` field (`'food' | 'drink'`) is a different concern from `schedule_type` (`'regular' | 'daily' | 'rotating'`). Both are needed.
-- `price_per_person` is a `GENERATED ALWAYS AS (ROUND(price / serves, 2)) STORED` column — never manually set.
-- Parent dishes have `is_parent: true`, `price: 0`, no embedding, excluded from feed. They exist purely for menu display grouping.
-- The `ON DELETE CASCADE` on `parent_dish_id` ensures deleting a parent removes all its variants.
-- Option_groups remain per-dish (duplicated on each variant). The "Copy options" UI tooling is a future enhancement, not part of this task.
-- Start by reading the full design document before implementing anything.
-- Mark the Progress Log checkboxes as you complete each item so the orchestrator can track progress.
+- The database already has `is_parent`, `parent_dish_id`, `dish_kind`, `serves`, `display_price_prefix` columns from migration 073. No schema changes needed for these.
+- `restaurantService.ts` already has three-pass parent-child insertion logic — reuse it in the confirm endpoint.
+- The GPT-4o Vision prompt already asks for `is_parent`, `dish_kind`, and `variants` — the data exists but is dropped by TypeScript types.
+- The `string-similarity` npm package provides `compareTwoStrings()` for Jaro-Winkler-style fuzzy matching.
+- When implementing the review UI, the existing `menu-scan/page.tsx` is 2,489 lines. Add new components as separate files where possible to manage complexity.
+- For Structured Outputs, use `zodResponseFormat()` from `openai/helpers/zod` to convert Zod schemas.
+- Parent dishes have `is_parent: true`, `price: 0`, and are excluded from the recommendation feed.
+- The enrichment edge function (`enrich-dish`) already skips parent dishes (line 280-285). This doesn't need to change.
+- Start by reading the design document and all research notes before implementing anything.
+- Update the Progress Log checkboxes as you complete each item so the orchestrator can track progress.
 
 ## Progress Log
 
-- [x] Database migration created
-- [x] generate_candidates() updated
-- [x] Feed edge function updated
-- [x] Enrich-dish updated
-- [x] Group-recommendations updated
-- [x] TypeScript types regenerated (manually updated packages/database/src/types.ts — live DB still needs migration 073 applied via Dashboard)
-- [x] Web-portal types updated
-- [x] Mobile types updated
-- [x] RestaurantDetailScreen updated with grouping
-- [x] FilterStore updated with groupMeals
-- [x] AI menu scan prompt updated
-- [x] restaurantService updated
-- [x] Backwards compatibility verified (all new columns have defaults; existing dishes unaffected)
+- [x] Pipeline wiring: TypeScript types updated (RawExtractedDish, EnrichedDish, EditableDish, ConfirmDish)
+- [x] Pipeline wiring: toEditableMenus() preserves new fields
+- [x] Pipeline wiring: buildConfirmPayload() includes new fields
+- [x] GPT-4o Vision: Switched to Structured Outputs with Zod schema
+- [x] GPT-4o Vision: System prompt rewritten as decision tree with few-shot examples
+- [x] GPT-4o Vision: repairTruncatedJson() removed
+- [x] GPT-4o Vision: serves and display_price_prefix extraction working
+- [x] Merge: 3-layer fuzzy category matching implemented
+- [x] Merge: Duplicate dish variant detection implemented
+- [x] Merge: Null-category page-indexed placeholders implemented
+- [x] Review UI: DishGroupCard with parent + indented variants
+- [x] Review UI: Accept/Reject/Edit buttons with keyboard shortcuts
+- [x] Review UI: BatchToolbar with bulk operations
+- [x] Review UI: dish_kind dropdown, serves, display_price_prefix per dish
+- [x] Review UI: Ungroup and manual grouping controls
+- [x] Review UI: FlaggedDuplicateCard for merge-detected variants
+- [x] Confirm: Parent-first insertion with parent_dish_id on children
+- [x] Confirm: New fields (dish_kind, serves, display_price_prefix) persisted
+- [x] Confirm: completed_with_warnings status
+- [x] Enrichment: buildEmbeddingInput() rewritten (labeled NL, 300 chars, cuisine, parent context)
+- [x] Enrichment: evaluateCompleteness() dish_kind-aware
+- [x] Enrichment: enrichWithAI() returns inferred_allergens and inferred_dish_category
+- [x] Enrichment: enrichment_review_status set after AI enrichment
+- [x] Migration 074: enrichment_review_status column added
+- [x] Constants: 'combo' added to DISH_KINDS
+- [x] Onboarding: serves and display_price_prefix fields added
+- [x] Dietary hints: DIETARY_HINT_MAP expanded
+- [x] Dietary hints: normalizeDietaryHint() implemented
+- [x] Backwards compatibility verified
 
 ---
 

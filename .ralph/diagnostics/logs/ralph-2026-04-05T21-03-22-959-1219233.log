@@ -1,5 +1,0 @@
-2026-04-06T02:03:22.963056Z  INFO ralph: Creating scratchpad directory: /home/art/Documents/eatMe_v1/.ralph/agent
-2026-04-06T02:03:23.152538Z  INFO ralph: Spawning subprocess for TUI mode child_args=["-c", "ralph.yml", "-H", "builtin:code-assist", "run", "--rpc"]
-2026-04-06T02:03:23.152684Z  INFO ralph: TUI subprocess stderr redirected to log file log_file=/home/art/Documents/eatMe_v1/.ralph/diagnostics/logs/ralph-2026-04-05T21-03-23-152-1219233.log
-2026-04-06T02:03:23.153877Z  INFO ralph: TUI running in subprocess RPC mode
-2026-04-06T06:35:48.378019Z  INFO ralph_tui::app: Ctrl+C detected, signaling abort

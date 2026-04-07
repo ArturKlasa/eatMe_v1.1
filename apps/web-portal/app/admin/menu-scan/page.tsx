@@ -37,11 +37,16 @@ import {
   type EditableIngredient,
   type EnrichedResult,
   type ConfirmPayload,
+  type FlaggedDuplicate,
   toEditableMenus,
   newEmptyDish,
   countDishes,
+  buildConfirmPayload,
 } from '@/lib/menu-scan';
 import { fetchDishCategories, createDishCategory, type DishCategory } from '@/lib/dish-categories';
+import { DishGroupCard } from '@/components/admin/menu-scan/DishGroupCard';
+import { BatchToolbar, type BatchFilters } from '@/components/admin/menu-scan/BatchToolbar';
+import { FlaggedDuplicateCard } from '@/components/admin/menu-scan/FlaggedDuplicateCard';
 import dynamic from 'next/dynamic';
 import { formatLocationForSupabase } from '@/lib/supabase';
 
@@ -181,67 +186,7 @@ async function pdfToImages(file: File, maxPagesPerFile = 20): Promise<File[]> {
 // Build the confirm payload from editable state
 // ---------------------------------------------------------------------------
 
-function buildConfirmPayload(
-  jobId: string,
-  restaurantId: string,
-  editableMenus: EditableMenu[]
-): ConfirmPayload {
-  return {
-    job_id: jobId,
-    restaurant_id: restaurantId,
-    menus: editableMenus
-      .map(menu => ({
-        name: menu.name.trim() || 'Menu',
-        menu_type: menu.menu_type,
-        categories: menu.categories
-          .map(cat => ({
-            name: cat.name.trim() || 'General',
-            dishes: cat.dishes
-              .filter(d => d.name.trim().length > 0)
-              .map(d => {
-                // Collect all matched ingredient IDs (including sub-ingredients for allergens)
-                const ingredientIds = d.ingredients.flatMap(ing => {
-                  if (ing.status !== 'matched' || !ing.canonical_ingredient_id) return [];
-                  const ids = [ing.canonical_ingredient_id];
-                  for (const sub of ing.sub_ingredients ?? []) {
-                    if (sub.status === 'matched' && sub.canonical_ingredient_id) {
-                      ids.push(sub.canonical_ingredient_id);
-                    }
-                  }
-                  return ids;
-                });
-                // Build option groups from ingredients with sub-ingredients
-                const optionGroups = d.ingredients
-                  .filter(ing => ing.status === 'matched' && (ing.sub_ingredients?.length ?? 0) > 0)
-                  .map(ing => ({
-                    name: `Choice of ${ing.display_name || ing.raw_text}`,
-                    selection_type: 'single' as const,
-                    options: (ing.sub_ingredients ?? [])
-                      .filter(s => s.status === 'matched')
-                      .map(s => ({
-                        name: s.display_name || s.raw_text,
-                        canonical_ingredient_id: s.canonical_ingredient_id,
-                      })),
-                  }))
-                  .filter(og => og.options.length > 0);
-                return {
-                  name: d.name.trim(),
-                  price: parseFloat(d.price) || 0,
-                  description: d.description.trim() || undefined,
-                  dietary_tags: d.dietary_tags,
-                  spice_level: d.spice_level,
-                  calories: d.calories,
-                  dish_category_id: d.dish_category_id,
-                  canonical_ingredient_ids: ingredientIds,
-                  ...(optionGroups.length > 0 ? { option_groups: optionGroups } : {}),
-                };
-              }),
-          }))
-          .filter(cat => cat.dishes.length > 0),
-      }))
-      .filter(menu => menu.categories.length > 0),
-  };
-}
+// buildConfirmPayload is now imported from @/lib/menu-scan
 
 // ---------------------------------------------------------------------------
 // Confidence badge
@@ -307,6 +252,18 @@ export default function MenuScanPage() {
     ingIdx: number;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // ---------- flagged duplicates from merge ----------
+  const [flaggedDuplicates, setFlaggedDuplicates] = useState<FlaggedDuplicate[]>([]);
+
+  // ---------- batch toolbar / group review state ----------
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
+  const [batchFilters, setBatchFilters] = useState<BatchFilters>({
+    confidenceMin: null,
+    dishKind: null,
+    hasGrouping: null,
+  });
+  const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
 
   // ---------- quick-add restaurant ----------
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -505,6 +462,7 @@ export default function MenuScanPage() {
       setCurrency(data.currency ?? 'USD');
       setEditableMenus(menus);
       setExpandedDishes(autoExpanded);
+      setFlaggedDuplicates(data.flaggedDuplicates ?? []);
       setCurrentImageIdx(0);
       setStep('review');
       toast.success(`Extracted ${data.dishCount} dishes — please review`);
@@ -558,9 +516,9 @@ export default function MenuScanPage() {
       }
 
       const payload: ConfirmPayload = buildConfirmPayload(
+        editableMenus,
         jobId,
-        selectedRestaurant.id,
-        editableMenus
+        selectedRestaurant.id
       );
 
       const response = await fetch('/api/menu-scan/confirm', {
@@ -1136,6 +1094,271 @@ export default function MenuScanPage() {
     });
   };
 
+  // ---------- group management helpers ----------
+
+  /** Update a dish by its _id anywhere in the menus. */
+  const updateDishById = (dishId: string, updates: Partial<EditableDish>) => {
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => (d._id === dishId ? { ...d, ...updates } : d)),
+        })),
+      }))
+    );
+  };
+
+  /** Accept a variant group (parent + children) */
+  const acceptGroup = (parentId: string) => {
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            if (d._id === parentId || d.parent_id === parentId) {
+              return { ...d, group_status: 'accepted' as const };
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    toast.success('Group accepted');
+  };
+
+  /** Reject a variant group */
+  const rejectGroup = (parentId: string) => {
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            if (d._id === parentId || d.parent_id === parentId) {
+              return { ...d, group_status: 'rejected' as const };
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    toast('Group rejected', { icon: '✕' });
+  };
+
+  /** Ungroup a child from its parent */
+  const ungroupChild = (childId: string) => {
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            if (d._id === childId) {
+              return { ...d, parent_id: null, is_parent: false, group_status: 'manual' as const };
+            }
+            // Remove from parent's variant_ids
+            if (d.variant_ids.includes(childId)) {
+              const newVariantIds = d.variant_ids.filter(id => id !== childId);
+              return {
+                ...d,
+                variant_ids: newVariantIds,
+                // If no variants left, demote parent to standalone
+                is_parent: newVariantIds.length > 0,
+              };
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    toast('Variant ungrouped');
+  };
+
+  /** Group a flagged duplicate pair as parent-child variants */
+  const groupFlaggedDuplicate = (dupIndex: number) => {
+    const dup = flaggedDuplicates[dupIndex];
+    if (!dup) return;
+
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            // Find the existing dish (lower price becomes parent)
+            if (d.name.toLowerCase().trim() === dup.existingDish.name.toLowerCase().trim()) {
+              if (d.price === String(dup.existingDish.price)) {
+                // This is the existing one — make it parent
+                return {
+                  ...d,
+                  is_parent: true,
+                  dish_kind: 'standard' as const,
+                  display_price_prefix: 'from' as const,
+                  group_status: 'manual' as const,
+                };
+              }
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    setFlaggedDuplicates(prev => prev.filter((_, i) => i !== dupIndex));
+    toast.success('Dishes grouped as variants');
+  };
+
+  /** Dismiss a flagged duplicate */
+  const dismissFlaggedDuplicate = (dupIndex: number) => {
+    setFlaggedDuplicates(prev => prev.filter((_, i) => i !== dupIndex));
+  };
+
+  /** Get all parent dishes and their children across all menus */
+  const getParentGroups = useCallback((): Array<{
+    parent: EditableDish;
+    children: EditableDish[];
+    menuIdx: number;
+    catIdx: number;
+  }> => {
+    const groups: Array<{
+      parent: EditableDish;
+      children: EditableDish[];
+      menuIdx: number;
+      catIdx: number;
+    }> = [];
+
+    editableMenus.forEach((menu, mIdx) => {
+      menu.categories.forEach((cat, cIdx) => {
+        cat.dishes.forEach(dish => {
+          if (dish.is_parent) {
+            const children = cat.dishes.filter(d => d.parent_id === dish._id);
+            groups.push({ parent: dish, children, menuIdx: mIdx, catIdx: cIdx });
+          }
+        });
+      });
+    });
+
+    return groups;
+  }, [editableMenus]);
+
+  /** Batch accept all groups above a confidence threshold */
+  const acceptHighConfidence = (threshold: number) => {
+    let count = 0;
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            if (d.is_parent && d.confidence >= threshold && d.group_status === 'ai_proposed') {
+              count++;
+              return { ...d, group_status: 'accepted' as const };
+            }
+            if (d.parent_id) {
+              const parent = c.dishes.find(p => p._id === d.parent_id);
+              if (parent && parent.confidence >= threshold && parent.group_status === 'ai_proposed') {
+                return { ...d, group_status: 'accepted' as const };
+              }
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    if (count > 0) toast.success(`Accepted ${count} high-confidence group(s)`);
+    else toast.info('No unreviewed high-confidence groups found');
+  };
+
+  /** Batch accept selected groups */
+  const acceptSelected = () => {
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            if (selectedGroupIds.has(d._id) || (d.parent_id && selectedGroupIds.has(d.parent_id))) {
+              return { ...d, group_status: 'accepted' as const };
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    toast.success(`Accepted ${selectedGroupIds.size} group(s)`);
+    setSelectedGroupIds(new Set());
+  };
+
+  /** Batch reject selected groups */
+  const rejectSelected = () => {
+    setEditableMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => ({
+          ...c,
+          dishes: c.dishes.map(d => {
+            if (selectedGroupIds.has(d._id) || (d.parent_id && selectedGroupIds.has(d.parent_id))) {
+              return { ...d, group_status: 'rejected' as const };
+            }
+            return d;
+          }),
+        })),
+      }))
+    );
+    toast('Rejected selected groups', { icon: '✕' });
+    setSelectedGroupIds(new Set());
+  };
+
+  /** Count reviewed groups */
+  const reviewedGroupCount = editableMenus.reduce(
+    (total, menu) =>
+      total +
+      menu.categories.reduce(
+        (sum, cat) =>
+          sum +
+          cat.dishes.filter(d => d.is_parent && (d.group_status === 'accepted' || d.group_status === 'rejected')).length,
+        0
+      ),
+    0
+  );
+
+  const totalGroupCount = editableMenus.reduce(
+    (total, menu) =>
+      total +
+      menu.categories.reduce(
+        (sum, cat) => sum + cat.dishes.filter(d => d.is_parent).length,
+        0
+      ),
+    0
+  );
+
+  // ---------- keyboard shortcuts for group review (A/R/E) ----------
+  useEffect(() => {
+    if (step !== 'review' || !focusedGroupId) return;
+
+    const handler = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        acceptGroup(focusedGroupId);
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        rejectGroup(focusedGroupId);
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        // Toggle expand for the focused group's parent
+        toggleExpand(focusedGroupId);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [step, focusedGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const resetAll = () => {
     setStep('upload');
     setSelectedRestaurant(null);
@@ -1145,6 +1368,9 @@ export default function MenuScanPage() {
     setJobId('');
     setEditableMenus([]);
     setExpandedDishes(new Set());
+    setSelectedGroupIds(new Set());
+    setFocusedGroupId(null);
+    setBatchFilters({ confidenceMin: null, dishKind: null, hasGrouping: null });
     setSavedCount(0);
     setProcessingError('');
     setRestaurantDetails({
@@ -1812,6 +2038,38 @@ export default function MenuScanPage() {
               </button>
             </div>
           )}
+          {/* BatchToolbar for group review */}
+          {totalGroupCount > 0 && (
+            <BatchToolbar
+              totalGroups={totalGroupCount}
+              reviewedCount={reviewedGroupCount}
+              selectedIds={selectedGroupIds}
+              onAcceptAll={() => acceptHighConfidence(0)}
+              onAcceptHighConfidence={acceptHighConfidence}
+              onAcceptSelected={acceptSelected}
+              onRejectSelected={rejectSelected}
+              filters={batchFilters}
+              onFiltersChange={setBatchFilters}
+            />
+          )}
+
+          {/* Flagged duplicates from multi-page merge */}
+          {flaggedDuplicates.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-medium text-amber-700 px-1">
+                {flaggedDuplicates.length} potential variant{flaggedDuplicates.length !== 1 ? 's' : ''} detected
+              </h3>
+              {flaggedDuplicates.map((dup, i) => (
+                <FlaggedDuplicateCard
+                  key={i}
+                  duplicate={dup}
+                  onGroupTogether={() => groupFlaggedDuplicate(i)}
+                  onKeepSeparate={() => dismissFlaggedDuplicate(i)}
+                />
+              ))}
+            </div>
+          )}
+
           {editableMenus.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400 space-y-3">
               <AlertTriangle className="h-10 w-10" />
@@ -1888,6 +2146,41 @@ export default function MenuScanPage() {
                       {/* Dishes */}
                       <div className="space-y-2">
                         {cat.dishes.map((dish, dIdx) => {
+                          // Skip children — they render inside their parent's DishGroupCard
+                          if (dish.parent_id) return null;
+
+                          // Parent dishes render as DishGroupCard
+                          if (dish.is_parent) {
+                            const children = cat.dishes.filter(d => d.parent_id === dish._id);
+                            return (
+                              <div
+                                key={dish._id}
+                                onFocus={() => setFocusedGroupId(dish._id)}
+                                onClick={() => setFocusedGroupId(dish._id)}
+                              >
+                                <DishGroupCard
+                                  parent={dish}
+                                  children={children}
+                                  onAccept={() => acceptGroup(dish._id)}
+                                  onReject={() => rejectGroup(dish._id)}
+                                  onEdit={() => toggleExpand(dish._id)}
+                                  onUngroup={ungroupChild}
+                                  onUpdateDish={updateDishById}
+                                  currency={currency}
+                                  isSelected={selectedGroupIds.has(dish._id)}
+                                  onToggleSelect={() =>
+                                    setSelectedGroupIds(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(dish._id)) next.delete(dish._id);
+                                      else next.add(dish._id);
+                                      return next;
+                                    })
+                                  }
+                                />
+                              </div>
+                            );
+                          }
+
                           const isExpanded = expandedDishes.has(dish._id);
                           const hasUnmatched = dish.ingredients.some(i => i.status === 'unmatched');
 
@@ -1965,6 +2258,69 @@ export default function MenuScanPage() {
                                     placeholder="Description (optional)"
                                     className="w-full text-sm border border-gray-200 rounded px-3 py-2 resize-none focus:outline-none focus:border-orange-400"
                                   />
+
+                                  {/* Dish kind, serves, display_price_prefix */}
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    <label className="flex items-center gap-1 text-xs text-gray-500">
+                                      Kind:
+                                      <select
+                                        value={dish.dish_kind ?? 'standard'}
+                                        onChange={e =>
+                                          updateDish(mIdx, cIdx, dIdx, {
+                                            dish_kind: e.target.value as EditableDish['dish_kind'],
+                                          })
+                                        }
+                                        className="text-xs border rounded px-1 py-0.5"
+                                      >
+                                        <option value="standard">Standard</option>
+                                        <option value="template">Template</option>
+                                        <option value="combo">Combo</option>
+                                        <option value="experience">Experience</option>
+                                      </select>
+                                    </label>
+                                    <label className="flex items-center gap-1 text-xs text-gray-500">
+                                      Serves:
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={dish.serves ?? 1}
+                                        onChange={e =>
+                                          updateDish(mIdx, cIdx, dIdx, {
+                                            serves: parseInt(e.target.value) || 1,
+                                          })
+                                        }
+                                        className="w-12 text-xs border rounded px-1 py-0.5 text-center"
+                                      />
+                                    </label>
+                                    <label className="flex items-center gap-1 text-xs text-gray-500">
+                                      Price:
+                                      <select
+                                        value={dish.display_price_prefix ?? 'exact'}
+                                        onChange={e =>
+                                          updateDish(mIdx, cIdx, dIdx, {
+                                            display_price_prefix: e.target.value as EditableDish['display_price_prefix'],
+                                          })
+                                        }
+                                        className="text-xs border rounded px-1 py-0.5"
+                                      >
+                                        <option value="exact">Exact</option>
+                                        <option value="from">From</option>
+                                        <option value="per_person">Per person</option>
+                                        <option value="market_price">Market price</option>
+                                        <option value="ask_server">Ask server</option>
+                                      </select>
+                                    </label>
+                                    {dish.is_parent && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                        Parent ({dish.variant_ids?.length ?? 0} variants)
+                                      </span>
+                                    )}
+                                    {dish.parent_id && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                        Variant
+                                      </span>
+                                    )}
+                                  </div>
 
                                   {/* Dietary tags */}
                                   {dietaryTags.length > 0 && (

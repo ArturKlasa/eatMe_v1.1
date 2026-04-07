@@ -209,6 +209,7 @@ function BasicInfoPageContent() {
           accepts_reservations: false,
           payment_methods: 'cash_and_card' as const,
         };
+      }
       const savedData = loadRestaurantData(user.id);
 
       if (savedData) {

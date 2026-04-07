@@ -100,7 +100,8 @@ export const dishSchema = z.object({
   is_available: z.boolean().optional(),
   description_visibility: z.enum(['menu', 'detail']).optional(),
   ingredients_visibility: z.enum(['menu', 'detail', 'none']).optional(),
-  dish_kind: z.enum(['standard', 'template', 'experience']).default('standard'),
+  dish_kind: z.enum(['standard', 'template', 'experience', 'combo']).default('standard'),
+  serves: z.number().int().min(1).default(1).optional(),
   display_price_prefix: z
     .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
     .default('exact'),
@@ -155,6 +156,6 @@ export const restaurantDataSchema = z.object({
 
 export type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
 export type OperationsFormData = z.infer<typeof operationsSchema>;
-export type DishFormData = z.infer<typeof dishSchema>;
+export type DishFormData = z.input<typeof dishSchema>;
 export type MenuFormData = z.infer<typeof menuSchema>;
 export type RestaurantDataFormData = z.infer<typeof restaurantDataSchema>;

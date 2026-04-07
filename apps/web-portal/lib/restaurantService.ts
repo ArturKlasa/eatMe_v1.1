@@ -171,7 +171,7 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
       payment_methods:
         (restaurant.payment_methods as 'cash_only' | 'card_only' | 'cash_and_card') ?? undefined,
     },
-    menus: ((restaurant.menus ?? []) as RawMenu[]).map(menu => ({
+    menus: (((restaurant.menus ?? []) as RawMenu[]).map(menu => ({
       id: menu.id,
       name: menu.name,
       description: menu.description ?? undefined,
@@ -195,10 +195,10 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
             })),
         }))
       ),
-    })),
-    dishes: ((restaurant.menus ?? []) as RawMenu[]).flatMap(m =>
+    })) as import('@/types/restaurant').Menu[]),
+    dishes: (((restaurant.menus ?? []) as RawMenu[]).flatMap(m =>
       ((m.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])
-    ),
+    ) as import('@/types/restaurant').Dish[]),
     currentStep: 3,
   };
 }
@@ -229,7 +229,7 @@ export async function getRestaurantWithMenus(
     menu_type: (menu.menu_type ?? 'food') as 'food' | 'drink',
     is_active: menu.is_active ?? true,
     display_order: menu.display_order ?? 0,
-    dishes: ((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? []),
+    dishes: (((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])) as import('@/types/restaurant').Dish[],
   }));
 
   return { id: restaurant.id, menus };

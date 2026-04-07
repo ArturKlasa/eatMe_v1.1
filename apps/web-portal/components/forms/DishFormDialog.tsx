@@ -117,6 +117,7 @@ export function DishFormDialog({
       ingredients_visibility: 'detail' as const,
       dish_kind: 'standard' as const,
       display_price_prefix: 'exact' as const,
+      serves: 1,
       option_groups: [],
     },
   });
@@ -155,13 +156,14 @@ export function DishFormDialog({
         dish_category_id: dish.dish_category_id ?? null,
         description_visibility: dish.description_visibility ?? 'menu',
         ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-        dish_kind: (dish.dish_kind ?? 'standard') as 'standard' | 'template' | 'experience',
+        dish_kind: (dish.dish_kind ?? 'standard') as 'standard' | 'template' | 'experience' | 'combo',
         display_price_prefix: (dish.display_price_prefix ?? 'exact') as
           | 'exact'
           | 'from'
           | 'per_person'
           | 'market_price'
           | 'ask_server',
+        serves: dish.serves ?? 1,
         option_groups: [],
       });
 
@@ -180,7 +182,7 @@ export function DishFormDialog({
                   options: (g.options ?? []).sort(
                     (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
                   ),
-                }))
+                })) as OptionGroup[]
               );
             } else {
               setOptionGroups([]);
@@ -216,8 +218,8 @@ export function DishFormDialog({
                   id: string;
                   canonical_name: string;
                   ingredient_family_name: string | null;
-                  is_vegetarian: boolean;
-                  is_vegan: boolean;
+                  is_vegetarian: boolean | null;
+                  is_vegan: boolean | null;
                   ingredient_aliases: Array<{ id: string; display_name: string }>;
                 } | null;
               };
@@ -231,8 +233,8 @@ export function DishFormDialog({
                   canonical_name: row.canonical_ingredient?.canonical_name,
                   ingredient_family_name:
                     row.canonical_ingredient?.ingredient_family_name ?? undefined,
-                  is_vegetarian: row.canonical_ingredient?.is_vegetarian,
-                  is_vegan: row.canonical_ingredient?.is_vegan,
+                  is_vegetarian: row.canonical_ingredient?.is_vegetarian ?? undefined,
+                  is_vegan: row.canonical_ingredient?.is_vegan ?? undefined,
                   quantity: row.quantity ?? undefined,
                 };
               });
@@ -297,6 +299,7 @@ export function DishFormDialog({
         ingredients_visibility: data.ingredients_visibility ?? 'detail',
         dish_kind: data.dish_kind ?? 'standard',
         display_price_prefix: data.display_price_prefix ?? 'exact',
+        serves: data.serves ?? 1,
         option_groups: optionGroups,
         // carry selectedIngredients for linking later during final submission
         ...(selectedIngredients.length > 0 ? { selectedIngredients } : {}),
@@ -325,6 +328,7 @@ export function DishFormDialog({
         ingredients_visibility: data.ingredients_visibility ?? 'detail',
         dish_kind: data.dish_kind ?? 'standard',
         display_price_prefix: data.display_price_prefix ?? 'exact',
+        serves: data.serves ?? 1,
       };
 
       let dishId: string;
@@ -730,6 +734,23 @@ export function DishFormDialog({
                 )}
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Serves */}
+              <div>
+                <Label htmlFor="serves" className="mb-2 block">
+                  Serves (people)
+                </Label>
+                <Input
+                  id="serves"
+                  type="number"
+                  min="1"
+                  step="1"
+                  {...register('serves', { valueAsNumber: true })}
+                  placeholder="1"
+                />
+              </div>
+            </div>
           </div>
 
           <Separator />
@@ -987,8 +1008,8 @@ export function DishFormDialog({
             </div>
           </div>
 
-          {/* Display Price Prefix — only shown for template/experience */}
-          {(dishKind === 'template' || dishKind === 'experience') && (
+          {/* Display Price Prefix — shown for all dish kinds */}
+          {(dishKind === 'template' || dishKind === 'experience' || dishKind === 'combo' || dishKind === 'standard') && (
             <>
               <Separator />
               <div className="space-y-4">

@@ -9,12 +9,12 @@ import { supabase } from '@/lib/supabase';
 interface Restaurant {
   id: string;
   name: string;
-  address: string;
-  cuisine_types: string[];
-  is_active: boolean;
+  address: string | null;
+  cuisine_types: string[] | null;
+  is_active: boolean | null;
   menuCount: number;
   dishCount: number;
-  created_at: string;
+  created_at: string | null;
   suspended_at?: string | null;
   suspension_reason?: string | null;
 }
@@ -150,14 +150,14 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                   <div>
                     <p className="font-medium text-gray-900">{restaurant.name}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(restaurant.created_at).toLocaleDateString()}
+                      {restaurant.created_at ? new Date(restaurant.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">{restaurant.address}</td>
                 <td className="px-6 py-4">
                   <div className="flex flex-wrap gap-1">
-                    {restaurant.cuisine_types.slice(0, 2).map(cuisine => (
+                    {(restaurant.cuisine_types ?? []).slice(0, 2).map(cuisine => (
                       <span
                         key={cuisine}
                         className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
@@ -165,9 +165,9 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                         {cuisine}
                       </span>
                     ))}
-                    {restaurant.cuisine_types.length > 2 && (
+                    {(restaurant.cuisine_types ?? []).length > 2 && (
                       <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                        +{restaurant.cuisine_types.length - 2}
+                        +{(restaurant.cuisine_types?.length ?? 0) - 2}
                       </span>
                     )}
                   </div>
@@ -210,7 +210,7 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                       <Edit className="h-4 w-4" />
                     </Link>
                     <button
-                      onClick={() => handleSuspend(restaurant.id, restaurant.is_active)}
+                      onClick={() => handleSuspend(restaurant.id, restaurant.is_active ?? true)}
                       className={`p-2 rounded ${
                         restaurant.is_active
                           ? 'text-yellow-600 hover:bg-yellow-50'

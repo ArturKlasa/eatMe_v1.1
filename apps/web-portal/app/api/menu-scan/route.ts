@@ -1,101 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { zodResponseFormat } from 'openai/helpers/zod';
+import { z } from 'zod';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
 import {
   mergeExtractionResults,
   mapDietaryHints,
   getCurrencyForRestaurant,
   type RawExtractionResult,
+  type RawExtractedDish,
   type MatchedIngredient,
   type EnrichedResult,
   type EnrichedMenu,
   type EnrichedCategory,
   type EnrichedDish,
+  type FlaggedDuplicate,
 } from '@/lib/menu-scan';
 
 // ---------------------------------------------------------------------------
-// GPT-4o Vision system prompt
+// Zod schema for Structured Outputs (GPT-4o Vision)
 // ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `You are a menu data extraction specialist. Analyze the restaurant menu image and extract all dishes into structured JSON.
+const DishSchema: z.ZodType<unknown> = z.lazy(() =>
+  z.object({
+    name: z.string(),
+    price: z.number().nullable(),
+    description: z.string().nullable(),
+    raw_ingredients: z.array(z.string()).nullable(),
+    dietary_hints: z.array(z.string()),
+    spice_level: z.union([z.literal(0), z.literal(1), z.literal(3)]).nullable(),
+    calories: z.number().nullable(),
+    confidence: z.number(),
+    is_parent: z.boolean(),
+    dish_kind: z.enum(['standard', 'template', 'combo', 'experience']),
+    serves: z.number().nullable(),
+    display_price_prefix: z.enum(['exact', 'from', 'per_person', 'market_price', 'ask_server']),
+    variants: z.array(DishSchema).nullable(),
+  })
+);
+
+const MenuExtractionSchema = z.object({
+  menus: z.array(
+    z.object({
+      name: z.string().nullable(),
+      menu_type: z.enum(['food', 'drink']),
+      categories: z.array(
+        z.object({
+          name: z.string().nullable(),
+          dishes: z.array(DishSchema),
+        })
+      ),
+    })
+  ),
+});
+
+// ---------------------------------------------------------------------------
+// GPT-4o Vision system prompt — decision tree + few-shot examples
+// ---------------------------------------------------------------------------
+
+const SYSTEM_PROMPT = `You are a menu data extraction specialist. Analyze the restaurant menu image and extract all dishes into structured JSON matching the provided schema.
 
 STRICT RULES:
-1. Return ONLY valid JSON matching the schema below. No prose, no markdown fences.
-2. Do NOT hallucinate. If a field is not clearly visible, set it to null.
-3. Do NOT extract or guess currency. Omit currency entirely.
-4. DEFAULT: output exactly ONE food menu (menu_type: "food") and at most ONE drink menu (menu_type: "drink"). Most restaurants have a single menu.
+1. Do NOT hallucinate. If a field is not clearly visible, set it to null.
+2. Do NOT extract or guess currency. Omit currency entirely.
+3. DEFAULT: output exactly ONE food menu (menu_type: "food") and at most ONE drink menu (menu_type: "drink").
    - Time-of-day labels (Desayunos, Comidas, Cenas, Breakfast, Lunch, Dinner, Brunch) → use as CATEGORY name, NOT a separate menu.
-   - Course labels (Entradas, Sopas, Ensaladas, Platos Fuertes, Platos Principales, Pastas, Postres, Sides) → use as CATEGORY name.
-   - Only create a second food menu when the physical document is explicitly a separate titled menu (e.g. "Menú de Degustación", "Kids Menu", "Seasonal Menu") with its own branding/cover.
-5. All section and sub-section headers inside a food menu — time-of-day AND course headers — go as category "name" under that single food menu.
-6. If no section headers exist, set name to null for menus and/or categories.
-7. Detect dietary symbols and words:
-   - V, (V), "vegetariano/a" → dietary_hints: ["vegetarian"]
-   - VG, (VG), "vegano/a" → dietary_hints: ["vegan"]
-   - GF, "sin gluten", "gluten-free" → dietary_hints: ["gluten_free"]
-   - H, "halal" → dietary_hints: ["halal"]
-   - K, "kosher" → dietary_hints: ["kosher"]
-8. Detect spice indicators (🌶, "picante", "spicy", ★) → spice_level: 1 for mild/single indicator, 3 for very spicy/multiple indicators. Use null (no indicator) or 0 (explicitly non-spicy) otherwise.
-9. Extract ingredients ONLY when explicitly listed on the menu (typically in parentheses after the dish name). If not listed, set raw_ingredients to null.
-10. confidence: 1.0 = perfectly legible text, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
-11. Menus may be in Spanish or English. Keep all names in their original language.
-12. For "menu_type": use "drink" for a clearly separate beverage section/page (Bebidas, Drinks, Cocktails, Vinos, Carta de Vinos). A "Bebidas" column or small section at the bottom of a food page → add as a category inside the food menu (menu_type: "food"), not a separate drink menu. Only use menu_type: "drink" when drinks occupy their own dedicated page or section with a clear header.
-13. PARENT-CHILD VARIANT DETECTION: When a dish has a "choose your protein/base/main" pattern — i.e., one base concept with multiple protein or main-ingredient options at different prices/allergen profiles — model it as a PARENT dish with VARIANTS:
-    - is_parent: true on the base concept (e.g. "Poke Bowl"), price: 0, dish_kind = "template" | "combo" | "experience"
-    - Each protein/main option becomes a VARIANT dish with a descriptive name (e.g. "Poke Bowl — Salmon"), its own price, dietary_hints, and raw_ingredients
-    - variants is an array of variant dishes nested under the parent in the output
-    - DO NOT use this pattern for simple add-ons, sides, or size variations — keep those as regular dishes with option groups
-    - EXAMPLES of primary dimension patterns: "Poke Bowl (choose: Salmon / Tofu / Shrimp)", "Lunch Combo — choose your main", "Buffet / Build-Your-Own" with named protein options at different prices, all-you-can-eat with dietary profile tracks (Seafood / Vegetarian)
-    - If unsure, default to a regular single dish (is_parent: false, no variants)
+   - Course labels (Entradas, Sopas, Ensaladas, Platos Fuertes, Pastas, Postres, Sides) → use as CATEGORY name.
+   - Only create a second food menu when the physical document is explicitly a separate titled menu (e.g. "Menú de Degustación", "Kids Menu") with its own branding/cover.
+4. All section and sub-section headers inside a food menu go as category "name" under that single food menu.
+5. If no section headers exist, set name to null for menus and/or categories.
+6. Detect dietary symbols: V/vegetariano/a → ["vegetarian"], VG/vegano/a → ["vegan"], GF/sin gluten → ["gluten_free"], H/halal → ["halal"], K/kosher → ["kosher"].
+7. Detect spice indicators (🌶, "picante", "spicy") → spice_level: 1 (mild) or 3 (very spicy). null = no indicator, 0 = explicitly non-spicy.
+8. Extract ingredients ONLY when explicitly listed on the menu. If not listed, set raw_ingredients to null.
+9. confidence: 1.0 = perfectly legible, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
+10. Keep all names in their original language (Spanish, English, etc.).
+11. For "menu_type": use "drink" only for a clearly separate beverage page/section. A "Bebidas" subsection at the bottom of a food page → category inside the food menu.
 
-JSON SCHEMA (return exactly this structure):
-{
-  "menus": [
-    {
-      "name": string | null,
-      "menu_type": "food" | "drink",
-      "categories": [
-        {
-          "name": string | null,
-          "dishes": [
-            {
-              "name": string,
-              "price": number | null,
-              "description": string | null,
-              "raw_ingredients": string[] | null,
-              "dietary_hints": string[],
-              "spice_level": 0 | 1 | 3 | null,
-              "calories": number | null,
-              "confidence": number,
-              "is_parent": boolean,
-              "dish_kind": "standard" | "template" | "combo" | "experience",
-              "variants": [
-                {
-                  "name": string,
-                  "price": number | null,
-                  "description": string | null,
-                  "raw_ingredients": string[] | null,
-                  "dietary_hints": string[],
-                  "spice_level": 0 | 1 | 3 | null,
-                  "calories": number | null,
-                  "confidence": number,
-                  "is_parent": false,
-                  "dish_kind": "standard" | "template" | "combo" | "experience"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+DISH PATTERN DETECTION — apply in this priority order:
+1. TEMPLATE (build-your-own): "Choose your protein/base", "Build your bowl", "Pick a base" → dish_kind="template", is_parent=true, display_price_prefix="from", variants[] = each option as a child dish.
+2. COMBO/BUNDLE: "Lunch combo", "Set menu", "Includes X + Y + Z", fixed meal deal → dish_kind="combo", is_parent=true, variants[] = included items.
+3. EXPERIENCE: "All-you-can-eat", "Hot pot", "BBQ", "Tasting menu", per-person pricing → dish_kind="experience", is_parent=true, display_price_prefix="per_person", serves=number of people.
+4. SIZE VARIANTS: S/M/L, "Small/Regular/Large", "Chico/Mediano/Grande" → dish_kind="standard", is_parent=true, display_price_prefix="from", variants[] = each size with its price.
+5. MARKET PRICE: "MP", "Market price", "Precio de mercado" → price=null, display_price_prefix="market_price".
+6. FAMILY/SHARING: "For 2-3", "Para compartir", "Feeds 4" → serves=N (number of people), dish_kind="standard".
+7. STANDARD: everything else → dish_kind="standard", is_parent=false, serves=1, display_price_prefix="exact".
 
-NOTES on new fields:
-- "is_parent": true only for display-only container dishes; false (default) for all other dishes.
-- "dish_kind": default "standard". Use "template" for build-your-own/choose-protein patterns, "combo" for lunch combos/meal deals, "experience" for buffets/all-you-can-eat.
-- "variants": only present on parent dishes (is_parent: true). Omit or set to [] for regular dishes.
-- For regular dishes (is_parent: false, no variants), you may omit is_parent, dish_kind (defaults to "standard"), and variants entirely.`;
+PARENT-CHILD RULES:
+- Parent: is_parent=true, price=0 (display-only container), variants[] = child dishes.
+- Each child: is_parent=false, its own price, dietary_hints, raw_ingredients.
+- If unsure, default to standard single dish (is_parent=false, no variants).
+
+SERVES FIELD: Number of people this dish feeds. Default 1. Set higher for sharing/family plates.
+DISPLAY_PRICE_PREFIX: How the price is displayed — "exact" (default), "from" (starting at), "per_person", "market_price", "ask_server".
+
+MULTI-PAGE NOTE: This menu may be extracted across multiple pages. Each page is processed independently. Categories will be merged later, so use consistent category names across pages.
+
+FEW-SHOT EXAMPLES:
+
+Example 1 — Standard dishes:
+Menu showing "Tacos" section with "Taco al Pastor $45" and "Taco de Bistec $50":
+→ Two standard dishes: dish_kind="standard", is_parent=false, serves=1, display_price_prefix="exact"
+
+Example 2 — Template with variants:
+Menu showing "Poke Bowl" with options "Salmon $189", "Tofu $159", "Shrimp $179":
+→ Parent: name="Poke Bowl", dish_kind="template", is_parent=true, price=0, display_price_prefix="from"
+→ Variants: [{name:"Poke Bowl — Salmon", price:189}, {name:"Poke Bowl — Tofu", price:159}, {name:"Poke Bowl — Shrimp", price:179}]
+
+Example 3 — Combo:
+Menu showing "Lunch Special $129 — includes soup, main course, and drink":
+→ Parent: name="Lunch Special", dish_kind="combo", is_parent=true, price=0, display_price_prefix="exact"
+→ Variants: [{name:"Lunch Special — Soup"}, {name:"Lunch Special — Main Course"}, {name:"Lunch Special — Drink"}]`;
 
 // ---------------------------------------------------------------------------
 // OpenAI client (lazy init to avoid crashing at import time if key missing)
@@ -109,154 +123,77 @@ function getOpenAIClient(): OpenAI {
 }
 
 // ---------------------------------------------------------------------------
-// Call GPT-4o Vision for a single base64-encoded image
+// Call GPT-4o Vision for a single base64-encoded image (Structured Outputs)
 // ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Attempt to repair JSON that was truncated mid-stream (finish_reason=length).
-// Strategy: find the last complete dish object, close all open arrays/objects.
-// ---------------------------------------------------------------------------
-
-function repairTruncatedJson(raw: string): string {
-  // Try progressively shorter substrings until we get valid JSON
-  // Work backwards from the end, closing at array/object boundaries
-  let s = raw.trimEnd();
-
-  // Remove trailing incomplete key-value (e.g. `,"name":`)
-  s = s.replace(/,\s*"[^"]*"\s*:\s*$/, '');
-  s = s.replace(/,\s*"[^"]*"\s*$/, '');
-
-  // Count open brackets to determine how many closers we need
-  const stack: string[] = [];
-  let inString = false;
-  let escape = false;
-
-  for (const ch of s) {
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (ch === '\\' && inString) {
-      escape = true;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-    if (ch === '{' || ch === '[') stack.push(ch);
-    else if (ch === '}' || ch === ']') stack.pop();
-  }
-
-  // Remove trailing comma before we close
-  s = s.replace(/,\s*$/, '');
-
-  // Close all open structures in reverse order
-  for (let i = stack.length - 1; i >= 0; i--) {
-    s += stack[i] === '{' ? '}' : ']';
-  }
-
-  return s;
-}
-
-// ---------------------------------------------------------------------------
-// Parse the raw GPT string, attempting repair if needed.
-// Returns null if unparseable after repair.
-// ---------------------------------------------------------------------------
-
-function parseGptResponse(raw: string): RawExtractionResult | null {
-  // Strip markdown code fences
-  const stripped = raw
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
-  // Attempt 1: parse as-is
-  try {
-    const parsed = JSON.parse(stripped);
-    if (Array.isArray(parsed.menus)) return parsed as RawExtractionResult;
-    // GPT wrapped the array in a different key
-    const firstArray = Object.values(parsed).find(Array.isArray);
-    if (firstArray) return { menus: firstArray as RawExtractionResult['menus'] };
-    return { menus: [] };
-  } catch {
-    // fall through to repair
-  }
-
-  // Attempt 2: repair truncated JSON
-  try {
-    const repaired = repairTruncatedJson(stripped);
-    const parsed = JSON.parse(repaired);
-    if (Array.isArray(parsed.menus)) return parsed as RawExtractionResult;
-    const firstArray = Object.values(parsed).find(Array.isArray);
-    if (firstArray) return { menus: firstArray as RawExtractionResult['menus'] };
-    return { menus: [] };
-  } catch {
-    return null;
-  }
-}
 
 async function extractMenuFromImage(
   openai: OpenAI,
   base64Data: string,
   mimeType: string
 ): Promise<RawExtractionResult> {
-  const callApi = (maxTokens: number) =>
-    openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:${mimeType};base64,${base64Data}`, detail: 'high' },
-            },
-            {
-              type: 'text',
-              text: 'Extract all dishes from this menu image. Return only the JSON.',
-            },
-          ],
-        },
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: maxTokens,
-    });
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${base64Data}`, detail: 'high' },
+          },
+          {
+            type: 'text',
+            text: 'Extract all dishes from this menu image.',
+          },
+        ],
+      },
+    ],
+    response_format: zodResponseFormat(MenuExtractionSchema, 'menu_extraction'),
+    max_tokens: 16384,
+  });
 
-  // First attempt with full token budget
-  let completion = await callApi(16384);
-  let choice = completion.choices[0];
-  let content = choice?.message?.content ?? '';
+  const choice = completion.choices[0];
 
   if (choice.finish_reason === 'length') {
-    console.warn('[MenuScan] GPT-4o truncated (finish_reason=length) — attempting repair');
+    console.warn('[MenuScan] GPT-4o truncated (finish_reason=length) — response may be incomplete');
   }
 
-  let result = parseGptResponse(content);
-
-  // If still null, retry once with reduced detail to get a shorter response
-  if (!result) {
-    console.warn('[MenuScan] Parse failed on first attempt — retrying with lower detail');
-    completion = await callApi(16384);
-    choice = completion.choices[0];
-    content = choice?.message?.content ?? '';
-    result = parseGptResponse(content);
+  const content = choice?.message?.content;
+  if (!content) {
+    throw new Error('GPT-4o returned empty response');
   }
 
-  if (!result) {
-    console.error(
-      '[MenuScan] Both attempts failed. finish_reason:',
-      choice.finish_reason,
-      '— raw (first 1000):',
-      content.slice(0, 1000)
-    );
-    throw new Error('GPT-4o returned invalid JSON');
+  // Structured Outputs guarantees valid JSON matching the schema
+  const parsed = JSON.parse(content) as RawExtractionResult;
+
+  // Apply defaults for fields GPT may have set to null within valid schema
+  for (const menu of parsed.menus) {
+    for (const cat of menu.categories) {
+      for (const dish of cat.dishes) {
+        applyDishDefaults(dish);
+      }
+    }
   }
 
-  return result;
+  return parsed;
+}
+
+/** Apply sensible defaults for optional fields. */
+function applyDishDefaults(dish: RawExtractedDish): void {
+  if (!dish.dish_kind) dish.dish_kind = 'standard';
+  if (dish.is_parent === undefined || dish.is_parent === null) dish.is_parent = false;
+  if (!dish.display_price_prefix) dish.display_price_prefix = 'exact';
+  if (dish.serves === undefined) dish.serves = null;
+  if (!dish.variants) dish.variants = null;
+
+  // Recursively apply to variants
+  if (dish.variants) {
+    for (const variant of dish.variants) {
+      applyDishDefaults(variant);
+      variant.is_parent = false; // variants are never parents
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -276,11 +213,14 @@ async function queryAlias(
   const SELECT =
     'id, display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
 
+  // Escape ILIKE metacharacters to prevent wildcard injection
+  const escapedTerm = term.replace(/[%_\\]/g, c => `\\${c}`);
+
   // Exact match
   const { data: exact } = await supabase
     .from('ingredient_aliases')
     .select(SELECT)
-    .ilike('display_name', term)
+    .ilike('display_name', escapedTerm)
     .limit(1);
 
   if (exact && exact.length > 0) return exact[0] as unknown as AliasRow;
@@ -289,7 +229,7 @@ async function queryAlias(
   const { data: partial } = await supabase
     .from('ingredient_aliases')
     .select(SELECT)
-    .ilike('display_name', `%${term}%`)
+    .ilike('display_name', `%${escapedTerm}%`)
     .limit(1);
 
   return partial && partial.length > 0 ? (partial[0] as unknown as AliasRow) : null;
@@ -297,8 +237,6 @@ async function queryAlias(
 
 // ---------------------------------------------------------------------------
 // Batch-translate non-English ingredient names using GPT-4o-mini.
-// Returns a map of original → English translation.
-// Only called when terms remain unmatched after the DB lookup.
 // ---------------------------------------------------------------------------
 
 async function translateIngredients(
@@ -327,9 +265,7 @@ async function translateIngredients(
     const content = response.choices[0]?.message?.content;
     if (!content) return {};
 
-    // GPT returns { "original": "english", ... } — wrap in a container key if needed
     const parsed = JSON.parse(content) as Record<string, unknown>;
-    // Handle both { "translations": {...} } and flat { "original": "english" }
     const translations =
       typeof parsed.translations === 'object' && parsed.translations !== null
         ? (parsed.translations as Record<string, string>)
@@ -345,8 +281,7 @@ async function translateIngredients(
 }
 
 // ---------------------------------------------------------------------------
-// Persist newly discovered (translated) aliases so future scans find them
-// directly in the DB without calling the AI again.
+// Persist newly discovered (translated) aliases
 // ---------------------------------------------------------------------------
 
 async function saveNewAlias(
@@ -372,8 +307,6 @@ async function saveNewAlias(
 
 // ---------------------------------------------------------------------------
 // Match raw ingredient strings against ingredient_aliases in the DB.
-// Falls back to AI batch-translation for unmatched terms, then saves
-// new aliases so the DB grows over time and AI is called less often.
 // ---------------------------------------------------------------------------
 
 async function matchIngredients(
@@ -417,7 +350,7 @@ async function matchIngredients(
 
     const trimmed = r.raw_text.trim();
     const englishName = translations[trimmed];
-    if (!englishName || englishName === trimmed) continue; // no useful translation
+    if (!englishName || englishName === trimmed) continue;
 
     const alias = await queryAlias(englishName, supabase);
     if (alias) {
@@ -429,11 +362,8 @@ async function matchIngredients(
         display_name: alias.display_name,
       };
 
-      // Persist the original (non-English) term as a new alias so next time
-      // it's found directly in the DB without calling the AI.
       void saveNewAlias(trimmed, 'es', alias.canonical_ingredient_id, supabase);
     }
-    // If still no match after translation: leave as 'unmatched' — user resolves manually
   }
 
   return results;
@@ -442,6 +372,36 @@ async function matchIngredients(
 // ---------------------------------------------------------------------------
 // Enrich a raw extraction result with ingredient matches + dietary tag codes
 // ---------------------------------------------------------------------------
+
+async function enrichDish(
+  dish: RawExtractedDish,
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  openai: OpenAI
+): Promise<EnrichedDish> {
+  const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai);
+
+  // Normalise LLM-returned spice_level to the allowed set {0, 1, 3}.
+  const rawSpice: number | null = dish.spice_level ?? null;
+  const normalisedSpice: 0 | 1 | 3 | null =
+    rawSpice === null ? null : rawSpice <= 0 ? 0 : rawSpice <= 1 ? 1 : rawSpice === 2 ? 1 : 3;
+
+  // Recursively enrich variants
+  let enrichedVariants: EnrichedDish[] | null = null;
+  if (dish.variants && dish.variants.length > 0) {
+    enrichedVariants = [];
+    for (const variant of dish.variants) {
+      enrichedVariants.push(await enrichDish(variant, supabase, openai));
+    }
+  }
+
+  return {
+    ...dish,
+    spice_level: normalisedSpice,
+    matched_ingredients: matched,
+    mapped_dietary_tags: mapDietaryHints(dish.dietary_hints ?? []),
+    variants: enrichedVariants as RawExtractedDish[] | null,
+  };
+}
 
 async function enrichResult(
   raw: RawExtractionResult,
@@ -457,20 +417,7 @@ async function enrichResult(
       const enrichedDishes: EnrichedDish[] = [];
 
       for (const dish of cat.dishes) {
-        const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai);
-
-        // Normalise LLM-returned spice_level to the allowed set {0, 1, 3}.
-        // (LLMs may still return 2 or 4 despite the prompt.)
-        const rawSpice = dish.spice_level ?? null;
-        const normalisedSpice: 0 | 1 | 3 | null =
-          rawSpice === null ? null : rawSpice <= 0 ? 0 : rawSpice <= 1 ? 1 : rawSpice === 2 ? 1 : 3;
-
-        enrichedDishes.push({
-          ...dish,
-          spice_level: normalisedSpice,
-          matched_ingredients: matched,
-          mapped_dietary_tags: mapDietaryHints(dish.dietary_hints ?? []),
-        });
+        enrichedDishes.push(await enrichDish(dish, supabase, openai));
       }
 
       enrichedCategories.push({ name: cat.name, dishes: enrichedDishes });
@@ -525,7 +472,7 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const openai = getOpenAIClient();
 
-  // 3. Load restaurant for currency (select only guaranteed columns)
+  // 3. Load restaurant for currency
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('country_code, name')
@@ -581,8 +528,14 @@ export async function POST(request: NextRequest) {
       r.status === 'fulfilled' ? r.value : `${restaurant_id}/${job.id}/${i + 1}_${images[i].name}`
     );
 
-    // 6. Merge multi-page results
-    const merged = mergeExtractionResults(rawResults);
+    // 6. Merge multi-page results (with 3-layer fuzzy matching)
+    const { merged, flaggedDuplicates } = mergeExtractionResults(rawResults);
+
+    if (flaggedDuplicates.length > 0) {
+      console.log(
+        `[MenuScan] Flagged ${flaggedDuplicates.length} potential variant(s) from duplicate detection`
+      );
+    }
 
     // 7. Enrich with ingredient matches + dietary tag codes
     const { menus: enrichedMenus } = await enrichResult(merged, supabase, openai);
@@ -618,6 +571,7 @@ export async function POST(request: NextRequest) {
       result: fullResult,
       dishCount,
       processingMs,
+      flaggedDuplicates: flaggedDuplicates.length > 0 ? flaggedDuplicates : undefined,
     });
   } catch (error: unknown) {
     console.error('[MenuScan] Processing failed:', error);

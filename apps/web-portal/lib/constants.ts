@@ -269,6 +269,12 @@ export const DISH_KINDS = [
     description: 'Multi-course or group dining (hot pot, tasting menu…)',
     icon: '✨',
   },
+  {
+    value: 'combo' as const,
+    label: 'Combo',
+    description: 'Bundle of multiple items (burger + fries + drink)',
+    icon: '🎁',
+  },
 ] as const;
 
 /** Union of valid dish kind string values. */

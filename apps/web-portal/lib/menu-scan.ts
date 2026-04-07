@@ -5,10 +5,13 @@
 //  1. Types for the AI extraction pipeline (server + client shared)
 //  2. Pure functions for merging multi-page extraction results
 //  3. Dietary hint → dietary_tag code mapping
+//  4. Category synonym map + fuzzy matching helpers
 //
 // DB-dependent logic (ingredient matching, category lookup) lives in the
 // API route to keep this file importable without Supabase.
 // ============================================================================
+
+import { compareTwoStrings } from 'string-similarity';
 
 // ---------------------------------------------------------------------------
 // Raw AI extraction types (as returned by GPT-4o)
@@ -25,6 +28,11 @@ export interface RawExtractedDish {
   spice_level: 0 | 1 | 3 | null;
   calories: number | null;
   confidence: number;
+  is_parent: boolean;
+  dish_kind: 'standard' | 'template' | 'combo' | 'experience';
+  serves: number | null;
+  display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
+  variants: RawExtractedDish[] | null;
 }
 
 export interface RawExtractedCategory {
@@ -103,6 +111,13 @@ export interface EditableDish {
   /** AI-suggested allergen codes — informational only, not saved to DB directly.
    *  The authoritative allergens are calculated by the DB trigger from dish_ingredients. */
   suggested_allergens?: string[];
+  dish_kind: 'standard' | 'template' | 'combo' | 'experience';
+  is_parent: boolean;
+  serves: number | null;
+  display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
+  variant_ids: string[]; // _ids of child EditableDish entries
+  parent_id: string | null; // _id of parent EditableDish
+  group_status: 'ai_proposed' | 'accepted' | 'rejected' | 'manual';
 }
 
 export interface EditableCategory {
@@ -139,6 +154,11 @@ export interface ConfirmDish {
   dish_category_id?: string | null;
   canonical_ingredient_ids: string[];
   option_groups?: ConfirmOptionGroup[];
+  dish_kind: 'standard' | 'template' | 'combo' | 'experience';
+  is_parent: boolean;
+  serves: number;
+  display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
+  variant_dishes?: ConfirmDish[];
 }
 
 export interface ConfirmCategory {
@@ -180,6 +200,16 @@ export interface MenuScanJob {
 }
 
 // ---------------------------------------------------------------------------
+// Flagged duplicate (merge-detected potential variant)
+// ---------------------------------------------------------------------------
+
+export interface FlaggedDuplicate {
+  existingDish: RawExtractedDish;
+  incomingDish: RawExtractedDish;
+  categoryName: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Country code → currency mapping
 // ---------------------------------------------------------------------------
 
@@ -212,6 +242,7 @@ export function getCurrencyForRestaurant(
 // ---------------------------------------------------------------------------
 
 const DIETARY_HINT_MAP: Record<string, string> = {
+  // --- Existing ---
   vegetarian: 'vegetarian',
   vegetariano: 'vegetarian',
   vegetariana: 'vegetarian',
@@ -236,14 +267,51 @@ const DIETARY_HINT_MAP: Record<string, string> = {
   'nut free': 'nut_free',
   nut_free: 'nut_free',
   organic: 'organic',
-  orgánico: 'organic',
+  'orgánico': 'organic',
   organico: 'organic',
+
+  // --- Regional spellings ---
+  'végétarien': 'vegetarian',
+  'végétarienne': 'vegetarian',
+  'végétalien': 'vegan',
+  'végétalienne': 'vegan',
+  'senza glutine': 'gluten_free',
+  'sin lácteos': 'dairy_free',
+  'sans gluten': 'gluten_free',
+  'sans lactose': 'dairy_free',
+
+  // --- Common abbreviations ---
+  'egg-free': 'egg_free',
+  eggfree: 'egg_free',
+  'egg free': 'egg_free',
+  'soy-free': 'soy_free',
+  soyfree: 'soy_free',
+  'soy free': 'soy_free',
+  paleo: 'paleo',
+  keto: 'keto',
+  'low-sodium': 'low_sodium',
+  'low sodium': 'low_sodium',
+  pescatarian: 'pescatarian',
+  pescetarian: 'pescatarian',
+
+  // --- Emoji variants ---
+  '🌿': 'vegetarian',
+  '🌱': 'vegan',
+  '♻️': 'organic',
 };
+
+/** Strips brackets, asterisks, and periods before dietary hint lookup. */
+export function normalizeDietaryHint(hint: string): string {
+  return hint
+    .replace(/[[\]().*]/g, '')
+    .trim()
+    .toLowerCase();
+}
 
 export function mapDietaryHints(hints: string[]): string[] {
   const codes = new Set<string>();
   for (const hint of hints) {
-    const normalized = hint.toLowerCase().trim();
+    const normalized = normalizeDietaryHint(hint);
     const code = DIETARY_HINT_MAP[normalized];
     if (code) codes.add(code);
   }
@@ -255,18 +323,186 @@ export function mapDietaryHints(hints: string[]): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Category synonym map for multi-page merge
+// ---------------------------------------------------------------------------
+
+const CATEGORY_SYNONYMS: Record<string, string> = {
+  appetizers: 'appetizers',
+  starters: 'appetizers',
+  entradas: 'appetizers',
+  aperitivos: 'appetizers',
+  botanas: 'appetizers',
+  tapas: 'appetizers',
+  snacks: 'appetizers',
+  antojitos: 'appetizers',
+
+  'main courses': 'main courses',
+  mains: 'main courses',
+  'platos principales': 'main courses',
+  'platos fuertes': 'main courses',
+  entrees: 'main courses',
+
+  desserts: 'desserts',
+  postres: 'desserts',
+  dulces: 'desserts',
+  sweets: 'desserts',
+
+  beverages: 'beverages',
+  drinks: 'beverages',
+  bebidas: 'beverages',
+  refrescos: 'beverages',
+
+  sides: 'sides',
+  accompaniments: 'sides',
+  guarniciones: 'sides',
+  'acompañamientos': 'sides',
+  extras: 'sides',
+
+  soups: 'soups',
+  sopas: 'soups',
+
+  salads: 'salads',
+  ensaladas: 'salads',
+
+  'soups and salads': 'soups and salads',
+  'sopas y ensaladas': 'soups and salads',
+  'soups & salads': 'soups and salads',
+
+  breakfast: 'breakfast',
+  desayunos: 'breakfast',
+  desayuno: 'breakfast',
+
+  lunch: 'lunch',
+  comidas: 'lunch',
+  comida: 'lunch',
+
+  dinner: 'dinner',
+  cenas: 'dinner',
+  cena: 'dinner',
+
+  seafood: 'seafood',
+  mariscos: 'seafood',
+  pescados: 'seafood',
+  'pescados y mariscos': 'seafood',
+
+  pizza: 'pizza',
+  pizzas: 'pizza',
+
+  pasta: 'pasta',
+  pastas: 'pasta',
+
+  sandwiches: 'sandwiches',
+  tortas: 'sandwiches',
+
+  tacos: 'tacos',
+
+  burgers: 'burgers',
+  hamburguesas: 'burgers',
+
+  wines: 'wines',
+  vinos: 'wines',
+  'carta de vinos': 'wines',
+
+  cocktails: 'cocktails',
+  cocteles: 'cocktails',
+  'cócteles': 'cocktails',
+
+  coffee: 'coffee',
+  'café': 'coffee',
+  cafe: 'coffee',
+};
+
+// ---------------------------------------------------------------------------
+// Category normalization helpers
+// ---------------------------------------------------------------------------
+
+/** Normalize a category name: lowercase, strip accents, replace & / + with "and". */
+function normalizeCategory(name: string | null): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip accent marks
+    .replace(/[&+]/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Find the best string similarity match among existing categories. */
+function findBestMatch(
+  normalized: string,
+  existingNormalized: string[]
+): { index: number; score: number } {
+  let bestIndex = -1;
+  let bestScore = 0;
+  for (let i = 0; i < existingNormalized.length; i++) {
+    const score = compareTwoStrings(normalized, existingNormalized[i]);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+  return { index: bestIndex, score: bestScore };
+}
+
+/** 3-layer category matching: normalize → synonym → string similarity. */
+function matchCategory(
+  incoming: string | null,
+  existingNames: string[],
+  pageIndex: number
+): { matched: string | null; isNew: boolean } {
+  // Null handling: page-indexed placeholder
+  if (!incoming) {
+    return { matched: `Uncategorized (page ${pageIndex + 1})`, isNew: true };
+  }
+
+  const normalized = normalizeCategory(incoming);
+
+  // Layer 1: Exact normalized match
+  const exactMatch = existingNames.find(e => normalizeCategory(e) === normalized);
+  if (exactMatch) return { matched: exactMatch, isNew: false };
+
+  // Layer 2: Synonym map
+  const canonical = CATEGORY_SYNONYMS[normalized];
+  if (canonical) {
+    const synMatch = existingNames.find(e => {
+      const eNorm = normalizeCategory(e);
+      return CATEGORY_SYNONYMS[eNorm] === canonical;
+    });
+    if (synMatch) return { matched: synMatch, isNew: false };
+  }
+
+  // Layer 3: String similarity (> 0.85)
+  const existingNormalized = existingNames.map(normalizeCategory);
+  const best = findBestMatch(normalized, existingNormalized);
+  if (best.score > 0.85) {
+    return { matched: existingNames[best.index], isNew: false };
+  }
+
+  return { matched: incoming, isNew: true };
+}
+
+// ---------------------------------------------------------------------------
 // Multi-page merge logic
 // ---------------------------------------------------------------------------
 
 /**
  * Merges extraction results from multiple pages of the same menu.
- * Matching is done case-insensitively on menu name, then category name.
- * Duplicate dishes (same name in the same category) are deduplicated, keeping first.
+ * Uses 3-layer category matching (normalize → synonym → string similarity).
+ * Duplicate dishes with different prices are flagged as potential variants.
+ * Null categories get page-indexed placeholders.
  */
-export function mergeExtractionResults(results: RawExtractionResult[]): RawExtractionResult {
+export function mergeExtractionResults(
+  results: RawExtractionResult[]
+): { merged: RawExtractionResult; flaggedDuplicates: FlaggedDuplicate[] } {
   const mergedMenus: RawExtractedMenu[] = [];
+  const flaggedDuplicates: FlaggedDuplicate[] = [];
 
-  for (const result of results) {
+  for (let pageIndex = 0; pageIndex < results.length; pageIndex++) {
+    const result = results[pageIndex];
+
     for (const incomingMenu of result.menus) {
       const incomingMenuName = (incomingMenu.name ?? '').toLowerCase().trim();
       const incomingKey = `${incomingMenu.menu_type}::${incomingMenuName}`;
@@ -277,44 +513,69 @@ export function mergeExtractionResults(results: RawExtractionResult[]): RawExtra
       );
 
       if (!existingMenu) {
-        // Deep clone and add
+        // Deep clone and add, handling null categories with page-indexed placeholders
         mergedMenus.push({
           name: incomingMenu.name,
           menu_type: incomingMenu.menu_type,
           categories: incomingMenu.categories.map(cat => ({
-            name: cat.name,
-            dishes: [...cat.dishes],
+            name: cat.name ?? `Uncategorized (page ${pageIndex + 1})`,
+            dishes: cat.dishes.map(d => ({ ...d })),
           })),
         });
         continue;
       }
 
-      // Merge categories into existing menu
+      // Merge categories into existing menu using 3-layer matching
+      const existingCatNames = existingMenu.categories.map(c => c.name ?? '');
+
       for (const incomingCat of incomingMenu.categories) {
-        const incomingCatName = (incomingCat.name ?? '').toLowerCase().trim();
+        const { matched, isNew } = matchCategory(incomingCat.name, existingCatNames, pageIndex);
 
-        const existingCat = existingMenu.categories.find(
-          c => (c.name ?? '').toLowerCase().trim() === incomingCatName
-        );
-
-        if (!existingCat) {
-          existingMenu.categories.push({ name: incomingCat.name, dishes: [...incomingCat.dishes] });
+        if (isNew) {
+          existingMenu.categories.push({
+            name: matched ?? `Uncategorized (page ${pageIndex + 1})`,
+            dishes: incomingCat.dishes.map(d => ({ ...d })),
+          });
+          existingCatNames.push(matched ?? `Uncategorized (page ${pageIndex + 1})`);
           continue;
         }
 
-        // Merge dishes — skip exact-name duplicates
-        const existingDishNames = new Set(existingCat.dishes.map(d => d.name.toLowerCase().trim()));
+        // Find the matched existing category
+        const existingCat = existingMenu.categories.find(c => c.name === matched)!;
+
+        // Merge dishes — detect duplicates with different prices as potential variants
+        const existingDishMap = new Map<string, RawExtractedDish>();
+        for (const d of existingCat.dishes) {
+          existingDishMap.set(d.name.toLowerCase().trim(), d);
+        }
+
         for (const dish of incomingCat.dishes) {
-          if (!existingDishNames.has(dish.name.toLowerCase().trim())) {
-            existingCat.dishes.push(dish);
-            existingDishNames.add(dish.name.toLowerCase().trim());
+          const dishKey = dish.name.toLowerCase().trim();
+          const existing = existingDishMap.get(dishKey);
+
+          if (!existing) {
+            // New dish — add it
+            existingCat.dishes.push({ ...dish });
+            existingDishMap.set(dishKey, dish);
+          } else if (
+            existing.price !== dish.price &&
+            existing.price != null &&
+            dish.price != null
+          ) {
+            // Same name, different price → flag as potential variant
+            flaggedDuplicates.push({
+              existingDish: existing,
+              incomingDish: dish,
+              categoryName: existingCat.name,
+            });
           }
+          // Same name, same price → true duplicate, skip
         }
       }
     }
   }
 
-  return { menus: mergedMenus };
+  return { merged: { menus: mergedMenus }, flaggedDuplicates };
 }
 
 // ---------------------------------------------------------------------------
@@ -327,27 +588,141 @@ export function toEditableMenus(enriched: EnrichedResult): EditableMenu[] {
     menu_type: menu.menu_type,
     categories: menu.categories.map(cat => ({
       name: cat.name || 'General',
-      dishes: cat.dishes.map(dish => ({
-        _id: crypto.randomUUID(),
-        name: dish.name,
-        price: dish.price != null ? String(dish.price) : '',
-        description: dish.description ?? '',
-        dietary_tags: dish.mapped_dietary_tags ?? [],
-        spice_level:
-          dish.spice_level == null
-            ? null
-            : dish.spice_level === 0
-              ? 'none'
-              : dish.spice_level <= 2
-                ? 'mild'
-                : 'hot',
-        calories: dish.calories ?? null,
-        dish_category_id: null,
-        confidence: dish.confidence,
-        ingredients: (dish.matched_ingredients ?? []).map(ing => ({ ...ing })),
-      })),
+      dishes: flattenDishesForEditing(cat.dishes),
     })),
   }));
+}
+
+/** Flatten parent-child variant groups into a flat list with parent_id/variant_ids linkage. */
+function flattenDishesForEditing(dishes: EnrichedDish[]): EditableDish[] {
+  const result: EditableDish[] = [];
+
+  for (const dish of dishes) {
+    const parentId = crypto.randomUUID();
+    const variantIds: string[] = [];
+
+    // Process variant children first to collect their IDs
+    if (dish.is_parent && dish.variants && dish.variants.length > 0) {
+      for (const variant of dish.variants) {
+        const childId = crypto.randomUUID();
+        variantIds.push(childId);
+        result.push(enrichedToEditable(variant as EnrichedDish, childId, parentId, false));
+      }
+    }
+
+    result.push(enrichedToEditable(dish, parentId, null, dish.is_parent, variantIds));
+  }
+
+  return result;
+}
+
+function enrichedToEditable(
+  dish: EnrichedDish,
+  id: string,
+  parentId: string | null,
+  isParent: boolean,
+  variantIds: string[] = []
+): EditableDish {
+  return {
+    _id: id,
+    name: dish.name,
+    price: dish.price != null ? String(dish.price) : '',
+    description: dish.description ?? '',
+    dietary_tags: dish.mapped_dietary_tags ?? [],
+    spice_level:
+      dish.spice_level == null
+        ? null
+        : dish.spice_level === 0
+          ? 'none'
+          : dish.spice_level <= 2
+            ? 'mild'
+            : 'hot',
+    calories: dish.calories ?? null,
+    dish_category_id: null,
+    confidence: dish.confidence,
+    ingredients: (dish.matched_ingredients ?? []).map(ing => ({ ...ing })),
+    dish_kind: dish.dish_kind ?? 'standard',
+    is_parent: isParent,
+    serves: dish.serves ?? null,
+    display_price_prefix: dish.display_price_prefix ?? 'exact',
+    variant_ids: variantIds,
+    parent_id: parentId,
+    group_status: isParent ? 'ai_proposed' : parentId ? 'ai_proposed' : 'manual',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Build confirm payload from editable state
+// ---------------------------------------------------------------------------
+
+export function buildConfirmPayload(
+  menus: EditableMenu[],
+  jobId: string,
+  restaurantId: string
+): ConfirmPayload {
+  return {
+    job_id: jobId,
+    restaurant_id: restaurantId,
+    menus: menus.map(menu => ({
+      name: menu.name,
+      menu_type: menu.menu_type,
+      categories: menu.categories.map(cat => ({
+        name: cat.name,
+        dishes: buildConfirmDishes(cat.dishes),
+      })),
+    })),
+  };
+}
+
+/** Build ConfirmDish[] from EditableDish[], grouping parents with their children. */
+function buildConfirmDishes(dishes: EditableDish[]): ConfirmDish[] {
+  const result: ConfirmDish[] = [];
+  const childMap = new Map<string, EditableDish[]>();
+
+  // Group children by parent_id
+  for (const dish of dishes) {
+    if (dish.parent_id) {
+      const children = childMap.get(dish.parent_id) ?? [];
+      children.push(dish);
+      childMap.set(dish.parent_id, children);
+    }
+  }
+
+  // Process dishes: parents get variant_dishes, standalone go as-is
+  for (const dish of dishes) {
+    if (dish.parent_id) continue; // children are nested under parents
+    if (dish.group_status === 'rejected') continue; // rejected groups are not saved
+
+    const confirmDish = editableToConfirm(dish);
+
+    if (dish.is_parent) {
+      const children = childMap.get(dish._id) ?? [];
+      confirmDish.variant_dishes = children.map(c => editableToConfirm(c));
+    }
+
+    result.push(confirmDish);
+  }
+
+  return result;
+}
+
+function editableToConfirm(dish: EditableDish): ConfirmDish {
+  return {
+    name: dish.name,
+    price: dish.price ? parseFloat(dish.price) : 0,
+    description: dish.description || undefined,
+    dietary_tags: dish.dietary_tags,
+    spice_level: dish.spice_level,
+    calories: dish.calories,
+    dish_category_id: dish.dish_category_id,
+    canonical_ingredient_ids: dish.ingredients
+      .filter(i => i.status === 'matched' && i.canonical_ingredient_id)
+      .map(i => i.canonical_ingredient_id!),
+    dish_kind: dish.dish_kind,
+    is_parent: dish.is_parent,
+    serves: dish.serves ?? 1,
+    display_price_prefix: dish.display_price_prefix,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -356,7 +731,12 @@ export function toEditableMenus(enriched: EnrichedResult): EditableMenu[] {
 
 export function countDishes(menus: EditableMenu[]): number {
   return menus.reduce(
-    (total, menu) => total + menu.categories.reduce((sum, cat) => sum + cat.dishes.length, 0),
+    (total, menu) =>
+      total +
+      menu.categories.reduce(
+        (sum, cat) => sum + cat.dishes.filter(d => d.group_status !== 'rejected').length,
+        0
+      ),
     0
   );
 }
@@ -378,5 +758,12 @@ export function newEmptyDish(): EditableDish {
     confidence: 1.0,
     ingredients: [],
     suggested_allergens: [],
+    dish_kind: 'standard',
+    is_parent: false,
+    serves: null,
+    display_price_prefix: 'exact',
+    variant_ids: [],
+    parent_id: null,
+    group_status: 'manual',
   };
 }

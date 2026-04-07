@@ -273,20 +273,20 @@ function ReviewPageContent() {
                               </div>
                             </div>
 
-                            {dish.ingredients.length > 0 && (
+                            {(dish.selectedIngredients?.length ?? 0) > 0 && (
                               <div className="mb-2">
                                 <p className="text-xs font-medium text-gray-500">Ingredients:</p>
                                 <p className="text-sm text-gray-700">
-                                  {dish.ingredients.join(', ')}
+                                  {dish.selectedIngredients!.map(i => i.display_name).join(', ')}
                                 </p>
                               </div>
                             )}
 
                             {(dish.dietary_tags.length > 0 ||
                               dish.allergens.length > 0 ||
-                              (dish.spice_level !== undefined && dish.spice_level > 0)) && (
+                              (dish.spice_level != null && dish.spice_level !== 'none')) && (
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {dish.spice_level !== undefined && dish.spice_level > 0 && (
+                                {dish.spice_level != null && dish.spice_level !== 'none' && (
                                   <Badge
                                     variant="outline"
                                     className="bg-red-50 text-red-700 border-red-200"

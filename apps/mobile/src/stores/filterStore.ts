@@ -76,6 +76,9 @@ export interface DailyFilters {
 
   // Group / Family Meals — show only dishes with serves >= 2
   groupMeals: boolean;
+
+  // Schedule type filter — show only daily/rotating menus, or all (undefined)
+  scheduleType: 'daily' | 'rotating' | undefined;
 }
 
 /** A single ingredient entry in the "Ingredients to Avoid" permanent filter. */
@@ -277,6 +280,7 @@ export const defaultDailyFilters: DailyFilters = {
   openNow: false,
   sortBy: 'bestMatch',
   groupMeals: false,
+  scheduleType: undefined,
 };
 
 /**
@@ -982,6 +986,11 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check group/family meals
     if (state.daily.groupMeals) {
+      count++;
+    }
+
+    // Check schedule type
+    if (state.daily.scheduleType !== undefined) {
       count++;
     }
 

@@ -1,0 +1,3 @@
+- [Keep DailyFilterModal simple](feedback_daily_filters_simple.md) — no extra filter sections, handle behaviors at the service layer
+- [Daily menu is a separate feature](project_daily_menu_separate.md) — scheduleType filtering won't live in DailyFilterModal
+- [Research before implementing](feedback_research_before_implementing.md) — always present full research and get approval before editing code

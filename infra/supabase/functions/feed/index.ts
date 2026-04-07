@@ -50,7 +50,7 @@ const W = {
 interface FeedRequest {
   location: { lat: number; lng: number };
   radius?: number;
-  mode?: 'dishes' | 'restaurants';
+  mode?: 'dishes' | 'restaurants' | 'combined';
   filters: {
     priceRange?: [number, number];
     dietPreference?: string;
@@ -380,7 +380,7 @@ serve(async (req: Request) => {
 
   try {
     const body: FeedRequest = await req.json();
-    const { location, radius = 10, mode = 'dishes', filters, userId, limit = 20 } = body;
+    const { location, radius = 10, mode = 'combined', filters, userId, limit = 20 } = body;
 
     console.log('[Feed] Request:', { location, radius, mode, userId, limit });
 
@@ -571,7 +571,7 @@ serve(async (req: Request) => {
 
     if (pool.length === 0) {
       return new Response(
-        JSON.stringify({ dishes: [], metadata: { totalAvailable: 0, returned: 0, cached: false } }),
+        JSON.stringify({ dishes: [], restaurants: [], metadata: { totalAvailable: 0, returned: 0, cached: false } }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -644,99 +644,33 @@ serve(async (req: Request) => {
     scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     const diversified = applyDiversity(scored, 3);
 
-    // ── Restaurant mode ───────────────────────────────────────────────────────
+    // ── Fetch open_hours for all restaurants (shared by dishes + restaurants) ─
 
-    if (mode === 'restaurants') {
-      const restaurantMap = new Map<string, any>();
-      for (const d of diversified) {
-        const rid = d.restaurant_id;
-        if (!restaurantMap.has(rid)) {
-          restaurantMap.set(rid, {
-            id: rid,
-            name: d.restaurant_name,
-            cuisine_types: d.restaurant_cuisines ?? [],
-            rating: d.restaurant_rating ?? 0,
-            distance_km: d.distance_m / 1000,
-            score: d.score ?? 0,
-            location: d.restaurant_location ?? null,
-          });
-        } else {
-          const ex = restaurantMap.get(rid);
-          if ((d.score ?? 0) > ex.score) ex.score = d.score;
-        }
+    const allRids = [...new Set(diversified.map(d => d.restaurant_id))];
+    const openHoursMap = new Map<
+      string,
+      Record<string, { open: string; close: string }> | null
+    >();
+    try {
+      const { data: hourRows } = await supabase
+        .from('restaurants')
+        .select('id, open_hours')
+        .in('id', allRids);
+      for (const row of hourRows ?? []) {
+        openHoursMap.set(row.id, row.open_hours ?? null);
       }
-
-      // ── Fetch open_hours and annotate is_open for all result restaurants ────
-      // This also powers the openNow hard filter below.
-      const rIds = Array.from(restaurantMap.keys());
-      const openHoursMap = new Map<
-        string,
-        Record<string, { open: string; close: string }> | null
-      >();
-      try {
-        const { data: hourRows } = await supabase
-          .from('restaurants')
-          .select('id, open_hours')
-          .in('id', rIds);
-        for (const row of hourRows ?? []) {
-          openHoursMap.set(row.id, row.open_hours ?? null);
-        }
-      } catch (e) {
-        console.error('[Feed] open_hours fetch failed (non-fatal):', e);
-      }
-
-      for (const [rid, r] of restaurantMap) {
-        r.is_open = isOpenNow(openHoursMap.get(rid));
-      }
-
-      let restaurantList = Array.from(restaurantMap.values());
-
-      // Apply openNow hard filter after is_open is set
-      if (filters.openNow) {
-        restaurantList = restaurantList.filter(r => r.is_open);
-      }
-
-      switch (filters.sortBy) {
-        case 'closest':
-          restaurantList.sort((a, b) => a.distance_km - b.distance_km);
-          break;
-        case 'highestRated':
-          restaurantList.sort((a, b) => b.rating - a.rating);
-          break;
-        default:
-          restaurantList.sort((a, b) => b.score - a.score);
-      }
-
-      const restaurantResult = restaurantList.slice(0, limit);
-      const restaurantResponse = {
-        restaurants: restaurantResult,
-        metadata: {
-          totalAvailable: restaurantMap.size,
-          returned: restaurantResult.length,
-          cached: false,
-          processingTime: Date.now() - startTime,
-          personalized: preferenceVector !== null,
-          stage1Candidates: pool.length,
-        },
-      };
-
-      if (redis) {
-        try {
-          await redis.set(cacheKey, JSON.stringify(restaurantResponse), { ex: 300 });
-        } catch {}
-      }
-
-      console.log(
-        `[Feed] Returning ${restaurantResult.length} restaurants (${Date.now() - startTime}ms)`
-      );
-      return new Response(JSON.stringify(restaurantResponse), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    } catch (e) {
+      console.error('[Feed] open_hours fetch failed (non-fatal):', e);
     }
 
-    // ── Dishes mode ───────────────────────────────────────────────────────────
+    // ── Build dishes result ──────────────────────────────────────────────────
 
-    const result = diversified.slice(0, limit).map(d => ({
+    let dishPool = diversified;
+    if (filters.openNow) {
+      dishPool = diversified.filter(d => isOpenNow(openHoursMap.get(d.restaurant_id)));
+    }
+
+    const dishResult = (mode === 'restaurants') ? [] : dishPool.slice(0, limit).map(d => ({
       id: d.id,
       restaurant_id: d.restaurant_id,
       name: d.name,
@@ -759,11 +693,61 @@ serve(async (req: Request) => {
       score: d.score,
       flagged_ingredients: d.flagged_ingredients ?? [],
     }));
+
+    // ── Build restaurants result ─────────────────────────────────────────────
+
+    let restaurantResult: any[] = [];
+    if (mode !== 'dishes') {
+      const restaurantMap = new Map<string, any>();
+      for (const d of diversified) {
+        const rid = d.restaurant_id;
+        if (!restaurantMap.has(rid)) {
+          restaurantMap.set(rid, {
+            id: rid,
+            name: d.restaurant_name,
+            cuisine_types: d.restaurant_cuisines ?? [],
+            rating: d.restaurant_rating ?? 0,
+            distance_km: d.distance_m / 1000,
+            score: d.score ?? 0,
+            location: d.restaurant_location ?? null,
+            is_open: isOpenNow(openHoursMap.get(rid)),
+          });
+        } else {
+          const ex = restaurantMap.get(rid);
+          if ((d.score ?? 0) > ex.score) ex.score = d.score;
+        }
+      }
+
+      let restaurantList = Array.from(restaurantMap.values());
+
+      if (filters.openNow) {
+        restaurantList = restaurantList.filter(r => r.is_open);
+      }
+
+      switch (filters.sortBy) {
+        case 'closest':
+          restaurantList.sort((a, b) => a.distance_km - b.distance_km);
+          break;
+        case 'highestRated':
+          restaurantList.sort((a, b) => b.rating - a.rating);
+          break;
+        default:
+          restaurantList.sort((a, b) => b.score - a.score);
+      }
+
+      // Restaurant limit is higher than dish limit (spatial coverage for map pins)
+      restaurantResult = restaurantList.slice(0, Math.max(limit, 50));
+    }
+
+    // ── Response ─────────────────────────────────────────────────────────────
+
     const responseData = {
-      dishes: result,
+      dishes: dishResult,
+      restaurants: restaurantResult,
       metadata: {
         totalAvailable: pool.length,
-        returned: result.length,
+        returnedDishes: dishResult.length,
+        returnedRestaurants: restaurantResult.length,
         cached: false,
         processingTime: Date.now() - startTime,
         personalized: preferenceVector !== null,
@@ -778,7 +762,9 @@ serve(async (req: Request) => {
       } catch {}
     }
 
-    console.log(`[Feed] Returning ${result.length} dishes (${Date.now() - startTime}ms)`);
+    console.log(
+      `[Feed] Returning ${dishResult.length} dishes + ${restaurantResult.length} restaurants (${Date.now() - startTime}ms)`
+    );
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

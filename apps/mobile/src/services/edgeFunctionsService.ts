@@ -64,7 +64,7 @@ const ALLERGY_CODE_MAP: Partial<Record<keyof PermanentFilters['allergies'], stri
 export interface FeedRequest {
   location: { lat: number; lng: number };
   radius?: number; // km, default 10
-  mode?: 'dishes' | 'restaurants';
+  mode?: 'dishes' | 'restaurants' | 'combined';
   filters: {
     priceRange?: [number, number];
     dietPreference?: string; // hard — permanent
@@ -106,6 +106,14 @@ export interface FeedRequest {
     excludeFamilies?: string[];
     /** When true, dishes with spice_level='hot' are hard-excluded (permanent noSpicy setting). */
     excludeSpicy?: boolean;
+    /** Filter for daily/rotating menus only. null = all menus. */
+    scheduleType?: 'daily' | 'rotating';
+    /** When true, only return dishes with serves >= 2 (group/family meals). */
+    groupMeals?: boolean;
+    /** Current time in HH:MM format for time-based menu filtering. */
+    currentTime?: string;
+    /** Current day of week: 'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun' */
+    currentDayOfWeek?: string;
   };
   userId?: string;
   limit?: number; // default 20
@@ -151,6 +159,23 @@ export interface RestaurantFeedResponse {
     cached: boolean;
     personalized?: boolean;
     processingTime?: number;
+  };
+}
+
+/**
+ * Combined feed response (dishes + restaurants in a single call)
+ */
+export interface CombinedFeedResponse {
+  dishes: ServerDish[];
+  restaurants: ServerRestaurant[];
+  metadata: {
+    totalAvailable: number;
+    returnedDishes: number;
+    returnedRestaurants: number;
+    cached: boolean;
+    personalized?: boolean;
+    processingTime?: number;
+    userInteractions?: number;
   };
 }
 
@@ -238,6 +263,12 @@ function buildFilters(
       return families.length > 0 ? families : undefined;
     })(),
     excludeSpicy: permanentFilters.exclude.noSpicy || undefined,
+    openNow: true,
+    groupMeals: dailyFilters.groupMeals || undefined,
+    scheduleType: dailyFilters.scheduleType ?? undefined,
+    // Auto-compute current time/day so the backend can filter time-restricted & day-of-week menus
+    currentTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    currentDayOfWeek: (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date().getDay()],
   };
 }
 
@@ -281,10 +312,36 @@ export async function getFilteredRestaurants(
     filters: {
       ...buildFilters(dailyFilters, permanentFilters),
       sortBy: dailyFilters.sortBy,
-      openNow: dailyFilters.openNow,
     },
     userId,
     limit: 50,
+  };
+  const response = await callFeedFunction(request);
+  return response.json();
+}
+
+/**
+ * Get dishes + restaurants in a single call (mode: 'combined').
+ * Replaces separate getFeed() + getFilteredRestaurants() calls to halve
+ * database load (one pipeline pass instead of two).
+ */
+export async function getCombinedFeed(
+  location: { lat: number; lng: number },
+  dailyFilters: DailyFilters,
+  permanentFilters: PermanentFilters,
+  userId?: string,
+  radius: number = 10
+): Promise<CombinedFeedResponse> {
+  const request: FeedRequest = {
+    location,
+    radius,
+    mode: 'combined',
+    filters: {
+      ...buildFilters(dailyFilters, permanentFilters),
+      sortBy: dailyFilters.sortBy,
+    },
+    userId,
+    limit: 20,
   };
   const response = await callFeedFunction(request);
   return response.json();

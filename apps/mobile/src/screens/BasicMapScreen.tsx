@@ -13,8 +13,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { estimateAvgPrice } from '../services/filterService';
 import {
-  getFeed,
-  getFilteredRestaurants,
+  getCombinedFeed,
   ServerDish,
   ServerRestaurant,
 } from '../services/edgeFunctionsService';
@@ -286,7 +285,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     getLocationWithPermission();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch recommended dishes from the 'feed' Edge Function whenever location or filters change
+  // Fetch dishes + restaurants in a single combined call whenever location or filters change
   useEffect(() => {
     if (!userLocation) return;
 
@@ -294,7 +293,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     const timeoutId = setTimeout(async () => {
       setFeedLoading(true);
       try {
-        const response = await getFeed(
+        const response = await getCombinedFeed(
           { lat: userLocation.latitude, lng: userLocation.longitude },
           daily,
           permanent,
@@ -303,9 +302,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         );
         if (!cancelled) {
           const dishes = response.dishes ?? [];
+          const restaurants = response.restaurants ?? [];
           setFeedDishes(dishes);
+          setFilteredRestaurants(restaurants);
           debugLog(
-            `[BasicMapScreen] Feed loaded: ${dishes.length} dishes (personalized: ${response.metadata?.personalized})`
+            `[BasicMapScreen] Feed loaded: ${dishes.length} dishes + ${restaurants.length} restaurants (personalized: ${response.metadata?.personalized})`
           );
         }
       } catch (err) {
@@ -320,69 +321,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       clearTimeout(timeoutId);
     };
   }, [userLocation, daily, permanent]);
-
-  // Load nearby restaurants when location is available and filters change
-  // DISABLED: Edge function is failing, causing excessive re-renders and errors
-  // TODO: Fix edge function deployment and re-enable
-  /*
-  const loadNearbyDataStable = useCallback(async () => {
-    if (hasPermission && !locationLoading && userLocation) {
-      debugLog('Loading nearby restaurants with geospatial search...');
-      try {
-        await loadNearbyRestaurantsFromCurrentLocation(
-          getLocationWithPermission,
-          5, // 5km radius
-          daily,
-          permanent
-        );
-        debugLog('Nearby restaurants loaded successfully');
-      } catch (error) {
-        console.error('[BasicMapScreen] Failed to load nearby restaurants:', error);
-      }
-    }
-  }, [hasPermission, locationLoading, userLocation, loadNearbyRestaurantsFromCurrentLocation, getLocationWithPermission, daily, permanent]);
-
-  useEffect(() => {
-    // Debounce filter changes to prevent rapid re-fetching
-    const timeoutId = setTimeout(() => {
-      loadNearbyDataStable();
-    }, 300); // 300ms debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [loadNearbyDataStable]);
-  */
-
-  // Fetch filtered restaurants from the Edge Function whenever location or filters change.
-  // Replaces the previous client-side filterService.applyFilters() call.
-  useEffect(() => {
-    if (!userLocation) return;
-
-    let cancelled = false;
-    const timeoutId = setTimeout(async () => {
-      try {
-        const response = await getFilteredRestaurants(
-          { lat: userLocation.latitude, lng: userLocation.longitude },
-          daily,
-          permanent,
-          user?.id,
-          Math.max(2, daily.maxDistance)
-        );
-        if (!cancelled) {
-          const restaurants = response.restaurants ?? [];
-          setFilteredRestaurants(restaurants);
-          debugLog(`[BasicMapScreen] Restaurant feed: ${restaurants.length} restaurants`);
-        }
-      } catch (err) {
-        console.error('[BasicMapScreen] Failed to load filtered restaurants:', err);
-        // On error, keep whatever restaurants we already have
-      }
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
-  }, [userLocation, daily, permanent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-center map on user location when map is ready and location is available
   useEffect(() => {

@@ -133,7 +133,7 @@ export async function getDishPhotos(dishId: string): Promise<DishPhoto[]> {
   try {
     const { data, error } = await supabase
       .from('dish_photos')
-      .select('*')
+      .select('id, dish_id, user_id, photo_url, created_at, updated_at')
       .eq('dish_id', dishId)
       .order('created_at', { ascending: false });
 

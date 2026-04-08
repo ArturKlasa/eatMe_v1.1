@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { ENV, debugLog } from '../config/environment';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { useFilterStore } from '../stores/filterStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
@@ -123,8 +124,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const showRatingBanner = recentRestaurants.length > 0 && !!user;
 
   // Use shallow selectors to reduce re-renders
-  const daily = useFilterStore(state => state.daily);
-  const permanent = useFilterStore(state => state.permanent);
+  const { daily, permanent } = useFilterStore(
+    useShallow(state => ({ daily: state.daily, permanent: state.permanent }))
+  );
   const mode = useViewModeStore(state => state.mode);
 
   // Convert geospatial results to the MapRestaurant shape used by markers.

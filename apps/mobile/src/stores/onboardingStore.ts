@@ -52,6 +52,7 @@ interface OnboardingState {
   completeOnboarding: () => Promise<void>;
 
   // Data management
+  lastSyncedAt: number | null;
   loadUserPreferences: (userId: string) => Promise<void>;
   savePreferences: (userId: string) => Promise<void>;
   updateProfileStats: () => void;
@@ -67,6 +68,7 @@ interface OnboardingState {
 
 const TOTAL_STEPS = 2;
 const STORAGE_KEY = '@eatme_onboarding';
+const LAST_SYNCED_STORAGE_KEY = '@eatme_onboarding_last_synced_at';
 const PROMPT_COOLDOWN_HOURS = 24; // Show prompt once per day
 
 const defaultFormData: OnboardingFormData = {
@@ -88,6 +90,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   lastPromptShown: null,
   profileCompletion: 0,
   profilePoints: 0,
+  lastSyncedAt: null,
 
   // Step navigation
   setStep: (step: number) => set({ currentStep: step }),
@@ -214,6 +217,17 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   // Data management
   loadUserPreferences: async (userId: string) => {
+    // Restore lastSyncedAt from AsyncStorage before the DB call so the 30-min
+    // debounce in storeBindings survives app restarts.
+    try {
+      const stored = await AsyncStorage.getItem(LAST_SYNCED_STORAGE_KEY);
+      if (stored) {
+        set({ lastSyncedAt: Number(stored) });
+      }
+    } catch {
+      // Non-fatal — debounce will simply not apply this restart
+    }
+
     try {
       // Load from Supabase
       const { data, error } = await supabase
@@ -226,6 +240,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         // If no preferences exist yet (PGRST116), that's okay
         if (error.code === 'PGRST116') {
           debugLog('[Onboarding] No preferences found for user');
+          const syncTime = Date.now();
+          set({ lastSyncedAt: syncTime });
+          AsyncStorage.setItem(LAST_SYNCED_STORAGE_KEY, String(syncTime)).catch(() => {});
           return;
         }
         throw error;
@@ -268,6 +285,10 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
         // Recalculate completion stats from local data
         get().updateProfileStats();
+        const syncTime = Date.now();
+        set({ lastSyncedAt: syncTime });
+        // Persist so the 30-min debounce survives app restarts
+        AsyncStorage.setItem(LAST_SYNCED_STORAGE_KEY, String(syncTime)).catch(() => {});
 
         debugLog('[Onboarding] Preferences loaded from Supabase');
       }
@@ -327,14 +348,22 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
     // Also save to AsyncStorage as backup
     try {
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          formData: state.formData,
-          isCompleted: state.isCompleted,
-          updatedAt: new Date().toISOString(),
-        })
-      );
+      const writes: Promise<void>[] = [
+        AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            formData: state.formData,
+            isCompleted: state.isCompleted,
+            updatedAt: new Date().toISOString(),
+          })
+        ),
+      ];
+      if (state.lastSyncedAt !== null) {
+        writes.push(
+          AsyncStorage.setItem(LAST_SYNCED_STORAGE_KEY, String(state.lastSyncedAt))
+        );
+      }
+      await Promise.all(writes);
     } catch (error) {
       console.error('[Onboarding] Failed to save to AsyncStorage:', error);
     }

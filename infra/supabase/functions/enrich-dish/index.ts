@@ -356,24 +356,39 @@ serve(async (req: Request) => {
     // Mark as pending
     await supabase.from('dishes').update({ enrichment_status: 'pending' }).eq('id', dishId);
 
-    // ── Load canonical ingredients ────────────────────────────────────────────
+    // ── Load all independent data in parallel ────────────────────────────────
+    const parallelStart = Date.now();
 
-    const { data: ingredientRows } = await supabase
-      .from('dish_ingredients')
-      .select('canonical_ingredient:canonical_ingredients(canonical_name)')
-      .eq('dish_id', dishId);
+    const [
+      { data: ingredientRows },
+      { data: optionGroupRows },
+      { data: restaurantRow },
+      { data: parentDish },
+    ] = await Promise.all([
+      supabase
+        .from('dish_ingredients')
+        .select('canonical_ingredient:canonical_ingredients(canonical_name)')
+        .eq('dish_id', dishId),
+      supabase
+        .from('option_groups')
+        .select('name, options(name)')
+        .eq('dish_id', dishId)
+        .eq('is_active', true),
+      supabase
+        .from('restaurants')
+        .select('cuisine_types')
+        .eq('id', dish.restaurant_id)
+        .single(),
+      dish.parent_dish_id
+        ? supabase.from('dishes').select('name').eq('id', dish.parent_dish_id).single()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+
+    console.log(`[enrich-dish] Parallel fetch took ${Date.now() - parallelStart}ms`);
 
     const ingredientNames: string[] = (ingredientRows ?? [])
       .map((r: any) => r.canonical_ingredient?.canonical_name)
       .filter(Boolean) as string[];
-
-    // ── Load option groups with structured names ─────────────────────────────
-
-    const { data: optionGroupRows } = await supabase
-      .from('option_groups')
-      .select('name, options(name)')
-      .eq('dish_id', dishId)
-      .eq('is_active', true);
 
     const optionGroups: OptionGroupData[] = (optionGroupRows ?? []).map((g: any) => ({
       groupName: g.name,
@@ -382,28 +397,14 @@ serve(async (req: Request) => {
 
     const optionCount = optionGroups.reduce((sum, g) => sum + g.optionNames.length, 0);
 
-    // ── Load restaurant cuisine_types ────────────────────────────────────────
-
-    const { data: restaurantRow } = await supabase
-      .from('restaurants')
-      .select('cuisine_types')
-      .eq('id', dish.restaurant_id)
-      .single();
-
     const cuisineTypes: string[] = (restaurantRow?.cuisine_types as string[]) ?? [];
 
-    // ── Load parent context for child variants ───────────────────────────────
+    // ── Load parent ingredients (depends on parentDish result) ───────────────
 
     let parentName: string | null = null;
     let parentIngredients: string[] = [];
 
     if (dish.parent_dish_id) {
-      const { data: parentDish } = await supabase
-        .from('dishes')
-        .select('name')
-        .eq('id', dish.parent_dish_id)
-        .single();
-
       if (parentDish) {
         parentName = parentDish.name;
 

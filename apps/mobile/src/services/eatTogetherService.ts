@@ -124,7 +124,7 @@ export async function joinSession(
     // Find session by code (without status filter to give specific error messages)
     const { data: session, error: sessionError } = await supabase
       .from('eat_together_sessions')
-      .select('*')
+      .select('id, host_id, session_code, status, location_mode, selected_restaurant_id, created_at, expires_at, closed_at')
       .eq('session_code', sessionCode.toUpperCase())
       .single();
 
@@ -143,7 +143,7 @@ export async function joinSession(
     // Check if user already in session
     const { data: existing } = await supabase
       .from('eat_together_members')
-      .select('*')
+      .select('id')
       .eq('session_id', session.id)
       .eq('user_id', userId)
       .is('left_at', null)
@@ -182,7 +182,7 @@ export async function getSession(
   try {
     const { data, error } = await supabase
       .from('eat_together_sessions')
-      .select('*')
+      .select('id, host_id, session_code, status, location_mode, selected_restaurant_id, created_at, expires_at, closed_at')
       .eq('id', sessionId)
       .single();
 
@@ -396,7 +396,7 @@ export async function getVotes(
   try {
     const { data, error } = await supabase
       .from('eat_together_votes')
-      .select('*')
+      .select('id, session_id, user_id, restaurant_id, created_at')
       .eq('session_id', sessionId);
 
     if (error) {
@@ -526,7 +526,7 @@ export async function inviteUserToSession(
     // Check if user already in session
     const { data: existing } = await supabase
       .from('eat_together_members')
-      .select('*')
+      .select('id')
       .eq('session_id', sessionId)
       .eq('user_id', userId)
       .is('left_at', null)

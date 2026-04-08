@@ -7,21 +7,21 @@
 
 ## Checklist
 
-- [ ] Step 1: DB Migration — Missing Indexes
-- [ ] Step 2: RestaurantDetailScreen — Explicit Column Select
-- [ ] Step 3: enrich-dish — Parallelize Sequential Queries
-- [ ] Step 4: feed Edge Function — Slim Response + Favorites Join
-- [ ] Step 5: BasicMapScreen — useShallow Selectors
-- [ ] Step 6: Explicit Selects in eatTogetherService + dishPhotoService
-- [ ] Step 7: filterStore — Debounce saveFilters()
-- [ ] Step 8: expo-image — Install and Full Migration
-- [ ] Step 9: Client-Side Restaurant Cache in Zustand
-- [ ] Step 10: User Preferences Sync Debounce
-- [ ] Step 11: viewHistoryService — Combined DB View
-- [ ] Step 12: FlatList getItemLayout in ViewedHistoryScreen
-- [ ] Step 13: Per-Category Lazy Loading in RestaurantDetailScreen
-- [ ] Step 14: feed Edge Function — Response Compression
-- [ ] Step 15: Cache Invalidation Webhook
+- [x] Step 1: DB Migration — Missing Indexes
+- [x] Step 2: RestaurantDetailScreen — Explicit Column Select
+- [x] Step 3: enrich-dish — Parallelize Sequential Queries
+- [x] Step 4: feed Edge Function — Slim Response + Favorites Join
+- [x] Step 5: BasicMapScreen — useShallow Selectors
+- [x] Step 6: Explicit Selects in eatTogetherService + dishPhotoService
+- [x] Step 7: filterStore — Debounce saveFilters()
+- [x] Step 8: expo-image — Install and Full Migration
+- [x] Step 9: Client-Side Restaurant Cache in Zustand
+- [x] Step 10: User Preferences Sync Debounce
+- [x] Step 11: viewHistoryService — Combined DB View
+- [x] Step 12: FlatList getItemLayout in ViewedHistoryScreen
+- [x] Step 13: Per-Category Lazy Loading in RestaurantDetailScreen
+- [x] Step 14: feed Edge Function — Response Compression
+- [x] Step 15: Cache Invalidation Webhook
 
 ---
 

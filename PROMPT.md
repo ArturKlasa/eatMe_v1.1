@@ -73,21 +73,21 @@ The task is complete when:
 
 ## Progress Log
 
-- [ ] Step 1: DB Migration — Missing Indexes
-- [ ] Step 2: RestaurantDetailScreen — Explicit Column Select
-- [ ] Step 3: enrich-dish — Parallelize Sequential Queries
-- [ ] Step 4: feed Edge Function — Slim Response + Favorites Join
-- [ ] Step 5: BasicMapScreen — useShallow Selectors
-- [ ] Step 6: Explicit Selects in eatTogetherService + dishPhotoService
-- [ ] Step 7: filterStore — Debounce saveFilters()
-- [ ] Step 8: expo-image — Install and Full Migration
-- [ ] Step 9: Client-Side Restaurant Cache in Zustand
-- [ ] Step 10: User Preferences Sync Debounce
-- [ ] Step 11: viewHistoryService — Combined DB View
-- [ ] Step 12: FlatList getItemLayout in ViewedHistoryScreen
-- [ ] Step 13: Per-Category Lazy Loading in RestaurantDetailScreen
-- [ ] Step 14: feed Edge Function — Response Compression
-- [ ] Step 15: Cache Invalidation Webhook
+- [x] Step 1: DB Migration — Missing Indexes — created 076_performance_indexes.sql with 7 indexes
+- [x] Step 2: RestaurantDetailScreen — Explicit Column Select — replaced all select('*') with explicit columns, excluded embedding/vector fields
+- [x] Step 3: enrich-dish — Parallelize Sequential Queries — wrapped 4 sequential awaits in Promise.all; timing log added
+- [x] Step 4: feed Edge Function — Slim Response + Favorites Join — removed allergens/dietary_tags/is_available; merged favorites cuisine join into Promise.all
+- [x] Step 5: BasicMapScreen — useShallow Selectors — added useShallow to daily+permanent selectors; no TypeScript errors
+- [x] Step 6: Explicit Selects in eatTogetherService + dishPhotoService — replaced all select('*') with explicit column lists
+- [x] Step 7: filterStore — Debounce saveFilters() — added 500ms debounce via module-level timer
+- [x] Step 8: expo-image — Install and Full Migration — installed expo-image, migrated all 5 files from react-native Image to expo-image
+- [x] Step 9: Client-Side Restaurant Cache in Zustand — added restaurantDetailCache + fetchRestaurantDetail to restaurantStore; RestaurantDetailScreen uses cache
+- [x] Step 10: User Preferences Sync Debounce — added lastSyncedAt to filterStore+onboardingStore; 30-min skip in storeBindings; reset on logout
+- [x] Step 11: viewHistoryService — Combined DB View — created 077_recent_viewed_restaurants_view.sql; updated viewHistoryService to single query
+- [x] Step 12: FlatList getItemLayout in ViewedHistoryScreen — added getItemLayout (96px) and removeClippedSubviews
+- [x] Step 13: Per-Category Lazy Loading in RestaurantDetailScreen — fetchRestaurantDetail now loads structure only; fetchCategoryDishes added; lazy loading with per-category loading state
+- [x] Step 14: feed Edge Function — Response Compression — added compressedJsonResponse helper; gzip when Accept-Encoding includes gzip
+- [x] Step 15: Cache Invalidation Webhook — created invalidate-cache Edge Function for restaurants/menus/dishes UPDATE webhooks
 
 ## Notes
 

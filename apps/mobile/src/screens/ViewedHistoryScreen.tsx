@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { styles } from './ViewedHistoryScreen.styles';
 import { colors } from '@eatme/tokens';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,9 @@ import {
   type ViewedRestaurant,
 } from '../services/viewHistoryService';
 import type { RootStackParamList } from '../types/navigation';
+
+// Fixed item height for FlatList optimization (image 60px + padding 24px + margin 12px)
+const HISTORY_ITEM_HEIGHT = 96;
 
 export function ViewedHistoryScreen() {
   const { t } = useTranslation();
@@ -115,6 +119,12 @@ export function ViewedHistoryScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        getItemLayout={(_data, index) => ({
+          length: HISTORY_ITEM_HEIGHT,
+          offset: HISTORY_ITEM_HEIGHT * index,
+          index,
+        })}
       />
     </View>
   );

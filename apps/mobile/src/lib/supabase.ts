@@ -94,7 +94,8 @@ export interface RestaurantWithMenus extends Restaurant {
     Menu & {
       menu_categories: Array<
         MenuCategory & {
-          dishes: Array<
+          /** Dishes are loaded lazily per-category; absent until fetched. */
+          dishes?: Array<
             Dish & {
               option_groups?: OptionGroup[];
               /** Variant children, loaded for parent dishes in menu view. */

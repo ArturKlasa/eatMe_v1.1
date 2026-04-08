@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase, type RestaurantWithMenus, type DishWithRelations } from '../lib/supabase';
+import { supabase, type RestaurantWithMenus, type DishWithRelations, type Dish, type OptionGroup } from '../lib/supabase';
 import { debugLog } from '../config/environment';
 import {
   fetchNearbyRestaurants,
@@ -23,6 +23,23 @@ import { DailyFilters, PermanentFilters } from './filterStore';
  *   3. Results are stored in `nearbyRestaurants` together with the search center
  *      and radius so the map can display the coverage circle.
  */
+const RESTAURANT_DETAIL_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CATEGORY_DISHES_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface RestaurantDetailCacheEntry {
+  data: RestaurantWithMenus;
+  fetchedAt: number;
+}
+
+type CategoryDish = Dish & {
+  option_groups?: OptionGroup[];
+};
+
+interface CategoryDishCacheEntry {
+  data: CategoryDish[];
+  fetchedAt: number;
+}
+
 interface RestaurantStore {
   /** Full restaurant records including nested menus/categories/dishes. */
   restaurants: RestaurantWithMenus[];
@@ -36,11 +53,25 @@ interface RestaurantStore {
   searchRadius: number;
   loading: boolean;
   error: Error | null;
+  /** In-memory cache for restaurant detail pages (5-min TTL). */
+  restaurantDetailCache: Map<string, RestaurantDetailCacheEntry>;
+  /** In-memory per-category dish cache (5-min TTL). */
+  categoryDishesCache: Map<string, CategoryDishCacheEntry>;
 
   // Actions
   loadRestaurants: () => Promise<void>;
   loadDishes: () => Promise<void>;
   refreshData: () => Promise<void>;
+  /**
+   * Fetch a single restaurant with menu structure (no dishes), using an in-memory cache (5-min TTL).
+   * Returns cached data without a network request if the entry is still fresh.
+   */
+  fetchRestaurantDetail: (id: string) => Promise<{ data: RestaurantWithMenus | null; error: Error | null }>;
+  /**
+   * Fetch dishes for a specific menu category, using an in-memory cache (5-min TTL).
+   * Returns cached data without a network request if the entry is still fresh.
+   */
+  fetchCategoryDishes: (categoryId: string) => Promise<{ data: CategoryDish[] | null; error: Error | null }>;
 
   /**
    * Fetch restaurants near a fixed latitude/longitude via the feed Edge Function.
@@ -74,6 +105,8 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
   searchRadius: 5,
   loading: false,
   error: null,
+  restaurantDetailCache: new Map(),
+  categoryDishesCache: new Map(),
 
   loadRestaurants: async () => {
     set({ loading: true, error: null });
@@ -209,6 +242,96 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
         error
       );
       set({ error, loading: false });
+    }
+  },
+
+  fetchRestaurantDetail: async (id: string) => {
+    const cache = get().restaurantDetailCache;
+    const entry = cache.get(id);
+    if (entry && Date.now() - entry.fetchedAt < RESTAURANT_DETAIL_TTL_MS) {
+      debugLog(`[RestaurantStore] Cache hit for restaurant ${id}`);
+      return { data: entry.data, error: null };
+    }
+
+    try {
+      // Load restaurant metadata + menu structure only (no dishes — fetched lazily per category)
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select(
+          `
+          id, name, address, city, postal_code, cuisine_types, rating, phone,
+          website, open_hours, image_url, payment_methods, is_active,
+          delivery_available, takeout_available, dine_in_available,
+          menus (
+            id, name, description, display_order, is_active, menu_type, schedule_type,
+            menu_categories (
+              id, name, description, display_order, is_active
+            )
+          )
+        `
+        )
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        return { data: null, error: new Error(error.message) };
+      }
+
+      if (data) {
+        const newCache = new Map(cache);
+        newCache.set(id, { data: data as unknown as RestaurantWithMenus, fetchedAt: Date.now() });
+        set({ restaurantDetailCache: newCache });
+      }
+
+      return { data: data as unknown as RestaurantWithMenus, error: null };
+    } catch (err) {
+      return { data: null, error: err as Error };
+    }
+  },
+
+  fetchCategoryDishes: async (categoryId: string) => {
+    const cache = get().categoryDishesCache;
+    const entry = cache.get(categoryId);
+    if (entry && Date.now() - entry.fetchedAt < CATEGORY_DISHES_TTL_MS) {
+      debugLog(`[RestaurantStore] Category cache hit for ${categoryId}`);
+      return { data: entry.data, error: null };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('menu_categories')
+        .select(
+          `
+          dishes (
+            id, name, description, price, dietary_tags, allergens, calories,
+            spice_level, image_url, is_available, dish_kind, display_price_prefix,
+            description_visibility, ingredients_visibility, parent_dish_id, is_parent,
+            serves, price_per_person,
+            dish_ingredients (ingredient_id),
+            option_groups (
+              id, name, description, selection_type, min_selections, max_selections,
+              display_order, is_active,
+              options (id, name, description, price_delta, calories_delta,
+                       canonical_ingredient_id, is_available, display_order)
+            )
+          )
+        `
+        )
+        .eq('id', categoryId)
+        .single();
+
+      if (error) {
+        return { data: null, error: new Error(error.message) };
+      }
+
+      const dishes = ((data as unknown as { dishes?: CategoryDish[] } | null)?.dishes ?? []) as CategoryDish[];
+      const newCache = new Map(cache);
+      newCache.set(categoryId, { data: dishes, fetchedAt: Date.now() });
+      set({ categoryDishesCache: newCache });
+
+      return { data: dishes, error: null };
+    } catch (err) {
+      return { data: null, error: err as Error };
     }
   },
 }));

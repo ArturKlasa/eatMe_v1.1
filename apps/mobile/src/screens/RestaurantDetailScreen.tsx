@@ -38,6 +38,7 @@ import { getDishRatingsBatch, type DishRating } from '../services/dishRatingServ
 import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
 import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
 import { useFilterStore } from '../stores/filterStore';
+import { useRestaurantStore } from '../stores/restaurantStore';
 import { classifyDish, sortDishesByFilter, ALLERGY_TO_DB } from '../utils/menuFilterUtils';
 import { recordInteraction } from '../services/interactionService';
 
@@ -50,6 +51,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const user = useAuthStore(state => state.user);
   const trackRestaurantView = useSessionStore(state => state.trackRestaurantView);
   const trackDishView = useSessionStore(state => state.trackDishView);
+  const fetchRestaurantDetail = useRestaurantStore(state => state.fetchRestaurantDetail);
+  const fetchCategoryDishes = useRestaurantStore(state => state.fetchCategoryDishes);
   const permanentFilters = useFilterStore(state => state.permanent);
   const ingredientsToAvoid = useFilterStore(state => state.permanent.ingredientsToAvoid);
   const [restaurant, setRestaurant] = useState<RestaurantWithMenus | null>(null);
@@ -74,6 +77,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
+  // Per-category dish loading state: Map<categoryId, 'loading' | 'error' | Dish[]>
+  const [categoryDishes, setCategoryDishes] = useState<Map<string, 'loading' | 'error' | Dish[]>>(
+    new Map()
+  );
   // Maps option.id → allergen codes that apply to that option's canonical ingredient.
   const [optionAllergens, setOptionAllergens] = useState<Map<string, string[]>>(new Map());
 
@@ -92,29 +99,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     const loadAll = async () => {
       try {
         const [restaurantResult, ratingResult, favResult] = await Promise.all([
-          supabase
-            .from('restaurants')
-            .select(
-              `
-              *,
-              menus (
-                *,
-                menu_categories (
-                  *,
-                  dishes (
-                    *,
-                    dish_ingredients (ingredient_id),
-                    option_groups (
-                      *,
-                      options (*)
-                    )
-                  )
-                )
-              )
-            `
-            )
-            .eq('id', restaurantId)
-            .single(),
+          fetchRestaurantDetail(restaurantId),
           getRestaurantRating(restaurantId),
           user ? isFavorited(user.id, 'restaurant', restaurantId) : Promise.resolve(null),
         ]);
@@ -135,7 +120,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         if (error) throw error;
 
         if (data) {
-          const typed = data as unknown as RestaurantWithMenus;
+          const typed = data;
           setRestaurant(typed);
 
           trackRestaurantView({
@@ -145,16 +130,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             imageUrl: typed.image_url ?? undefined,
           });
 
-          // Dish ratings need restaurant data first — fire immediately after
-          const allDishIds =
-            typed.menus?.flatMap(
-              m => m.menu_categories?.flatMap(c => c.dishes?.map(d => d.id) ?? []) ?? []
-            ) ?? [];
-
-          if (allDishIds.length > 0) {
-            const ratings = await getDishRatingsBatch(allDishIds);
-            if (mountedRef.current) setDishRatings(ratings);
-          }
+          // Dish ratings are loaded per-category via loadCategoryDishes()
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
@@ -165,6 +141,53 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
 
     loadAll();
   }, [restaurantId, user, trackRestaurantView]);
+
+  // Lazy-load dishes for a specific category; no-op if already loading or loaded
+  const loadCategoryDishes = React.useCallback(
+    async (categoryId: string) => {
+      if (!mountedRef.current) return;
+      setCategoryDishes(prev => {
+        if (prev.has(categoryId)) return prev; // already loaded or loading
+        const next = new Map(prev);
+        next.set(categoryId, 'loading');
+        return next;
+      });
+      const { data, error } = await fetchCategoryDishes(categoryId);
+      if (!mountedRef.current) return;
+      if (error || !data) {
+        setCategoryDishes(prev => {
+          const next = new Map(prev);
+          next.set(categoryId, 'error');
+          return next;
+        });
+        return;
+      }
+      setCategoryDishes(prev => {
+        const next = new Map(prev);
+        next.set(categoryId, data);
+        return next;
+      });
+      // Load dish ratings for newly fetched dishes
+      const dishIds = data.map(d => d.id);
+      if (dishIds.length > 0) {
+        const ratings = await getDishRatingsBatch(dishIds);
+        if (mountedRef.current) {
+          setDishRatings(prev => new Map([...prev, ...ratings]));
+        }
+      }
+    },
+    [fetchCategoryDishes]
+  );
+
+  // Auto-load all categories in parallel when restaurant metadata arrives
+  useEffect(() => {
+    if (!restaurant) return;
+    restaurant.menus?.forEach(menu =>
+      menu.menu_categories?.forEach(cat => {
+        if (cat?.id) loadCategoryDishes(cat.id);
+      })
+    );
+  }, [restaurant?.id]);
 
   // Record 'viewed' interaction after the dish detail has been open for 3+ seconds.
   // Timer is cleared if the user dismisses before 3s.
@@ -310,7 +333,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
    *   - standalone: dishes with no parent and is_parent=false
    * Parent display-only containers without variants are omitted.
    */
-  function groupDishesByParent(dishes: DishWithGroups[]): Array<
+  function groupDishesByParent(
+    dishes: DishWithGroups[]
+  ): Array<
     | { type: 'standalone'; dish: DishWithGroups }
     | { type: 'parent'; parent: DishWithGroups; variants: DishWithGroups[] }
   > {
@@ -624,25 +649,65 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               <Text style={styles.menuName}>{menu.name}</Text>
               {menu.description && <Text style={styles.menuDescription}>{menu.description}</Text>}
               {menu.menu_categories?.map(category => {
-                const grouped = groupDishesByParent(sortedDishes(category.dishes ?? []));
+                const categoryState = categoryDishes.get(category.id);
+                const dishes = Array.isArray(categoryState) ? categoryState : [];
+                const grouped = groupDishesByParent(sortedDishes(dishes));
                 return (
                   <View key={category.id} style={styles.menuCategory}>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                    {grouped.map(item => {
-                      if (item.type === 'standalone') {
-                        return renderMenuItem(item.dish);
-                      }
-                      // Parent group: render parent name as sub-header, then variants
-                      return (
-                        <View key={item.parent.id}>
-                          <Text style={[styles.menuItemName, { marginTop: 8, marginBottom: 2, opacity: 0.6, fontStyle: 'italic' }]}>
-                            {item.parent.name}
-                            {item.parent.description ? ` — ${item.parent.description}` : ''}
-                          </Text>
-                          {item.variants.map(variant => renderMenuItem(variant))}
-                        </View>
-                      );
-                    })}
+                    <TouchableOpacity
+                      onPress={() => loadCategoryDishes(category.id)}
+                      activeOpacity={1}
+                    >
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                    </TouchableOpacity>
+                    {categoryState === 'loading' && (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.accent}
+                        style={{ marginVertical: 8 }}
+                      />
+                    )}
+                    {categoryState === 'error' && (
+                      <Text style={{ color: colors.textSecondary, padding: 8 }}>
+                        {t('common.error')}
+                      </Text>
+                    )}
+                    {categoryState === undefined && (
+                      <TouchableOpacity
+                        style={{ padding: 8 }}
+                        onPress={() => loadCategoryDishes(category.id)}
+                      >
+                        <Text style={{ color: colors.accent }}>
+                          {t('restaurant.loadDishes', 'Load dishes')}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {Array.isArray(categoryState) &&
+                      grouped.map(item => {
+                        if (item.type === 'standalone') {
+                          return renderMenuItem(item.dish);
+                        }
+                        // Parent group: render parent name as sub-header, then variants
+                        return (
+                          <View key={item.parent.id}>
+                            <Text
+                              style={[
+                                styles.menuItemName,
+                                {
+                                  marginTop: 8,
+                                  marginBottom: 2,
+                                  opacity: 0.6,
+                                  fontStyle: 'italic',
+                                },
+                              ]}
+                            >
+                              {item.parent.name}
+                              {item.parent.description ? ` — ${item.parent.description}` : ''}
+                            </Text>
+                            {item.variants.map(variant => renderMenuItem(variant))}
+                          </View>
+                        );
+                      })}
                   </View>
                 );
               })}

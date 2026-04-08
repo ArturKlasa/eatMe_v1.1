@@ -20,6 +20,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ── Compression ───────────────────────────────────────────────────────────────
+
+async function compressedJsonResponse(
+  data: unknown,
+  headers: Record<string, string>
+): Promise<Response> {
+  const json = JSON.stringify(data);
+  const encoder = new TextEncoder();
+  const body = encoder.encode(json);
+
+  const cs = new CompressionStream('gzip');
+  const writer = cs.writable.getWriter();
+  writer.write(body);
+  writer.close();
+
+  const compressed = await new Response(cs.readable).arrayBuffer();
+
+  return new Response(compressed, {
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json',
+      'Content-Encoding': 'gzip',
+    },
+  });
+}
+
 // ── Clients ───────────────────────────────────────────────────────────────────
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -442,10 +468,10 @@ serve(async (req: Request) => {
           .select('preference_vector, preferred_cuisines, preferred_price_range')
           .eq('user_id', userId)
           .maybeSingle(),
-        // Load favourited restaurants to boost their dishes in scoring
+        // Load favourited restaurants to boost their dishes in scoring (join cuisine_types)
         supabase
           .from('favorites')
-          .select('subject_id')
+          .select('subject_id, restaurant:restaurants(cuisine_types)')
           .eq('user_id', userId)
           .eq('subject_type', 'restaurant'),
       ]);
@@ -465,22 +491,15 @@ serve(async (req: Request) => {
         ];
       }
 
-      // Favourited restaurants → boost their dishes + extract cuisine types
+      // Favourited restaurants → boost their dishes + extract cuisine types (from join)
       if (favoritesRes.data && favoritesRes.data.length > 0) {
         const favIds = favoritesRes.data.map((f: any) => f.subject_id);
         favoritedRestaurantIds = new Set(favIds);
-        // Fetch cuisine types of favourited restaurants
-        try {
-          const { data: favRestaurants } = await supabase
-            .from('restaurants')
-            .select('cuisine_types')
-            .in('id', favIds);
-          if (favRestaurants) {
-            const favCuisines = favRestaurants.flatMap((r: any) => r.cuisine_types ?? []);
-            userLikedCuisines = [...new Set([...userLikedCuisines, ...favCuisines])];
-          }
-        } catch (e) {
-          console.error('[Feed] Favourites cuisine lookup failed (non-fatal):', e);
+        const favCuisines = favoritesRes.data.flatMap(
+          (f: any) => (f.restaurant?.cuisine_types as string[]) ?? []
+        );
+        if (favCuisines.length > 0) {
+          userLikedCuisines = [...new Set([...userLikedCuisines, ...favCuisines])];
         }
       }
 
@@ -571,7 +590,11 @@ serve(async (req: Request) => {
 
     if (pool.length === 0) {
       return new Response(
-        JSON.stringify({ dishes: [], restaurants: [], metadata: { totalAvailable: 0, returned: 0, cached: false } }),
+        JSON.stringify({
+          dishes: [],
+          restaurants: [],
+          metadata: { totalAvailable: 0, returned: 0, cached: false },
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -647,10 +670,7 @@ serve(async (req: Request) => {
     // ── Fetch open_hours for all restaurants (shared by dishes + restaurants) ─
 
     const allRids = [...new Set(diversified.map(d => d.restaurant_id))];
-    const openHoursMap = new Map<
-      string,
-      Record<string, { open: string; close: string }> | null
-    >();
+    const openHoursMap = new Map<string, Record<string, { open: string; close: string }> | null>();
     try {
       const { data: hourRows } = await supabase
         .from('restaurants')
@@ -670,29 +690,38 @@ serve(async (req: Request) => {
       dishPool = diversified.filter(d => isOpenNow(openHoursMap.get(d.restaurant_id)));
     }
 
-    const dishResult = (mode === 'restaurants') ? [] : dishPool.slice(0, limit).map(d => ({
-      id: d.id,
-      restaurant_id: d.restaurant_id,
-      name: d.name,
-      description: d.description,
-      price: d.price,
-      calories: d.calories,
-      image_url: d.image_url,
-      spice_level: d.spice_level,
-      is_available: d.is_available,
-      allergens: d.allergens,
-      dietary_tags: d.dietary_tags,
-      dish_kind: d.dish_kind,
-      restaurant: {
-        id: d.restaurant_id,
-        name: d.restaurant_name,
-        cuisine_types: d.restaurant_cuisines,
-        rating: d.restaurant_rating,
-      },
-      distance_km: d.distance_m / 1000,
-      score: d.score,
-      flagged_ingredients: d.flagged_ingredients ?? [],
-    }));
+    const dishResult =
+      mode === 'restaurants'
+        ? []
+        : dishPool.slice(0, limit).map(d => ({
+            id: d.id,
+            restaurant_id: d.restaurant_id,
+            name: d.name,
+            description: d.description,
+            price: d.price,
+            display_price_prefix: d.display_price_prefix,
+            calories: d.calories,
+            image_url: d.image_url,
+            spice_level: d.spice_level,
+            is_available: d.is_available,
+            allergens: d.allergens,
+            dietary_tags: d.dietary_tags,
+            dish_kind: d.dish_kind,
+            serves: d.serves,
+            price_per_person: d.price_per_person,
+            restaurant: {
+              id: d.restaurant_id,
+              name: d.restaurant_name,
+              cuisine_types: d.restaurant_cuisines,
+              rating: d.restaurant_rating,
+            },
+            distance_km: d.distance_m / 1000,
+            score: d.score,
+            // Only include flagged_ingredients if non-empty
+            ...(d.flagged_ingredients?.length
+              ? { flagged_ingredients: d.flagged_ingredients }
+              : {}),
+          }));
 
     // ── Build restaurants result ─────────────────────────────────────────────
 
@@ -765,6 +794,13 @@ serve(async (req: Request) => {
     console.log(
       `[Feed] Returning ${dishResult.length} dishes + ${restaurantResult.length} restaurants (${Date.now() - startTime}ms)`
     );
+
+    // Compress response if client supports gzip
+    const acceptEncoding = req.headers.get('Accept-Encoding') ?? '';
+    if (acceptEncoding.includes('gzip')) {
+      return compressedJsonResponse(responseData, corsHeaders);
+    }
+
     return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

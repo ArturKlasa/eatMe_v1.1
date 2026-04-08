@@ -1,134 +1,101 @@
-# Investigate Application Optimization Opportunities
+# Implement Performance Optimizations
 
 ## Objective
 
-Systematically investigate and document all significant optimization opportunities across the eatMe platform — covering database performance, edge functions, mobile app rendering, API payload efficiency, caching, and startup/bundle size. Produce a prioritised, actionable findings report that a developer can use to plan an optimization sprint.
-
-**Do NOT make any code changes.** This is a read-only investigation. All output goes to `.agents/planning/2026-04-07-optimize-performance/findings/`.
+Implement all 15 performance optimization steps defined in the implementation plan, spanning database indexes, Edge Function improvements, mobile app rendering fixes, image caching, and client-side caching. Each step must result in working, tested, demoable functionality before moving to the next.
 
 ## Context
 
 EatMe is a food discovery platform (pnpm + Turborepo monorepo):
+- **`apps/mobile`** — React Native + Expo (SDK 54), Zustand stores, Mapbox map, Supabase client
+- **`apps/web-portal`** — Next.js, restaurant owner onboarding and admin dashboard
+- **Backend** — Supabase (PostgreSQL + PostGIS + pgvector), Edge Functions (Deno/TypeScript), Upstash Redis
 
-- **`apps/mobile`** — React Native + Expo, map-based dish discovery, Zustand stores, recommendation feed, Eat Together group dining feature
-- **`apps/web-portal`** — Next.js, restaurant owner onboarding, admin dashboard, AI menu scanning (GPT-4o Vision)
-- **Backend** — Supabase (PostgreSQL + PostGIS + pgvector), Edge Functions (feed, enrich-dish, group-recommendations, daily-feed, etc.), Upstash Redis
-- **Shared packages** — `packages/database` (Supabase client + auto-generated types)
+Performance investigation was completed on 2026-04-07 and identified 36 findings. Planning and design artifacts for this implementation task live at:
 
-## Investigation Domains
+- **Rough idea:** `.agents/planning/2026-04-08-implement-performance-optimizations/rough-idea.md`
+- **Requirements Q&A:** `.agents/planning/2026-04-08-implement-performance-optimizations/idea-honing.md`
+- **Detailed design:** `.agents/planning/2026-04-08-implement-performance-optimizations/design/detailed-design.md`
+- **Implementation plan:** `.agents/planning/2026-04-08-implement-performance-optimizations/implementation/plan.md`
+- **Original findings:** `.agents/planning/2026-04-07-optimize-performance/findings/`
 
-Work through all domains below. For each finding write a structured entry (see Output Format). Gather concrete evidence — file paths, line numbers, query patterns, payload examples — before recording a finding.
+**Read the detailed design and implementation plan before starting.** Each step in `plan.md` includes objective, implementation guidance, test requirements, and a demo description.
 
-### 1. Database Performance
-- **Indexes**: Check all `.select()` filter columns in services against `database_schema.sql`. Are PostGIS `ST_DWithin` calls covered by a spatial index? Are `embedding <=>` vector searches using an IVFFlat or HNSW index?
-- **N+1 queries**: Look for service functions that call Supabase inside a loop (`.map()` + `await`).
-- **RLS overhead**: Count security definer function calls in policy `USING` clauses. Are they wrapped in `(SELECT ...)` for initPlan caching? Look especially at eat_together policies and feed policies.
-- **Over-fetching**: Find `.select('*')` calls on large tables (restaurants, dishes, eat_together_members). Could they select only needed columns?
-- **Slow aggregations**: Look for `get_vote_results()`, `get_group_candidates()`, and similar RPCs — do they do in-DB aggregation or pull raw rows to the client?
-- **pg_cron contention**: Is the expire-eat-together-sessions job scheduled frequently enough to matter, or could it conflict with write-heavy migrations?
+## Requirements
 
-### 2. Edge Function Performance
-- **Bundle / cold start risk**: Check each function's `index.ts` for large imports (whole SDK vs named imports). Large bundles increase cold start latency.
-- **Sequential vs parallel awaits**: Look for `await A; await B;` patterns where A and B are independent — these should be `await Promise.all([A, B])`.
-- **Redis cache hit rate**: Check Upstash usage in `feed` and `enrich-dish` functions. Are TTLs set? Is the cache key granular enough to be useful?
-- **Payload size**: What does each edge function return to the client? Are full restaurant objects returned where only IDs + display fields are needed?
-- **Error handling latency**: Do functions retry on transient errors? Unbounded retries add latency in failure paths.
+Implement each step in order. Mark the checklist item in `implementation/plan.md` complete when the step is done and tested.
 
-### 3. Mobile App Rendering
-- **Unnecessary re-renders**: Look for components subscribed to large Zustand slices without selectors. `useStore()` without a selector re-renders on any store change.
-- **FlatList / FlashList optimization**: Are `getItemLayout` and `keyExtractor` defined on lists? Is `removeClippedSubviews` set for long lists?
-- **useMemo / useCallback**: Find expensive computations in render functions (sorting, filtering large arrays) that are not memoized.
-- **Image loading**: Are restaurant/dish images loaded with caching headers? Is `expo-image` (with built-in cache) used, or the older `Image` from react-native?
-- **Navigation performance**: Are heavy screens using `React.lazy` or conditional mounting to avoid rendering off-screen content?
-- **Realtime subscriptions**: How many concurrent Supabase realtime channels does the app maintain? Each open channel adds overhead.
+1. **Step 1 — DB Migration (indexes):** Create `infra/supabase/migrations/076_performance_indexes.sql` with 7 indexes: `idx_favorites_user_subject`, `idx_interactions_user_type`, `idx_eat_members_session_left`, `idx_session_views_user_type`, `idx_dish_ingredients_dish`, `idx_eat_votes_session`, `idx_eat_members_session_user_active` (partial WHERE left_at IS NULL)
+2. **Step 2 — RestaurantDetailScreen explicit select:** Replace all `select('*')` in the nested Supabase query at `apps/mobile/src/screens/RestaurantDetailScreen.tsx:96-115` with explicit columns, excluding `embedding`, `embedding_input`, `enrichment_payload`, `restaurant_vector`, `location_point`
+3. **Step 3 — enrich-dish Promise.all:** Wrap the 4 independent sequential `await` calls at `infra/supabase/functions/enrich-dish/index.ts:357-405` in a single `Promise.all`
+4. **Step 4 — feed slim response + favorites join:** Remove `allergens`, `dietary_tags`, `is_available` from feed dish response; omit `flagged_ingredients` when empty; merge favorites cuisine lookup into the existing `Promise.all` at `infra/supabase/functions/feed/index.ts:473-484`
+5. **Step 5 — BasicMapScreen useShallow:** Add `useShallow` from `zustand/react/shallow` to the `daily` and `permanent` selectors at `apps/mobile/src/screens/BasicMapScreen.tsx:126-128`
+6. **Step 6 — Explicit selects in services:** Replace `select('*')` with explicit column lists in `apps/mobile/src/services/eatTogetherService.ts` (lines 127, 146, 185, 399, 529) and `apps/mobile/src/services/dishPhotoService.ts` (line 136)
+7. **Step 7 — filterStore debounce:** Add 500 ms debounce to `saveFilters()` in `apps/mobile/src/stores/filterStore.ts`
+8. **Step 8 — expo-image migration:** Install `expo-image` via `npx expo install expo-image`; replace all `Image` from `react-native` with `Image` from `expo-image` across all mobile screens and components; update `resizeMode` → `contentFit`
+9. **Step 9 — Client-side restaurant cache:** Add `restaurantDetailCache: Map<string, { data, fetchedAt }>` and `fetchRestaurantDetail(id)` action to `restaurantStore`; update `RestaurantDetailScreen` to use it (5 min TTL, in-memory only)
+10. **Step 10 — User preferences sync debounce:** Add `lastSyncedAt: number | null` to both `filterStore` and `onboardingStore`; skip `syncWithDatabase` / `loadUserPreferences` in `storeBindings.ts` if last sync < 30 minutes; reset on logout
+11. **Step 11 — viewHistoryService DB view:** Create migration with `recent_viewed_restaurants` view joining `session_views` to `restaurants`; update `apps/mobile/src/services/viewHistoryService.ts` to query the view in one call
+12. **Step 12 — FlatList getItemLayout:** Add `getItemLayout` and `removeClippedSubviews` to the FlatList in `apps/mobile/src/screens/ViewedHistoryScreen.tsx:112-118`
+13. **Step 13 — Per-category lazy loading:** Restructure `RestaurantDetailScreen` to load restaurant metadata + menu structure first, then fetch per-category dishes lazily on tab/section activation
+14. **Step 14 — feed response compression:** Add gzip compression via `CompressionStream` to the feed Edge Function; only compress when `Accept-Encoding: gzip` is present; fall back to uncompressed otherwise
+15. **Step 15 — Cache invalidation webhook:** Create `infra/supabase/functions/invalidate-cache/index.ts`; register Supabase DB webhooks on `restaurants`, `menus`, `dishes` UPDATE events to delete relevant Redis keys
 
-### 4. API Payload & Network
-- **Over-fetching**: Find Supabase queries selecting more columns than the component displays.
-- **Under-pagination**: Are large collections (restaurant lists, dish feeds) fetched without `.range()` pagination? What is the default page size?
-- **Redundant requests**: Check if the same data is fetched on every navigation event vs. cached in Zustand or React Query.
-- **Payload compression**: Do edge functions return gzip-compressed responses? Supabase edge functions support this.
+## Constraints
 
-### 5. Caching Strategy
-- **What is cached**: Map all current Redis cache usages (key patterns, TTLs). Identify data fetched on every request that could be cached.
-- **What should be cached**: Restaurant metadata, dish enrichments, embedding results — these change infrequently. Are they cached?
-- **Client-side caching**: Is `stale-while-revalidate` or equivalent used in the mobile app for feed data?
-- **Cache invalidation**: When a restaurant owner updates menu data, does the cache get invalidated? Or does stale data linger?
+- **Do NOT touch `nearby-restaurants` Edge Function** — any file under `infra/supabase/functions/nearby-restaurants/` and the `geoService.ts` client calls are entirely out of scope
+- **Do NOT implement two-tier feed cache key restructuring** — the feed cache key format (`feed:${userId}:${lat}:${lng}:${filters}`) must not be changed
+- Implement steps sequentially — later steps build on earlier ones (Step 9 uses the explicit select from Step 2; Step 13 extends Step 9)
+- Write tests alongside each step — do not create standalone testing-only steps
+- Run `pnpm tsc --noEmit` from the repo root after each mobile/shared change to catch TypeScript errors early
+- For Edge Function changes, verify with `supabase functions serve <name>` locally before marking complete
+- Do not add new npm dependencies beyond `expo-image` (Step 8) — use existing utilities
 
-### 6. Bundle & Startup Time
-- **JS bundle size**: Are there large dependencies imported at the top level that could be lazy-loaded (e.g., map libraries, PDF parsers)?
-- **Expo/Metro config**: Is tree-shaking configured? Are source maps excluded from production builds?
-- **Web portal bundle**: Does the Next.js app use dynamic imports for heavy components (map, chart, PDF viewer)?
-- **Font/asset loading**: Are fonts and images preloaded efficiently, or do they block the initial render?
+## Success Criteria
 
-## Output Format
+The task is complete when:
 
-For each finding, use this structure in the relevant findings file:
-
-```markdown
-### [SEVERITY] Title of Finding
-
-**File(s):** `path/to/file.ts:line`
-**Severity:** Critical | High | Medium | Low
-**Effort:** Easy (< 1 day) | Medium (1–3 days) | Hard (> 3 days)
-
-**Current behavior:**
-What happens now, with evidence (code snippet or query pattern).
-
-**Root cause:**
-Why this is slow / wasteful.
-
-**Proposed fix:**
-Concrete description or pseudocode of the change needed.
-
-**Estimated impact:**
-E.g., "Eliminates 3 extra round-trips per session join", "Reduces cold start by ~200ms", "Cuts feed payload by 60%".
-```
-
-## Output Files
-
-Write findings to these files (create as needed):
-
-- `.agents/planning/2026-04-07-optimize-performance/findings/database.md`
-- `.agents/planning/2026-04-07-optimize-performance/findings/edge-functions.md`
-- `.agents/planning/2026-04-07-optimize-performance/findings/mobile-rendering.md`
-- `.agents/planning/2026-04-07-optimize-performance/findings/api-payload.md`
-- `.agents/planning/2026-04-07-optimize-performance/findings/caching.md`
-- `.agents/planning/2026-04-07-optimize-performance/findings/bundle-startup.md`
-- `.agents/planning/2026-04-07-optimize-performance/findings/summary.md` — top 10 highest-impact findings ranked by Severity × Effort, with a recommended sprint order
-
-## Key Source Files to Read
-
-**Schema & migrations:**
-- `infra/supabase/migrations/database_schema.sql` — full schema with indexes
-- `infra/supabase/migrations/` — all migration files for index and policy history
-
-**Edge functions:**
-- `infra/supabase/functions/feed/index.ts`
-- `infra/supabase/functions/enrich-dish/index.ts`
-- `infra/supabase/functions/group-recommendations/index.ts`
-- `infra/supabase/functions/daily-feed/index.ts`
-
-**Mobile services (query patterns):**
-- `apps/mobile/src/services/` — all service files
-- `apps/mobile/src/stores/` — Zustand store definitions
-- `apps/mobile/src/screens/` — component rendering patterns
-
-**Web portal:**
-- `apps/web-portal/src/` — Next.js pages and components
-
-**Shared:**
-- `packages/database/` — Supabase client setup and generated types
+- [ ] Step 1: Migration `076_performance_indexes.sql` exists and all 7 indexes are confirmed via `EXPLAIN ANALYZE` to produce Index Scans
+- [ ] Step 2: RestaurantDetailScreen Supabase query contains no `*` wildcards; no `embedding` or `restaurant_vector` in network response
+- [ ] Step 3: enrich-dish function uses `Promise.all` for the 4 independent DB queries; enrichment output is functionally identical
+- [ ] Step 4: feed response omits `allergens`, `dietary_tags`, `is_available`; favorites cuisine resolved via join (no sequential post-Promise.all query)
+- [ ] Step 5: BasicMapScreen `daily` and `permanent` selectors use `useShallow`; no TypeScript errors
+- [ ] Step 6: All `select('*')` replaced in `eatTogetherService.ts` and `dishPhotoService.ts`; all eat_together flows work end-to-end
+- [ ] Step 7: `saveFilters()` is debounced 500 ms; rapid slider movement triggers only one AsyncStorage write
+- [ ] Step 8: `expo-image` installed; no remaining `import { Image } from 'react-native'` in mobile screens/components; no `resizeMode` prop warnings
+- [ ] Step 9: Second navigation to same restaurant within 5 min produces no Supabase network request; cache invalidated after TTL
+- [ ] Step 10: App foreground within 30 min skips `syncWithDatabase` and `loadUserPreferences`; logout resets `lastSyncedAt`
+- [ ] Step 11: Migration with `recent_viewed_restaurants` view exists; `viewHistoryService` issues a single DB query; history screen renders correctly
+- [ ] Step 12: `ViewedHistoryScreen` FlatList has `getItemLayout` and `removeClippedSubviews`; no layout jump on scroll
+- [ ] Step 13: RestaurantDetailScreen initial load fetches only first category dishes; tapping a new category triggers a targeted fetch; loading state shown per category
+- [ ] Step 14: feed Edge Function returns `Content-Encoding: gzip` when `Accept-Encoding: gzip` is present; falls back to plain JSON otherwise
+- [ ] Step 15: `invalidate-cache` Edge Function deployed; after a restaurant UPDATE, relevant Redis keys are deleted
 
 ## Progress Log
 
-- [x] Domain 1: Database performance investigation complete → `findings/database.md`
-- [x] Domain 2: Edge function performance investigation complete → `findings/edge-functions.md`
-- [x] Domain 3: Mobile app rendering investigation complete → `findings/mobile-rendering.md`
-- [x] Domain 4: API payload & network investigation complete → `findings/api-payload.md`
-- [x] Domain 5: Caching strategy investigation complete → `findings/caching.md`
-- [x] Domain 6: Bundle & startup time investigation complete → `findings/bundle-startup.md`
-- [x] Summary report written → `findings/summary.md` with top 10 ranked findings
+- [ ] Step 1: DB Migration — Missing Indexes
+- [ ] Step 2: RestaurantDetailScreen — Explicit Column Select
+- [ ] Step 3: enrich-dish — Parallelize Sequential Queries
+- [ ] Step 4: feed Edge Function — Slim Response + Favorites Join
+- [ ] Step 5: BasicMapScreen — useShallow Selectors
+- [ ] Step 6: Explicit Selects in eatTogetherService + dishPhotoService
+- [ ] Step 7: filterStore — Debounce saveFilters()
+- [ ] Step 8: expo-image — Install and Full Migration
+- [ ] Step 9: Client-Side Restaurant Cache in Zustand
+- [ ] Step 10: User Preferences Sync Debounce
+- [ ] Step 11: viewHistoryService — Combined DB View
+- [ ] Step 12: FlatList getItemLayout in ViewedHistoryScreen
+- [ ] Step 13: Per-Category Lazy Loading in RestaurantDetailScreen
+- [ ] Step 14: feed Edge Function — Response Compression
+- [ ] Step 15: Cache Invalidation Webhook
+
+## Notes
+
+- The detailed design at `.agents/planning/2026-04-08-implement-performance-optimizations/design/detailed-design.md` contains interface definitions, SQL DDL, TypeScript snippets, and error handling guidance for each change — read it before implementing each step
+- The implementation plan at `.agents/planning/2026-04-08-implement-performance-optimizations/implementation/plan.md` has step-by-step guidance including exact file paths, line numbers, and code examples
+- Original performance findings (with root cause analysis and proposed fixes) are in `.agents/planning/2026-04-07-optimize-performance/findings/`
+- Steps 1–7 are largely independent and fastest to implement; Steps 8–10 build on Step 2; Steps 11–15 are the architectural Sprint 3 items
+- After completing all steps, write `LOOP_COMPLETE` to signal completion
 
 ---
-
-The orchestrator will continue iterations until all domains are investigated and the summary is written.
+The orchestrator will continue iterations until limits are reached.

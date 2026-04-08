@@ -1,6 +1,6 @@
 # Ralph Orchestrator Configuration
-# Task: Investigate Application Optimization Opportunities
-# Hat: Investigator — read-only analysis, no code changes
+# Task: Implement Performance Optimizations
+# Preset: code-assist (planner → builder → critic → finalizer)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -10,37 +10,37 @@ cli:
 event_loop:
   prompt_file: "PROMPT.md"
   completion_promise: "LOOP_COMPLETE"
-  max_iterations: 25                # Investigation task: broad analysis across multiple dimensions
-  max_runtime_seconds: 7200         # 2 hours — enough to survey DB, API, mobile, caching, edge functions
-  idle_timeout_secs: 900            # 15 min idle — investigator should move continuously between areas
-  checkpoint_interval: 5            # Git checkpoint every 5 iterations (findings notes only, no code)
+  max_iterations: 50                # 15 steps × ~3 iterations each on average
+  max_runtime_seconds: 14400        # 4 hours — implementation is more demanding than investigation
+  idle_timeout_secs: 1800           # 30 min idle threshold
+  checkpoint_interval: 3            # Git checkpoint every 3 iterations to preserve working increments
 
 core:
-  specs_dir: ".agents/planning/2026-04-07-optimize-performance/"
+  specs_dir: ".agents/planning/2026-04-08-implement-performance-optimizations/"
   guardrails:
-    - "INVESTIGATOR HAT: This is a read-only investigation. Do NOT modify any source files, migrations, package.json, or configuration files. Your only output is findings written to .agents/planning/2026-04-07-optimize-performance/findings/."
-    - "Write all findings as structured markdown files under .agents/planning/2026-04-07-optimize-performance/findings/. Use one file per domain (e.g. database.md, mobile-rendering.md, edge-functions.md, caching.md, api-payload.md, bundle-size.md)."
-    - "For each finding include: (1) Title, (2) Severity [Critical/High/Medium/Low], (3) Effort [Easy/Medium/Hard], (4) Current behavior with file:line references, (5) Root cause, (6) Proposed fix with concrete code sketch, (7) Estimated impact."
-    - "Database domain: Look for missing indexes (use EXPLAIN ANALYZE patterns in code), N+1 query patterns in services, RLS policy overhead (especially security definer functions called in policy USING clauses), slow PostGIS radius queries, pgvector approximate vs exact search settings, and pg_cron job contention."
-    - "Edge function domain: Examine cold start risk (bundle size in each function's index.ts), unnecessary sequential awaits inside functions that could be parallelised, large payload sizes returned to clients, and whether Redis caching (Upstash) is used effectively or bypassed."
-    - "Mobile app domain: Look for unnecessary re-renders (missing useMemo/useCallback), large list rendering without FlatList optimization (getItemLayout, keyExtractor), Zustand store selectors that cause whole-store re-subscriptions, image loading without caching, and heavy imports that bloat the JS bundle."
-    - "API/network domain: Check response payload sizes (are full objects returned where IDs suffice?), over-fetching in Supabase .select() calls (wildcards vs explicit columns), and realtime subscription count per screen."
-    - "Caching domain: Identify data that changes infrequently but is fetched on every render or navigation (restaurant metadata, user preferences, dish enrichment). Check if Redis (Upstash) is used in edge functions and whether TTLs are appropriate."
-    - "Cover ALL of these domains before writing LOOP_COMPLETE: database, edge functions, mobile rendering, API payloads, caching, bundle/startup time."
-    - "Update the Progress Log checkboxes in PROMPT.md after completing each investigation domain."
+    - "IMPLEMENTATION TASK: You are implementing performance optimizations. Always read the implementation plan at .agents/planning/2026-04-08-implement-performance-optimizations/implementation/plan.md and the detailed design at .agents/planning/2026-04-08-implement-performance-optimizations/design/detailed-design.md before starting any step."
+    - "Implement steps sequentially (Step 1 → Step 15). Do not skip steps or implement out of order — later steps depend on earlier ones."
+    - "After completing each step, mark its checkbox in the Progress Log in PROMPT.md and in the checklist in implementation/plan.md."
+    - "HARD CONSTRAINT: Do NOT touch anything related to the nearby-restaurants Edge Function. Files under infra/supabase/functions/nearby-restaurants/ and apps/mobile/src/services/geoService.ts are completely out of scope."
+    - "HARD CONSTRAINT: Do NOT change the feed cache key format. The existing Redis key pattern (feed:userId:lat:lng:filters) must not be modified."
+    - "After every TypeScript file change in apps/mobile or packages/, run: pnpm --filter @eatme/mobile tsc --noEmit. Fix all type errors before marking a step complete."
+    - "For each Edge Function change, verify correctness by invoking the function locally with supabase functions serve before marking the step complete."
+    - "Write tests alongside implementation — do not defer testing to a later step. Each step's test requirements are documented in implementation/plan.md."
+    - "Do not add new npm dependencies beyond expo-image (Step 8). Use utilities already available in the codebase."
+    - "When a step is fully implemented and tested, write a brief completion note under the step's checklist item in PROMPT.md before moving on."
 
 memories:
   enabled: true
   inject: "auto"
   budget: 2000
   filter:
-    types: ["pattern", "context"]
+    types: ["pattern", "context", "decision"]
 
 tasks:
   enabled: true
 
 features:
-  parallel: true               # Investigator can survey multiple domains concurrently
+  parallel: false               # Sequential implementation — steps depend on each other
   auto_merge: false
   preflight:
-    enabled: false             # No preflight needed for read-only investigation
+    enabled: false              # No preflight gates — implementation handles its own verification

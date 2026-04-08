@@ -26,8 +26,8 @@ export type MainStackParamList = {
   EatTogether: undefined;
   CreateSession: undefined;
   JoinSession: undefined;
-  SessionLobby: { sessionId: string };
-  Recommendations: { sessionId: string };
+  SessionLobby: { sessionId: string; isHost: boolean };
+  Recommendations: { sessionId: string; isHost: boolean };
   VotingResults: { sessionId: string };
   Settings: undefined;
   RestaurantDetail: { restaurantId: string };

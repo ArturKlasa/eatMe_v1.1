@@ -722,7 +722,11 @@
     "mustBeLoggedIn": "Musisz być zalogowany, aby dołączyć do sesji",
     "invalidCode": "Nieprawidłowy Kod",
     "codeLength": "Kod sesji musi mieć 6 znaków",
-    "joinFailed": "Nie udało się dołączyć do sesji"
+    "joinFailed": "Nie udało się dołączyć do sesji",
+    "sessionNotFound": "Nie znaleziono sesji. Mogła zostać anulowana.",
+    "sessionExpired": "Ta sesja wygasła. Poproś gospodarza o utworzenie nowej.",
+    "sessionStarted": "Ta sesja jest już w toku.",
+    "joiningSession": "Dołączanie..."
   },
   "sessionLobby": {
     "title": "Jedzmy Razem",
@@ -749,7 +753,12 @@
     "closeMessage": "To zakończy sesję dla wszystkich członków. Czy na pewno?",
     "leaveMessage": "Czy na pewno chcesz opuścić tę sesję?",
     "loading": "Ładowanie sesji...",
-    "notFound": "Nie znaleziono sesji"
+    "notFound": "Nie znaleziono sesji",
+    "locationRequired": "Wymagane dane lokalizacji. Proszę włączyć udostępnianie lokalizacji.",
+    "generating": "Szukam restauracji dla Twojej grupy...",
+    "sessionExpired": "Sesja Wygasła",
+    "sessionExpiredMessage": "Ta sesja wygasła. Poproś gospodarza o utworzenie nowej.",
+    "recommendationFailed": "Nie udało się wygenerować rekomendacji"
   },
   "sessionVoting": {
     "title": "Głosuj na Restaurację",
@@ -763,7 +772,11 @@
     "yourVote": "✓ Twój Głos",
     "loading": "Ładowanie rekomendacji...",
     "noRecommendations": "Nie znaleziono rekomendacji",
-    "voteFailed": "Nie udało się oddać głosu"
+    "voteFailed": "Nie udało się przesłać Twojego głosu. Spróbuj ponownie.",
+    "submittingVote": "Przesyłanie Twojego głosu...",
+    "finalizeResults": "Zakończ Głosowanie",
+    "finalizeFailed": "Nie udało się zakończyć głosowania. Spróbuj ponownie.",
+    "noVotesToFinalize": "Brak głosów. Członkowie muszą zagłosować przed zakończeniem."
   },
   "votingResults": {
     "title": "🎉 Wyniki Głosowania",

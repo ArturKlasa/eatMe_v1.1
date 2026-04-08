@@ -197,4 +197,37 @@ export const styles = StyleSheet.create({
     fontSize: typography.size.base,
     marginBottom: spacing.base,
   },
+  expiryTimer: {
+    color: colors.darkTextMuted,
+    fontSize: typography.size.xs,
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
+  },
+  expiryTimerWarning: {
+    color: colors.danger,
+  },
+  expiredOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.base,
+  },
+  expiredOverlayTitle: {
+    color: colors.danger,
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    textAlign: 'center',
+  },
+  expiredOverlayText: {
+    color: colors.darkText,
+    fontSize: typography.size.base,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
 });

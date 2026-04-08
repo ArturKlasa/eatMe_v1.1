@@ -1,5 +1,6 @@
 # Ralph Orchestrator Configuration
-# Task: Menu Ingestion & Enrichment Improvements
+# Task: Investigate Application Optimization Opportunities
+# Hat: Investigator — read-only analysis, no code changes
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -9,29 +10,24 @@ cli:
 event_loop:
   prompt_file: "PROMPT.md"
   completion_promise: "LOOP_COMPLETE"
-  max_iterations: 120               # Complex task: 11 deliverables across 8 files, UI work, prompt engineering, enrichment rewrite
-  max_runtime_seconds: 21600         # 6 hours — large scope: types, GPT prompt, merge rewrite, review UI (2500+ line file), confirm endpoint, enrichment edge function, migration, onboarding
-  idle_timeout_secs: 2400            # 40 min idle — some steps (review UI) are large and may take time
-  checkpoint_interval: 3             # Git checkpoint every 3 iterations
+  max_iterations: 25                # Investigation task: broad analysis across multiple dimensions
+  max_runtime_seconds: 7200         # 2 hours — enough to survey DB, API, mobile, caching, edge functions
+  idle_timeout_secs: 900            # 15 min idle — investigator should move continuously between areas
+  checkpoint_interval: 5            # Git checkpoint every 5 iterations (findings notes only, no code)
 
 core:
-  specs_dir: ".agents/planning/2026-04-06-menu-ingestion-enrichment/"
+  specs_dir: ".agents/planning/2026-04-07-optimize-performance/"
   guardrails:
-    - "Read the detailed design at .agents/planning/2026-04-06-menu-ingestion-enrichment/design/detailed-design.md before implementing any change."
-    - "Read the research files in .agents/planning/2026-04-06-menu-ingestion-enrichment/research/ for decision rationale."
-    - "Read the idea-honing.md in .agents/planning/2026-04-06-menu-ingestion-enrichment/ for all confirmed decisions and scope boundaries."
-    - "Always read a file before modifying it. The codebase has recent changes from the universal dish structure initiative (migration 073)."
-    - "The only new database migration is 074_enrichment_review_status.sql. All other columns (is_parent, parent_dish_id, dish_kind, serves, display_price_prefix) already exist."
-    - "Do not add new dependencies except string-similarity for fuzzy matching."
-    - "Reuse the existing three-pass parent-child insertion logic in restaurantService.ts — do not duplicate it in the confirm endpoint."
-    - "When switching to Structured Outputs, use Zod schemas with zodResponseFormat() from openai/helpers/zod. Use z.lazy() for recursive variant types."
-    - "Embeddings represent dish identity only — never include price, spice_level, dietary_tags, or allergens in embedding input."
-    - "AI-inferred data must NEVER be auto-applied. Store in enrichment_payload with enrichment_review_status='pending_review' for admin approval."
-    - "All existing menu scan flows must continue working for simple standard-dish menus. No regressions."
-    - "When modifying menu-scan/page.tsx (2489 lines), extract new components into separate files to manage complexity."
-    - "Update the Progress Log checkboxes in PROMPT.md after completing each item."
-    - "Do not deviate from type definitions, field names, or enum values in the design document."
-    - "Parent dishes have is_parent=true, price=0, no embedding, excluded from feed. This is already implemented — don't break it."
+    - "INVESTIGATOR HAT: This is a read-only investigation. Do NOT modify any source files, migrations, package.json, or configuration files. Your only output is findings written to .agents/planning/2026-04-07-optimize-performance/findings/."
+    - "Write all findings as structured markdown files under .agents/planning/2026-04-07-optimize-performance/findings/. Use one file per domain (e.g. database.md, mobile-rendering.md, edge-functions.md, caching.md, api-payload.md, bundle-size.md)."
+    - "For each finding include: (1) Title, (2) Severity [Critical/High/Medium/Low], (3) Effort [Easy/Medium/Hard], (4) Current behavior with file:line references, (5) Root cause, (6) Proposed fix with concrete code sketch, (7) Estimated impact."
+    - "Database domain: Look for missing indexes (use EXPLAIN ANALYZE patterns in code), N+1 query patterns in services, RLS policy overhead (especially security definer functions called in policy USING clauses), slow PostGIS radius queries, pgvector approximate vs exact search settings, and pg_cron job contention."
+    - "Edge function domain: Examine cold start risk (bundle size in each function's index.ts), unnecessary sequential awaits inside functions that could be parallelised, large payload sizes returned to clients, and whether Redis caching (Upstash) is used effectively or bypassed."
+    - "Mobile app domain: Look for unnecessary re-renders (missing useMemo/useCallback), large list rendering without FlatList optimization (getItemLayout, keyExtractor), Zustand store selectors that cause whole-store re-subscriptions, image loading without caching, and heavy imports that bloat the JS bundle."
+    - "API/network domain: Check response payload sizes (are full objects returned where IDs suffice?), over-fetching in Supabase .select() calls (wildcards vs explicit columns), and realtime subscription count per screen."
+    - "Caching domain: Identify data that changes infrequently but is fetched on every render or navigation (restaurant metadata, user preferences, dish enrichment). Check if Redis (Upstash) is used in edge functions and whether TTLs are appropriate."
+    - "Cover ALL of these domains before writing LOOP_COMPLETE: database, edge functions, mobile rendering, API payloads, caching, bundle/startup time."
+    - "Update the Progress Log checkboxes in PROMPT.md after completing each investigation domain."
 
 memories:
   enabled: true
@@ -44,8 +40,7 @@ tasks:
   enabled: true
 
 features:
-  parallel: false              # Sequential — types must be updated before UI work, migration before enrichment changes
+  parallel: true               # Investigator can survey multiple domains concurrently
   auto_merge: false
   preflight:
-    enabled: true
-    strict: false
+    enabled: false             # No preflight needed for read-only investigation

@@ -177,4 +177,12 @@ export const styles = StyleSheet.create({
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  finalizeContainer: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
 });

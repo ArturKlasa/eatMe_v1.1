@@ -41,14 +41,16 @@ export function CreateSessionScreen() {
   const [shareLink, setShareLink] = useState('');
 
   useEffect(() => {
-    if (session && location) {
+    if (session && location && user) {
       // Update host location
-      updateMemberLocation(session.id, user!.id, {
+      updateMemberLocation(session.id, user.id, {
         lat: location.latitude,
         lng: location.longitude,
+      }).catch(err => {
+        console.error('Failed to update host location:', err);
       });
     }
-  }, [session, location]);
+  }, [session, location, user]);
 
   const handleCreateSession = async () => {
     if (!user) {
@@ -73,7 +75,7 @@ export function CreateSessionScreen() {
       setShareLink(link);
 
       // Navigate to session lobby
-      navigation.navigate('SessionLobby', { sessionId: data.id });
+      navigation.navigate('SessionLobby', { sessionId: data.id, isHost: true });
     } catch (err) {
       Alert.alert(t('common.error'), t('common.somethingWrong'));
       console.error(err);
@@ -124,7 +126,7 @@ export function CreateSessionScreen() {
 
           <TouchableOpacity
             style={styles.continueButton}
-            onPress={() => navigation.navigate('SessionLobby', { sessionId: session!.id })}
+            onPress={() => navigation.navigate('SessionLobby', { sessionId: session!.id, isHost: true })}
           >
             <Text style={styles.continueButtonText}>{t('eatTogether.goToLobby')}</Text>
           </TouchableOpacity>

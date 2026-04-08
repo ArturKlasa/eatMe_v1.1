@@ -44,12 +44,23 @@ export function JoinSessionScreen() {
       const { data, error } = await joinSession(user.id, sessionCode, userLocation);
 
       if (error || !data) {
-        Alert.alert(t('common.error'), error?.message || t('sessionJoin.joinFailed'));
+        const errorCode = (error as Error & { code?: string })?.code;
+        let message: string;
+        if (errorCode === 'session_not_found') {
+          message = t('sessionJoin.sessionNotFound');
+        } else if (errorCode === 'session_expired') {
+          message = t('sessionJoin.sessionExpired');
+        } else if (errorCode === 'session_started') {
+          message = t('sessionJoin.sessionStarted');
+        } else {
+          message = error?.message || t('sessionJoin.joinFailed');
+        }
+        Alert.alert(t('common.error'), message);
         return;
       }
 
       // Navigate to session lobby
-      navigation.navigate('SessionLobby', { sessionId: data.id });
+      navigation.navigate('SessionLobby', { sessionId: data.id, isHost: false });
     } catch (err) {
       Alert.alert(t('common.error'), t('common.somethingWrong'));
       console.error(err);
@@ -98,7 +109,10 @@ export function JoinSessionScreen() {
           disabled={loading || sessionCode.length !== 6}
         >
           {loading ? (
-            <ActivityIndicator color={colors.white} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ActivityIndicator color={colors.white} />
+              <Text style={styles.joinButtonText}>{t('sessionJoin.joiningSession')}</Text>
+            </View>
           ) : (
             <Text style={styles.joinButtonText}>{t('sessionJoin.joinButton')}</Text>
           )}

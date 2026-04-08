@@ -51,11 +51,10 @@ export type SessionRecommendation = RestaurantRecommendation;
 export interface VoteResult {
   restaurant_id: string;
   restaurant_name?: string;
+  restaurant_address?: string;
+  cuisine_types?: string[];
+  voters?: string[];
   vote_count: number;
-  percentage?: number;
-  total_voters?: number;
-  user_id?: string;
-  restaurant?: Pick<Restaurant, 'id' | 'name' | 'address' | 'cuisine_types'>;
   [key: string]: unknown;
 }
 
@@ -122,16 +121,23 @@ export async function joinSession(
   location?: { lat: number; lng: number }
 ): Promise<{ data: EatTogetherSession | null; error: Error | null }> {
   try {
-    // Find session by code
+    // Find session by code (without status filter to give specific error messages)
     const { data: session, error: sessionError } = await supabase
       .from('eat_together_sessions')
       .select('*')
       .eq('session_code', sessionCode.toUpperCase())
-      .eq('status', 'waiting')
       .single();
 
     if (sessionError || !session) {
-      return { data: null, error: new Error('Session not found or already started') };
+      return { data: null, error: Object.assign(new Error('session_not_found'), { code: 'session_not_found' }) };
+    }
+
+    if (session.status === 'expired') {
+      return { data: null, error: Object.assign(new Error('session_expired'), { code: 'session_expired' }) };
+    }
+
+    if (session.status !== 'waiting') {
+      return { data: null, error: Object.assign(new Error('session_started'), { code: 'session_started' }) };
     }
 
     // Check if user already in session
@@ -314,7 +320,7 @@ export async function getRecommendations(
       .select(
         `
         *,
-        restaurants(*)
+        restaurant:restaurants(*)
       `
       )
       .eq('session_id', sessionId)
@@ -416,7 +422,62 @@ export async function finalizeSelection(
       .update({
         status: 'decided',
         selected_restaurant_id: restaurantId,
+        closed_at: new Date().toISOString(),
       })
+      .eq('id', sessionId);
+
+    if (error) {
+      return { error: new Error(error.message) };
+    }
+
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
+
+/**
+ * Invoke group recommendations edge function (host only)
+ */
+export interface GroupRecommendationsResult {
+  recommendations: RestaurantRecommendation[];
+  metadata: Record<string, unknown>;
+  conflicts?: string[];
+}
+
+export async function invokeGroupRecommendations(
+  sessionId: string,
+  locationMode: string = 'midpoint',
+  radiusKm: number = 5
+): Promise<{ data: GroupRecommendationsResult | null; error: Error | null }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('group-recommendations', {
+      body: { sessionId, locationMode, radiusKm },
+    });
+
+    if (error) {
+      return { data: null, error: new Error(error.message) };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Update session status
+ */
+type SessionStatus = NonNullable<EatTogetherSession['status']>;
+
+export async function updateSessionStatus(
+  sessionId: string,
+  status: SessionStatus
+): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase
+      .from('eat_together_sessions')
+      .update({ status })
       .eq('id', sessionId);
 
     if (error) {

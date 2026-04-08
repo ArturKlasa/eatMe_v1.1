@@ -13,7 +13,7 @@ import {
   getSessionMembers,
   leaveSession,
   updateMemberLocation,
-  getRecommendations,
+  invokeGroupRecommendations,
   type EatTogetherSession,
   type SessionMember,
 } from '../../services/eatTogetherService';
@@ -26,6 +26,14 @@ type SessionLobbyScreenRouteParams = {
     isHost: boolean;
   };
 };
+
+function formatTimeRemaining(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
 
 /**
  * SessionLobbyScreen - Waiting room for Eat Together sessions
@@ -43,13 +51,14 @@ export function SessionLobbyScreen() {
   const [members, setMembers] = useState<SessionMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [locationMode, setLocationMode] = useState<'host_location' | 'midpoint' | 'max_radius'>(
     'host_location'
   );
 
   useEffect(() => {
     loadSessionData();
-    setupRealtimeSubscription();
+    return setupRealtimeSubscription();
   }, [sessionId]);
 
   // Update user location when it changes
@@ -58,6 +67,27 @@ export function SessionLobbyScreen() {
       updateMemberLocation(sessionId, user.id, { lat: location.latitude, lng: location.longitude });
     }
   }, [location]);
+
+  // Expiry countdown timer
+  useEffect(() => {
+    if (!session?.expires_at) return;
+
+    const interval = setInterval(() => {
+      const remaining = new Date(session.expires_at!).getTime() - Date.now();
+      if (remaining <= 0) {
+        setTimeRemaining(0);
+        clearInterval(interval);
+      } else {
+        setTimeRemaining(remaining);
+      }
+    }, 1000);
+
+    // Initialize immediately
+    const initial = new Date(session.expires_at).getTime() - Date.now();
+    setTimeRemaining(initial > 0 ? initial : 0);
+
+    return () => clearInterval(interval);
+  }, [session?.expires_at]);
 
   async function loadSessionData() {
     try {
@@ -107,7 +137,7 @@ export function SessionLobbyScreen() {
         payload => {
           if (payload.new.status === 'voting') {
             // Navigate to recommendations screen
-            navigation.navigate('Recommendations', { sessionId });
+            navigation.navigate('Recommendations', { sessionId, isHost });
           }
         }
       )
@@ -127,23 +157,32 @@ export function SessionLobbyScreen() {
       return;
     }
 
+    const membersWithLoc = activeMembers.filter(m => m.current_location);
+    if (membersWithLoc.length < activeMembers.length) {
+      Alert.alert(t('common.error'), t('sessionLobby.locationRequired'));
+      return;
+    }
+
     setGenerating(true);
     try {
-      const { data, error } = await getRecommendations(sessionId);
+      const { data, error } = await invokeGroupRecommendations(sessionId, locationMode);
 
       if (error) {
-        Alert.alert(t('common.error'), error.message || t('common.somethingWrong'));
+        Alert.alert(t('sessionLobby.recommendationFailed'), error.message);
         return;
       }
 
-      if (data && data.length > 0) {
-        navigation.navigate('Recommendations', { sessionId });
-      } else {
-        Alert.alert(t('sessionLobby.noRestaurants'), t('sessionLobby.noRestaurantsMessage'));
+      if (data && data.recommendations.length === 0) {
+        Alert.alert(
+          t('sessionLobby.noRestaurants'),
+          data.conflicts?.join('\n') || t('sessionLobby.noRestaurantsMessage')
+        );
       }
+      // Session status auto-transitions to 'voting' via edge function
+      // Realtime subscription handles navigation
     } catch (error) {
       console.error('[SessionLobby] Error generating recommendations:', error);
-      Alert.alert(t('common.error'), t('common.somethingWrong'));
+      Alert.alert(t('sessionLobby.recommendationFailed'), t('common.somethingWrong'));
     } finally {
       setGenerating(false);
     }
@@ -169,6 +208,8 @@ export function SessionLobbyScreen() {
     );
   }
 
+  const isExpired = timeRemaining !== null && timeRemaining === 0;
+  const isWarning = timeRemaining !== null && timeRemaining > 0 && timeRemaining < 10 * 60 * 1000;
   const activeMembers = members.filter(m => !m.left_at);
   const membersWithLocation = activeMembers.filter(m => m.current_location);
 
@@ -208,6 +249,11 @@ export function SessionLobbyScreen() {
           <Text style={styles.sessionCode}>
             {t('sessionLobby.code', { code: session.session_code })}
           </Text>
+          {timeRemaining !== null && (
+            <Text style={[styles.expiryTimer, isWarning && styles.expiryTimerWarning]}>
+              {formatTimeRemaining(timeRemaining)}
+            </Text>
+          )}
         </View>
         {isHost && (
           <TouchableOpacity onPress={handleLeaveSession} style={styles.closeButton}>
@@ -318,10 +364,10 @@ export function SessionLobbyScreen() {
             style={[
               styles.button,
               styles.primaryButton,
-              (generating || activeMembers.length < 2) && styles.buttonDisabled,
+              (generating || activeMembers.length < 2 || isExpired) && styles.buttonDisabled,
             ]}
             onPress={handleGenerateRecommendations}
-            disabled={generating || activeMembers.length < 2}
+            disabled={generating || activeMembers.length < 2 || isExpired}
           >
             {generating ? (
               <ActivityIndicator color={colors.white} />
@@ -331,6 +377,25 @@ export function SessionLobbyScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Generating Overlay */}
+      {generating && !isExpired && (
+        <View style={styles.expiredOverlay}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.expiredOverlayTitle}>{t('sessionLobby.generating')}</Text>
+        </View>
+      )}
+
+      {/* Expired Overlay */}
+      {isExpired && (
+        <View style={styles.expiredOverlay}>
+          <Text style={styles.expiredOverlayTitle}>{t('sessionLobby.sessionExpired')}</Text>
+          <Text style={styles.expiredOverlayText}>{t('sessionLobby.sessionExpiredMessage')}</Text>
+          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => navigation.goBack()}>
+            <Text style={styles.buttonText}>{t('common.goBack')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

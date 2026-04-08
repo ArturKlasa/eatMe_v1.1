@@ -58,19 +58,10 @@ export function VotingResultsScreen() {
     }
   }
 
-  function openMaps(
-    restaurant:
-      | { name?: string; location?: { lat: number; lng: number }; address?: string }
-      | undefined
-  ) {
-    if (!restaurant) return;
-
-    const lat = restaurant.location?.lat || 0;
-    const lng = restaurant.location?.lng || 0;
-    const label = encodeURIComponent(restaurant.name || 'Restaurant');
-
-    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${label}`;
-    Linking.openURL(url);
+  function openMaps(name: string | undefined, address: string | undefined) {
+    if (!address) return;
+    const query = encodeURIComponent([name, address].filter(Boolean).join(', '));
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
   }
 
   if (loading) {
@@ -120,8 +111,8 @@ export function VotingResultsScreen() {
             <Text style={styles.crownEmoji}>👑</Text>
           </View>
           <Text style={styles.winnerLabel}>{t('votingResults.winner')}</Text>
-          <Text style={styles.winnerName}>{winner.restaurant?.name}</Text>
-          <Text style={styles.winnerAddress}>{winner.restaurant?.address}</Text>
+          <Text style={styles.winnerName}>{winner.restaurant_name}</Text>
+          <Text style={styles.winnerAddress}>{winner.restaurant_address}</Text>
 
           <View style={styles.winnerStats}>
             <View style={styles.statItem}>
@@ -129,14 +120,16 @@ export function VotingResultsScreen() {
               <Text style={styles.statLabel}>{t('votingResults.votes')}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{winner.percentage?.toFixed(0)}%</Text>
+              <Text style={styles.statValue}>
+                {totalVotes > 0 ? Math.round((winner.vote_count / totalVotes) * 100) : 0}%
+              </Text>
               <Text style={styles.statLabel}>{t('votingResults.majority')}</Text>
             </View>
           </View>
 
           <TouchableOpacity
             style={styles.navigationButton}
-            onPress={() => openMaps(winner.restaurant)}
+            onPress={() => openMaps(winner.restaurant_name, winner.restaurant_address)}
           >
             <Text style={styles.navigationButtonText}>{t('votingResults.openInMaps')}</Text>
           </TouchableOpacity>
@@ -151,12 +144,14 @@ export function VotingResultsScreen() {
                 <Text style={styles.resultRankText}>#{index + 1}</Text>
               </View>
               <View style={styles.resultInfo}>
-                <Text style={styles.resultName}>{result.restaurant?.name}</Text>
+                <Text style={styles.resultName}>{result.restaurant_name}</Text>
                 <View style={styles.resultStats}>
                   <Text style={styles.resultVotes}>
                     {result.vote_count} vote{result.vote_count !== 1 ? 's' : ''}
                   </Text>
-                  <Text style={styles.resultPercentage}>({result.percentage?.toFixed(0)}%)</Text>
+                  <Text style={styles.resultPercentage}>
+                    ({totalVotes > 0 ? Math.round((result.vote_count / totalVotes) * 100) : 0}%)
+                  </Text>
                 </View>
               </View>
             </View>

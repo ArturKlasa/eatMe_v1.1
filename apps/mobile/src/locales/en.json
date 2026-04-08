@@ -722,7 +722,11 @@
     "mustBeLoggedIn": "You must be logged in to join a session",
     "invalidCode": "Invalid Code",
     "codeLength": "Session code must be 6 characters",
-    "joinFailed": "Failed to join session"
+    "joinFailed": "Failed to join session",
+    "sessionNotFound": "Session not found. It may have been cancelled.",
+    "sessionExpired": "This session has expired. Ask the host to create a new one.",
+    "sessionStarted": "This session is already in progress.",
+    "joiningSession": "Joining..."
   },
   "sessionLobby": {
     "title": "Eat Together",
@@ -749,7 +753,12 @@
     "closeMessage": "This will end the session for all members. Are you sure?",
     "leaveMessage": "Are you sure you want to leave this session?",
     "loading": "Loading session...",
-    "notFound": "Session not found"
+    "notFound": "Session not found",
+    "locationRequired": "Location data is required. Please enable location sharing.",
+    "generating": "Finding restaurants for your group...",
+    "sessionExpired": "Session Expired",
+    "sessionExpiredMessage": "This session has expired. Ask the host to create a new one.",
+    "recommendationFailed": "Failed to Generate Recommendations"
   },
   "sessionVoting": {
     "title": "Vote for Restaurant",
@@ -763,7 +772,11 @@
     "yourVote": "✓ Your Vote",
     "loading": "Loading recommendations...",
     "noRecommendations": "No recommendations found",
-    "voteFailed": "Failed to cast vote"
+    "voteFailed": "Failed to submit your vote. Please try again.",
+    "submittingVote": "Submitting your vote...",
+    "finalizeResults": "Finalize Results",
+    "finalizeFailed": "Failed to finalize results. Please try again.",
+    "noVotesToFinalize": "No votes yet. Members must vote before finalizing."
   },
   "votingResults": {
     "title": "🎉 Voting Results",

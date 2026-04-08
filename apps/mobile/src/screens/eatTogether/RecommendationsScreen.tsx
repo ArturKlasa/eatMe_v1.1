@@ -20,6 +20,7 @@ import {
   getRecommendations,
   submitVote,
   getVoteResults,
+  finalizeSelection,
   type SessionRecommendation,
   type VoteResult,
 } from '../../services/eatTogetherService';
@@ -28,6 +29,7 @@ import { supabase } from '../../lib/supabase';
 type RecommendationsScreenRouteParams = {
   Recommendations: {
     sessionId: string;
+    isHost: boolean;
   };
 };
 
@@ -39,7 +41,7 @@ export function RecommendationsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RecommendationsScreenRouteParams, 'Recommendations'>>();
-  const { sessionId } = route.params;
+  const { sessionId, isHost } = route.params;
   const user = useAuthStore(state => state.user);
 
   const [recommendations, setRecommendations] = useState<SessionRecommendation[]>([]);
@@ -47,11 +49,13 @@ export function RecommendationsScreen() {
   const [myVote, setMyVote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   useEffect(() => {
     loadRecommendations();
     loadVoteResults();
-    setupRealtimeSubscription();
+    loadMyVote();
+    return setupRealtimeSubscription();
   }, [sessionId]);
 
   async function loadRecommendations() {
@@ -78,17 +82,26 @@ export function RecommendationsScreen() {
       const { data } = await getVoteResults(sessionId);
       if (data) {
         setVoteResults(data);
-
-        // Check if user has voted
-        if (user) {
-          const userVote = data.find(v => (v.user_id as string) === user.id);
-          if (userVote) {
-            setMyVote(userVote.restaurant_id);
-          }
-        }
       }
     } catch (error) {
       console.error('[Recommendations] Error loading votes:', error);
+    }
+  }
+
+  async function loadMyVote() {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('eat_together_votes')
+        .select('restaurant_id')
+        .eq('session_id', sessionId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) {
+        setMyVote(data.restaurant_id);
+      }
+    } catch (error) {
+      console.error('[Recommendations] Error loading user vote:', error);
     }
   }
 
@@ -117,8 +130,8 @@ export function RecommendationsScreen() {
           filter: `id=eq.${sessionId}`,
         },
         payload => {
-          if (payload.new.status === 'decided') {
-            // Navigate to results screen
+          if (payload.new.status === 'decided' && payload.new.selected_restaurant_id) {
+            // Navigate to results screen only when a restaurant was actually selected
             navigation.navigate('VotingResults', { sessionId });
           }
         }
@@ -152,14 +165,40 @@ export function RecommendationsScreen() {
     }
   }
 
+  async function handleFinalize() {
+    if (finalizing) return;
+    const topResult = voteResults.reduce<VoteResult | null>(
+      (best, v) => (!best || (v.vote_count ?? 0) > (best.vote_count ?? 0) ? v : best),
+      null
+    );
+    const topRestaurantId = topResult?.restaurant_id ?? recommendations[0]?.restaurant_id;
+    if (!topRestaurantId) {
+      Alert.alert(t('common.error'), t('sessionVoting.noVotesToFinalize'));
+      return;
+    }
+    setFinalizing(true);
+    try {
+      const { error } = await finalizeSelection(sessionId, topRestaurantId);
+      if (error) {
+        Alert.alert(t('common.error'), error.message || t('sessionVoting.finalizeFailed'));
+      }
+    } catch (err) {
+      console.error('[Recommendations] Error finalizing:', err);
+      Alert.alert(t('common.error'), t('sessionVoting.finalizeFailed'));
+    } finally {
+      setFinalizing(false);
+    }
+  }
+
   function getVoteCount(restaurantId: string): number {
     const result = voteResults.find(v => v.restaurant_id === restaurantId);
     return result ? result.vote_count || 0 : 0;
   }
 
   function getVotePercentage(restaurantId: string): number {
+    if (totalVotes === 0) return 0;
     const result = voteResults.find(v => v.restaurant_id === restaurantId);
-    return result ? Number(result.percentage) || 0 : 0;
+    return result ? Math.round((result.vote_count / totalVotes) * 100) : 0;
   }
 
   const totalVotes = voteResults.reduce((sum: number, v) => sum + (v.vote_count || 0), 0);
@@ -205,8 +244,31 @@ export function RecommendationsScreen() {
 
       {/* Voting Instructions */}
       <View style={styles.instructions}>
-        <Text style={styles.instructionsText}>{t('sessionVoting.instructions')}</Text>
+        {voting ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={styles.instructionsText}>{t('sessionVoting.submittingVote')}</Text>
+          </View>
+        ) : (
+          <Text style={styles.instructionsText}>{t('sessionVoting.instructions')}</Text>
+        )}
       </View>
+
+      {isHost && (
+        <View style={styles.finalizeContainer}>
+          <TouchableOpacity
+            style={[styles.button, finalizing && styles.buttonDisabled]}
+            onPress={handleFinalize}
+            disabled={finalizing}
+          >
+            {finalizing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>{t('sessionVoting.finalizeResults')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView style={styles.content}>
         {recommendations.map((rec, index) => {

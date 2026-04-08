@@ -722,7 +722,11 @@
     "mustBeLoggedIn": "Debes iniciar sesión para unirte a una sesión",
     "invalidCode": "Código Inválido",
     "codeLength": "El código de sesión debe tener 6 caracteres",
-    "joinFailed": "Falló unirse a la sesión"
+    "joinFailed": "Falló unirse a la sesión",
+    "sessionNotFound": "Sesión no encontrada. Puede haber sido cancelada.",
+    "sessionExpired": "Esta sesión ha expirado. Pídele al anfitrión que cree una nueva.",
+    "sessionStarted": "Esta sesión ya está en progreso.",
+    "joiningSession": "Uniéndose..."
   },
   "sessionLobby": {
     "title": "Comer Juntos",
@@ -749,7 +753,12 @@
     "closeMessage": "Esto terminará la sesión para todos los miembros. ¿Estás seguro?",
     "leaveMessage": "¿Estás seguro de que quieres salir de esta sesión?",
     "loading": "Cargando sesión...",
-    "notFound": "Sesión no encontrada"
+    "notFound": "Sesión no encontrada",
+    "locationRequired": "Se requieren datos de ubicación. Por favor, activa la ubicación.",
+    "generating": "Encontrando restaurantes para tu grupo...",
+    "sessionExpired": "Sesión Expirada",
+    "sessionExpiredMessage": "Esta sesión ha expirado. Pídele al anfitrión que cree una nueva.",
+    "recommendationFailed": "Error al Generar Recomendaciones"
   },
   "sessionVoting": {
     "title": "Votar por Restaurante",
@@ -763,7 +772,11 @@
     "yourVote": "✓ Tu Voto",
     "loading": "Cargando recomendaciones...",
     "noRecommendations": "No se encontraron recomendaciones",
-    "voteFailed": "Falló emitir el voto"
+    "voteFailed": "No se pudo enviar tu voto. Por favor, inténtalo de nuevo.",
+    "submittingVote": "Enviando tu voto...",
+    "finalizeResults": "Finalizar Resultados",
+    "finalizeFailed": "Error al finalizar los resultados. Inténtalo de nuevo.",
+    "noVotesToFinalize": "Aún no hay votos. Los miembros deben votar antes de finalizar."
   },
   "votingResults": {
     "title": "🎉 Resultados de Votación",

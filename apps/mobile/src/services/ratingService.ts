@@ -10,9 +10,21 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { DishRatingInput, RestaurantFeedbackInput, PointsEarned } from '../types/rating';
+import {
+  DishRatingInput,
+  DishOpinion,
+  DishTag,
+  RestaurantFeedbackInput,
+  PointsEarned,
+} from '../types/rating';
 import { debugLog } from '../config/environment';
 import { recordInteraction } from './interactionService';
+import {
+  updateStreak,
+  checkAndAwardTrustedTasterBadge,
+  StreakResult,
+  BadgeResult,
+} from './gamificationService';
 
 /**
  * Upload a photo to Supabase Storage
@@ -132,6 +144,8 @@ export async function saveDishOpinions(
           opinion: rating.opinion,
           tags: rating.tags,
           photo_id: photoId,
+          note: rating.note ?? null,
+          source: 'full_flow',
         },
         {
           onConflict: 'user_id,dish_id,visit_id',
@@ -256,7 +270,7 @@ export async function awardPoints(
         .forEach(rating => {
           pointsToAward.push({
             user_id: userId,
-            points: 15,
+            points: 20,
             action_type: 'dish_photo',
             reference_id: rating.dishId,
             description: 'Added dish photo',
@@ -348,6 +362,136 @@ export async function getUserTotalPoints(userId: string): Promise<number> {
 }
 
 /**
+ * Submit an in-context dish rating (quick rating from RestaurantDetailScreen)
+ */
+export async function submitInContextRating(
+  userId: string,
+  restaurantId: string,
+  dishId: string,
+  _dishName: string,
+  opinion: DishOpinion,
+  tags: DishTag[],
+  sessionId: string | null
+): Promise<{
+  success: boolean;
+  error?: string;
+  streakResult?: StreakResult | null;
+  badgeResult?: BadgeResult | null;
+}> {
+  try {
+    // 1. Find or create an in-context visit within the last 24 hours
+    const { data: existingVisit } = await supabase
+      .from('user_visits')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('restaurant_id', restaurantId)
+      .eq('source', 'in_context')
+      .gte('visited_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    let visitId: string;
+
+    if (existingVisit) {
+      visitId = existingVisit.id;
+    } else {
+      const { data: newVisit, error: visitError } = await supabase
+        .from('user_visits')
+        .insert({
+          user_id: userId,
+          restaurant_id: restaurantId,
+          session_id: sessionId,
+          visited_at: new Date().toISOString(),
+          confirmed_at: new Date().toISOString(),
+          source: 'in_context',
+        })
+        .select('id')
+        .single();
+
+      if (visitError || !newVisit) {
+        console.error('[RatingService] Error creating in-context visit:', visitError);
+        return { success: false, error: 'Failed to create visit record' };
+      }
+
+      visitId = newVisit.id;
+    }
+
+    // 2. Upsert the dish opinion with source='in_context'
+    const { error: opinionError } = await supabase.from('dish_opinions').upsert(
+      {
+        user_id: userId,
+        dish_id: dishId,
+        visit_id: visitId,
+        opinion,
+        tags,
+        source: 'in_context',
+      },
+      { onConflict: 'user_id,dish_id,visit_id' }
+    );
+
+    if (opinionError) {
+      console.error('[RatingService] Error saving in-context opinion:', opinionError);
+      return { success: false, error: 'Failed to save dish rating' };
+    }
+
+    // 3. Record interaction for positive signals
+    if (opinion === 'liked') {
+      recordInteraction(userId, dishId, 'liked', sessionId ?? undefined);
+    } else if (opinion === 'disliked') {
+      recordInteraction(userId, dishId, 'disliked', sessionId ?? undefined);
+    }
+    // 'okay' is neutral — deliberately not recorded so it doesn't affect the preference vector
+
+    // 4. Award points asynchronously (non-blocking)
+    const pointsToAward: Array<{
+      user_id: string;
+      points: number;
+      action_type: string;
+      reference_id?: string;
+      description: string;
+    }> = [
+      {
+        user_id: userId,
+        points: 10,
+        action_type: 'dish_rating',
+        reference_id: dishId,
+        description: `In-context rating: ${opinion}`,
+      },
+    ];
+
+    if (tags.length > 0) {
+      pointsToAward.push({
+        user_id: userId,
+        points: 5,
+        action_type: 'dish_tags',
+        reference_id: dishId,
+        description: `In-context tags: ${tags.join(', ')}`,
+      });
+    }
+
+    supabase
+      .from('user_points')
+      .insert(pointsToAward)
+      .then(({ error }) => {
+        if (error) {
+          console.warn('[RatingService] Failed to award in-context points (non-fatal):', error);
+        }
+      });
+
+    // 5. Update streak and check badge (non-fatal)
+    const [streakResult, badgeResult] = await Promise.all([
+      updateStreak(userId).catch(() => null),
+      checkAndAwardTrustedTasterBadge(userId).catch(() => null),
+    ]);
+
+    return { success: true, streakResult, badgeResult };
+  } catch (error) {
+    console.error('[RatingService] Error in submitInContextRating:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+
+/**
  * Complete rating submission (main function)
  */
 export async function submitRating(
@@ -357,7 +501,12 @@ export async function submitRating(
   dishRatings: DishRatingInput[],
   restaurantFeedback: RestaurantFeedbackInput | null,
   pointsEarned: PointsEarned
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  streakResult?: StreakResult | null;
+  badgeResult?: BadgeResult | null;
+}> {
   try {
     debugLog('[RatingService] Starting rating submission...');
 
@@ -394,8 +543,14 @@ export async function submitRating(
       console.warn('[RatingService] Failed to award points (non-fatal)');
     }
 
+    // 5. Update streak and check badge (non-fatal)
+    const [streakResult, badgeResult] = await Promise.all([
+      updateStreak(userId).catch(() => null),
+      checkAndAwardTrustedTasterBadge(userId).catch(() => null),
+    ]);
+
     debugLog('[RatingService] Rating submission complete!');
-    return { success: true };
+    return { success: true, streakResult, badgeResult };
   } catch (error) {
     console.error('[RatingService] Error in submitRating:', error);
     return { success: false, error: 'Unexpected error occurred' };

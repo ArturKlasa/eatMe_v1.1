@@ -463,7 +463,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       return;
     }
 
-    const { success, error } = await submitRating(
+    const { success, error, streakResult, badgeResult } = await submitRating(
       user.id,
       submission.restaurantId,
       currentSessionId,
@@ -474,7 +474,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
     if (!success) {
       Alert.alert('Error', error || 'Failed to submit rating');
+      return;
     }
+
+    return { streakResult, badgeResult };
   };
 
   const handleSearchRestaurant = () => {

@@ -22,9 +22,7 @@ export function RestaurantRatingBadge({
     return null;
   }
 
-  const getCategoryLabel = (category: string, score: number): { text: string; color: string } => {
-    const percentage = score * 100;
-
+  const getCategoryLabel = (category: string, percentage: number): { text: string; color: string } => {
     switch (category) {
       case 'Food':
         if (percentage >= 85) return { text: 'Delicious', color: colors.success };
@@ -66,22 +64,22 @@ export function RestaurantRatingBadge({
             category="Food"
           />
           <BreakdownItem
-            score={rating.serviceScore}
+            score={rating.servicePercentage}
             getCategoryLabel={getCategoryLabel}
             category="Service"
           />
           <BreakdownItem
-            score={rating.cleanlinessScore}
+            score={rating.cleanlinessPercentage}
             getCategoryLabel={getCategoryLabel}
             category="Clean"
           />
           <BreakdownItem
-            score={rating.waitTimeScore}
+            score={rating.waitTimePercentage}
             getCategoryLabel={getCategoryLabel}
             category="Wait time"
           />
           <BreakdownItem
-            score={rating.valueScore}
+            score={rating.valuePercentage}
             getCategoryLabel={getCategoryLabel}
             category="Value"
           />

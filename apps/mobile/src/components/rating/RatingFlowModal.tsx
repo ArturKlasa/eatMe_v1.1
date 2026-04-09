@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Modal, Alert } from 'react-native';
+import { StreakResult, BadgeResult } from '../../services/gamificationService';
 import * as ImagePicker from 'expo-image-picker';
 
 import { SelectRestaurantScreen } from './SelectRestaurantScreen';
@@ -41,7 +42,7 @@ interface RatingFlowModalProps {
     dishRatings: DishRatingInput[];
     restaurantFeedback: RestaurantFeedbackInput | null;
     pointsEarned: PointsEarned;
-  }) => Promise<void>;
+  }) => Promise<{ streakResult?: StreakResult | null; badgeResult?: BadgeResult | null } | void>;
   onSearchRestaurant: () => void; // When user taps "I ate somewhere else"
   onViewRewards: () => void;
   // Function to get all dishes for a restaurant
@@ -64,7 +65,7 @@ const calculatePoints = (
 ): PointsEarned => {
   const dishRatingPoints = dishRatings.length * 10;
   const dishTagPoints = dishRatings.filter(r => r.tags.length > 0).length * 5;
-  const dishPhotoPoints = dishRatings.filter(r => r.photoUri).length * 15;
+  const dishPhotoPoints = dishRatings.filter(r => r.photoUri).length * 20;
   const restaurantFeedbackPoints = restaurantFeedback ? 5 : 0;
   const restaurantPhotoPoints = restaurantFeedback?.photoUri ? 10 : 0;
   const firstVisitBonus = isFirstVisit ? 20 : 0;
@@ -76,6 +77,7 @@ const calculatePoints = (
     restaurantFeedback: restaurantFeedbackPoints,
     restaurantPhoto: restaurantPhotoPoints,
     firstVisitBonus,
+    streakBonus: 0,
     total:
       dishRatingPoints +
       dishTagPoints +
@@ -110,6 +112,8 @@ export function RatingFlowModal({
   const [randomQuestion] = useState<RestaurantQuestionType>(getRandomQuestion);
   const [pointsEarned, setPointsEarned] = useState<PointsEarned | null>(null);
   const [isFirstVisitFlag, setIsFirstVisitFlag] = useState(false);
+  const [streakResult, setStreakResult] = useState<StreakResult | null | undefined>(undefined);
+  const [badgeResult, setBadgeResult] = useState<BadgeResult | null | undefined>(undefined);
 
   // Reset state when modal opens/closes
   const resetState = useCallback(() => {
@@ -121,6 +125,8 @@ export function RatingFlowModal({
     setDishRatings([]);
     setRestaurantFeedback(null);
     setPointsEarned(null);
+    setStreakResult(undefined);
+    setBadgeResult(undefined);
   }, []);
 
   // Handle selecting a restaurant
@@ -174,12 +180,25 @@ export function RatingFlowModal({
       setPointsEarned(points);
 
       // Submit to backend
-      await onComplete({
+      const result = await onComplete({
         restaurantId: selectedRestaurant!.id,
         dishRatings,
         restaurantFeedback: feedback,
         pointsEarned: points,
       });
+
+      if (result) {
+        const streak = result.streakResult ?? null;
+        const badge = result.badgeResult ?? null;
+        setStreakResult(streak);
+        setBadgeResult(badge);
+        if (streak?.milestoneHit) {
+          const bonus = streak.milestoneHit.points;
+          setPointsEarned(prev =>
+            prev ? { ...prev, streakBonus: bonus, total: prev.total + bonus } : prev
+          );
+        }
+      }
 
       setStep('complete');
     },
@@ -193,12 +212,25 @@ export function RatingFlowModal({
     setPointsEarned(points);
 
     // Submit to backend
-    await onComplete({
+    const result = await onComplete({
       restaurantId: selectedRestaurant!.id,
       dishRatings,
       restaurantFeedback: null,
       pointsEarned: points,
     });
+
+    if (result) {
+      const streak = result.streakResult ?? null;
+      const badge = result.badgeResult ?? null;
+      setStreakResult(streak);
+      setBadgeResult(badge);
+      if (streak?.milestoneHit) {
+        const bonus = streak.milestoneHit.points;
+        setPointsEarned(prev =>
+          prev ? { ...prev, streakBonus: bonus, total: prev.total + bonus } : prev
+        );
+      }
+    }
 
     setStep('complete');
   }, [dishRatings, isFirstVisitFlag, onComplete, selectedRestaurant]);
@@ -324,6 +356,8 @@ export function RatingFlowModal({
             dishRatings={dishRatings}
             restaurantFeedback={restaurantFeedback}
             pointsEarned={pointsEarned}
+            streakResult={streakResult}
+            badgeResult={badgeResult}
             onViewRewards={onViewRewards}
             onDone={handleDone}
           />

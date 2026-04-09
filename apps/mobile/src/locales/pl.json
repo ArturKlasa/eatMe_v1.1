@@ -929,7 +929,9 @@
       "firstVisitBonus": "🎁 Bonus za pierwszą wizytę!",
       "totalEarned": "Łącznie zarobiono",
       "motivationText": "Oceniaj dalej, aby odblokować ekskluzywne nagrody!",
-      "viewRewards": "Zobacz nagrody"
+      "viewRewards": "Zobacz nagrody",
+      "streakMilestone": "🔥 {{count}}-tygodniowa seria! +{{points}} pkt",
+      "badgeEarned": "🏅 Odznaka Zaufanego Smakosza zdobyta!"
     },
     "selectRestaurant": {
       "title": "Czy jadłeś w jednym z tych miejsc dzisiaj?",
@@ -949,7 +951,21 @@
       "okay": "Ujdzie",
       "notForMe": "Nie dla mnie",
       "whatMadeItGreat": "Co sprawiło, że było świetne?",
-      "whatCouldBeBetter": "Co mogłoby być lepsze?"
+      "whatCouldBeBetter": "Co mogłoby być lepsze?",
+      "addNote": "Dodaj notatkę (opcjonalnie)",
+      "noteCharLimit": "{{count}} pozostało"
+    },
+    "inContext": {
+      "triedIt": "Próbowałeś?",
+      "ratedSuccess": "Oceniono!"
+    },
+    "streak": {
+      "weekStreak": "{{count}}-tygodniowa seria!",
+      "bonus": "+{{points}} pkt bonusu"
+    },
+    "badge": {
+      "trustedTaster": "Zaufany Smakosz",
+      "earned": "Odznaka zdobyta!"
     },
     "question": {
       "subtitle": "Jedno szybkie pytanie o {{restaurantName}}:",

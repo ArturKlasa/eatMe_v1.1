@@ -3,13 +3,13 @@
 ## Checklist
 
 - [x] Step 1: Database migrations
-- [ ] Step 2: Type system + display service layer
-- [ ] Step 3: submitInContextRating + updated submitRating
-- [ ] Step 4: InContextRating component + RestaurantDetailScreen wiring
-- [ ] Step 5: Full flow enhancement — note field
-- [ ] Step 6: Updated display components (DishRatingBadge + RestaurantRatingBadge)
-- [ ] Step 7: Gamification — streaks + Trusted Taster badge
-- [ ] Step 8: i18n strings (EN / ES / PL)
+- [x] Step 2: Type system + display service layer
+- [x] Step 3: submitInContextRating + updated submitRating
+- [x] Step 4: InContextRating component + RestaurantDetailScreen wiring
+- [x] Step 5: Full flow enhancement — note field
+- [x] Step 6: Updated display components (DishRatingBadge + RestaurantRatingBadge)
+- [x] Step 7: Gamification — streaks + Trusted Taster badge
+- [x] Step 8: i18n strings (EN / ES / PL)
 
 ---
 

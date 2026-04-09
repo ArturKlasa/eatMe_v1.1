@@ -34,7 +34,9 @@ import { formatTime, formatOpeningHours, isRestaurantOpenNow } from '../utils/i1
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
 import { DishRatingBadge } from '../components/DishRatingBadge';
-import { getDishRatingsBatch, type DishRating } from '../services/dishRatingService';
+import { getDishRatingsBatch, getUserDishOpinions, type DishRating } from '../services/dishRatingService';
+import { InContextRating } from '../components/rating/InContextRating';
+import { type DishOpinion } from '../types/rating';
 import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
 import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
 import { useFilterStore } from '../stores/filterStore';
@@ -76,6 +78,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   >([]);
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
+  const [userDishOpinions, setUserDishOpinions] = useState<Map<string, DishOpinion>>(new Map());
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
   // Per-category dish loading state: Map<categoryId, 'loading' | 'error' | Dish[]>
   const [categoryDishes, setCategoryDishes] = useState<Map<string, 'loading' | 'error' | Dish[]>>(
@@ -164,12 +167,18 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         next.set(categoryId, data);
         return next;
       });
-      // Load dish ratings for newly fetched dishes
+      // Load dish ratings (and user opinions if logged in) for newly fetched dishes
       const dishIds = data.map(d => d.id);
       if (dishIds.length > 0) {
-        const ratings = await getDishRatingsBatch(dishIds);
+        const [ratings, opinions] = await Promise.all([
+          getDishRatingsBatch(dishIds),
+          user ? getUserDishOpinions(user.id, dishIds) : Promise.resolve(new Map<string, DishOpinion>()),
+        ]);
         if (mountedRef.current) {
           setDishRatings(prev => new Map([...prev, ...ratings]));
+          if (opinions.size > 0) {
+            setUserDishOpinions(prev => new Map([...prev, ...opinions]));
+          }
         }
       }
     },
@@ -546,6 +555,17 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 likePercentage={rating.likePercentage}
                 totalRatings={rating.totalRatings}
                 topTags={rating.topTags}
+              />
+            )}
+            {user && (
+              <InContextRating
+                dishId={item.id}
+                dishName={item.name}
+                restaurantId={restaurantId}
+                existingOpinion={userDishOpinions.get(item.id) ?? null}
+                onRated={(opinion) => {
+                  setUserDishOpinions(prev => new Map(prev).set(item.id, opinion));
+                }}
               />
             )}
           </View>

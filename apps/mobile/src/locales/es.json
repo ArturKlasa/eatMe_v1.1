@@ -929,7 +929,9 @@
       "firstVisitBonus": "🎁 ¡Bono de primera visita!",
       "totalEarned": "Total ganado",
       "motivationText": "¡Sigue calificando para desbloquear recompensas exclusivas!",
-      "viewRewards": "Ver recompensas"
+      "viewRewards": "Ver recompensas",
+      "streakMilestone": "🔥 ¡{{count}} semanas seguidas! +{{points}} pts",
+      "badgeEarned": "🏅 ¡Insignia de Catador de Confianza ganada!"
     },
     "selectRestaurant": {
       "title": "¿Comiste en alguno de estos hoy?",
@@ -949,7 +951,21 @@
       "okay": "Estuvo bien",
       "notForMe": "No es para mí",
       "whatMadeItGreat": "¿Qué lo hizo genial?",
-      "whatCouldBeBetter": "¿Qué podría mejorar?"
+      "whatCouldBeBetter": "¿Qué podría mejorar?",
+      "addNote": "Agregar una nota (opcional)",
+      "noteCharLimit": "{{count}} restantes"
+    },
+    "inContext": {
+      "triedIt": "¿Lo probaste?",
+      "ratedSuccess": "¡Calificado!"
+    },
+    "streak": {
+      "weekStreak": "¡{{count}} semanas seguidas!",
+      "bonus": "+{{points}} pts de bono"
+    },
+    "badge": {
+      "trustedTaster": "Catador de Confianza",
+      "earned": "¡Insignia ganada!"
     },
     "question": {
       "subtitle": "Una pregunta rápida sobre {{restaurantName}}:",

@@ -929,7 +929,9 @@
       "firstVisitBonus": "🎁 First visit bonus!",
       "totalEarned": "Total earned",
       "motivationText": "Keep rating to unlock exclusive rewards!",
-      "viewRewards": "View rewards"
+      "viewRewards": "View rewards",
+      "streakMilestone": "🔥 {{count}}-week streak! +{{points}} pts",
+      "badgeEarned": "🏅 Trusted Taster badge earned!"
     },
     "selectRestaurant": {
       "title": "Did you eat in one of those today?",
@@ -949,7 +951,21 @@
       "okay": "Okay",
       "notForMe": "Not for me",
       "whatMadeItGreat": "What made it great?",
-      "whatCouldBeBetter": "What could be better?"
+      "whatCouldBeBetter": "What could be better?",
+      "addNote": "Add a note (optional)",
+      "noteCharLimit": "{{count}} left"
+    },
+    "inContext": {
+      "triedIt": "Tried it?",
+      "ratedSuccess": "Rated!"
+    },
+    "streak": {
+      "weekStreak": "{{count}}-week streak!",
+      "bonus": "+{{points}} bonus pts"
+    },
+    "badge": {
+      "trustedTaster": "Trusted Taster",
+      "earned": "Badge earned!"
     },
     "question": {
       "subtitle": "One quick question about {{restaurantName}}:",

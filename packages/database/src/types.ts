@@ -335,8 +335,10 @@ export type Database = {
           created_at: string | null
           dish_id: string
           id: string
+          note: string | null
           opinion: string
           photo_id: string | null
+          source: string | null
           tags: string[] | null
           updated_at: string | null
           user_id: string
@@ -346,8 +348,10 @@ export type Database = {
           created_at?: string | null
           dish_id: string
           id?: string
+          note?: string | null
           opinion: string
           photo_id?: string | null
+          source?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id: string
@@ -357,8 +361,10 @@ export type Database = {
           created_at?: string | null
           dish_id?: string
           id?: string
+          note?: string | null
           opinion?: string
           photo_id?: string | null
+          source?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id?: string
@@ -1596,6 +1602,7 @@ export type Database = {
           id: string
           restaurant_id: string
           session_id: string | null
+          source: string | null
           user_id: string
           visited_at: string | null
         }
@@ -1605,6 +1612,7 @@ export type Database = {
           id?: string
           restaurant_id: string
           session_id?: string | null
+          source?: string | null
           user_id: string
           visited_at?: string | null
         }
@@ -1614,6 +1622,7 @@ export type Database = {
           id?: string
           restaurant_id?: string
           session_id?: string | null
+          source?: string | null
           user_id?: string
           visited_at?: string | null
         }
@@ -1637,6 +1646,73 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_badges: {
+        Row: {
+          badge_type: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_streaks: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          last_rating_week: string | null
+          longest_streak: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_rating_week?: string | null
+          longest_streak?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_rating_week?: string | null
+          longest_streak?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_streaks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1691,10 +1767,13 @@ export type Database = {
       dish_ratings_summary: {
         Row: {
           dish_id: string | null
+          dislike_percentage: number | null
           disliked_count: number | null
           like_percentage: number | null
           liked_count: number | null
           okay_count: number | null
+          okay_percentage: number | null
+          recent_notes: string[] | null
           top_tags: string[] | null
           total_ratings: number | null
         }
@@ -1752,13 +1831,16 @@ export type Database = {
       }
       restaurant_ratings_summary: {
         Row: {
-          cleanliness_score: number | null
+          cleanliness_percentage: number | null
           food_score: number | null
           overall_percentage: number | null
           restaurant_id: string | null
-          service_score: number | null
-          value_score: number | null
-          wait_time_score: number | null
+          service_percentage: number | null
+          total_dish_ratings: number | null
+          total_experience_responses: number | null
+          value_percentage: number | null
+          wait_time_percentage: number | null
+          would_recommend_percentage: number | null
         }
         Relationships: []
       }

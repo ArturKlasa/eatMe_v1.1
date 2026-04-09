@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +40,8 @@ export function RateDishScreen({
   const [opinion, setOpinion] = useState<DishOpinion | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<DishTag>>(new Set());
   const [photoUri, setPhotoUri] = useState<string | undefined>();
+  const [note, setNote] = useState<string>('');
+  const [noteExpanded, setNoteExpanded] = useState<boolean>(false);
   const { t } = useTranslation();
 
   // Reset state when dish changes
@@ -47,6 +49,8 @@ export function RateDishScreen({
     setOpinion(null);
     setSelectedTags(new Set());
     setPhotoUri(undefined);
+    setNote('');
+    setNoteExpanded(false);
   }, [dish.id]);
 
   const availableTags =
@@ -80,6 +84,7 @@ export function RateDishScreen({
       opinion,
       tags: Array.from(selectedTags),
       photoUri,
+      note: note.trim() || undefined,
     });
   };
 
@@ -164,6 +169,40 @@ export function RateDishScreen({
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+        )}
+
+        {/* Note Section (only after opinion selected) */}
+        {opinion !== null && (
+          <View style={styles.noteSection}>
+            {!noteExpanded ? (
+              <TouchableOpacity onPress={() => setNoteExpanded(true)}>
+                <Text style={styles.addNoteButton}>
+                  + {t('rating.rateDish.addNote', { defaultValue: 'Add a note (optional)' })}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.noteInputContainer}>
+                <TextInput
+                  style={styles.noteInput}
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder={t('rating.rateDish.addNote', {
+                    defaultValue: 'Add a note (optional)',
+                  })}
+                  placeholderTextColor={colors.darkTextMuted}
+                  maxLength={47}
+                  multiline={false}
+                  returnKeyType="done"
+                />
+                <Text style={[styles.noteCharCount, 47 - note.length < 10 && styles.noteCharCountWarning]}>
+                  {t('rating.rateDish.noteCharLimit', {
+                    count: 47 - note.length,
+                    defaultValue: '{{count}} left',
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -330,6 +369,36 @@ const styles = StyleSheet.create({
   tagTextSelected: {
     color: colors.white,
     fontWeight: typography.weight.medium,
+  },
+  noteSection: {
+    marginBottom: spacing.xl,
+    alignItems: 'center',
+  },
+  addNoteButton: {
+    fontSize: typography.size.sm,
+    color: colors.accent,
+  },
+  noteInputContainer: {
+    width: '100%',
+  },
+  noteInput: {
+    backgroundColor: colors.darkSecondary,
+    borderWidth: 1,
+    borderColor: colors.darkBorderLight,
+    borderRadius: borderRadius.base,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: typography.size.sm,
+    color: colors.white,
+  },
+  noteCharCount: {
+    fontSize: typography.size.xs,
+    color: colors.darkTextMuted,
+    textAlign: 'right',
+    marginTop: spacing.xs,
+  },
+  noteCharCountWarning: {
+    color: colors.error,
   },
   photoSection: {
     alignItems: 'center',

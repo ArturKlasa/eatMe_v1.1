@@ -10,11 +10,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { PointsEarned, DishRatingInput, RestaurantFeedbackInput } from '../../types/rating';
+import { StreakResult, BadgeResult } from '../../services/gamificationService';
 
 interface RatingCompleteScreenProps {
   dishRatings: DishRatingInput[];
   restaurantFeedback: RestaurantFeedbackInput | null;
   pointsEarned: PointsEarned;
+  streakResult?: StreakResult | null;
+  badgeResult?: BadgeResult | null;
   onViewRewards: () => void;
   onDone: () => void;
 }
@@ -23,6 +26,8 @@ export function RatingCompleteScreen({
   dishRatings,
   restaurantFeedback,
   pointsEarned,
+  streakResult,
+  badgeResult,
   onViewRewards,
   onDone,
 }: RatingCompleteScreenProps) {
@@ -85,6 +90,28 @@ export function RatingCompleteScreen({
               </Text>
               <Text style={[styles.pointsValue, styles.bonusValue]}>
                 +{pointsEarned.firstVisitBonus} pts
+              </Text>
+            </View>
+          )}
+
+          {streakResult?.milestoneHit && (
+            <View style={styles.pointsRow}>
+              <Text style={[styles.pointsLabel, styles.bonusLabel]}>
+                {t('rating.complete.streakMilestone', {
+                  count: streakResult.milestoneHit.weeks,
+                  points: streakResult.milestoneHit.points,
+                })}
+              </Text>
+              <Text style={[styles.pointsValue, styles.bonusValue]}>
+                +{streakResult.milestoneHit.points} pts
+              </Text>
+            </View>
+          )}
+
+          {badgeResult?.earned && (
+            <View style={styles.pointsRow}>
+              <Text style={[styles.pointsLabel, styles.bonusLabel]}>
+                {t('rating.complete.badgeEarned')}
               </Text>
             </View>
           )}

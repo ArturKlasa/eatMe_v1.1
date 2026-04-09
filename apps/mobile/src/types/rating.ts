@@ -103,6 +103,7 @@ export interface DishRatingInput {
   opinion: DishOpinion;
   tags: DishTag[];
   photoUri?: string;
+  note?: string;
 }
 
 // Restaurant feedback being submitted
@@ -125,10 +126,11 @@ export interface RatingSubmission {
 export interface PointsEarned {
   dishRatings: number; // 10 pts per dish
   dishTags: number; // 5 pts for adding tags
-  dishPhotos: number; // 15 pts per photo
+  dishPhotos: number; // 20 pts per photo
   restaurantFeedback: number; // 5 pts
   restaurantPhoto: number; // 10 pts
   firstVisitBonus: number; // 20 pts for first rating at restaurant
+  streakBonus: number; // weekly_streak_bonus
   total: number;
 }
 
@@ -142,16 +144,6 @@ export interface RatingFlowState {
   restaurantFeedback: RestaurantFeedbackInput | null;
   randomQuestion: RestaurantQuestionType;
   pointsEarned: PointsEarned;
-}
-
-// Aggregated dish rating (for display)
-export interface DishRatingStats {
-  dishId: string;
-  likePercentage: number;
-  okayPercentage: number;
-  dislikePercentage: number;
-  totalRatings: number;
-  topTags: DishTag[];
 }
 
 // Aggregated restaurant rating (for display)

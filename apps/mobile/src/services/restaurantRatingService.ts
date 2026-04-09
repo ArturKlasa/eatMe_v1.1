@@ -8,12 +8,15 @@ import { supabase } from '../lib/supabase';
 
 export interface RestaurantRating {
   restaurantId: string;
-  overallPercentage: number;
   foodScore: number;
-  serviceScore: number;
-  cleanlinessScore: number;
-  waitTimeScore: number;
-  valueScore: number;
+  totalDishRatings: number;
+  servicePercentage: number;
+  cleanlinessPercentage: number;
+  waitTimePercentage: number;
+  valuePercentage: number;
+  wouldRecommendPercentage: number;
+  overallPercentage: number;
+  totalExperienceResponses: number;
 }
 
 /**
@@ -33,12 +36,15 @@ export async function getRestaurantRating(restaurantId: string): Promise<Restaur
 
     return {
       restaurantId: data.restaurant_id ?? '',
+      foodScore: data.food_score || 0,
+      totalDishRatings: data.total_dish_ratings || 0,
+      servicePercentage: data.service_percentage || 0,
+      cleanlinessPercentage: data.cleanliness_percentage || 0,
+      waitTimePercentage: data.wait_time_percentage || 0,
+      valuePercentage: data.value_percentage || 0,
+      wouldRecommendPercentage: data.would_recommend_percentage || 0,
       overallPercentage: data.overall_percentage || 0,
-      foodScore: Math.round((data.food_score || 0.5) * 100),
-      serviceScore: Math.round((data.service_score || 0.5) * 100),
-      cleanlinessScore: Math.round((data.cleanliness_score || 0.5) * 100),
-      waitTimeScore: Math.round((data.wait_time_score || 0.5) * 100),
-      valueScore: Math.round((data.value_score || 0.5) * 100),
+      totalExperienceResponses: data.total_experience_responses || 0,
     };
   } catch (error) {
     console.error('[RestaurantRatingService] Error fetching rating:', error);
@@ -70,12 +76,15 @@ export async function getRestaurantRatingsBatch(
       if (!rating.restaurant_id) return;
       ratingsMap.set(rating.restaurant_id ?? '', {
         restaurantId: rating.restaurant_id,
+        foodScore: rating.food_score || 0,
+        totalDishRatings: rating.total_dish_ratings || 0,
+        servicePercentage: rating.service_percentage || 0,
+        cleanlinessPercentage: rating.cleanliness_percentage || 0,
+        waitTimePercentage: rating.wait_time_percentage || 0,
+        valuePercentage: rating.value_percentage || 0,
+        wouldRecommendPercentage: rating.would_recommend_percentage || 0,
         overallPercentage: rating.overall_percentage || 0,
-        foodScore: Math.round((rating.food_score || 0.5) * 100),
-        serviceScore: Math.round((rating.service_score || 0.5) * 100),
-        cleanlinessScore: Math.round((rating.cleanliness_score || 0.5) * 100),
-        waitTimeScore: Math.round((rating.wait_time_score || 0.5) * 100),
-        valueScore: Math.round((rating.value_score || 0.5) * 100),
+        totalExperienceResponses: rating.total_experience_responses || 0,
       });
     });
 

@@ -7,13 +7,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, typography, spacing } from '../styles/theme';
-import { getRatingColor, formatRatingText } from '../services/dishRatingService';
+import { getRatingColor, formatRatingText, getRatingTier } from '../services/dishRatingService';
 
 interface DishRatingBadgeProps {
   likePercentage: number | null;
   totalRatings: number;
   topTags: string[];
-  maxTags?: number; // Configurable max tags to display
+  maxTags?: number;    // default: 2
+  showBadge?: boolean; // default: true — show tier badge if qualified
+  compact?: boolean;   // default: false — for map pin mode
 }
 
 export function DishRatingBadge({
@@ -21,15 +23,20 @@ export function DishRatingBadge({
   totalRatings,
   topTags,
   maxTags = 2,
+  showBadge = true,
+  compact = false,
 }: DishRatingBadgeProps) {
-  // Don't show anything if no ratings
-  if (totalRatings === 0 || likePercentage === null) {
+  // Don't show anything below minimum threshold (cold-start: misleading with < 3 ratings)
+  if (totalRatings < 3 || likePercentage === null) {
     return null;
   }
 
+  const tier = getRatingTier(likePercentage, totalRatings);
+  const tierPrefix = showBadge && tier === 'top' ? '🔥 ' : '';
   const ratingColor = getRatingColor(likePercentage);
-  const ratingText = formatRatingText(likePercentage, totalRatings);
-  const displayTags = topTags.slice(0, maxTags);
+  const baseRatingText = formatRatingText(likePercentage, totalRatings);
+  const ratingText = baseRatingText ? `${tierPrefix}${baseRatingText}` : null;
+  const displayTags = compact ? [] : topTags.slice(0, maxTags);
 
   return (
     <View style={styles.container}>

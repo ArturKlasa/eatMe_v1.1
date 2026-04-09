@@ -41,7 +41,26 @@
     "reset": "Reset",
     "of": "of",
     "points": "points",
-    "updating": "Updating..."
+    "updating": "Updating...",
+    "ok": "OK",
+    "required": "Required",
+    "optional_caps": "Optional",
+    "pickOne": "pick 1",
+    "upTo": "up to {{count}}",
+    "takePhoto": "Take Photo",
+    "chooseFromLibrary": "Choose from Library",
+    "addPhoto": "Add Photo",
+    "signInToSave": "Please sign in to save dishes",
+    "signInToUpload": "Please sign in to upload photos",
+    "photoUploadSuccess": "Photo uploaded successfully!",
+    "photoUploadError": "Failed to upload photo. Please try again.",
+    "permissionRequired": "Permission Required",
+    "photoPermissionMessage": "Please allow access to your photos to add images.",
+    "ratingError": "Failed to save your rating. Please try again.",
+    "mustBeLoggedIn": "You must be logged in to submit ratings",
+    "comingSoon": "Coming Soon",
+    "searchComingSoon": "Search for restaurants feature coming soon!",
+    "rewardsComingSoon": "Rewards screen coming soon!"
   },
   "navigation": {
     "home": "Home",
@@ -294,7 +313,29 @@
       "meat": "Meat",
       "fish": "Fish",
       "seafood": "Seafood"
-    }
+    },
+    "presets": {
+      "nearby": "Nearby",
+      "cheapEats": "Cheap Eats",
+      "healthy": "Healthy",
+      "openNow": "Open Now"
+    },
+    "activeFilters_one": "{{count}} filter active",
+    "activeFilters_other": "{{count}} filters active"
+  },
+  "map": {
+    "locationUnavailable": "Location Unavailable",
+    "locationAccessError": "Unable to get your current location. Please check your location settings and try again.",
+    "locationError": "Location Error",
+    "locationErrorMessage": "Something went wrong while getting your location. Please try again.",
+    "mapLoadError": "Unable to load the map. Please check your internet connection and try again.",
+    "mapLoadErrorTitle": "Map Loading Error",
+    "refreshFailed": "Refresh Failed",
+    "refreshFailedMessage": "Unable to update nearby restaurants. Please try again.",
+    "noNearbyRestaurants": "Unable to find nearby restaurants",
+    "checkLocationPermission": "Please check your location permission and internet connection",
+    "rateDishesGetRewards": "Rate dishes, get rewards",
+    "ratingSubmitError": "Failed to submit rating"
   },
   "restaurant": {
     "openNow": "Open Now",
@@ -364,12 +405,25 @@
     "loadingRestaurant": "Loading restaurant...",
     "errorLoadingRestaurant": "Error loading restaurant",
     "noMenuItems": "No menu items available",
-    "payment": "Payment",
+    "foodAndDrinks": "Food & Drinks",
+    "hoursAndMore": "Hours & More",
+    "open": "Open",
+    "notForYou": "Not for you",
+    "paymentLabel": "Payment",
     "more": "More",
     "call": "Call",
     "openInMaps": "Open in Maps",
     "restaurantAddress": "Restaurant Address",
-    "reportMisleadingInfo": "Report Misleading Info"
+    "reportMisleadingInfo": "Report Misleading Info",
+    "payment": {
+      "cashOnly": "Cash only",
+      "cardsOnly": "Cards only",
+      "cashAndCard": "Cash & card"
+    },
+    "price": {
+      "marketPrice": "Market price",
+      "askServer": "Ask server"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -615,7 +669,19 @@
     "comingSoon3": "Taste profile analysis",
     "comingSoon4": "Social features",
     "comingSoon5": "Sharing & recommendations",
-    "account": "Account"
+    "account": "Account",
+    "completion": {
+      "personalizeTitle": "Personalize Your Experience",
+      "personalizeSubtitle": "Get better dish recommendations",
+      "earnPoints": "Earn up to 100 points!",
+      "keepGoingTitle": "{{percent}}% Complete - Keep Going!",
+      "keepGoingSubtitle": "Just a few more preferences",
+      "pointsEarned": "{{points}} points earned",
+      "almostThereTitle": "{{percent}}% Complete - Almost There!",
+      "almostThereSubtitle": "Finish to unlock full personalization",
+      "start": "Start",
+      "continue": "Continue"
+    }
   },
   "profileEdit": {
     "title": "Edit Profile",
@@ -908,7 +974,11 @@
     "description": "Description",
     "ingredients": "Ingredients",
     "addYourPhoto": "Add Your Photo",
-    "photosFromCommunity": "{{count}} photo(s) from the community"
+    "photosFromCommunity": "{{count}} photo(s) from the community",
+    "optionRequired": "Required",
+    "optionOptional": "Optional",
+    "optionPickOne": "· pick 1",
+    "optionUpTo": "· up to {{count}}"
   },
   "rating": {
     "bannerTitle": "Rate dishes, get rewards",
@@ -970,6 +1040,28 @@
     "question": {
       "subtitle": "One quick question about {{restaurantName}}:",
       "photoHint": "(interior, exterior, or ambiance)"
+    },
+    "restaurantRating": {
+      "food": "Food",
+      "service": "Service",
+      "clean": "Clean",
+      "waitTime": "Wait time",
+      "value": "Value",
+      "delicious": "Delicious",
+      "tasty": "Tasty",
+      "mediocrFood": "Mediocre food",
+      "excellentService": "Excellent service",
+      "goodService": "Good service",
+      "poorService": "Poor service",
+      "veryClean": "Clean",
+      "fairlyClean": "Fairly clean",
+      "notClean": "Not clean",
+      "quickService": "Quick",
+      "reasonableWait": "Reasonable wait",
+      "longWait": "Long wait",
+      "greatValue": "Great value",
+      "fairValue": "Fair value",
+      "overpriced": "Overpriced"
     }
   }
 }

@@ -20,7 +20,6 @@ interface Dish {
   price: number;
   cuisine: string;
   imageUrl?: string;
-  rating: number;
   isAvailable: boolean;
   dietary_tags: string[];
   allergens: string[];
@@ -67,9 +66,6 @@ export const MapFooter: React.FC<MapFooterProps> = ({
           >
             <View style={mapFooterStyles.dishHeader}>
               <Text style={mapFooterStyles.dishEmoji}>{getEmoji(dish.cuisine)}</Text>
-              <View style={mapFooterStyles.dishRating}>
-                <Text style={mapFooterStyles.ratingText}>⭐ {dish.rating}</Text>
-              </View>
             </View>
 
             <Text style={mapFooterStyles.dishName} numberOfLines={2}>

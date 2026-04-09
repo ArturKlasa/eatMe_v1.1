@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, typography, spacing } from '../styles/theme';
 import { RestaurantRating } from '../services/restaurantRatingService';
 
@@ -18,39 +19,41 @@ export function RestaurantRatingBadge({
   rating,
   showBreakdown = false,
 }: RestaurantRatingBadgeProps) {
+  const { t } = useTranslation();
+
   if (!rating || rating.overallPercentage === 0) {
     return null;
   }
 
-  const getCategoryLabel = (category: string, percentage: number): { text: string; color: string } => {
-    switch (category) {
-      case 'Food':
-        if (percentage >= 85) return { text: 'Delicious', color: colors.success };
-        if (percentage >= 70) return { text: 'Tasty', color: colors.accentLight };
-        return { text: 'Mediocre food', color: colors.error };
+  const getCategoryLabel = (categoryKey: string, percentage: number): { text: string; color: string } => {
+    switch (categoryKey) {
+      case 'food':
+        if (percentage >= 85) return { text: t('rating.restaurantRating.delicious'), color: colors.success };
+        if (percentage >= 70) return { text: t('rating.restaurantRating.tasty'), color: colors.accentLight };
+        return { text: t('rating.restaurantRating.mediocrFood'), color: colors.error };
 
-      case 'Service':
-        if (percentage >= 85) return { text: 'Excellent service', color: colors.success };
-        if (percentage >= 70) return { text: 'Good service', color: colors.accentLight };
-        return { text: 'Poor service', color: colors.error };
+      case 'service':
+        if (percentage >= 85) return { text: t('rating.restaurantRating.excellentService'), color: colors.success };
+        if (percentage >= 70) return { text: t('rating.restaurantRating.goodService'), color: colors.accentLight };
+        return { text: t('rating.restaurantRating.poorService'), color: colors.error };
 
-      case 'Clean':
-        if (percentage >= 85) return { text: 'Clean', color: colors.success };
-        if (percentage >= 70) return { text: 'Fairly clean', color: colors.accentLight };
-        return { text: 'Not clean', color: colors.error };
+      case 'clean':
+        if (percentage >= 85) return { text: t('rating.restaurantRating.veryClean'), color: colors.success };
+        if (percentage >= 70) return { text: t('rating.restaurantRating.fairlyClean'), color: colors.accentLight };
+        return { text: t('rating.restaurantRating.notClean'), color: colors.error };
 
-      case 'Wait time':
-        if (percentage >= 85) return { text: 'Quick', color: colors.success };
-        if (percentage >= 70) return { text: 'Reasonable wait', color: colors.accentLight };
-        return { text: 'Long wait', color: colors.error };
+      case 'waitTime':
+        if (percentage >= 85) return { text: t('rating.restaurantRating.quickService'), color: colors.success };
+        if (percentage >= 70) return { text: t('rating.restaurantRating.reasonableWait'), color: colors.accentLight };
+        return { text: t('rating.restaurantRating.longWait'), color: colors.error };
 
-      case 'Value':
-        if (percentage >= 85) return { text: 'Great value', color: colors.success };
-        if (percentage >= 70) return { text: 'Fair value', color: colors.accentLight };
-        return { text: 'Overpriced', color: colors.error };
+      case 'value':
+        if (percentage >= 85) return { text: t('rating.restaurantRating.greatValue'), color: colors.success };
+        if (percentage >= 70) return { text: t('rating.restaurantRating.fairValue'), color: colors.accentLight };
+        return { text: t('rating.restaurantRating.overpriced'), color: colors.error };
 
       default:
-        return { text: 'OK', color: colors.accentLight };
+        return { text: t('common.ok'), color: colors.accentLight };
     }
   };
 
@@ -61,27 +64,32 @@ export function RestaurantRatingBadge({
           <BreakdownItem
             score={rating.foodScore}
             getCategoryLabel={getCategoryLabel}
-            category="Food"
+            categoryKey="food"
+            categoryLabel={t('rating.restaurantRating.food')}
           />
           <BreakdownItem
             score={rating.servicePercentage}
             getCategoryLabel={getCategoryLabel}
-            category="Service"
+            categoryKey="service"
+            categoryLabel={t('rating.restaurantRating.service')}
           />
           <BreakdownItem
             score={rating.cleanlinessPercentage}
             getCategoryLabel={getCategoryLabel}
-            category="Clean"
+            categoryKey="clean"
+            categoryLabel={t('rating.restaurantRating.clean')}
           />
           <BreakdownItem
             score={rating.waitTimePercentage}
             getCategoryLabel={getCategoryLabel}
-            category="Wait time"
+            categoryKey="waitTime"
+            categoryLabel={t('rating.restaurantRating.waitTime')}
           />
           <BreakdownItem
             score={rating.valuePercentage}
             getCategoryLabel={getCategoryLabel}
-            category="Value"
+            categoryKey="value"
+            categoryLabel={t('rating.restaurantRating.value')}
           />
         </View>
       )}
@@ -90,13 +98,14 @@ export function RestaurantRatingBadge({
 }
 
 interface BreakdownItemProps {
-  category: string;
+  categoryKey: string;
+  categoryLabel: string;
   score: number;
-  getCategoryLabel: (category: string, score: number) => { text: string; color: string };
+  getCategoryLabel: (categoryKey: string, score: number) => { text: string; color: string };
 }
 
-function BreakdownItem({ category, score, getCategoryLabel }: BreakdownItemProps) {
-  const { text, color } = getCategoryLabel(category, score);
+function BreakdownItem({ categoryKey, score, getCategoryLabel }: BreakdownItemProps) {
+  const { text, color } = getCategoryLabel(categoryKey, score);
 
   return (
     <View style={[styles.button, { backgroundColor: color }]}>

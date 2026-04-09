@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { colors, typography, spacing, borderRadius } from '../styles/theme';
 
@@ -18,6 +19,7 @@ interface ProfileCompletionBannerProps {
 export const ProfileCompletionBanner: React.FC<ProfileCompletionBannerProps> = ({
   onStartOnboarding,
 }) => {
+  const { t } = useTranslation();
   const {
     profileCompletion,
     profilePoints,
@@ -73,21 +75,21 @@ export const ProfileCompletionBanner: React.FC<ProfileCompletionBannerProps> = (
   const getMessage = () => {
     if (profileCompletion === 0) {
       return {
-        title: '🎯 Personalize Your Experience',
-        subtitle: 'Get better dish recommendations',
-        points: 'Earn up to 100 points!',
+        title: `🎯 ${t('profile.completion.personalizeTitle')}`,
+        subtitle: t('profile.completion.personalizeSubtitle'),
+        points: t('profile.completion.earnPoints'),
       };
     } else if (profileCompletion < 50) {
       return {
-        title: `${profileCompletion}% Complete - Keep Going!`,
-        subtitle: 'Just a few more preferences',
-        points: `${profilePoints} points earned`,
+        title: t('profile.completion.keepGoingTitle', { percent: profileCompletion }),
+        subtitle: t('profile.completion.keepGoingSubtitle'),
+        points: t('profile.completion.pointsEarned', { points: profilePoints }),
       };
     } else {
       return {
-        title: `${profileCompletion}% Complete - Almost There!`,
-        subtitle: 'Finish to unlock full personalization',
-        points: `${profilePoints} points earned`,
+        title: t('profile.completion.almostThereTitle', { percent: profileCompletion }),
+        subtitle: t('profile.completion.almostThereSubtitle'),
+        points: t('profile.completion.pointsEarned', { points: profilePoints }),
       };
     }
   };
@@ -125,7 +127,7 @@ export const ProfileCompletionBanner: React.FC<ProfileCompletionBannerProps> = (
             activeOpacity={0.8}
           >
             <Text style={styles.completeButtonText}>
-              {profileCompletion > 0 ? 'Continue' : 'Start'}
+              {profileCompletion > 0 ? t('profile.completion.continue') : t('profile.completion.start')}
             </Text>
           </TouchableOpacity>
 

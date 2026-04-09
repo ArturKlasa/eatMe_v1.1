@@ -5,24 +5,28 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { commonStyles, mapComponentStyles } from '@/styles';
+import { Text, TouchableOpacity } from 'react-native';
+import { commonStyles } from '@/styles';
 import { colors } from '@eatme/tokens';
 
 interface MapControlsProps {
   onLocationPress: () => void;
   onMenuPress: () => void;
   locationLoading: boolean;
+  footerHeight: number;
 }
+
+const BUTTON_GAP = 16;
+const BETWEEN_BUTTONS = 60;
 
 export const MapControls: React.FC<MapControlsProps> = ({
   onLocationPress,
   onMenuPress,
   locationLoading,
+  footerHeight,
 }) => {
-  const insets = useSafeAreaInsets();
-  const bottomOffset = insets.bottom;
+  const locationBottom = footerHeight + BUTTON_GAP;
+  const menuBottom = locationBottom + BETWEEN_BUTTONS;
 
   return (
     <>
@@ -31,7 +35,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
         style={[
           commonStyles.mapStyles.locationButton,
           {
-            bottom: 390 + bottomOffset,
+            bottom: menuBottom,
             right: 20,
             zIndex: 1000,
             elevation: 10,
@@ -48,7 +52,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
         style={[
           commonStyles.mapStyles.locationButton,
           {
-            bottom: 330 + bottomOffset,
+            bottom: locationBottom,
             zIndex: 1000,
             elevation: 10,
             backgroundColor: colors.gray300,

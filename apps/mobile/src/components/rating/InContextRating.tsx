@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Alert } from 'react-native';
-import { colors, spacing, typography } from '../../styles/theme';
+import { useTranslation } from 'react-i18next';
+import { colors, spacing, typography, borderRadius } from '../../styles/theme';
 import { useAuthStore } from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { submitInContextRating } from '../../services/ratingService';
@@ -35,6 +36,12 @@ const OPINION_ICONS: Record<DishOpinion, string> = {
   disliked: '👎',
 };
 
+const OPINION_LABELS: Record<DishOpinion, string> = {
+  liked: 'rating.rateDish.lovedIt',
+  okay: 'rating.rateDish.okay',
+  disliked: 'rating.rateDish.notForMe',
+};
+
 export function InContextRating({
   dishId,
   dishName,
@@ -44,8 +51,9 @@ export function InContextRating({
 }: InContextRatingProps) {
   const user = useAuthStore(state => state.user);
   const currentSessionId = useSessionStore(state => state.currentSessionId);
+  const { t } = useTranslation();
 
-  const [uiState, setUiState] = useState<State>('idle');
+  const [uiState, setUiState] = useState<State>('selecting');
   const [pendingOpinion, setPendingOpinion] = useState<DishOpinion | null>(null);
   const [currentOpinion, setCurrentOpinion] = useState<DishOpinion | null>(existingOpinion);
   const [submitting, setSubmitting] = useState(false);
@@ -116,13 +124,13 @@ export function InContextRating({
       setUiState('idle');
       setPendingOpinion(null);
       setSubmitting(false);
-      Alert.alert('Error', 'Failed to save your rating. Please try again.');
+      Alert.alert(t('common.error'), t('common.ratingError'));
     }
   };
 
   if (uiState === 'done') {
     return (
-      <View style={styles.row}>
+      <View style={styles.opinionContainer}>
         <Animated.Text style={[styles.checkmark, { opacity: checkmarkOpacity }]}>✓</Animated.Text>
       </View>
     );
@@ -130,116 +138,132 @@ export function InContextRating({
 
   if (uiState === 'tagging' && pendingOpinion) {
     return (
-      <View style={styles.taggingContainer}>
-        <View style={styles.tagRow}>
+      <View style={styles.tagsSection}>
+        <Text style={styles.tagsTitle}>
+          {pendingOpinion === 'liked'
+            ? t('rating.rateDish.whatMadeItGreat')
+            : t('rating.rateDish.whatCouldBeBetter')}
+        </Text>
+        <View style={styles.tagsContainer}>
           {availableTags.map(tag => (
             <TouchableOpacity
               key={tag}
-              style={styles.tagChip}
+              style={styles.tagButton}
               onPress={() => handleTagsConfirm([tag])}
               disabled={submitting}
             >
-              <Text style={styles.tagChipText}>{DISH_TAG_LABELS[tag]}</Text>
+              <Text style={styles.tagText}>{DISH_TAG_LABELS[tag]}</Text>
             </TouchableOpacity>
           ))}
         </View>
         <TouchableOpacity onPress={() => handleTagsConfirm([])} disabled={submitting}>
-          <Text style={styles.skipLink}>Skip</Text>
+          <Text style={styles.skipLink}>{t('common.skip', { defaultValue: 'Skip' })}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  if (uiState === 'selecting' || currentOpinion !== null) {
-    return (
-      <View style={styles.row}>
-        {(['liked', 'okay', 'disliked'] as DishOpinion[]).map(opinion => (
-          <TouchableOpacity
-            key={opinion}
-            style={[
-              styles.opinionButton,
-              currentOpinion === opinion && styles.opinionButtonActive,
-            ]}
-            onPress={() => {
-              setUiState('selecting');
-              handleOpinionSelect(opinion);
-            }}
-            disabled={submitting}
-          >
-            <Text style={styles.opinionIcon}>{OPINION_ICONS[opinion]}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  }
-
-  // Idle — no existing opinion
   return (
-    <TouchableOpacity onPress={() => setUiState('selecting')} style={styles.triedItButton}>
-      <Text style={styles.triedItText}>Tried it?</Text>
-    </TouchableOpacity>
+    <View style={styles.opinionContainer}>
+      {(['liked', 'okay', 'disliked'] as DishOpinion[]).map(op => (
+        <TouchableOpacity
+          key={op}
+          style={[
+            styles.opinionButton,
+            op === 'liked' && currentOpinion === 'liked' && styles.opinionButtonLiked,
+            op === 'okay' && currentOpinion === 'okay' && styles.opinionButtonOkay,
+            op === 'disliked' && currentOpinion === 'disliked' && styles.opinionButtonDisliked,
+          ]}
+          onPress={() => {
+            setUiState('selecting');
+            handleOpinionSelect(op);
+          }}
+          disabled={submitting}
+        >
+          <Text style={styles.opinionEmoji}>{OPINION_ICONS[op]}</Text>
+          <Text style={[styles.opinionText, currentOpinion === op && styles.opinionTextSelected]}>
+            {t(OPINION_LABELS[op])}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
+  opinionContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-    gap: spacing.xs,
-  },
-  triedItButton: {
-    marginTop: spacing.xs,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.xs,
-    alignSelf: 'flex-start',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  triedItText: {
-    color: colors.accent,
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.medium,
+    justifyContent: 'center',
+    gap: spacing.md,
+    marginVertical: spacing.md,
   },
   opinionButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.border ?? '#333',
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.darkSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  opinionButtonActive: {
-    backgroundColor: colors.accent + '33',
-    borderColor: colors.accent,
+  opinionButtonLiked: {
+    borderColor: colors.success,
+    backgroundColor: `${colors.success}20`,
   },
-  opinionIcon: {
-    fontSize: 16,
+  opinionButtonOkay: {
+    borderColor: colors.warning,
+    backgroundColor: `${colors.warning}20`,
   },
-  taggingContainer: {
-    marginTop: spacing.xs,
+  opinionButtonDisliked: {
+    borderColor: colors.error,
+    backgroundColor: `${colors.error}20`,
   },
-  tagRow: {
+  opinionEmoji: {
+    fontSize: 32,
+    marginBottom: spacing.xs,
+  },
+  opinionText: {
+    fontSize: typography.size.sm,
+    color: colors.darkTextSecondary,
+  },
+  opinionTextSelected: {
+    color: colors.white,
+    fontWeight: typography.weight.medium,
+  },
+  tagsSection: {
+    marginBottom: spacing.xl,
+  },
+  tagsTitle: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    color: colors.white,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
-  tagChip: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 12,
+  tagButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.darkSecondary,
     borderWidth: 1,
-    borderColor: colors.accent,
-    backgroundColor: colors.accent + '22',
+    borderColor: colors.darkBorderLight,
   },
-  tagChipText: {
-    color: colors.accent,
-    fontSize: typography.size.xs,
+  tagText: {
+    fontSize: typography.size.sm,
+    color: colors.darkText,
   },
   skipLink: {
-    color: colors.textSecondary,
-    fontSize: typography.size.xs,
-    marginTop: spacing.xs,
+    color: colors.darkTextSecondary,
+    fontSize: typography.size.sm,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
   checkmark: {
     color: colors.success,

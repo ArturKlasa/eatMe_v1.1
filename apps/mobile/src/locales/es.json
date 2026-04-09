@@ -41,7 +41,26 @@
     "reset": "Restablecer",
     "of": "de",
     "points": "puntos",
-    "updating": "Actualizando..."
+    "updating": "Actualizando...",
+    "ok": "Aceptar",
+    "required": "Obligatorio",
+    "optional_caps": "Opcional",
+    "pickOne": "elige 1",
+    "upTo": "hasta {{count}}",
+    "takePhoto": "Tomar Foto",
+    "chooseFromLibrary": "Elegir de la Biblioteca",
+    "addPhoto": "Agregar Foto",
+    "signInToSave": "Por favor inicia sesión para guardar platillos",
+    "signInToUpload": "Por favor inicia sesión para subir fotos",
+    "photoUploadSuccess": "¡Foto subida exitosamente!",
+    "photoUploadError": "No se pudo subir la foto. Por favor intenta de nuevo.",
+    "permissionRequired": "Permiso Requerido",
+    "photoPermissionMessage": "Por favor permite el acceso a tus fotos para agregar imágenes.",
+    "ratingError": "No se pudo guardar tu calificación. Por favor intenta de nuevo.",
+    "mustBeLoggedIn": "Debes iniciar sesión para enviar calificaciones",
+    "comingSoon": "Próximamente",
+    "searchComingSoon": "¡La función de búsqueda de restaurantes estará disponible pronto!",
+    "rewardsComingSoon": "¡La pantalla de recompensas estará disponible pronto!"
   },
   "navigation": {
     "home": "Inicio",
@@ -294,7 +313,29 @@
       "meat": "Carne",
       "fish": "Pescado",
       "seafood": "Mariscos"
-    }
+    },
+    "presets": {
+      "nearby": "Cerca",
+      "cheapEats": "Económico",
+      "healthy": "Saludable",
+      "openNow": "Abierto Ahora"
+    },
+    "activeFilters_one": "{{count}} filtro activo",
+    "activeFilters_other": "{{count}} filtros activos"
+  },
+  "map": {
+    "locationUnavailable": "Ubicación No Disponible",
+    "locationAccessError": "No se puede obtener tu ubicación actual. Por favor revisa la configuración de ubicación e intenta de nuevo.",
+    "locationError": "Error de Ubicación",
+    "locationErrorMessage": "Algo salió mal al obtener tu ubicación. Por favor intenta de nuevo.",
+    "mapLoadError": "No se puede cargar el mapa. Por favor revisa tu conexión a internet e intenta de nuevo.",
+    "mapLoadErrorTitle": "Error al Cargar el Mapa",
+    "refreshFailed": "Actualización Fallida",
+    "refreshFailedMessage": "No se pudieron actualizar los restaurantes cercanos. Por favor intenta de nuevo.",
+    "noNearbyRestaurants": "No se pueden encontrar restaurantes cercanos",
+    "checkLocationPermission": "Por favor verifica tu permiso de ubicación y conexión a internet",
+    "rateDishesGetRewards": "Califica platillos, gana recompensas",
+    "ratingSubmitError": "No se pudo enviar la calificación"
   },
   "restaurant": {
     "openNow": "Abierto Ahora",
@@ -328,7 +369,7 @@
     "cocktails": "Cócteles",
     "nonAlcoholic": "Sin Alcohol",
     "kidsMenu": "Menú para Niños",
-    "petFriendly": "Pet Friendly",
+    "petFriendly": "Apto para mascotas",
     "liveMusic": "Música en Vivo",
     "sportsBar": "Bar Deportivo",
     "poolTable": "Mesa de Billar",
@@ -364,12 +405,25 @@
     "loadingRestaurant": "Cargando restaurante...",
     "errorLoadingRestaurant": "Error cargando restaurante",
     "noMenuItems": "No hay elementos de menú disponibles",
-    "payment": "Pago",
+    "foodAndDrinks": "Comida y Bebidas",
+    "hoursAndMore": "Horarios y Más",
+    "open": "Abierto",
+    "notForYou": "No es para ti",
+    "paymentLabel": "Pago",
     "more": "Más",
     "call": "Llamar",
     "openInMaps": "Abrir en Mapas",
     "restaurantAddress": "Dirección del Restaurante",
-    "reportMisleadingInfo": "Reportar Información Incorrecta"
+    "reportMisleadingInfo": "Reportar Información Incorrecta",
+    "payment": {
+      "cashOnly": "Solo efectivo",
+      "cardsOnly": "Solo tarjetas",
+      "cashAndCard": "Efectivo y tarjeta"
+    },
+    "price": {
+      "marketPrice": "Precio de mercado",
+      "askServer": "Preguntar al mesero"
+    }
   },
   "settings": {
     "title": "Configuración",
@@ -615,7 +669,19 @@
     "comingSoon3": "Análisis de perfil de gustos",
     "comingSoon4": "Funciones sociales",
     "comingSoon5": "Compartir y recomendaciones",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "completion": {
+      "personalizeTitle": "Personaliza Tu Experiencia",
+      "personalizeSubtitle": "Obtén mejores recomendaciones de platillos",
+      "earnPoints": "¡Gana hasta 100 puntos!",
+      "keepGoingTitle": "{{percent}}% Completo - ¡Sigue Adelante!",
+      "keepGoingSubtitle": "Solo unas pocas preferencias más",
+      "pointsEarned": "{{points}} puntos ganados",
+      "almostThereTitle": "{{percent}}% Completo - ¡Casi Listo!",
+      "almostThereSubtitle": "Termina para desbloquear la personalización completa",
+      "start": "Comenzar",
+      "continue": "Continuar"
+    }
   },
   "profileEdit": {
     "title": "Editar Perfil",
@@ -908,7 +974,11 @@
     "description": "Descripción",
     "ingredients": "Ingredientes",
     "addYourPhoto": "Agregar Tu Foto",
-    "photosFromCommunity": "{{count}} foto(s) de la comunidad"
+    "photosFromCommunity": "{{count}} foto(s) de la comunidad",
+    "optionRequired": "Obligatorio",
+    "optionOptional": "Opcional",
+    "optionPickOne": "· elige 1",
+    "optionUpTo": "· hasta {{count}}"
   },
   "rating": {
     "bannerTitle": "Califica platillos, gana recompensas",
@@ -970,6 +1040,28 @@
     "question": {
       "subtitle": "Una pregunta rápida sobre {{restaurantName}}:",
       "photoHint": "(interior, exterior o ambiente)"
+    },
+    "restaurantRating": {
+      "food": "Comida",
+      "service": "Servicio",
+      "clean": "Limpieza",
+      "waitTime": "Tiempo de espera",
+      "value": "Valor",
+      "delicious": "Delicioso",
+      "tasty": "Sabroso",
+      "mediocrFood": "Comida mediocre",
+      "excellentService": "Excelente servicio",
+      "goodService": "Buen servicio",
+      "poorService": "Servicio deficiente",
+      "veryClean": "Limpio",
+      "fairlyClean": "Bastante limpio",
+      "notClean": "No limpio",
+      "quickService": "Rápido",
+      "reasonableWait": "Espera razonable",
+      "longWait": "Larga espera",
+      "greatValue": "Excelente precio",
+      "fairValue": "Precio justo",
+      "overpriced": "Caro"
     }
   }
 }

@@ -21,6 +21,7 @@ import { commonStyles, mapComponentStyles } from '@/styles';
 import { colors, typography, spacing } from '@/styles/theme';
 import type { MapScreenProps } from '@/types/navigation';
 import type { RootStackParamList } from '@/types/navigation';
+import { useTranslation } from 'react-i18next';
 
 // Extracted Components
 import { DailyFilterModal } from '../components/map/DailyFilterModal';
@@ -81,6 +82,7 @@ interface MapDish {
  */
 export function BasicMapScreen({ navigation }: MapScreenProps) {
   debugLog('BasicMapScreen rendered with token:', ENV.mapbox.accessToken.substring(0, 20) + '...');
+  const { t } = useTranslation();
 
   const insets = useSafeAreaInsets();
   // Get the root stack navigation for navigating to RestaurantDetail
@@ -96,6 +98,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
   const cameraRef = useRef<Camera>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(0);
   const [hasAutocentered, setHasAutocentered] = useState(false);
   const [isDailyFilterVisible, setIsDailyFilterVisible] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -228,7 +231,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       cuisine:
         dish.restaurant?.cuisine_types?.[0] || flatDish.restaurant_cuisines?.[0] || 'Unknown',
       imageUrl: dish.image_url || undefined,
-      rating: dish.restaurant?.rating || flatDish.restaurant_rating || 0,
       isAvailable: dish.is_available,
       dietary_tags: dish.dietary_tags || [],
       allergens: dish.allergens || [],
@@ -377,7 +379,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     price: number;
     cuisine: string;
     imageUrl?: string;
-    rating: number;
     isAvailable: boolean;
     dietary_tags: string[];
     allergens: string[];
@@ -407,23 +408,23 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
         );
       } else if (locationError) {
-        Alert.alert('Location Unavailable', locationError, [
+        Alert.alert(t('map.locationUnavailable'), locationError, [
           { text: 'Settings', onPress: () => debugLog('Opening location settings...') },
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
         ]);
       } else {
         Alert.alert(
-          'Location Access',
-          'Unable to get your current location. Please check your location settings and try again.',
-          [{ text: 'OK' }]
+          t('map.locationUnavailable'),
+          t('map.locationAccessError'),
+          [{ text: t('common.ok') }]
         );
       }
     } catch (error) {
       debugLog('Location button error:', error);
       Alert.alert(
-        'Location Error',
-        'Something went wrong while getting your location. Please try again.',
-        [{ text: 'OK' }]
+        t('map.locationError'),
+        t('map.locationErrorMessage'),
+        [{ text: t('common.ok') }]
       );
     }
   };
@@ -459,7 +460,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     pointsEarned: PointsEarned;
   }) => {
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to submit ratings');
+      Alert.alert(t('common.error'), t('common.mustBeLoggedIn'));
       return;
     }
 
@@ -473,7 +474,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     );
 
     if (!success) {
-      Alert.alert('Error', error || 'Failed to submit rating');
+      Alert.alert(t('common.error'), error || t('map.ratingSubmitError'));
       return;
     }
 
@@ -482,12 +483,12 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
 
   const handleSearchRestaurant = () => {
     // Future: Navigate to restaurant search screen
-    Alert.alert('Coming Soon', 'Search for restaurants feature coming soon!');
+    Alert.alert(t('common.comingSoon'), t('common.searchComingSoon'));
   };
 
   const handleViewRewards = () => {
     // Future: Navigate to rewards/profile screen
-    Alert.alert('Coming Soon', 'Rewards screen coming soon!');
+    Alert.alert(t('common.comingSoon'), t('common.rewardsComingSoon'));
   };
 
   const getRestaurantDishes = async (restaurantId: string) => {
@@ -536,7 +537,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         );
       } catch (error) {
         console.error('[BasicMapScreen] Refresh failed:', error);
-        Alert.alert('Refresh Failed', 'Unable to update nearby restaurants. Please try again.');
+        Alert.alert(t('map.refreshFailed'), t('map.refreshFailedMessage'));
       }
     }
   };
@@ -572,7 +573,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         ]}
       >
         <Text style={{ fontSize: 18, color: colors.error, marginBottom: 8, textAlign: 'center' }}>
-          Unable to find nearby restaurants
+          {t('map.noNearbyRestaurants')}
         </Text>
         <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center' }}>
           {geoError.message}
@@ -580,7 +581,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         <Text
           style={{ fontSize: 12, color: colors.textTertiary, marginTop: 8, textAlign: 'center' }}
         >
-          Please check your location permission and internet connection
+          {t('map.checkLocationPermission')}
         </Text>
       </View>
     );
@@ -603,9 +604,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         onDidFailLoadingMap={() => {
           debugLog('Map failed to load');
           Alert.alert(
-            'Map Loading Error',
-            'Unable to load the map. Please check your internet connection and try again.',
-            [{ text: 'OK' }]
+            t('map.mapLoadErrorTitle'),
+            t('map.mapLoadError'),
+            [{ text: t('common.ok') }]
           );
         }}
       >
@@ -638,13 +639,16 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         onLocationPress={handleMyLocationPress}
         onMenuPress={handleMenuPress}
         locationLoading={locationLoading}
+        footerHeight={footerHeight}
       />
 
-      <MapFooter
-        recommendedDishes={recommendedDishes}
-        onDishPress={handleDishPress}
-        onFilterPress={handleDailyFilterPress}
-      />
+      <View onLayout={e => setFooterHeight(e.nativeEvent.layout.height)}>
+        <MapFooter
+          recommendedDishes={recommendedDishes}
+          onDishPress={handleDishPress}
+          onFilterPress={handleDailyFilterPress}
+        />
+      </View>
 
       {/* Loading indicator overlay when refreshing in background */}
       {isLoading && nearbyRestaurants.length > 0 && (
@@ -677,7 +681,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       )}
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
-      <FloatingMenu visible={isMenuVisible} onClose={closeMenu} />
+      <FloatingMenu visible={isMenuVisible} onClose={closeMenu} footerHeight={footerHeight} />
       <RatingFlowModal
         visible={isRatingFlowVisible}
         recentRestaurants={recentRestaurants}
@@ -736,7 +740,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
                   fontWeight: typography.weight.semibold,
                 }}
               >
-                Rate dishes, get rewards
+                {t('map.rateDishesGetRewards')}
               </Text>
             </View>
             <Text style={{ color: colors.accent, fontSize: typography.size.lg }}>→</Text>

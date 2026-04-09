@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Modal, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { StreakResult, BadgeResult } from '../../services/gamificationService';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -98,6 +99,7 @@ export function RatingFlowModal({
   getRestaurantDishes,
   isFirstVisit,
 }: RatingFlowModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<FlowStep>('select_restaurant');
   const [selectedRestaurant, setSelectedRestaurant] = useState<RecentlyViewedRestaurant | null>(
     null
@@ -267,8 +269,8 @@ export function RatingFlowModal({
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your photos to add images.', [
-        { text: 'OK' },
+      Alert.alert(t('common.permissionRequired'), t('common.photoPermissionMessage'), [
+        { text: t('common.ok') },
       ]);
       return undefined;
     }

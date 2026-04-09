@@ -41,7 +41,26 @@
     "reset": "Resetuj",
     "of": "z",
     "points": "punktów",
-    "updating": "Aktualizowanie..."
+    "updating": "Aktualizowanie...",
+    "ok": "OK",
+    "required": "Wymagane",
+    "optional_caps": "Opcjonalne",
+    "pickOne": "wybierz 1",
+    "upTo": "do {{count}}",
+    "takePhoto": "Zrób zdjęcie",
+    "chooseFromLibrary": "Wybierz z biblioteki",
+    "addPhoto": "Dodaj zdjęcie",
+    "signInToSave": "Zaloguj się, aby zapisać dania",
+    "signInToUpload": "Zaloguj się, aby przesłać zdjęcia",
+    "photoUploadSuccess": "Zdjęcie przesłane pomyślnie!",
+    "photoUploadError": "Nie udało się przesłać zdjęcia. Spróbuj ponownie.",
+    "permissionRequired": "Wymagane Uprawnienia",
+    "photoPermissionMessage": "Zezwól na dostęp do swoich zdjęć, aby dodawać obrazy.",
+    "ratingError": "Nie udało się zapisać oceny. Spróbuj ponownie.",
+    "mustBeLoggedIn": "Musisz być zalogowany, aby wysyłać oceny",
+    "comingSoon": "Wkrótce",
+    "searchComingSoon": "Funkcja wyszukiwania restauracji będzie dostępna wkrótce!",
+    "rewardsComingSoon": "Ekran nagród będzie dostępny wkrótce!"
   },
   "navigation": {
     "home": "Strona główna",
@@ -294,7 +313,29 @@
       "meat": "Mięso",
       "fish": "Ryba",
       "seafood": "Owoce morza"
-    }
+    },
+    "presets": {
+      "nearby": "W pobliżu",
+      "cheapEats": "Tanio",
+      "healthy": "Zdrowo",
+      "openNow": "Otwarte teraz"
+    },
+    "activeFilters_one": "{{count}} aktywny filtr",
+    "activeFilters_other": "{{count}} aktywne filtry"
+  },
+  "map": {
+    "locationUnavailable": "Lokalizacja Niedostępna",
+    "locationAccessError": "Nie można uzyskać Twojej bieżącej lokalizacji. Sprawdź ustawienia lokalizacji i spróbuj ponownie.",
+    "locationError": "Błąd Lokalizacji",
+    "locationErrorMessage": "Coś poszło nie tak podczas uzyskiwania Twojej lokalizacji. Spróbuj ponownie.",
+    "mapLoadError": "Nie można załadować mapy. Sprawdź połączenie z internetem i spróbuj ponownie.",
+    "mapLoadErrorTitle": "Błąd Ładowania Mapy",
+    "refreshFailed": "Odświeżanie Nieudane",
+    "refreshFailedMessage": "Nie można zaktualizować pobliskich restauracji. Spróbuj ponownie.",
+    "noNearbyRestaurants": "Nie można znaleźć pobliskich restauracji",
+    "checkLocationPermission": "Sprawdź uprawnienia lokalizacji i połączenie z internetem",
+    "rateDishesGetRewards": "Oceniaj dania, zdobywaj nagrody",
+    "ratingSubmitError": "Nie udało się wysłać oceny"
   },
   "restaurant": {
     "openNow": "Otwarte Teraz",
@@ -364,12 +405,25 @@
     "loadingRestaurant": "Ładowanie restauracji...",
     "errorLoadingRestaurant": "Błąd ładowania restauracji",
     "noMenuItems": "Brak pozycji menu",
-    "payment": "Płatność",
+    "foodAndDrinks": "Jedzenie i Napoje",
+    "hoursAndMore": "Godziny i Więcej",
+    "open": "Otwarte",
+    "notForYou": "Nie dla Ciebie",
+    "paymentLabel": "Płatność",
     "more": "Więcej",
     "call": "Zadzwoń",
     "openInMaps": "Otwórz w Mapach",
     "restaurantAddress": "Adres Restauracji",
-    "reportMisleadingInfo": "Zgłoś Błędne Informacje"
+    "reportMisleadingInfo": "Zgłoś Błędne Informacje",
+    "payment": {
+      "cashOnly": "Tylko gotówka",
+      "cardsOnly": "Tylko karty",
+      "cashAndCard": "Gotówka i karta"
+    },
+    "price": {
+      "marketPrice": "Cena rynkowa",
+      "askServer": "Zapytaj kelnera"
+    }
   },
   "settings": {
     "title": "Ustawienia",
@@ -615,7 +669,19 @@
     "comingSoon3": "Analiza profilu smakowego",
     "comingSoon4": "Funkcje społecznościowe",
     "comingSoon5": "Udostępnianie i rekomendacje",
-    "account": "Konto"
+    "account": "Konto",
+    "completion": {
+      "personalizeTitle": "Spersonalizuj Swoje Doświadczenie",
+      "personalizeSubtitle": "Uzyskaj lepsze rekomendacje dań",
+      "earnPoints": "Zdobądź do 100 punktów!",
+      "keepGoingTitle": "{{percent}}% Ukończone - Dalej!",
+      "keepGoingSubtitle": "Jeszcze kilka preferencji",
+      "pointsEarned": "{{points}} punktów zdobytych",
+      "almostThereTitle": "{{percent}}% Ukończone - Prawie!",
+      "almostThereSubtitle": "Zakończ, aby odblokować pełną personalizację",
+      "start": "Rozpocznij",
+      "continue": "Kontynuuj"
+    }
   },
   "profileEdit": {
     "title": "Edytuj Profil",
@@ -908,7 +974,11 @@
     "description": "Opis",
     "ingredients": "Składniki",
     "addYourPhoto": "Dodaj Swoje Zdjęcie",
-    "photosFromCommunity": "{{count}} zdjęcie(a) od społeczności"
+    "photosFromCommunity": "{{count}} zdjęcie(a) od społeczności",
+    "optionRequired": "Wymagane",
+    "optionOptional": "Opcjonalne",
+    "optionPickOne": "· wybierz 1",
+    "optionUpTo": "· do {{count}}"
   },
   "rating": {
     "bannerTitle": "Oceniaj dania, zdobywaj nagrody",
@@ -970,6 +1040,28 @@
     "question": {
       "subtitle": "Jedno szybkie pytanie o {{restaurantName}}:",
       "photoHint": "(wnętrze, zewnętrzne lub atmosfera)"
+    },
+    "restaurantRating": {
+      "food": "Jedzenie",
+      "service": "Obsługa",
+      "clean": "Czystość",
+      "waitTime": "Czas oczekiwania",
+      "value": "Wartość",
+      "delicious": "Wyśmienite",
+      "tasty": "Smaczne",
+      "mediocrFood": "Przeciętne jedzenie",
+      "excellentService": "Doskonała obsługa",
+      "goodService": "Dobra obsługa",
+      "poorService": "Słaba obsługa",
+      "veryClean": "Czysto",
+      "fairlyClean": "Dość czysto",
+      "notClean": "Nieczysto",
+      "quickService": "Szybko",
+      "reasonableWait": "Rozsądny czas oczekiwania",
+      "longWait": "Długie oczekiwanie",
+      "greatValue": "Dobra cena",
+      "fairValue": "Uczciwa cena",
+      "overpriced": "Przepłacone"
     }
   }
 }

@@ -34,8 +34,11 @@ import { formatTime, formatOpeningHours, isRestaurantOpenNow } from '../utils/i1
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { DishPhotoModal } from '../components/DishPhotoModal';
 import { DishRatingBadge } from '../components/DishRatingBadge';
-import { getDishRatingsBatch, getUserDishOpinions, type DishRating } from '../services/dishRatingService';
-import { InContextRating } from '../components/rating/InContextRating';
+import {
+  getDishRatingsBatch,
+  getUserDishOpinions,
+  type DishRating,
+} from '../services/dishRatingService';
 import { type DishOpinion } from '../types/rating';
 import { RestaurantRatingBadge } from '../components/RestaurantRatingBadge';
 import { getRestaurantRating, type RestaurantRating } from '../services/restaurantRatingService';
@@ -79,6 +82,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const [dishIngredientNames, setDishIngredientNames] = useState<string[]>([]);
   const [dishRatings, setDishRatings] = useState<Map<string, DishRating>>(new Map());
   const [userDishOpinions, setUserDishOpinions] = useState<Map<string, DishOpinion>>(new Map());
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [restaurantRating, setRestaurantRating] = useState<RestaurantRating | null>(null);
   // Per-category dish loading state: Map<categoryId, 'loading' | 'error' | Dish[]>
   const [categoryDishes, setCategoryDishes] = useState<Map<string, 'loading' | 'error' | Dish[]>>(
@@ -102,7 +106,15 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     const loadAll = async () => {
       try {
         // Critical path: restaurant metadata only. Clears the loading spinner.
-        const { data, error } = await fetchRestaurantDetail(restaurantId);
+        // Race against a 12-second timeout so loading can never hang indefinitely
+        // (e.g. stale TCP connection on mobile carrier NAT, or token-refresh hang).
+        const timeoutFallback = new Promise<{ data: null; error: Error }>(resolve =>
+          setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 12000)
+        );
+        const { data, error } = await Promise.race([
+          fetchRestaurantDetail(restaurantId),
+          timeoutFallback,
+        ]);
         if (!mountedRef.current) return;
         if (error) throw error;
         if (data) {
@@ -138,7 +150,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     };
 
     loadAll();
-  }, [restaurantId, user, trackRestaurantView]);
+    // user?.id (not the full user object) — prevents TOKEN_REFRESHED from causing
+    // re-runs every time Supabase issues a new access token with a new object reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, user?.id, loadAttempt, trackRestaurantView]);
 
   // Lazy-load dishes for a specific category; no-op if already loading or loaded
   const loadCategoryDishes = React.useCallback(
@@ -172,7 +187,9 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       if (dishIds.length > 0) {
         const [ratings, opinions] = await Promise.all([
           getDishRatingsBatch(dishIds),
-          user ? getUserDishOpinions(user.id, dishIds) : Promise.resolve(new Map<string, DishOpinion>()),
+          user
+            ? getUserDishOpinions(user.id, dishIds)
+            : Promise.resolve(new Map<string, DishOpinion>()),
         ]);
         if (mountedRef.current) {
           setDishRatings(prev => new Map([...prev, ...ratings]));
@@ -182,7 +199,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         }
       }
     },
-    [fetchCategoryDishes]
+    // user?.id keeps getUserDishOpinions in sync when the user signs in/out
+    // without causing re-fetches on every TOKEN_REFRESHED reference change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fetchCategoryDishes, user?.id]
   );
 
   // Auto-load all categories in parallel when restaurant metadata arrives
@@ -221,6 +241,17 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{t('restaurant.restaurantNotFound')}</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => {
+              setLoading(true);
+              setLoadAttempt(n => n + 1);
+            }}
+          >
+            <Text style={styles.closeButtonText}>
+              {t('common.retry', { defaultValue: 'Retry' })}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
             <Text style={styles.closeButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
@@ -253,11 +284,11 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const getPaymentNote = () => {
     switch (restaurant.payment_methods) {
       case 'cash_only':
-        return { icon: '💵', label: 'Cash only' };
+        return { icon: '💵', label: t('restaurant.payment.cashOnly') };
       case 'card_only':
-        return { icon: '💳', label: 'Cards only' };
+        return { icon: '💳', label: t('restaurant.payment.cardsOnly') };
       case 'cash_and_card':
-        return { icon: '💵💳', label: 'Cash & card' };
+        return { icon: '💵💳', label: t('restaurant.payment.cashAndCard') };
       default:
         return null;
     }
@@ -514,10 +545,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         priceLabel = `$${item.price.toFixed(2)}/person`;
         break;
       case 'market_price':
-        priceLabel = 'Market price';
+        priceLabel = t('restaurant.price.marketPrice');
         break;
       case 'ask_server':
-        priceLabel = 'Ask server';
+        priceLabel = t('restaurant.price.askServer');
         break;
       default:
         priceLabel = `$${item.price.toFixed(2)}`;
@@ -547,7 +578,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             </Text>
             {!passesHardFilters && (
               <View style={styles.notForYouPill}>
-                <Text style={styles.notForYouText}>Not for you</Text>
+                <Text style={styles.notForYouText}>{t('restaurant.notForYou')}</Text>
               </View>
             )}
             {rating && (
@@ -555,17 +586,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
                 likePercentage={rating.likePercentage}
                 totalRatings={rating.totalRatings}
                 topTags={rating.topTags}
-              />
-            )}
-            {user && (
-              <InContextRating
-                dishId={item.id}
-                dishName={item.name}
-                restaurantId={restaurantId}
-                existingOpinion={userDishOpinions.get(item.id) ?? null}
-                onRated={(opinion) => {
-                  setUserDishOpinions(prev => new Map(prev).set(item.id, opinion));
-                }}
               />
             )}
           </View>
@@ -635,7 +655,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           onPress={() => setActiveTab('food')}
         >
           <Text style={[styles.tabText, activeTab === 'food' && styles.activeTabText]}>
-            Food & Drinks
+            {t('restaurant.foodAndDrinks')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -644,10 +664,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
         >
           <View style={styles.tabLabelRow}>
             <Text style={[styles.tabText, activeTab === 'hours' && styles.activeTabText]}>
-              Hours & More
+              {t('restaurant.hoursAndMore')}
             </Text>
             <Text style={isOpenNow ? styles.tabOpenBadge : styles.tabClosedBadge}>
-              {isOpenNow ? 'Open' : 'Closed'}
+              {isOpenNow ? t('restaurant.open') : t('restaurant.closed')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -801,7 +821,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           {/* Payment Methods Section */}
           {paymentNote && (
             <View style={styles.hoursMoreSection}>
-              <Text style={styles.hoursMoreSectionTitle}>{t('restaurant.payment')}</Text>
+              <Text style={styles.hoursMoreSectionTitle}>{t('restaurant.paymentLabel')}</Text>
               <Text style={styles.hoursMoreAddress}>
                 {paymentNote.icon}
                 {'  '}
@@ -970,6 +990,11 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             if (selectedDish) {
               handleDishPress(selectedDish);
             }
+          }}
+          restaurantId={restaurantId}
+          existingOpinion={userDishOpinions.get(selectedDish.id) ?? null}
+          onRated={opinion => {
+            setUserDishOpinions(prev => new Map(prev).set(selectedDish.id, opinion));
           }}
         />
       )}

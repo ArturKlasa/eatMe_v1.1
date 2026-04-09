@@ -14,6 +14,21 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { getCurrencyInfo, formatPrice } from '../utils/currencyConfig';
 import { commonStyles, theme, filterComponentsStyles } from '@/styles';
 
+const toLocaleKey = (str: string): string => {
+  const normalized = str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, 'And');
+  const words = normalized.trim().split(/\s+/);
+  return (
+    words[0].toLowerCase() +
+    words
+      .slice(1)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join('')
+  );
+};
+
 // Available cuisine types - synced with web portal
 const CUISINE_TYPES = [
   'Afghan',
@@ -107,10 +122,11 @@ export const PriceRangeFilter: React.FC = () => {
   const currency = useSettingsStore(state => state.currency);
   const currencyInfo = getCurrencyInfo(currency);
   const { step, sliderMax } = currencyInfo.priceRange;
+  const { t } = useTranslation();
 
   return (
     <View style={filterComponentsStyles.filterSection}>
-      <Text style={filterComponentsStyles.filterTitle}>💰 Price Range</Text>
+      <Text style={filterComponentsStyles.filterTitle}>💰 {t('filters.priceRange')}</Text>
       <View style={filterComponentsStyles.priceRangeContainer}>
         <Text style={filterComponentsStyles.priceLabel}>
           {formatPrice(daily.priceRange.min, currency)}
@@ -221,7 +237,7 @@ export const CuisineTypeFilter: React.FC = () => {
                   filterComponentsStyles.checkboxLabelSelected,
               ]}
             >
-              {cuisine}
+              {t(`filters.cuisines.${toLocaleKey(cuisine)}`)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -410,7 +426,7 @@ export const QuickFilterPresets: React.FC = () => {
                   activePreset === presetKey && filterComponentsStyles.presetButtonTextActive,
                 ]}
               >
-                {preset.name}
+                {t(`filters.presets.${presetKey}`)}
               </Text>
             </TouchableOpacity>
           );
@@ -437,6 +453,7 @@ export const QuickFilterPresets: React.FC = () => {
  */
 export const FilterSummary: React.FC = () => {
   const { getDailyFilterCount, hasDailyFilters } = useFilterStore();
+  const { t } = useTranslation();
 
   if (!hasDailyFilters()) {
     return null;
@@ -445,7 +462,7 @@ export const FilterSummary: React.FC = () => {
   return (
     <View style={filterComponentsStyles.summaryContainer}>
       <Text style={filterComponentsStyles.summaryText}>
-        {getDailyFilterCount()} filter{getDailyFilterCount() !== 1 ? 's' : ''} active
+        {t('filters.activeFilters', { count: getDailyFilterCount() })}
       </Text>
     </View>
   );

@@ -20,6 +20,7 @@ type NavigationProp = StackNavigationProp<RootStackParamList>;
 interface FloatingMenuProps {
   visible: boolean;
   onClose: () => void;
+  footerHeight: number;
 }
 
 interface MenuItem {
@@ -36,7 +37,7 @@ const menuItems: MenuItem[] = [
   { id: 'settings', label: 'Settings', icon: '⚙️', screen: 'Settings' },
 ];
 
-export const FloatingMenu: React.FC<FloatingMenuProps> = ({ visible, onClose }) => {
+export const FloatingMenu: React.FC<FloatingMenuProps> = ({ visible, onClose, footerHeight }) => {
   const navigation = useNavigation<NavigationProp>();
 
   const handleMenuItemPress = (screen: keyof RootStackParamList) => {
@@ -52,7 +53,7 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({ visible, onClose }) 
       <TouchableOpacity style={floatingMenuStyles.backdrop} activeOpacity={1} onPress={onClose} />
 
       {/* Menu Items */}
-      <View style={floatingMenuStyles.menuContainer}>
+      <View style={[floatingMenuStyles.menuContainer, { bottom: footerHeight + 240 }]}>
         {menuItems.map((item, index) => (
           <TouchableOpacity
             key={item.id}

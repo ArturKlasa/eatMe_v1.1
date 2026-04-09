@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -18,6 +18,8 @@ import { toggleFavorite, isFavorited } from '../services/favoritesService';
 import { recordInteraction } from '../services/interactionService';
 import { colors, typography, spacing, borderRadius } from '@eatme/tokens';
 import type { OptionGroup } from '../lib/supabase';
+import { InContextRating } from './rating/InContextRating';
+import type { DishOpinion, DishTag } from '../types/rating';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,6 +45,9 @@ interface DishPhotoModalProps {
   userAllergens?: string[];
   photos: DishPhoto[];
   onPhotoAdded?: () => void;
+  restaurantId?: string;
+  existingOpinion?: DishOpinion | null;
+  onRated?: (opinion: DishOpinion, tags: DishTag[]) => void;
 }
 
 export function DishPhotoModal({
@@ -60,11 +65,15 @@ export function DishPhotoModal({
   userAllergens = [],
   photos,
   onPhotoAdded,
+  restaurantId,
+  existingOpinion = null,
+  onRated,
 }: DishPhotoModalProps) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
+  const photoScrollRef = useRef<ScrollView>(null);
   const user = useAuthStore(state => state.user);
   const { t } = useTranslation();
 
@@ -81,7 +90,7 @@ export function DishPhotoModal({
 
   const handleLike = async () => {
     if (!user) {
-      Alert.alert('Sign In Required', 'Please sign in to save dishes');
+      Alert.alert(t('common.signInRequired'), t('common.signInToSave'));
       return;
     }
     setLikeLoading(true);
@@ -101,21 +110,21 @@ export function DishPhotoModal({
 
   const handleAddPhoto = () => {
     if (!user) {
-      Alert.alert('Sign In Required', 'Please sign in to upload photos');
+      Alert.alert(t('common.signInRequired'), t('common.signInToUpload'));
       return;
     }
 
-    Alert.alert('Add Photo', 'Choose an option', [
+    Alert.alert(t('common.addPhoto'), t('common.addPhoto'), [
       {
-        text: 'Take Photo',
+        text: t('common.takePhoto'),
         onPress: handleTakePhoto,
       },
       {
-        text: 'Choose from Library',
+        text: t('common.chooseFromLibrary'),
         onPress: handlePickImage,
       },
       {
-        text: 'Cancel',
+        text: t('common.cancel'),
         style: 'cancel',
       },
     ]);
@@ -142,10 +151,10 @@ export function DishPhotoModal({
     const result = await uploadDishPhoto(user.id, dishId, photoUri);
 
     if (result.success) {
-      Alert.alert('Success', 'Photo uploaded successfully!');
+      Alert.alert(t('common.success'), t('common.photoUploadSuccess'));
       onPhotoAdded?.(); // Trigger refresh
     } else {
-      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+      Alert.alert(t('common.error'), t('common.photoUploadError'));
     }
     setUploading(false);
   };
@@ -167,8 +176,8 @@ export function DishPhotoModal({
             <Text style={styles.dishPrice}>
               {displayPricePrefix === 'from' && `from $${dishPrice.toFixed(2)}`}
               {displayPricePrefix === 'per_person' && `$${dishPrice.toFixed(2)} / person`}
-              {displayPricePrefix === 'market_price' && 'Market price'}
-              {displayPricePrefix === 'ask_server' && 'Ask server'}
+              {displayPricePrefix === 'market_price' && t('restaurant.price.marketPrice')}
+              {displayPricePrefix === 'ask_server' && t('restaurant.price.askServer')}
               {(!displayPricePrefix || displayPricePrefix === 'exact') &&
                 `$${dishPrice.toFixed(2)}`}
             </Text>
@@ -193,11 +202,27 @@ export function DishPhotoModal({
         {/* Main Photo */}
         <View style={styles.mainPhotoContainer}>
           {photos.length > 0 ? (
-            <Image
-              source={{ uri: photos[selectedPhotoIndex].photo_url }}
-              style={styles.mainPhoto}
-              resizeMode="cover"
-            />
+            <ScrollView
+              ref={photoScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              scrollEnabled={photos.length > 1}
+              onScroll={e => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                if (index !== selectedPhotoIndex) setSelectedPhotoIndex(index);
+              }}
+              scrollEventThrottle={16}
+            >
+              {photos.map(photo => (
+                <Image
+                  key={photo.id}
+                  source={{ uri: photo.photo_url }}
+                  style={styles.mainPhoto}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
           ) : (
             <View style={styles.noPhotoContainer}>
               <Text style={styles.noPhotoIcon}>📸</Text>
@@ -207,7 +232,7 @@ export function DishPhotoModal({
           )}
 
           {/* Photo Counter */}
-          {photos.length > 0 && (
+          {photos.length > 1 && (
             <View style={styles.photoCounter}>
               <Text style={styles.photoCounterText}>
                 {selectedPhotoIndex + 1} / {photos.length}
@@ -216,25 +241,40 @@ export function DishPhotoModal({
           )}
         </View>
 
-        {/* Photo Thumbnails */}
-        {photos.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.thumbnailScroll}
-            contentContainerStyle={styles.thumbnailContent}
+        {/* Photo Thumbnails + Add Photo */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.thumbnailScroll}
+          contentContainerStyle={styles.thumbnailContent}
+        >
+          {photos.map((photo, index) => (
+            <TouchableOpacity
+              key={photo.id}
+              onPress={() => {
+                setSelectedPhotoIndex(index);
+                photoScrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+              }}
+              style={[styles.thumbnail, selectedPhotoIndex === index && styles.thumbnailSelected]}
+            >
+              <Image source={{ uri: photo.photo_url }} style={styles.thumbnailImage} />
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={styles.addPhotoThumbnail}
+            onPress={handleAddPhoto}
+            disabled={uploading}
           >
-            {photos.map((photo, index) => (
-              <TouchableOpacity
-                key={photo.id}
-                onPress={() => setSelectedPhotoIndex(index)}
-                style={[styles.thumbnail, selectedPhotoIndex === index && styles.thumbnailSelected]}
-              >
-                <Image source={{ uri: photo.photo_url }} style={styles.thumbnailImage} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+            {uploading ? (
+              <ActivityIndicator color={colors.darkTextSecondary} size="small" />
+            ) : (
+              <>
+                <Text style={styles.addPhotoThumbnailIcon}>📷</Text>
+                <Text style={styles.addPhotoThumbnailText}>{t('dish.addYourPhoto')}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
 
         {/* Dish Info */}
         <ScrollView
@@ -242,6 +282,16 @@ export function DishPhotoModal({
           contentContainerStyle={styles.infoSectionContent}
           showsVerticalScrollIndicator={false}
         >
+          {user && restaurantId && (
+            <InContextRating
+              dishId={dishId}
+              dishName={dishName}
+              restaurantId={restaurantId}
+              existingOpinion={existingOpinion}
+              onRated={onRated ?? (() => {})}
+            />
+          )}
+
           {dishDescription && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>{t('dish.description')}</Text>
@@ -252,7 +302,7 @@ export function DishPhotoModal({
           {dishIngredients && dishIngredients.length > 0 && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>{t('dish.ingredients')}</Text>
-              <Text style={styles.description}>{dishIngredients.join(', ')}</Text>
+              <Text style={styles.description}>{dishIngredients.map(i => i.replace(/_/g, ' ')).join(', ')}</Text>
             </View>
           )}
 
@@ -267,10 +317,10 @@ export function DishPhotoModal({
                     <View style={styles.optionGroupHeader}>
                       <Text style={styles.optionGroupName}>{group.name}</Text>
                       <Text style={styles.optionGroupMeta}>
-                        {isRequired ? 'Required' : 'Optional'}
-                        {group.selection_type === 'single' ? ' · pick 1' : ''}
+                        {isRequired ? t('dish.optionRequired') : t('dish.optionOptional')}
+                        {group.selection_type === 'single' ? ` ${t('dish.optionPickOne')}` : ''}
                         {group.selection_type === 'multiple' && group.max_selections
-                          ? ` · up to ${group.max_selections}`
+                          ? ` ${t('dish.optionUpTo', { count: group.max_selections })}`
                           : ''}
                       </Text>
                     </View>
@@ -339,27 +389,6 @@ export function DishPhotoModal({
             </View>
           )}
 
-          {/* Add Photo Button */}
-          <TouchableOpacity
-            style={styles.addPhotoButton}
-            onPress={handleAddPhoto}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <>
-                <Text style={styles.addPhotoIcon}>📷</Text>
-                <Text style={styles.addPhotoText}>{t('dish.addYourPhoto')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {photos.length > 0 && (
-            <Text style={styles.photosFromCommunity}>
-              {photos.length} photo{photos.length !== 1 ? 's' : ''} from the community
-            </Text>
-          )}
         </ScrollView>
       </View>
     </Modal>
@@ -423,8 +452,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   mainPhoto: {
-    width: '100%',
-    height: '100%',
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
   },
   noPhotoContainer: {
     flex: 1,
@@ -506,23 +535,25 @@ const styles = StyleSheet.create({
     color: colors.white,
     lineHeight: 22,
   },
-  addPhotoButton: {
-    backgroundColor: colors.accent,
-    flexDirection: 'row',
+  addPhotoThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: borderRadius.base,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.base,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.base,
-    gap: spacing.sm,
+    backgroundColor: colors.darkSecondary,
   },
-  addPhotoIcon: {
-    fontSize: typography.size['2xl'],
+  addPhotoThumbnailIcon: {
+    fontSize: 18,
   },
-  addPhotoText: {
-    color: colors.white,
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
+  addPhotoThumbnailText: {
+    fontSize: 9,
+    color: colors.darkTextSecondary,
+    textAlign: 'center',
+    marginTop: 2,
   },
   photosFromCommunity: {
     fontSize: typography.size.sm,

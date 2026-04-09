@@ -60,7 +60,8 @@
     "mustBeLoggedIn": "Debes iniciar sesión para enviar calificaciones",
     "comingSoon": "Próximamente",
     "searchComingSoon": "¡La función de búsqueda de restaurantes estará disponible pronto!",
-    "rewardsComingSoon": "¡La pantalla de recompensas estará disponible pronto!"
+    "rewardsComingSoon": "¡La pantalla de recompensas estará disponible pronto!",
+    "loading": "Cargando..."
   },
   "navigation": {
     "home": "Inicio",
@@ -335,7 +336,8 @@
     "noNearbyRestaurants": "No se pueden encontrar restaurantes cercanos",
     "checkLocationPermission": "Por favor verifica tu permiso de ubicación y conexión a internet",
     "rateDishesGetRewards": "Califica platillos, gana recompensas",
-    "ratingSubmitError": "No se pudo enviar la calificación"
+    "ratingSubmitError": "No se pudo enviar la calificación",
+    "updatingRestaurants": "Actualizando restaurantes cercanos..."
   },
   "restaurant": {
     "openNow": "Abierto Ahora",

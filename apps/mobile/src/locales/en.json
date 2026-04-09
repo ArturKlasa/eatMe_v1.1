@@ -60,7 +60,8 @@
     "mustBeLoggedIn": "You must be logged in to submit ratings",
     "comingSoon": "Coming Soon",
     "searchComingSoon": "Search for restaurants feature coming soon!",
-    "rewardsComingSoon": "Rewards screen coming soon!"
+    "rewardsComingSoon": "Rewards screen coming soon!",
+    "loading": "Loading..."
   },
   "navigation": {
     "home": "Home",
@@ -335,7 +336,8 @@
     "noNearbyRestaurants": "Unable to find nearby restaurants",
     "checkLocationPermission": "Please check your location permission and internet connection",
     "rateDishesGetRewards": "Rate dishes, get rewards",
-    "ratingSubmitError": "Failed to submit rating"
+    "ratingSubmitError": "Failed to submit rating",
+    "updatingRestaurants": "Updating nearby restaurants..."
   },
   "restaurant": {
     "openNow": "Open Now",

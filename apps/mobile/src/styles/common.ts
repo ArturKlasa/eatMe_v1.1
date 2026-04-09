@@ -1037,7 +1037,6 @@ export const modals = StyleSheet.create({
     borderRadius: 12,
     position: 'absolute',
     top: 10,
-    marginLeft: -12, // Centre the thumb on its left-% position
     borderWidth: 2,
     borderColor: colors.white,
     shadowColor: colors.black,

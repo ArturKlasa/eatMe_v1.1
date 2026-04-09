@@ -642,7 +642,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         footerHeight={footerHeight}
       />
 
-      <View onLayout={e => setFooterHeight(e.nativeEvent.layout.height)}>
+      <View
+        onLayout={e => setFooterHeight(e.nativeEvent.layout.height)}
+        style={{ backgroundColor: colors.dark }}
+      >
         <MapFooter
           recommendedDishes={recommendedDishes}
           onDishPress={handleDishPress}
@@ -674,7 +677,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           >
             <ActivityIndicator size="small" color={colors.accent} />
             <Text style={{ marginLeft: 10, color: colors.white, fontSize: 14 }}>
-              {geoLoading ? 'Updating nearby restaurants...' : 'Loading...'}
+              {geoLoading ? t('map.updatingRestaurants') : t('common.loading')}
             </Text>
           </View>
         </View>

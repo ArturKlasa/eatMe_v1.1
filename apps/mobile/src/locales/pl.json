@@ -60,7 +60,8 @@
     "mustBeLoggedIn": "Musisz być zalogowany, aby wysyłać oceny",
     "comingSoon": "Wkrótce",
     "searchComingSoon": "Funkcja wyszukiwania restauracji będzie dostępna wkrótce!",
-    "rewardsComingSoon": "Ekran nagród będzie dostępny wkrótce!"
+    "rewardsComingSoon": "Ekran nagród będzie dostępny wkrótce!",
+    "loading": "Ładowanie..."
   },
   "navigation": {
     "home": "Strona główna",
@@ -335,7 +336,8 @@
     "noNearbyRestaurants": "Nie można znaleźć pobliskich restauracji",
     "checkLocationPermission": "Sprawdź uprawnienia lokalizacji i połączenie z internetem",
     "rateDishesGetRewards": "Oceniaj dania, zdobywaj nagrody",
-    "ratingSubmitError": "Nie udało się wysłać oceny"
+    "ratingSubmitError": "Nie udało się wysłać oceny",
+    "updatingRestaurants": "Aktualizowanie pobliskich restauracji..."
   },
   "restaurant": {
     "openNow": "Otwarte Teraz",

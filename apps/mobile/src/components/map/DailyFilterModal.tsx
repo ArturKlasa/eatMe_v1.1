@@ -680,7 +680,9 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
 }) => {
   const [activeThumb, setActiveThumb] = React.useState<'min' | 'max' | null>(null);
 
-  // Measure the actual rendered track width instead of a hardcoded constant
+  // trackWidth drives pixel-based positioning so percentage left values
+  // (which break on Android physical devices) are never used.
+  const [trackWidth, setTrackWidth] = React.useState(0);
   const trackWidthRef = React.useRef(0);
 
   // Keep fresh refs for PanResponder closures so they always see current values
@@ -696,17 +698,11 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   const clamp = (val: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, val));
 
   // Factory: creates a PanResponder for either the min or max thumb.
-  // Uses a closure-local `startValue` that is captured at gesture start so that
-  // each dx is always relative to where the drag began.
   const createThumbPanResponder = (thumb: 'min' | 'max') => {
     let startValue = min;
     return PanResponder.create({
-      // Claim the gesture immediately on touch-down so the parent ScrollView
-      // cannot steal it.
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      // Prevent other responders (e.g. ScrollView) from taking the gesture
-      // back once the thumb has claimed it — critical on physical Android devices.
       onPanResponderTerminationRequest: () => false,
       onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: () => {
@@ -728,18 +724,21 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
     });
   };
 
-  // Create responders once — they read from mutable refs so they stay current
   const minPanResponder = React.useRef(createThumbPanResponder('min')).current;
   const maxPanResponder = React.useRef(createThumbPanResponder('max')).current;
 
-  const minPosition = ((valueMin - min) / (max - min)) * 100;
-  const maxPosition = ((valueMax - min) / (max - min)) * 100;
+  // Pixel positions — avoid percentage-based left values which don't resolve
+  // correctly on Android physical devices when parent width is from flex layout.
+  const minLeft = trackWidth > 0 ? ((valueMin - min) / (max - min)) * trackWidth : 0;
+  const maxLeft = trackWidth > 0 ? ((valueMax - min) / (max - min)) * trackWidth : trackWidth;
 
   return (
     <View
       style={modals.priceSliderWrapper}
       onLayout={e => {
-        trackWidthRef.current = e.nativeEvent.layout.width;
+        const w = e.nativeEvent.layout.width;
+        trackWidthRef.current = w;
+        setTrackWidth(w);
       }}
     >
       {/* Visual track bar */}
@@ -748,18 +747,17 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
       <View
         style={[
           modals.priceSliderActiveRange,
-          {
-            left: `${minPosition}%`,
-            width: `${maxPosition - minPosition}%`,
-          },
+          { left: minLeft, width: maxLeft - minLeft },
         ]}
       />
-      {/* Min thumb — attach PanResponder handlers directly */}
+      {/* Min thumb — transform centres it on its pixel position without
+          affecting layout bounds (marginLeft would clip on Android) */}
       <View
         style={[
           modals.priceSliderThumb,
           {
-            left: `${minPosition}%`,
+            left: minLeft,
+            transform: [{ translateX: -12 }],
             zIndex: activeThumb === 'min' ? 10 : 5,
           },
         ]}
@@ -770,7 +768,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
         style={[
           modals.priceSliderThumb,
           {
-            left: `${maxPosition}%`,
+            left: maxLeft,
+            transform: [{ translateX: -12 }],
             zIndex: activeThumb === 'max' ? 10 : 5,
           },
         ]}

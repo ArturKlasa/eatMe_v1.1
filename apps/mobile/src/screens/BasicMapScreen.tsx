@@ -13,11 +13,7 @@ import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { estimateAvgPrice } from '../services/filterService';
-import {
-  getCombinedFeed,
-  ServerDish,
-  ServerRestaurant,
-} from '../services/edgeFunctionsService';
+import { getCombinedFeed, ServerDish, ServerRestaurant } from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
 import { isRestaurantOpenNow } from '../utils/i18nUtils';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
@@ -702,7 +698,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         <View
           style={{
             position: 'absolute',
-            top: insets.top + 16,
+            top: insets.top,
             left: 16,
             right: 16,
             zIndex: 1000,

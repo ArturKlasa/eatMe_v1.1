@@ -359,7 +359,8 @@ export async function submitRestaurantProfile(
 export async function saveMenus(restaurantId: string, menus: AppMenu[]): Promise<void> {
   // Delete all current menus. Dishes/categories cascade or are handled by
   // _deleteOldMenuData within _insertMenusAndDishes context.
-  await supabase.from('menus').delete().eq('restaurant_id', restaurantId);
+  const { error: deleteMenusError } = await supabase.from('menus').delete().eq('restaurant_id', restaurantId);
+  if (deleteMenusError) throw new Error(`Failed to clear menus: ${deleteMenusError.message}`);
   await _insertMenusAndDishes(restaurantId, menus);
 }
 
@@ -599,7 +600,8 @@ async function saveOptionGroupsForDish(
 ): Promise<void> {
   if (!optionGroups?.length) return;
   // Delete existing groups (cascades to options)
-  await supabase.from('option_groups').delete().eq('dish_id', dishId);
+  const { error: deleteGroupsError } = await supabase.from('option_groups').delete().eq('dish_id', dishId);
+  if (deleteGroupsError) throw new Error(`Failed to clear option groups: ${deleteGroupsError.message}`);
   for (const [gi, group] of optionGroups.entries()) {
     const { data: inserted, error } = await supabase
       .from('option_groups')

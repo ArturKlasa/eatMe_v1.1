@@ -107,8 +107,8 @@ export const mapFooterStyles = StyleSheet.create({
   container: {
     backgroundColor: colors.dark,
     ...createRounded(20, ['TopLeft', 'TopRight']),
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
     ...createShadow(8, colors.black, 0.25),
   } as ViewStyle,
 
@@ -198,14 +198,14 @@ export const mapFooterStyles = StyleSheet.create({
 
   filterSection: {
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 10,
     ...createBorder(1, colors.darkTertiary, 'top'),
   } as ViewStyle,
 
   filterButton: {
     backgroundColor: colors.accent,
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 24,
     ...atomic.center,
     ...createShadow(4, colors.black, 0.25),

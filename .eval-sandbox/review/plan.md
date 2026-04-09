@@ -26,6 +26,7 @@
 - **Task:** task-1775345125-1095 (key: review:step-04:docs-audit)
 - **Result:** 23 findings (D-001–D-023): 4 HIGH, 8 MEDIUM, 11 LOW. Also corrected F-002 → RESOLVED (migration 043 already fixed it).
 
-## Final Step: Synthesis & Documentation Production
-- Produce all 9 required `docs/agentic-docs/` files
-- Verify all success criteria are met
+## Final Step: Synthesis & Report Writing (current)
+- Read all findings from Steps 1-4 in `findings.md`
+- Produce final report at `.agents/review/report.md` grouped by Critical/High/Medium/Low/Informational
+- **Task:** task-1775656695-e02e (key: review:step-final:synthesis)

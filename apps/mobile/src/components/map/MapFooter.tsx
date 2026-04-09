@@ -50,12 +50,8 @@ export const MapFooter: React.FC<MapFooterProps> = ({
 
   return (
     <View
-      style={[mapFooterStyles.container, insets.bottom > 0 && { paddingBottom: insets.bottom + 8 }]}
+      style={[mapFooterStyles.container, insets.bottom > 0 && { paddingBottom: insets.bottom }]}
     >
-      <View style={mapFooterStyles.header}>
-        <Text style={mapFooterStyles.headerTitle}>🎯 Based on your preferences</Text>
-      </View>
-
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

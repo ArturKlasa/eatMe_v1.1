@@ -1,6 +1,6 @@
 # Ralph Orchestrator Configuration
-# Task: Implement Performance Optimizations
-# Preset: code-assist (planner → builder → critic → finalizer)
+# Task: Implement security & bug fixes from code review report
+# Preset: implement (implementer → verifier)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -10,24 +10,22 @@ cli:
 event_loop:
   prompt_file: "PROMPT.md"
   completion_promise: "LOOP_COMPLETE"
-  max_iterations: 50                # 15 steps × ~3 iterations each on average
-  max_runtime_seconds: 14400        # 4 hours — implementation is more demanding than investigation
-  idle_timeout_secs: 1800           # 30 min idle threshold
-  checkpoint_interval: 3            # Git checkpoint every 3 iterations to preserve working increments
+  max_iterations: 20
+  max_runtime_seconds: 3600         # 1 hour
+  idle_timeout_secs: 600            # 10 min idle threshold
+  checkpoint_interval: 3
 
 core:
-  specs_dir: ".agents/planning/2026-04-08-implement-performance-optimizations/"
+  specs_dir: ".agents/planning/"
   guardrails:
-    - "IMPLEMENTATION TASK: You are implementing performance optimizations. Always read the implementation plan at .agents/planning/2026-04-08-implement-performance-optimizations/implementation/plan.md and the detailed design at .agents/planning/2026-04-08-implement-performance-optimizations/design/detailed-design.md before starting any step."
-    - "Implement steps sequentially (Step 1 → Step 15). Do not skip steps or implement out of order — later steps depend on earlier ones."
-    - "After completing each step, mark its checkbox in the Progress Log in PROMPT.md and in the checklist in implementation/plan.md."
-    - "HARD CONSTRAINT: Do NOT touch anything related to the nearby-restaurants Edge Function. Files under infra/supabase/functions/nearby-restaurants/ and apps/mobile/src/services/geoService.ts are completely out of scope."
-    - "HARD CONSTRAINT: Do NOT change the feed cache key format. The existing Redis key pattern (feed:userId:lat:lng:filters) must not be modified."
-    - "After every TypeScript file change in apps/mobile or packages/, run: pnpm --filter @eatme/mobile tsc --noEmit. Fix all type errors before marking a step complete."
-    - "For each Edge Function change, verify correctness by invoking the function locally with supabase functions serve before marking the step complete."
-    - "Write tests alongside implementation — do not defer testing to a later step. Each step's test requirements are documented in implementation/plan.md."
-    - "Do not add new npm dependencies beyond expo-image (Step 8). Use utilities already available in the codebase."
-    - "When a step is fully implemented and tested, write a brief completion note under the step's checklist item in PROMPT.md before moving on."
+    - "IMPLEMENTATION TASK: Fix only the 3 findings described in PROMPT.md. Do not refactor, rename, or reformat any code beyond what is explicitly required."
+    - "Fix 1 (F-001): Create infra/supabase/migrations/078_fix_stale_rls_policies.sql — drop 12 stale 005 policies, re-create 3 public read policies."
+    - "Fix 2 (F-008): In apps/web-portal/lib/restaurantService.ts, add error checks after .delete() calls in saveMenus() and saveOptionGroupsForDish() only."
+    - "Fix 3 (F-009): In apps/mobile/src/services/eatTogetherService.ts searchUsersByProfileName, escape %_\\ before the ilike interpolation."
+    - "Do NOT modify any files not listed in PROMPT.md."
+    - "Do NOT add new npm or Deno dependencies."
+    - "After TypeScript changes, confirm pnpm tsc --noEmit passes before marking a fix complete."
+    - "Mark each checklist item in PROMPT.md complete as soon as the fix is implemented and verified."
 
 memories:
   enabled: true
@@ -39,8 +37,45 @@ memories:
 tasks:
   enabled: true
 
+hats:
+  implementer:
+    emoji: "🔧"
+    description: "Reads the relevant source files and implements each targeted fix with minimal change"
+    system_prompt: |
+      You are a senior engineer implementing 3 targeted security and bug fixes.
+      Read PROMPT.md fully before starting. Then for each fix:
+        1. Read the affected file(s) to understand exact context.
+        2. Apply the minimal change described — no refactoring, no reformatting.
+        3. For TypeScript changes, run `pnpm tsc --noEmit` from the repo root and fix any errors introduced.
+        4. Mark the fix complete in PROMPT.md progress log.
+      Implement fixes in order: F-001 (migration) → F-008 (error handling) → F-009 (ilike escape).
+      Emit `implementation.complete` when all three fixes are done and the progress log is fully checked.
+    triggers:
+      - "start"
+      - "*"
+    publishes:
+      - "implementation.complete"
+      - "implementation.error"
+
+  verifier:
+    emoji: "✅"
+    description: "Checks that each fix is correctly implemented and no unintended changes were made"
+    system_prompt: |
+      You are a technical lead verifying that 3 targeted fixes were implemented correctly.
+      For each fix, check:
+        - F-001: 078_fix_stale_rls_policies.sql exists; contains DROP POLICY for all 12 stale names; re-creates 3 public read policies; no extraneous SQL.
+        - F-008: Both .delete() calls in restaurantService.ts (saveMenus and saveOptionGroupsForDish) are followed by an error destructure + throw; surrounding code unchanged.
+        - F-009: searchUsersByProfileName in eatTogetherService.ts escapes %_\\ before ilike; no other changes to the function.
+      If any check fails, emit `implementation.error` with details.
+      If all checks pass, emit `LOOP_COMPLETE`.
+    triggers:
+      - "implementation.complete"
+    publishes:
+      - "LOOP_COMPLETE"
+      - "implementation.error"
+
 features:
-  parallel: false               # Sequential implementation — steps depend on each other
+  parallel: false
   auto_merge: false
   preflight:
-    enabled: false              # No preflight gates — implementation handles its own verification
+    enabled: false

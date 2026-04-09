@@ -263,12 +263,20 @@ function buildFilters(
       return families.length > 0 ? families : undefined;
     })(),
     excludeSpicy: permanentFilters.exclude.noSpicy || undefined,
-    openNow: true,
+    // openNow is intentionally omitted — restaurants without open_hours data
+    // (null) would be treated as closed and filtered out, emptying the dish pool.
+    // The isOpen flag is still computed and returned per-restaurant for display.
     groupMeals: dailyFilters.groupMeals || undefined,
     scheduleType: dailyFilters.scheduleType ?? undefined,
     // Auto-compute current time/day so the backend can filter time-restricted & day-of-week menus
-    currentTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
-    currentDayOfWeek: (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date().getDay()],
+    currentTime: new Date().toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }),
+    currentDayOfWeek: (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[
+      new Date().getDay()
+    ],
   };
 }
 

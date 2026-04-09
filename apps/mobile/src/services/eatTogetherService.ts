@@ -499,10 +499,11 @@ export async function searchUsersByProfileName(
   searchQuery: string
 ): Promise<{ data: UserSearchResult[] | null; error: Error | null }> {
   try {
+    const escaped = searchQuery.replace(/[%_\\]/g, c => `\\${c}`);
     const { data, error } = await supabase
       .from('users')
       .select('id, profile_name, email')
-      .ilike('profile_name', `%${searchQuery}%`)
+      .ilike('profile_name', `%${escaped}%`)
       .limit(10);
 
     if (error) {

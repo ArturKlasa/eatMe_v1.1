@@ -30,12 +30,16 @@ async function compressedJsonResponse(
   const encoder = new TextEncoder();
   const body = encoder.encode(json);
 
-  const cs = new CompressionStream('gzip');
-  const writer = cs.writable.getWriter();
-  writer.write(body);
-  writer.close();
+  // Use ReadableStream.pipeThrough to avoid race conditions from unawaited
+  // writer.write() / writer.close() calls.
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(body);
+      controller.close();
+    },
+  }).pipeThrough(new CompressionStream('gzip'));
 
-  const compressed = await new Response(cs.readable).arrayBuffer();
+  const compressed = await new Response(stream).arrayBuffer();
 
   return new Response(compressed, {
     headers: {

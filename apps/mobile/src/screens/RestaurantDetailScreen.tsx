@@ -98,45 +98,40 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [restaurantResult, ratingResult, favResult] = await Promise.all([
-          fetchRestaurantDetail(restaurantId),
-          getRestaurantRating(restaurantId),
-          user ? isFavorited(user.id, 'restaurant', restaurantId) : Promise.resolve(null),
-        ]);
-
+        // Critical path: restaurant metadata only. Clears the loading spinner.
+        const { data, error } = await fetchRestaurantDetail(restaurantId);
         if (!mountedRef.current) return;
-
-        // Restaurant rating (independent of restaurant data)
-        setRestaurantRating(ratingResult);
-
-        // Favourite status
-        if (favResult !== null) {
-          setIsFavorite(favResult.ok ? favResult.data : false);
-        }
-        setFavoritesInitialized(true);
-
-        // Restaurant data + dish ratings
-        const { data, error } = restaurantResult;
         if (error) throw error;
-
         if (data) {
-          const typed = data;
-          setRestaurant(typed);
-
+          setRestaurant(data);
           trackRestaurantView({
-            id: typed.id,
-            name: typed.name,
-            cuisine: typed.cuisine_types?.[0] || 'Restaurant',
-            imageUrl: typed.image_url ?? undefined,
+            id: data.id,
+            name: data.name,
+            cuisine: data.cuisine_types?.[0] || 'Restaurant',
+            imageUrl: data.image_url ?? undefined,
           });
-
-          // Dish ratings are loaded per-category via loadCategoryDishes()
         }
       } catch (err) {
         console.error('Failed to load restaurant:', err);
       } finally {
         if (mountedRef.current) setLoading(false);
       }
+
+      // Non-critical: load ratings + favourite status in the background
+      // so they don't block the main loading indicator.
+      if (!mountedRef.current) return;
+      const [ratingResult, favResult] = await Promise.all([
+        getRestaurantRating(restaurantId).catch(() => null),
+        user
+          ? isFavorited(user.id, 'restaurant', restaurantId).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      if (!mountedRef.current) return;
+      setRestaurantRating(ratingResult);
+      if (favResult !== null) {
+        setIsFavorite((favResult as any).ok ? (favResult as any).data : false);
+      }
+      setFavoritesInitialized(true);
     };
 
     loadAll();
@@ -146,8 +141,10 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   const loadCategoryDishes = React.useCallback(
     async (categoryId: string) => {
       if (!mountedRef.current) return;
+      // Set to 'loading' only if not already in the map (prevents duplicate
+      // state transitions but still allows retry after 'error').
       setCategoryDishes(prev => {
-        if (prev.has(categoryId)) return prev; // already loaded or loading
+        if (prev.has(categoryId)) return prev;
         const next = new Map(prev);
         next.set(categoryId, 'loading');
         return next;

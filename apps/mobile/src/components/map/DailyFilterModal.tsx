@@ -705,6 +705,10 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
       // cannot steal it.
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      // Prevent other responders (e.g. ScrollView) from taking the gesture
+      // back once the thumb has claimed it — critical on physical Android devices.
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: () => {
         startValue = thumb === 'min' ? valueMinRef.current : valueMaxRef.current;
         setActiveThumb(thumb);
@@ -733,11 +737,13 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
 
   return (
     <View
-      style={modals.priceSliderTrack}
+      style={modals.priceSliderWrapper}
       onLayout={e => {
         trackWidthRef.current = e.nativeEvent.layout.width;
       }}
     >
+      {/* Visual track bar */}
+      <View style={modals.priceSliderTrack} />
       {/* Active range highlight */}
       <View
         style={[

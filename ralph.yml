@@ -1,6 +1,7 @@
 # Ralph Orchestrator Configuration
-# Task: Implement security & bug fixes from code review report
-# Preset: implement (implementer → verifier)
+# Project: EatMe — Rating System Redesign
+# Task: Implement 8-step plan at .agents/planning/2026-04-08-rating-system/implementation/plan.md
+# Pattern: Linear pipeline — implementer → verifier → stepper → (loop or done)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -8,24 +9,24 @@ cli:
   prompt_mode: "arg"
 
 event_loop:
-  prompt_file: "PROMPT.md"
   completion_promise: "LOOP_COMPLETE"
-  max_iterations: 20
-  max_runtime_seconds: 3600         # 1 hour
-  idle_timeout_secs: 600            # 10 min idle threshold
-  checkpoint_interval: 3
+  starting_event: "start"          # kicks off the Implementer on loop start
+  max_iterations: 40               # 8 steps × ~4-5 iterations each
+  max_runtime_seconds: 7200        # 2 hours
+  idle_timeout_secs: 600           # 10 min idle threshold
+  checkpoint_interval: 2           # git checkpoint every 2 iterations
 
 core:
-  specs_dir: ".agents/planning/"
+  specs_dir: ".agents/planning/2026-04-08-rating-system/"
   guardrails:
-    - "IMPLEMENTATION TASK: Fix only the 3 findings described in PROMPT.md. Do not refactor, rename, or reformat any code beyond what is explicitly required."
-    - "Fix 1 (F-001): Create infra/supabase/migrations/078_fix_stale_rls_policies.sql — drop 12 stale 005 policies, re-create 3 public read policies."
-    - "Fix 2 (F-008): In apps/web-portal/lib/restaurantService.ts, add error checks after .delete() calls in saveMenus() and saveOptionGroupsForDish() only."
-    - "Fix 3 (F-009): In apps/mobile/src/services/eatTogetherService.ts searchUsersByProfileName, escape %_\\ before the ilike interpolation."
-    - "Do NOT modify any files not listed in PROMPT.md."
-    - "Do NOT add new npm or Deno dependencies."
-    - "After TypeScript changes, confirm pnpm tsc --noEmit passes before marking a fix complete."
-    - "Mark each checklist item in PROMPT.md complete as soon as the fix is implemented and verified."
+    - "Implementation plan: .agents/planning/2026-04-08-rating-system/implementation/plan.md — work through steps in order, one at a time."
+    - "Design document: .agents/planning/2026-04-08-rating-system/design/detailed-design.md — the authoritative source for all interfaces, SQL, and component specs."
+    - "After any TypeScript change, run `pnpm tsc --noEmit` from the repo root and fix ALL errors before marking a step complete."
+    - "Migrations go in infra/supabase/migrations/ — the next migration number is 079 (filename: 079_rating_system_redesign.sql)."
+    - "After Step 1 (migrations), regenerate types: cd packages/database && supabase gen types typescript --local > src/types.ts"
+    - "Do NOT add new npm or Deno dependencies without first checking that no existing package already provides the functionality."
+    - "Do NOT modify files unrelated to the current implementation step."
+    - "Do NOT refactor, rename, or reformat code outside the scope of each step."
 
 memories:
   enabled: true
@@ -39,40 +40,116 @@ tasks:
 
 hats:
   implementer:
+    name: "Implementer"
     emoji: "🔧"
-    description: "Reads the relevant source files and implements each targeted fix with minimal change"
-    system_prompt: |
-      You are a senior engineer implementing 3 targeted security and bug fixes.
-      Read PROMPT.md fully before starting. Then for each fix:
-        1. Read the affected file(s) to understand exact context.
-        2. Apply the minimal change described — no refactoring, no reformatting.
-        3. For TypeScript changes, run `pnpm tsc --noEmit` from the repo root and fix any errors introduced.
-        4. Mark the fix complete in PROMPT.md progress log.
-      Implement fixes in order: F-001 (migration) → F-008 (error handling) → F-009 (ilike escape).
-      Emit `implementation.complete` when all three fixes are done and the progress log is fully checked.
+    description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs TypeScript validation"
+    instructions: |
+      You are a senior React Native / TypeScript / Supabase engineer implementing the EatMe rating system redesign.
+
+      Start by reading the checklist in:
+        .agents/planning/2026-04-08-rating-system/implementation/plan.md
+
+      Find the FIRST unchecked item [ ] and implement that step only.
+
+      For every step:
+        1. Read the design document section relevant to this step:
+           .agents/planning/2026-04-08-rating-system/design/detailed-design.md
+        2. Read every file you plan to modify BEFORE changing it — understand the current code.
+        3. Implement exactly what the step describes. No extra refactoring, no speculative additions.
+        4. Run `pnpm tsc --noEmit` from the repo root after any TypeScript changes. Fix all errors.
+        5. Mark the step complete: change `[ ]` to `[x]` in the checklist.
+        6. Emit `step.complete` with a short summary, e.g.:
+           step.complete "Step 1: DB migrations — 079_rating_system_redesign.sql created, views rebuilt"
+
+      Step-specific notes:
+        - Step 1 (migrations): create infra/supabase/migrations/079_rating_system_redesign.sql.
+          Drop restaurant_ratings_summary FIRST, then dish_ratings_summary (dependency order).
+          After applying, regenerate types: run `supabase gen types typescript --local > packages/database/src/types.ts`
+          from the packages/database directory.
+        - Step 2 (types): remove DishRatingStats from types/rating.ts only after confirming no consumers
+          remain. Use grep to check before deleting.
+        - Step 4 (InContextRating): add getUserDishOpinions() to dishRatingService.ts in the same step
+          so RestaurantDetailScreen can pre-populate the already-rated state.
+        - Step 7 (gamification): create apps/mobile/src/services/gamificationService.ts as a new file.
+          Wire updateStreak and checkAndAwardTrustedTasterBadge into BOTH submitRating and
+          submitInContextRating as non-fatal calls (wrapped in .catch(() => null)).
+        - Step 8 (i18n): add keys to all three locale files — en.json, es.json, pl.json.
+          Use accurate translations, not placeholder text.
     triggers:
       - "start"
-      - "*"
+      - "step.retry"
     publishes:
-      - "implementation.complete"
-      - "implementation.error"
+      - "step.complete"
+      - "step.blocked"
 
   verifier:
+    name: "Verifier"
     emoji: "✅"
-    description: "Checks that each fix is correctly implemented and no unintended changes were made"
-    system_prompt: |
-      You are a technical lead verifying that 3 targeted fixes were implemented correctly.
-      For each fix, check:
-        - F-001: 078_fix_stale_rls_policies.sql exists; contains DROP POLICY for all 12 stale names; re-creates 3 public read policies; no extraneous SQL.
-        - F-008: Both .delete() calls in restaurantService.ts (saveMenus and saveOptionGroupsForDish) are followed by an error destructure + throw; surrounding code unchanged.
-        - F-009: searchUsersByProfileName in eatTogetherService.ts escapes %_\\ before ilike; no other changes to the function.
-      If any check fails, emit `implementation.error` with details.
-      If all checks pass, emit `LOOP_COMPLETE`.
+    description: "Verifies the implemented step against the design spec and confirms TypeScript compiles cleanly before allowing progress"
+    instructions: |
+      You are a technical lead verifying that the just-completed step was implemented correctly.
+
+      Read the event payload to identify which step was completed.
+      Read .agents/planning/2026-04-08-rating-system/design/detailed-design.md for the expected spec.
+
+      Run these checks:
+
+      1. TypeScript: `pnpm tsc --noEmit` from the repo root — must exit 0 with zero errors.
+
+      2. Correctness: re-read every modified file and confirm each matches the design spec for this step:
+         - Correct function signatures and interface shapes
+         - SQL uses LATERAL joins (not correlated subqueries) in materialized views
+         - Upsert conflict keys match: 'user_id,dish_id,visit_id' for dish_opinions
+         - New fields (note, source) included in insert/upsert payloads
+         - Photo points = 20 (not 15) in awardPoints and calculatePoints
+         - getRatingTier thresholds: top≥90%+20ratings, good≥75%+5ratings, neutral≥60%+3ratings
+         - user_badges has INSERT RLS policy allowing auth.uid()=user_id (badge awarded client-side)
+         - DishRatingBadge minimum threshold is totalRatings >= 3 (was > 0)
+         - restaurantRatingService no longer multiplies food_score by 100
+         - In-context visit lookup: scoped to last 24 hours, source='in_context'
+
+      3. No unintended changes: files modified should only be those relevant to this step.
+
+      4. Step 1 only: confirm dish_ratings_summary has columns okay_percentage, dislike_percentage,
+         recent_notes; confirm restaurant_ratings_summary has food_score (0-100 Bayesian), total_dish_ratings,
+         would_recommend_percentage, total_experience_responses.
+
+      If any check fails:
+        - Describe the exact issue and the file/line where it occurs.
+        - Emit `step.retry` so the Implementer can fix it.
+
+      If all checks pass:
+        - Emit `step.verified` with the step number.
     triggers:
-      - "implementation.complete"
+      - "step.complete"
     publishes:
+      - "step.verified"
+      - "step.retry"
+
+  stepper:
+    name: "Stepper"
+    emoji: "📋"
+    description: "Checks checklist progress after each verified step and drives the loop forward or signals completion"
+    instructions: |
+      You are the progress manager for the EatMe rating system implementation.
+
+      Read the checklist in:
+        .agents/planning/2026-04-08-rating-system/implementation/plan.md
+
+      Count the remaining unchecked items [ ].
+
+      If unchecked items remain:
+        - Emit `start` to trigger the Implementer for the next step.
+
+      If ALL 8 items are checked [x]:
+        - Run `pnpm tsc --noEmit` one final time to confirm a clean baseline.
+        - Confirm all 8 checklist items are marked [x].
+        - Emit `LOOP_COMPLETE`.
+    triggers:
+      - "step.verified"
+    publishes:
+      - "start"
       - "LOOP_COMPLETE"
-      - "implementation.error"
 
 features:
   parallel: false

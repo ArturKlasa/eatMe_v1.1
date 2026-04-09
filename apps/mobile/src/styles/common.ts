@@ -1001,29 +1001,43 @@ export const modals = StyleSheet.create({
     fontWeight: typography.weight.medium,
   } as TextStyle,
 
+  // Outer hit-zone wrapper (44 px tall) so thumbs never extend outside their
+  // parent bounds — Android clips touches to the parent view's bounds, which
+  // caused the slider to be unresponsive on physical devices.
+  priceSliderWrapper: {
+    height: 44,
+    position: 'relative',
+  } as ViewStyle,
+
+  // Visual track bar — centred inside the 44 px wrapper: (44 - 6) / 2 = 19
   priceSliderTrack: {
     height: 6,
     backgroundColor: colors.border,
     borderRadius: 3,
-    position: 'relative',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 19,
   } as ViewStyle,
 
+  // Active (coloured) range — same vertical centre as the track bar
   priceSliderActiveRange: {
     height: 6,
     backgroundColor: colors.accent,
     borderRadius: 3,
     position: 'absolute',
-    top: 0,
+    top: 19,
   } as ViewStyle,
 
+  // Thumb — centred inside the 44 px wrapper: (44 - 24) / 2 = 10
   priceSliderThumb: {
     width: 24,
     height: 24,
     backgroundColor: colors.accent,
     borderRadius: 12,
     position: 'absolute',
-    top: -9,
-    marginLeft: -12, // Center the thumb
+    top: 10,
+    marginLeft: -12, // Centre the thumb on its left-% position
     borderWidth: 2,
     borderColor: colors.white,
     shadowColor: colors.black,

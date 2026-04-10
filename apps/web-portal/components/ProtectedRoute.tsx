@@ -27,7 +27,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">Redirecting to login…</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

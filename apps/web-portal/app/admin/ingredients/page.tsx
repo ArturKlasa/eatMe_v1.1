@@ -1,9 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Leaf, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { INGREDIENT_FAMILY_COLORS } from '@/lib/ui-constants';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { EmptyState } from '@/components/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from '@/components/ui/pagination';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface CanonicalIngredient {
   id: string;
@@ -23,6 +48,22 @@ interface IngredientAlias {
     ingredient_family_name?: string;
   };
   created_at: string | null;
+}
+
+const PAGE_SIZE = 25;
+
+const FAMILY_KEYS = Object.keys(INGREDIENT_FAMILY_COLORS);
+
+function FamilyBadge({ family }: { family?: string }) {
+  const f = family ?? 'other';
+  const colors = INGREDIENT_FAMILY_COLORS[f] ?? INGREDIENT_FAMILY_COLORS.other;
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors.bg} ${colors.text}`}
+    >
+      {f.replace(/_/g, ' ')}
+    </span>
+  );
 }
 
 export default function IngredientsPage() {
@@ -48,14 +89,21 @@ export default function IngredientsPage() {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; description: string; onConfirm: () => void;
+  }>({ open: false, title: '', description: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, activeTab]);
+
   const fetchData = async () => {
     try {
-      // Fetch canonical ingredients
       const { data: canonicalData, error: canonicalError } = await supabase
         .from('canonical_ingredients')
         .select('*')
@@ -63,7 +111,6 @@ export default function IngredientsPage() {
 
       if (canonicalError) throw canonicalError;
 
-      // Fetch aliases with canonical ingredient info
       const { data: aliasData, error: aliasError } = await supabase
         .from('ingredient_aliases')
         .select(
@@ -140,39 +187,46 @@ export default function IngredientsPage() {
     }
   };
 
-  const handleDeleteCanonical = async (id: string, name: string) => {
-    if (!confirm(`Delete canonical ingredient "${name}"? This will also delete all its aliases.`))
-      return;
-
-    try {
-      const { error } = await supabase.from('canonical_ingredients').delete().eq('id', id);
-
-      if (error) throw error;
-
-      toast.success('Canonical ingredient deleted');
-      fetchData();
-    } catch (error: unknown) {
-      console.error('Error deleting:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast.error('Failed to delete: ' + message);
-    }
+  const handleDeleteCanonical = (id: string, name: string) => {
+    setConfirmState({
+      open: true,
+      title: 'Delete Canonical Ingredient',
+      description: `Delete "${name}"? This will also delete all its aliases. This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          const { error } = await supabase.from('canonical_ingredients').delete().eq('id', id);
+          if (error) throw error;
+          toast.success('Canonical ingredient deleted');
+          fetchData();
+        } catch (error: unknown) {
+          console.error('Error deleting:', error);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          toast.error('Failed to delete: ' + message);
+        }
+      },
+    });
   };
 
-  const handleDeleteAlias = async (id: string, name: string) => {
-    if (!confirm(`Delete alias "${name}"?`)) return;
-
-    try {
-      const { error } = await supabase.from('ingredient_aliases').delete().eq('id', id);
-
-      if (error) throw error;
-
-      toast.success('Alias deleted');
-      fetchData();
-    } catch (error: unknown) {
-      console.error('Error deleting:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast.error('Failed to delete: ' + message);
-    }
+  const handleDeleteAlias = (id: string, name: string) => {
+    setConfirmState({
+      open: true,
+      title: 'Delete Alias',
+      description: `Delete alias "${name}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          const { error } = await supabase.from('ingredient_aliases').delete().eq('id', id);
+          if (error) throw error;
+          toast.success('Alias deleted');
+          fetchData();
+        } catch (error: unknown) {
+          console.error('Error deleting:', error);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          toast.error('Failed to delete: ' + message);
+        }
+      },
+    });
   };
 
   const handleExportCSV = () => {
@@ -228,58 +282,30 @@ export default function IngredientsPage() {
         .includes(searchQuery.toLowerCase())
   );
 
-  const FAMILY_COLOURS: Record<string, string> = {
-    fish: 'bg-blue-100 text-blue-800',
-    shellfish: 'bg-cyan-100 text-cyan-800',
-    meat: 'bg-red-100 text-red-800',
-    poultry: 'bg-orange-100 text-orange-800',
-    dairy: 'bg-yellow-100 text-yellow-800',
-    eggs: 'bg-amber-100 text-amber-800',
-    plant_milk: 'bg-lime-100 text-lime-800',
-    vegetable: 'bg-green-100 text-green-800',
-    fruit: 'bg-pink-100 text-pink-800',
-    grain: 'bg-stone-100 text-stone-800',
-    plant_protein: 'bg-teal-100 text-teal-800',
-    nut_seed: 'bg-brown-100 text-yellow-900',
-    spice_herb: 'bg-purple-100 text-purple-800',
-    oil_fat: 'bg-yellow-50 text-yellow-700',
-    condiment: 'bg-rose-100 text-rose-800',
-    sweetener: 'bg-fuchsia-100 text-fuchsia-800',
-    beverage: 'bg-sky-100 text-sky-800',
-    alcohol: 'bg-violet-100 text-violet-800',
-    baking: 'bg-orange-50 text-orange-700',
-    other: 'bg-gray-100 text-gray-600',
-  };
-
-  const FamilyBadge = ({ family }: { family?: string }) => {
-    const f = family ?? 'other';
-    return (
-      <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${FAMILY_COLOURS[f] ?? FAMILY_COLOURS.other}`}
-      >
-        {f.replace(/_/g, ' ')}
-      </span>
-    );
-  };
+  const currentItems = activeTab === 'canonical' ? filteredCanonical : filteredAliases;
+  const totalPages = Math.max(1, Math.ceil(currentItems.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedItems = currentItems.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading ingredients...</div>
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <PageHeader title="Ingredients" description="Manage canonical ingredients and their display aliases" />
+        <LoadingSkeleton variant="table" count={8} />
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Ingredients System</h1>
-          <p className="text-gray-600 mt-1">
-            Manage canonical ingredients and their display aliases
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Ingredients"
+        description="Manage canonical ingredients and their display aliases"
+        badge={{ label: `${canonicalIngredients.length} canonical, ${aliases.length} aliases`, variant: 'default' }}
+      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -309,163 +335,228 @@ export default function IngredientsPage() {
 
       {/* Search and Add Button */}
       <div className="flex justify-between items-center mb-6">
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg w-64"
-        />
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
-            title={`Export ${activeTab === 'canonical' ? 'canonical ingredients' : 'aliases'} as CSV`}
-          >
-            <Download className="h-4 w-4" />
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="h-4 w-4 mr-2" />
             Export CSV
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
               activeTab === 'canonical' ? setShowCanonicalForm(true) : setShowAliasForm(true)
             }
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
           >
             + Add {activeTab === 'canonical' ? 'Canonical' : 'Alias'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Canonical Ingredients Tab */}
       {activeTab === 'canonical' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Canonical Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Family
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vegetarian
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vegan
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCanonical.map(ingredient => (
-                <tr key={ingredient.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {ingredient.canonical_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <FamilyBadge family={ingredient.ingredient_family_name} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {ingredient.is_vegetarian ? '✓' : '✗'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {ingredient.is_vegan ? '✓' : '✗'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() =>
-                        handleDeleteCanonical(ingredient.id, ingredient.canonical_name)
-                      }
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        currentItems.length === 0 ? (
+          <EmptyState
+            icon={Leaf}
+            title="No canonical ingredients found"
+            description={searchQuery ? 'Try a different search term.' : 'Add your first canonical ingredient.'}
+            action={!searchQuery ? { label: 'Add Canonical', onClick: () => setShowCanonicalForm(true) } : undefined}
+          />
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Canonical Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Family
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vegetarian
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vegan
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(paginatedItems as CanonicalIngredient[]).map(ingredient => (
+                  <tr key={ingredient.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {ingredient.canonical_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <FamilyBadge family={ingredient.ingredient_family_name} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {ingredient.is_vegetarian ? '✓' : '✗'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {ingredient.is_vegan ? '✓' : '✗'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() =>
+                          handleDeleteCanonical(ingredient.id, ingredient.canonical_name)
+                        }
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* Aliases Tab */}
       {activeTab === 'aliases' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Display Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  → Canonical Ingredient
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Family
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAliases.map(alias => (
-                <tr key={alias.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {alias.display_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {alias.canonical_ingredient?.canonical_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <FamilyBadge family={alias.canonical_ingredient?.ingredient_family_name} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleDeleteAlias(alias.id, alias.display_name)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        currentItems.length === 0 ? (
+          <EmptyState
+            icon={Leaf}
+            title="No display name aliases found"
+            description={searchQuery ? 'Try a different search term.' : 'Add your first display name alias.'}
+            action={!searchQuery ? { label: 'Add Alias', onClick: () => setShowAliasForm(true) } : undefined}
+          />
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Display Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    → Canonical Ingredient
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Family
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(paginatedItems as IngredientAlias[]).map(alias => (
+                  <tr key={alias.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {alias.display_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {alias.canonical_ingredient?.canonical_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <FamilyBadge family={alias.canonical_ingredient?.ingredient_family_name} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleDeleteAlias(alias.id, alias.display_name)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* Pagination */}
+      {currentItems.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-sm text-gray-600">
+            {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, currentItems.length)} of{' '}
+            {currentItems.length}
+          </span>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  aria-disabled={safePage <= 1}
+                  className={safePage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                .map((p, idx, arr) => (
+                  <PaginationItem key={p}>
+                    {idx > 0 && arr[idx - 1] !== p - 1 && (
+                      <span className="px-2 text-gray-400">...</span>
+                    )}
+                    <PaginationLink
+                      onClick={() => setPage(p)}
+                      isActive={p === safePage}
+                      className="cursor-pointer"
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  aria-disabled={safePage >= totalPages}
+                  className={safePage >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 
-      {/* Canonical Ingredient Form Modal */}
-      {showCanonicalForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Canonical Ingredient</h2>
-            <form onSubmit={handleSubmitCanonical}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Canonical Name (lowercase_snake_case)
-                </label>
-                <input
-                  type="text"
+      {/* Canonical Ingredient Form Dialog */}
+      <Dialog open={showCanonicalForm} onOpenChange={setShowCanonicalForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Canonical Ingredient</DialogTitle>
+            <DialogDescription>
+              Create a new canonical ingredient entry.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitCanonical}>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="canonical-name">
+                  Canonical Name (lowercase_snake_case) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="canonical-name"
                   required
                   value={canonicalFormData.canonical_name}
                   onChange={e =>
                     setCanonicalFormData({ ...canonicalFormData, canonical_name: e.target.value })
                   }
                   placeholder="e.g., beef, tomato, olive_oil"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="mt-1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Will be converted to lowercase with underscores
                 </p>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Family</label>
+              <div>
+                <Label htmlFor="canonical-family">Family</Label>
                 <select
+                  id="canonical-family"
                   value={canonicalFormData.ingredient_family_name}
                   onChange={e =>
                     setCanonicalFormData({
@@ -473,9 +564,9 @@ export default function IngredientsPage() {
                       ingredient_family_name: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
-                  {Object.keys(FAMILY_COLOURS).map(f => (
+                  {FAMILY_KEYS.map(f => (
                     <option key={f} value={f}>
                       {f.replace(/_/g, ' ')}
                     </option>
@@ -483,88 +574,85 @@ export default function IngredientsPage() {
                 </select>
               </div>
 
-              <div className="mb-4">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={canonicalFormData.is_vegetarian}
-                    onChange={e =>
-                      setCanonicalFormData({
-                        ...canonicalFormData,
-                        is_vegetarian: e.target.checked,
-                      })
-                    }
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Vegetarian</span>
-                </label>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="canonical-vegetarian"
+                  checked={canonicalFormData.is_vegetarian}
+                  onCheckedChange={val =>
+                    setCanonicalFormData({
+                      ...canonicalFormData,
+                      is_vegetarian: val === true,
+                    })
+                  }
+                />
+                <Label htmlFor="canonical-vegetarian" className="cursor-pointer font-normal">
+                  Vegetarian
+                </Label>
               </div>
 
-              <div className="mb-6">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={canonicalFormData.is_vegan}
-                    onChange={e =>
-                      setCanonicalFormData({ ...canonicalFormData, is_vegan: e.target.checked })
-                    }
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Vegan</span>
-                </label>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="canonical-vegan"
+                  checked={canonicalFormData.is_vegan}
+                  onCheckedChange={val =>
+                    setCanonicalFormData({ ...canonicalFormData, is_vegan: val === true })
+                  }
+                />
+                <Label htmlFor="canonical-vegan" className="cursor-pointer font-normal">
+                  Vegan
+                </Label>
               </div>
+            </div>
 
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCanonicalForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                  Add
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCanonicalForm(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Add</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Alias Form Modal */}
-      {showAliasForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Display Name (Alias)</h2>
-            <form onSubmit={handleSubmitAlias}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
-                <input
-                  type="text"
+      {/* Alias Form Dialog */}
+      <Dialog open={showAliasForm} onOpenChange={setShowAliasForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Display Name (Alias)</DialogTitle>
+            <DialogDescription>
+              Map a display name to a canonical ingredient.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitAlias}>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="alias-name">
+                  Display Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="alias-name"
                   required
                   value={aliasFormData.display_name}
                   onChange={e =>
                     setAliasFormData({ ...aliasFormData, display_name: e.target.value })
                   }
                   placeholder="e.g., Ground Beef, Roma Tomato, EVOO"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="mt-1"
                 />
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maps to Canonical Ingredient
-                </label>
+              <div>
+                <Label htmlFor="alias-canonical">
+                  Maps to Canonical Ingredient <span className="text-red-500">*</span>
+                </Label>
                 <select
+                  id="alias-canonical"
                   required
                   value={aliasFormData.canonical_ingredient_id}
                   onChange={e =>
                     setAliasFormData({ ...aliasFormData, canonical_ingredient_id: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
                   <option value="">Select canonical ingredient...</option>
                   {canonicalIngredients.map(ing => (
@@ -574,26 +662,24 @@ export default function IngredientsPage() {
                   ))}
                 </select>
               </div>
+            </div>
 
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAliasForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                  Add
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAliasForm(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Add</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

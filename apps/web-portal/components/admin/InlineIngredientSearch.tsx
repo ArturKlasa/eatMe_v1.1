@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, Plus, X } from 'lucide-react';
+import { Search, Loader2, Plus, X, Leaf, Sprout } from 'lucide-react';
 import { searchIngredients, type Ingredient } from '@/lib/ingredients';
 import { cn } from '@/lib/utils';
 import type { EditableIngredient } from '@/lib/menu-scan';
@@ -100,6 +100,7 @@ export function InlineIngredientSearch({
             type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 shrink-0"
+            aria-label="Close search"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -123,9 +124,9 @@ export function InlineIngredientSearch({
               >
                 <span className="truncate">
                   {item.display_name}
-                  {item.is_vegan && <span className="ml-1 text-green-600">🌱</span>}
+                  {item.is_vegan && <Leaf className="ml-1 h-3 w-3 inline-block text-green-600" />}
                   {!item.is_vegan && item.is_vegetarian && (
-                    <span className="ml-1 text-green-600">🥗</span>
+                    <Sprout className="ml-1 h-3 w-3 inline-block text-green-600" />
                   )}
                 </span>
                 {!already && <Plus className="h-3 w-3 text-orange-400 shrink-0 ml-1" />}

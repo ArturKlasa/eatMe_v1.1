@@ -33,7 +33,12 @@ import {
   Pencil,
   Trash2,
   Plus,
+  Loader2,
+  UtensilsCrossed,
+  GlassWater,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +61,9 @@ function MenuPageContent() {
   const [saving, setSaving] = useState(false);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [restaurantCuisine, setRestaurantCuisine] = useState<string>('');
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; description: string; onConfirm: () => void;
+  }>({ open: false, title: '', description: '', onConfirm: () => {} });
 
   // Load menus from database
   useEffect(() => {
@@ -183,14 +191,21 @@ function MenuPageContent() {
       return;
     }
 
-    const updatedMenus = menus.filter(m => m.id !== menuId);
-    setMenus(updatedMenus);
-
-    if (activeMenuId === menuId) {
-      setActiveMenuId(updatedMenus[0]?.id || null);
-    }
-
-    toast.success('Menu deleted');
+    const menu = menus.find(m => m.id === menuId);
+    setConfirmState({
+      open: true,
+      title: 'Delete Menu',
+      description: `Are you sure you want to delete "${menu?.name || 'this menu'}"? All dishes in this menu will be removed.`,
+      onConfirm: () => {
+        const updatedMenus = menus.filter(m => m.id !== menuId);
+        setMenus(updatedMenus);
+        if (activeMenuId === menuId) {
+          setActiveMenuId(updatedMenus[0]?.id || null);
+        }
+        toast.success('Menu deleted');
+        setConfirmState(s => ({ ...s, open: false }));
+      },
+    });
   };
 
   const handleAddDish = (dish: Dish) => {
@@ -237,14 +252,22 @@ function MenuPageContent() {
   const handleDeleteDish = (dishId: string) => {
     if (!activeMenuId) return;
 
-    const updatedMenus = menus.map(menu =>
-      menu.id === activeMenuId
-        ? { ...menu, dishes: menu.dishes.filter(d => d.id !== dishId) }
-        : menu
-    );
-
-    setMenus(updatedMenus);
-    toast.success('Dish deleted');
+    const dish = menus.find(m => m.id === activeMenuId)?.dishes.find(d => d.id === dishId);
+    setConfirmState({
+      open: true,
+      title: 'Delete Dish',
+      description: `Are you sure you want to delete "${dish?.name || 'this dish'}"? This action cannot be undone.`,
+      onConfirm: () => {
+        const updatedMenus = menus.map(menu =>
+          menu.id === activeMenuId
+            ? { ...menu, dishes: menu.dishes.filter(d => d.id !== dishId) }
+            : menu
+        );
+        setMenus(updatedMenus);
+        toast.success('Dish deleted');
+        setConfirmState(s => ({ ...s, open: false }));
+      },
+    });
   };
 
   const handleDuplicateDish = (dish: Dish) => {
@@ -317,12 +340,7 @@ function MenuPageContent() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 max-w-5xl">
-          <div className="flex items-center justify-center py-24">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading menus...</p>
-            </div>
-          </div>
+          <LoadingSkeleton variant="card" count={3} />
         </div>
       </div>
     );
@@ -343,11 +361,12 @@ function MenuPageContent() {
         {/* Menus Tabs */}
         <Card className="mb-6">
           <Tabs value={activeMenuId || undefined} onValueChange={setActiveMenuId}>
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4 border-b gap-2">
+              <div className="overflow-x-auto flex-1 [mask-image:linear-gradient(to_right,transparent,black_8px,black_calc(100%-8px),transparent)]">
               <TabsList>
                 {menus.map(menu => (
                   <TabsTrigger key={menu.id} value={menu.id}>
-                    {menu.menu_type === 'drink' ? '🥤 ' : '🍽 '}
+                    {menu.menu_type === 'drink' ? <GlassWater className="h-3.5 w-3.5 mr-1 inline-block" /> : <UtensilsCrossed className="h-3.5 w-3.5 mr-1 inline-block" />}
                     {menu.name}
                     {menu.dishes.length > 0 && (
                       <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded-full">
@@ -357,7 +376,8 @@ function MenuPageContent() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              <Button variant="outline" size="sm" onClick={handleAddMenu}>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleAddMenu} className="shrink-0">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Menu
               </Button>
@@ -443,7 +463,7 @@ function MenuPageContent() {
           <Button onClick={handleNext} disabled={saving}>
             {saving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Saving...
               </>
             ) : (
@@ -498,13 +518,13 @@ function MenuPageContent() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="food" id="menu-type-food" />
                     <Label htmlFor="menu-type-food" className="cursor-pointer font-normal">
-                      🍽 Food Menu
+                      <UtensilsCrossed className="h-3.5 w-3.5 inline-block mr-1" />Food Menu
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="drink" id="menu-type-drink" />
                     <Label htmlFor="menu-type-drink" className="cursor-pointer font-normal">
-                      🥤 Drink Menu
+                      <GlassWater className="h-3.5 w-3.5 inline-block mr-1" />Drink Menu
                     </Label>
                   </div>
                 </RadioGroup>
@@ -521,6 +541,12 @@ function MenuPageContent() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Confirm Dialog for delete actions */}
+        <ConfirmDialog
+          {...confirmState}
+          onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}
+        />
       </div>
     </div>
   );

@@ -14,11 +14,13 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, X, Plus } from 'lucide-react';
+import { Check, X, Plus, Sprout, Leaf } from 'lucide-react';
 import { searchIngredients, type Ingredient } from '@/lib/ingredients';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 /** Ingredient extended with an optional free-text quantity note (e.g. "100g"). */
 interface SelectedIngredient extends Ingredient {
@@ -37,25 +39,31 @@ export function IngredientAutocomplete({
   placeholder = 'Search ingredients...',
 }: IngredientAutocompleteProps) {
   const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 300);
   const [suggestions, setSuggestions] = useState<Ingredient[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Debounced search: wait 300 ms after the user stops typing before hitting the DB.
-  // Requires at least 2 characters to avoid returning the entire ingredient table.
+  // Search when debounced query changes. Requires at least 2 characters.
   useEffect(() => {
     const search = async () => {
-      if (query.trim().length < 2) {
+      if (debouncedQuery.trim().length < 2) {
         setSuggestions([]);
+        setError(null);
         return;
       }
 
       setIsLoading(true);
-      const { data, error } = await searchIngredients(query);
+      setError(null);
+      const { data, error: searchError } = await searchIngredients(debouncedQuery);
 
-      if (!error && data) {
+      if (searchError) {
+        setError('Failed to search ingredients. Please try again.');
+        setSuggestions([]);
+      } else if (data) {
         // Filter out already selected ingredients so the dropdown never shows duplicates.
         const filtered = data.filter(
           ing => !selectedIngredients.find(selected => selected.id === ing.id)
@@ -66,9 +74,8 @@ export function IngredientAutocomplete({
       setIsLoading(false);
     };
 
-    const debounce = setTimeout(search, 300);
-    return () => clearTimeout(debounce);
-  }, [query, selectedIngredients]);
+    search();
+  }, [debouncedQuery, selectedIngredients]);
 
   // Close the dropdown when the user clicks anywhere outside the input or the list.
   useEffect(() => {
@@ -108,9 +115,13 @@ export function IngredientAutocomplete({
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          onFocus={() => query.length >= 2 && setIsOpen(true)}
+          onFocus={() => debouncedQuery.length >= 2 && setIsOpen(true)}
           placeholder={placeholder}
           className="w-full"
+          aria-label="Search ingredients"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls="ingredient-suggestions"
         />
         {isLoading && (
           <div className="absolute right-3 top-3">
@@ -118,16 +129,31 @@ export function IngredientAutocomplete({
           </div>
         )}
 
+        {/* Loading skeleton for initial fetch */}
+        {isLoading && debouncedQuery.trim().length >= 2 && suggestions.length === 0 && !error && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-2">
+            <LoadingSkeleton variant="card" count={3} />
+          </div>
+        )}
+
+        {/* Error message */}
+        {error && (
+          <p className="text-sm text-red-600 mt-1">{error}</p>
+        )}
+
         {/* Suggestions Dropdown */}
         {isOpen && suggestions.length > 0 && (
           <div
             ref={dropdownRef}
+            id="ingredient-suggestions"
+            role="listbox"
             className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
           >
             {suggestions.map(ingredient => (
               <button
                 key={ingredient.id}
                 onClick={() => handleSelectIngredient(ingredient)}
+                role="option"
                 className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between group"
               >
                 <div className="flex-1">
@@ -141,12 +167,12 @@ export function IngredientAutocomplete({
                 <div className="flex gap-1">
                   {ingredient.is_vegetarian && (
                     <Badge variant="secondary" className="text-xs">
-                      🥬 Veg
+                      <Sprout className="h-3 w-3 mr-1" /> Veg
                     </Badge>
                   )}
                   {ingredient.is_vegan && (
                     <Badge variant="secondary" className="text-xs bg-green-100">
-                      🌱 Vegan
+                      <Leaf className="h-3 w-3 mr-1" /> Vegan
                     </Badge>
                   )}
                 </div>
@@ -173,17 +199,13 @@ export function IngredientAutocomplete({
                     <span className="font-medium text-gray-900">{ingredient.display_name}</span>
                     {ingredient.is_vegetarian && (
                       <Badge variant="secondary" className="text-xs">
-                        🥬
+                        <Sprout className="h-3 w-3" />
                       </Badge>
                     )}
                     {ingredient.is_vegan && (
                       <Badge variant="secondary" className="text-xs bg-green-100">
-                        🌱
+                        <Leaf className="h-3 w-3" />
                       </Badge>
-                    )}
-                    {ingredient.is_vegan && <span className="text-xs">🌱</span>}
-                    {ingredient.is_vegetarian && !ingredient.is_vegan && (
-                      <span className="text-xs">🥗</span>
                     )}
                   </div>
                 </div>

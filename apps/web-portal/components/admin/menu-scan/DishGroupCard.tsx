@@ -52,7 +52,7 @@ export function DishGroupCard({
   const dishKindInfo = DISH_KINDS.find(k => k.value === parent.dish_kind);
 
   return (
-    <div className={cn('rounded-lg border-2 p-3 transition-colors', statusColor)}>
+    <div className={cn('rounded-lg border-2 p-3 transition-all duration-200', statusColor)}>
       {/* Parent header */}
       <div className="flex items-center gap-2">
         <input
@@ -104,6 +104,7 @@ export function DishGroupCard({
             onClick={onAccept}
             className="h-7 w-7 p-0 text-green-600 hover:bg-green-100"
             title="Accept (A)"
+            aria-label="Accept dish group"
           >
             <Check className="h-4 w-4" />
           </Button>
@@ -113,6 +114,7 @@ export function DishGroupCard({
             onClick={onReject}
             className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
             title="Reject (R)"
+            aria-label="Reject dish group"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -122,6 +124,7 @@ export function DishGroupCard({
             onClick={onEdit}
             className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-100"
             title="Edit (E)"
+            aria-label="Edit dish group"
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -129,6 +132,7 @@ export function DishGroupCard({
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1 text-gray-400 hover:text-gray-600"
+            aria-label={isExpanded ? 'Collapse variants' : 'Expand variants'}
           >
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -189,6 +193,7 @@ export function DishGroupCard({
                 onClick={() => onUngroup(child._id)}
                 className="h-6 w-6 p-0 text-gray-400 hover:text-orange-600"
                 title="Ungroup (remove from parent)"
+                aria-label="Ungroup variant"
               >
                 <Unlink className="h-3 w-3" />
               </Button>

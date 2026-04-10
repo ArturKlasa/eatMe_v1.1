@@ -35,6 +35,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DishFormDialog } from '@/components/forms/DishFormDialog';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface MenuWithCategories extends Menu {
   categories?: MenuCategoryWithDishes[];
@@ -90,6 +94,9 @@ export default function RestaurantMenusPage() {
   const [isDishDialogOpen, setIsDishDialogOpen] = useState(false);
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [selectedCategoryForDish, setSelectedCategoryForDish] = useState<string>('');
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; description: string; onConfirm: () => void;
+  }>({ open: false, title: '', description: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
@@ -243,26 +250,25 @@ export default function RestaurantMenusPage() {
     }
   };
 
-  const handleDeleteMenu = async (menuId: string, menuName: string) => {
-    if (
-      !confirm(
-        `Delete menu "${menuName}"? This will delete all categories and dishes in this menu.`
-      )
-    )
-      return;
-
-    try {
-      const { error } = await supabase.from('menus').delete().eq('id', menuId);
-
-      if (error) throw error;
-
-      toast.success('Menu deleted');
-      fetchData();
-    } catch (error: unknown) {
-      console.error('[Admin] Error deleting menu:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast.error('Failed to delete: ' + message);
-    }
+  const handleDeleteMenu = (menuId: string, menuName: string) => {
+    setConfirmState({
+      open: true,
+      title: 'Delete Menu',
+      description: `Delete "${menuName}"? This will delete all categories and dishes in this menu. This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          const { error } = await supabase.from('menus').delete().eq('id', menuId);
+          if (error) throw error;
+          toast.success('Menu deleted');
+          fetchData();
+        } catch (error: unknown) {
+          console.error('[Admin] Error deleting menu:', error);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          toast.error('Failed to delete: ' + message);
+        }
+      },
+    });
   };
 
   // Category CRUD operations
@@ -326,24 +332,25 @@ export default function RestaurantMenusPage() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    if (
-      !confirm(`Delete category "${categoryName}"? This will delete all dishes in this category.`)
-    )
-      return;
-
-    try {
-      const { error } = await supabase.from('menu_categories').delete().eq('id', categoryId);
-
-      if (error) throw error;
-
-      toast.success('Category deleted');
-      fetchData();
-    } catch (error: unknown) {
-      console.error('[Admin] Error deleting category:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast.error('Failed to delete: ' + message);
-    }
+  const handleDeleteCategory = (categoryId: string, categoryName: string) => {
+    setConfirmState({
+      open: true,
+      title: 'Delete Category',
+      description: `Delete "${categoryName}"? This will delete all dishes in this category. This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          const { error } = await supabase.from('menu_categories').delete().eq('id', categoryId);
+          if (error) throw error;
+          toast.success('Category deleted');
+          fetchData();
+        } catch (error: unknown) {
+          console.error('[Admin] Error deleting category:', error);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          toast.error('Failed to delete: ' + message);
+        }
+      },
+    });
   };
 
   // Dish operations
@@ -359,63 +366,72 @@ export default function RestaurantMenusPage() {
     setIsDishDialogOpen(true);
   };
 
-  const handleDeleteDish = async (dishId: string, dishName: string) => {
-    if (!confirm(`Delete dish "${dishName}"?`)) return;
-
-    try {
-      const { error } = await supabase.from('dishes').delete().eq('id', dishId);
-
-      if (error) throw error;
-
-      toast.success('Dish deleted');
-      fetchData();
-    } catch (error: unknown) {
-      console.error('[Admin] Error deleting dish:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast.error('Failed to delete: ' + message);
-    }
+  const handleDeleteDish = (dishId: string, dishName: string) => {
+    setConfirmState({
+      open: true,
+      title: 'Delete Dish',
+      description: `Delete "${dishName}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          const { error } = await supabase.from('dishes').delete().eq('id', dishId);
+          if (error) throw error;
+          toast.success('Dish deleted');
+          fetchData();
+        } catch (error: unknown) {
+          console.error('[Admin] Error deleting dish:', error);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          toast.error('Failed to delete: ' + message);
+        }
+      },
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading menus...</div>
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <PageHeader
+          title="Menus"
+          breadcrumbs={[
+            { label: 'Admin', href: '/admin' },
+            { label: 'Restaurants', href: '/admin/restaurants' },
+            { label: '...', href: `/admin/restaurants/${restaurantId}` },
+            { label: 'Menus' },
+          ]}
+        />
+        <LoadingSkeleton variant="table" count={3} />
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <Link href="/admin/restaurants">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">{restaurantName}</h1>
-            <p className="text-gray-600 mt-1">Manage menus, categories, and dishes</p>
-          </div>
-        </div>
-        <Button onClick={handleAddMenu}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Menu
-        </Button>
-      </div>
+      <PageHeader
+        title={restaurantName}
+        description="Manage menus, categories, and dishes"
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Restaurants', href: '/admin/restaurants' },
+          { label: restaurantName, href: `/admin/restaurants/${restaurantId}` },
+          { label: 'Menus' },
+        ]}
+        actions={
+          <Button onClick={handleAddMenu}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Menu
+          </Button>
+        }
+      />
 
       {/* Menu Hierarchy */}
       <div className="space-y-4">
         {menus.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-dashed border-gray-300">
-            <p className="text-gray-600 mb-4">No menus yet</p>
-            <Button onClick={handleAddMenu}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Menu
-            </Button>
-          </div>
+          <EmptyState
+            icon={Plus}
+            title="No menus yet"
+            description="Add your first menu to start organizing dishes."
+            action={{ label: 'Add Your First Menu', onClick: handleAddMenu }}
+          />
         ) : (
           menus.map(menu => (
             <div key={menu.id} className="bg-white rounded-lg border border-gray-200">
@@ -566,17 +582,12 @@ export default function RestaurantMenusPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
-                      <p className="text-gray-600 mb-3">No categories yet</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddCategory(menu.id)}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add First Category
-                      </Button>
-                    </div>
+                    <EmptyState
+                      icon={Plus}
+                      title="No categories yet"
+                      description="Add a category to organize dishes within this menu."
+                      action={{ label: 'Add First Category', onClick: () => handleAddCategory(menu.id) }}
+                    />
                   )}
                 </div>
               )}
@@ -690,6 +701,13 @@ export default function RestaurantMenusPage() {
           restaurantCuisine={restaurantCuisine}
         />
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

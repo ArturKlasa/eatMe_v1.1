@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dish } from '@/types/restaurant';
-import { Edit, Trash2, Copy, Layers } from 'lucide-react';
+import { Edit, Trash2, Copy, Layers, AlertTriangle } from 'lucide-react';
 import { SPICE_LEVELS, DISH_KINDS } from '@/lib/constants';
 
 interface DishCardProps {
@@ -75,7 +75,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
             {dish.description && <p className="text-sm text-gray-600">{dish.description}</p>}
           </div>
           <div className="flex gap-2 ml-4">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(dish)} title="Edit dish">
+            <Button variant="ghost" size="icon" onClick={() => onEdit(dish)} title="Edit dish" aria-label="Edit dish">
               <Edit className="h-4 w-4" />
             </Button>
             <Button
@@ -83,6 +83,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
               size="icon"
               onClick={() => onDuplicate(dish)}
               title="Duplicate dish"
+              aria-label="Duplicate dish"
             >
               <Copy className="h-4 w-4" />
             </Button>
@@ -91,6 +92,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
               size="icon"
               onClick={() => dish.id && onDelete(dish.id)}
               title="Delete dish"
+              aria-label="Delete dish"
               className="text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
@@ -141,7 +143,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
                 variant="secondary"
                 className="bg-orange-100 text-orange-800 capitalize"
               >
-                ⚠️ {allergen}
+                <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />{allergen}
               </Badge>
             ))}
           </div>

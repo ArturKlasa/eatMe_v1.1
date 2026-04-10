@@ -40,7 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pencil, Trash2, Plus, Search, UtensilsCrossed, GlassWater } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, UtensilsCrossed, GlassWater, Tag } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -187,14 +190,10 @@ export default function DishCategoriesPage() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Dish Categories</h1>
-        <p className="text-gray-500 text-sm">
-          Manage canonical dish categories (e.g. Pizza, Pasta, Cocktails). Restaurant owners assign
-          these when adding dishes; the mobile app uses them for recommendations.
-        </p>
-      </div>
+      <PageHeader
+        title="Dish Categories"
+        description="Manage canonical dish categories (e.g. Pizza, Pasta, Cocktails). Restaurant owners assign these when adding dishes; the mobile app uses them for recommendations."
+      />
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -267,16 +266,16 @@ export default function DishCategoriesPage() {
       {/* Category table */}
       <div className="bg-white rounded-lg border overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
+          <div className="p-4">
+            <LoadingSkeleton variant="table" count={5} />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
-            <p className="text-lg font-medium mb-1">No categories found</p>
-            <p className="text-sm">
-              {searchQuery ? 'Try a different search term.' : 'Add your first category above.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Tag}
+            title="No categories found"
+            description={searchQuery ? 'Try a different search term.' : 'Add your first category above.'}
+            action={!searchQuery ? { label: 'Add Category', onClick: openAdd } : undefined}
+          />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
@@ -367,7 +366,7 @@ export default function DishCategoriesPage() {
                 onCheckedChange={val => setFormData(prev => ({ ...prev, is_drink: val === true }))}
               />
               <Label htmlFor="cat-is-drink" className="cursor-pointer font-normal">
-                🥤 Drink category
+                <GlassWater className="h-3.5 w-3.5 inline-block mr-0.5" />Drink category
               </Label>
             </div>
 

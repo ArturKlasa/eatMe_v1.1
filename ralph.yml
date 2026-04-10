@@ -1,7 +1,7 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Rating System Redesign
-# Task: Implement 8-step plan at .agents/planning/2026-04-08-rating-system/implementation/plan.md
-# Pattern: Linear pipeline — implementer → verifier → stepper → (loop or done)
+# Project: EatMe — Web Portal UX/UI Redesign
+# Task: Implement 12-step plan at .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
+# Pattern: Linear pipeline — implementer → verifier (build) → critic (design) → stepper → (loop or done)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -10,23 +10,26 @@ cli:
 
 event_loop:
   completion_promise: "LOOP_COMPLETE"
-  starting_event: "start"          # kicks off the Implementer on loop start
-  max_iterations: 40               # 8 steps × ~4-5 iterations each
-  max_runtime_seconds: 7200        # 2 hours
+  starting_event: "start"
+  max_iterations: 75               # 12 steps × ~5-6 iterations each (4 hats per cycle)
+  max_runtime_seconds: 10800       # 3 hours
   idle_timeout_secs: 600           # 10 min idle threshold
   checkpoint_interval: 2           # git checkpoint every 2 iterations
 
 core:
-  specs_dir: ".agents/planning/2026-04-08-rating-system/"
+  specs_dir: ".agents/planning/2026-04-09-web-portal-ux-redesign/"
+  scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Implementation plan: .agents/planning/2026-04-08-rating-system/implementation/plan.md — work through steps in order, one at a time."
-    - "Design document: .agents/planning/2026-04-08-rating-system/design/detailed-design.md — the authoritative source for all interfaces, SQL, and component specs."
-    - "After any TypeScript change, run `pnpm tsc --noEmit` from the repo root and fix ALL errors before marking a step complete."
-    - "Migrations go in infra/supabase/migrations/ — the next migration number is 079 (filename: 079_rating_system_redesign.sql)."
-    - "After Step 1 (migrations), regenerate types: cd packages/database && supabase gen types typescript --local > src/types.ts"
-    - "Do NOT add new npm or Deno dependencies without first checking that no existing package already provides the functionality."
+    - "Implementation plan: .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md — work through steps in order, one at a time."
+    - "Design document: .agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md — the authoritative source for all component interfaces, page changes, and constants."
+    - "All changes are in apps/web-portal/ — do NOT modify apps/mobile/, packages/, or infra/ directories."
+    - "After any TypeScript change, run `pnpm turbo run build --filter=web-portal` and fix ALL errors before marking a step complete."
+    - "After any lint-sensitive change, run `pnpm turbo run lint --filter=web-portal` and fix warnings/errors."
+    - "Do NOT add new npm dependencies without first checking that no existing package already provides the functionality."
     - "Do NOT modify files unrelated to the current implementation step."
     - "Do NOT refactor, rename, or reformat code outside the scope of each step."
+    - "Do NOT change database schema, API routes, or Supabase configuration — this is a frontend-only redesign."
+    - "Prefer editing existing files over creating new ones. Only create new files when the plan explicitly calls for them."
 
 memories:
   enabled: true
@@ -42,39 +45,49 @@ hats:
   implementer:
     name: "Implementer"
     emoji: "🔧"
-    description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs TypeScript validation"
+    description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs build validation"
     instructions: |
-      You are a senior React Native / TypeScript / Supabase engineer implementing the EatMe rating system redesign.
+      You are a senior Next.js / React 19 / TypeScript / Tailwind CSS / shadcn/ui engineer implementing the EatMe web portal UX/UI redesign.
 
       Start by reading the checklist in:
-        .agents/planning/2026-04-08-rating-system/implementation/plan.md
+        .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
 
       Find the FIRST unchecked item [ ] and implement that step only.
 
       For every step:
-        1. Read the design document section relevant to this step:
-           .agents/planning/2026-04-08-rating-system/design/detailed-design.md
-        2. Read every file you plan to modify BEFORE changing it — understand the current code.
-        3. Implement exactly what the step describes. No extra refactoring, no speculative additions.
-        4. Run `pnpm tsc --noEmit` from the repo root after any TypeScript changes. Fix all errors.
-        5. Mark the step complete: change `[ ]` to `[x]` in the checklist.
-        6. Emit `step.complete` with a short summary, e.g.:
-           step.complete "Step 1: DB migrations — 079_rating_system_redesign.sql created, views rebuilt"
+        1. Read the scratchpad (.agent/scratchpad.md) first — it may contain progress notes from a previous
+           iteration on the same step (e.g., after a retry). Continue from where you left off, don't redo completed work.
+        2. Read the design document section relevant to this step:
+           .agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md
+        3. Read every file you plan to modify BEFORE changing it — understand the current code.
+        4. Implement exactly what the step describes. No extra refactoring, no speculative additions.
+        5. For multi-page steps (especially Steps 9 and 10), update the scratchpad after completing each
+           sub-item so retries can resume from the right place. Example:
+           "Step 9: ✅ sidebar ✅ dashboard ✅ restaurant list — next: ingredients"
+        6. Run `pnpm turbo run build --filter=web-portal` after any TypeScript changes. Fix all errors.
+        7. If the step includes test requirements, write and run tests with `cd apps/web-portal && npx vitest run`. Fix failures.
+        8. Mark the step complete: change `[ ]` to `[x]` in the checklist.
+        9. Clear the scratchpad (replace contents with "Step N complete") and emit `step.complete` with a short summary, e.g.:
+           step.complete "Step 3: Core shared UI components — PageHeader, LoadingSkeleton, EmptyState, ConfirmDialog created with tests"
 
       Step-specific notes:
-        - Step 1 (migrations): create infra/supabase/migrations/079_rating_system_redesign.sql.
-          Drop restaurant_ratings_summary FIRST, then dish_ratings_summary (dependency order).
-          After applying, regenerate types: run `supabase gen types typescript --local > packages/database/src/types.ts`
-          from the packages/database directory.
-        - Step 2 (types): remove DishRatingStats from types/rating.ts only after confirming no consumers
-          remain. Use grep to check before deleting.
-        - Step 4 (InContextRating): add getUserDishOpinions() to dishRatingService.ts in the same step
-          so RestaurantDetailScreen can pre-populate the already-rated state.
-        - Step 7 (gamification): create apps/mobile/src/services/gamificationService.ts as a new file.
-          Wire updateStreak and checkAndAwardTrustedTasterBadge into BOTH submitRating and
-          submitInContextRating as non-fatal calls (wrapped in .catch(() => null)).
-        - Step 8 (i18n): add keys to all three locale files — en.json, es.json, pl.json.
-          Use accurate translations, not placeholder text.
+        - Step 1 (prerequisites): Install shadcn components with `cd apps/web-portal && npx shadcn@latest add skeleton && npx shadcn@latest add pagination`.
+          Install test deps: `cd apps/web-portal && npm install -D vitest @testing-library/react @testing-library/jest-dom @vitejs/plugin-react jsdom`.
+          Create vitest.config.ts with jsdom environment and @/ path alias matching tsconfig.json.
+        - Step 2 (constants): Extract color maps from actual existing code. Read ingredients page for INGREDIENT_FAMILY_COLORS,
+          read DietaryTagBadges.tsx for DIETARY_TAG_COLORS (note: it uses combined strings including border class).
+          Read auth login/signup pages to extract the inline SVG paths for OAuthIcons.
+        - Step 3 (ConfirmDialog): Model after the existing AlertDialog pattern in /app/admin/dish-categories/page.tsx (lines 427-449).
+        - Step 5 (form sub-components): Create and test in isolation only — do NOT wire into pages yet (Steps 6/8/10 handle wiring).
+        - Step 6 (RestaurantForm): This is admin-only. Do NOT use it for the owner edit page or onboarding.
+        - Step 7 (DishFormDialog): The file is 1,354 lines. Use FormProvider + useFormContext pattern.
+          Keep selectedIngredients state and allergen/dietary calculation in the orchestrator or a custom hook.
+        - Step 8 (BasicInfo): The file is 1,027 lines. The auto-save watch() + refs pattern must be preserved.
+          Create useRestaurantDraft hook to encapsulate localStorage data loading and debounced saving.
+        - Step 11 (ConfirmDialog integration): 8 confirm() calls across 3 files:
+          RestaurantTable.tsx (lines 41, 69, 80), ingredients/page.tsx (lines 144, 162),
+          admin restaurants menus/page.tsx (lines 248, 331, 363).
+          Onboarding menu deletions (handleDeleteMenu line 180, handleDeleteDish line 237) are handled in Step 10.
     triggers:
       - "start"
       - "step.retry"
@@ -85,43 +98,82 @@ hats:
   verifier:
     name: "Verifier"
     emoji: "✅"
-    description: "Verifies the implemented step against the design spec and confirms TypeScript compiles cleanly before allowing progress"
+    description: "Build gate — confirms TypeScript compiles, tests pass, and no unintended files were changed"
     instructions: |
-      You are a technical lead verifying that the just-completed step was implemented correctly.
+      You are a build gate. Your ONLY job is confirming that the code compiles, tests pass, and scope is clean.
+      Do NOT review design conformance — the Critic handles that.
 
-      Read the event payload to identify which step was completed.
-      Read .agents/planning/2026-04-08-rating-system/design/detailed-design.md for the expected spec.
+      Run these checks in order:
 
-      Run these checks:
+      1. Build: `pnpm turbo run build --filter=web-portal` — must succeed with zero errors.
 
-      1. TypeScript: `pnpm tsc --noEmit` from the repo root — must exit 0 with zero errors.
+      2. Lint: `pnpm turbo run lint --filter=web-portal` — must pass with zero errors.
+         Warnings are acceptable but errors must be fixed.
 
-      2. Correctness: re-read every modified file and confirm each matches the design spec for this step:
-         - Correct function signatures and interface shapes
-         - SQL uses LATERAL joins (not correlated subqueries) in materialized views
-         - Upsert conflict keys match: 'user_id,dish_id,visit_id' for dish_opinions
-         - New fields (note, source) included in insert/upsert payloads
-         - Photo points = 20 (not 15) in awardPoints and calculatePoints
-         - getRatingTier thresholds: top≥90%+20ratings, good≥75%+5ratings, neutral≥60%+3ratings
-         - user_badges has INSERT RLS policy allowing auth.uid()=user_id (badge awarded client-side)
-         - DishRatingBadge minimum threshold is totalRatings >= 3 (was > 0)
-         - restaurantRatingService no longer multiplies food_score by 100
-         - In-context visit lookup: scoped to last 24 hours, source='in_context'
+      3. Tests (if step 2+): `cd apps/web-portal && npx vitest run` — all tests must pass.
+         For Step 1, just verify the smoke test passes.
 
-      3. No unintended changes: files modified should only be those relevant to this step.
-
-      4. Step 1 only: confirm dish_ratings_summary has columns okay_percentage, dislike_percentage,
-         recent_notes; confirm restaurant_ratings_summary has food_score (0-100 Bayesian), total_dish_ratings,
-         would_recommend_percentage, total_experience_responses.
+      4. Scope: check that only files relevant to this step were modified.
+         No changes to apps/mobile/, packages/, infra/, or database schema.
+         Run `git diff --name-only` to see what changed.
 
       If any check fails:
-        - Describe the exact issue and the file/line where it occurs.
+        - Report the exact error output.
         - Emit `step.retry` so the Implementer can fix it.
 
       If all checks pass:
-        - Emit `step.verified` with the step number.
+        - Emit `build.verified` with the step number.
     triggers:
       - "step.complete"
+    publishes:
+      - "build.verified"
+      - "step.retry"
+
+  critic:
+    name: "Critic"
+    emoji: "🔍"
+    description: "Design conformance reviewer — reads the design spec with fresh eyes and verifies the implementation matches"
+    instructions: |
+      You are a design reviewer with fresh eyes. The build already passes — your job is to verify
+      the implementation matches the design spec and catches issues the Implementer may have missed.
+
+      Read the event payload to identify which step was completed.
+
+      1. Read the FULL step description in:
+         .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
+
+      2. Read the relevant section in:
+         .agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md
+
+      3. Read every file that was created or modified in this step. Check:
+         - Component interfaces match the TypeScript props defined in the design document
+         - shadcn/ui components used correctly (not raw HTML overlays where Dialog/AlertDialog is specified)
+         - Constants come from lib/ui-constants.ts (not hardcoded in components)
+         - Accessibility attributes present where the plan specifies (aria-labels, roles)
+         - No remaining window.confirm() calls if the step was supposed to replace them
+         - No remaining emojis if the step was supposed to replace them with Lucide icons
+
+      4. Step-specific design checks:
+         - Step 1: vitest.config.ts exists with jsdom env and @/ alias, smoke test file exists
+         - Step 3: ConfirmDialog follows the AlertDialog pattern from dish-categories/page.tsx
+         - Step 4: /app/onboard/layout.tsx exists, uses usePathname(), renders OnboardingStepper
+         - Step 5: Components are NOT wired into pages yet (isolation only)
+         - Step 6: admin new/edit pages are thin wrappers (<100 lines each), RestaurantForm is in components/admin/
+         - Step 7: DishFormDialog.tsx orchestrator is under 300 lines, 9 sub-components in components/forms/dish/
+         - Step 8: basic-info/page.tsx is under 200 lines, useRestaurantDraft hook in lib/hooks/
+         - Step 9: Restaurant list page has pagination, all admin pages use PageHeader
+         - Step 10: Quick Actions cards removed from dashboard, OAuth buttons use OAuthIcon components
+         - Step 11: grep for `window.confirm\|[^a-z]confirm(` in .tsx files — zero results
+         - Step 12: grep for emoji characters (⚠️🌱🥬🍽🥤) in component files — zero results
+
+      If any issue found:
+        - Describe the exact issue, the file/line, and what the design spec expects.
+        - Emit `step.retry` so the Implementer can fix it.
+
+      If everything matches the design:
+        - Emit `step.verified` with the step number and a one-line confirmation.
+    triggers:
+      - "build.verified"
     publishes:
       - "step.verified"
       - "step.retry"
@@ -131,19 +183,20 @@ hats:
     emoji: "📋"
     description: "Checks checklist progress after each verified step and drives the loop forward or signals completion"
     instructions: |
-      You are the progress manager for the EatMe rating system implementation.
+      You are the progress manager for the EatMe web portal UX/UI redesign.
 
       Read the checklist in:
-        .agents/planning/2026-04-08-rating-system/implementation/plan.md
+        .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
 
       Count the remaining unchecked items [ ].
 
       If unchecked items remain:
         - Emit `start` to trigger the Implementer for the next step.
 
-      If ALL 8 items are checked [x]:
-        - Run `pnpm tsc --noEmit` one final time to confirm a clean baseline.
-        - Confirm all 8 checklist items are marked [x].
+      If ALL 12 items are checked [x]:
+        - Run `pnpm turbo run build --filter=web-portal` one final time.
+        - Run `cd apps/web-portal && npx vitest run` one final time.
+        - Confirm all 12 checklist items are marked [x].
         - Emit `LOOP_COMPLETE`.
     triggers:
       - "step.verified"

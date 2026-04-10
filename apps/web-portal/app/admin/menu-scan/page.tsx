@@ -224,6 +224,7 @@ export default function MenuScanPage() {
 
   // ---------- processing step ----------
   const [processingError, setProcessingError] = useState('');
+  const [processingStage, setProcessingStage] = useState<'resizing' | 'sending' | 'analyzing'>('resizing');
 
   // ---------- review step ----------
   const [jobId, setJobId] = useState('');
@@ -426,10 +427,13 @@ export default function MenuScanPage() {
       if (!session?.access_token) throw new Error('Session expired — please reload');
 
       // Resize images client-side
+      setProcessingStage('resizing');
       toast.info('Resizing images...');
       const resized = await Promise.all(imageFiles.map(f => resizeImageToBase64(f)));
 
+      setProcessingStage('sending');
       toast.info(`Sending ${resized.length} image(s) to AI...`);
+      setProcessingStage('analyzing');
       const response = await fetch('/api/menu-scan', {
         method: 'POST',
         headers: {
@@ -1638,6 +1642,22 @@ export default function MenuScanPage() {
               <p className="text-sm text-orange-600 mt-1 font-medium">{selectedRestaurant.name}</p>
             )}
           </div>
+          {/* Processing stages progress */}
+          <div className="w-full space-y-1.5 text-xs">
+            {(['resizing', 'sending', 'analyzing'] as const).map((stage, idx) => {
+              const labels = { resizing: 'Resizing images', sending: 'Sending to AI', analyzing: 'Analyzing menu' };
+              const stageOrder = { resizing: 0, sending: 1, analyzing: 2 };
+              const current = stageOrder[processingStage];
+              const isComplete = stageOrder[stage] < current;
+              const isCurrent = stage === processingStage;
+              return (
+                <div key={stage} className="flex items-center gap-2">
+                  <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${isComplete ? 'bg-green-500' : isCurrent ? 'bg-orange-500 animate-pulse' : 'bg-gray-300'}`} />
+                  <span className={isComplete ? 'text-green-600' : isCurrent ? 'text-orange-600 font-medium' : 'text-gray-400'}>{labels[stage]}</span>
+                </div>
+              );
+            })}
+          </div>
           <p className="text-xs text-gray-400">10–30 seconds. Use the time to fill in details →</p>
         </div>
 
@@ -2100,8 +2120,8 @@ export default function MenuScanPage() {
                     }
                     className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
                   >
-                    <option value="food">🍽️ Food</option>
-                    <option value="drink">🍹 Drink</option>
+                    <option value="food">Food</option>
+                    <option value="drink">Drink</option>
                   </select>
                   <button
                     onClick={() => addCategory(mIdx)}
@@ -2112,6 +2132,7 @@ export default function MenuScanPage() {
                   <button
                     onClick={() => deleteMenu(mIdx)}
                     className="p-1 text-gray-400 hover:text-red-500"
+                    aria-label="Delete menu"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -2619,7 +2640,7 @@ export default function MenuScanPage() {
                                     {(dish.suggested_allergens ?? []).length > 0 && (
                                       <div className="flex flex-wrap items-center gap-1 mt-1.5 pt-1.5 border-t border-gray-100">
                                         <span className="text-xs text-gray-400 mr-0.5">
-                                          ⚠️ AI hints:
+                                          AI hints:
                                         </span>
                                         {dish.suggested_allergens!.map(code => (
                                           <span

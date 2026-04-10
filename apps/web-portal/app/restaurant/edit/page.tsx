@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,10 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { ArrowLeft, Save, Clock } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import { DAYS_OF_WEEK } from '@/lib/constants';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { OperatingHoursEditor } from '@/components/forms/OperatingHoursEditor';
 
 interface RestaurantFormData {
   name: string;
@@ -44,26 +46,31 @@ function EditRestaurantContent() {
     sunday: { open: '10:00', close: '20:00', closed: false },
   });
 
-  const handleHoursChange = (day: string, field: 'open' | 'close', value: string) => {
-    setOperatingHours(prev => ({
-      ...prev,
-      [day]: { ...prev[day], [field]: value },
-    }));
-  };
-
-  const handleDayClosedToggle = (day: string) => {
-    setOperatingHours(prev => ({
-      ...prev,
-      [day]: { ...prev[day], closed: !prev[day].closed },
-    }));
-  };
-
   const {
     register,
     handleSubmit,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<RestaurantFormData>();
+
+  const [hoursChanged, setHoursChanged] = useState(false);
+  const hasUnsavedChanges = isDirty || hoursChanged;
+
+  const handleOperatingHoursChange = useCallback((hours: Record<string, { open: string; close: string; closed: boolean }>) => {
+    setOperatingHours(hours);
+    setHoursChanged(true);
+  }, []);
+
+  // Unsaved changes warning
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
 
   // Load restaurant data
   useEffect(() => {
@@ -117,10 +124,9 @@ function EditRestaurantContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading restaurant information...</p>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <LoadingSkeleton variant="form" count={5} />
         </div>
       </div>
     );
@@ -130,14 +136,15 @@ function EditRestaurantContent() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Header */}
-        <div className="mb-8">
-          <Button variant="ghost" onClick={() => router.push('/')} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <h1 className="text-3xl font-bold">Edit Restaurant Information</h1>
-          <p className="text-gray-600 mt-2">Update your restaurant&apos;s basic information</p>
-        </div>
+        <PageHeader
+          title="Edit Restaurant Information"
+          description="Update your restaurant's basic information"
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/' },
+            { label: 'Edit Restaurant' },
+          ]}
+          backHref="/"
+        />
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -211,50 +218,11 @@ function EditRestaurantContent() {
           {/* Operating Hours */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Operating Hours
-              </CardTitle>
+              <CardTitle>Operating Hours</CardTitle>
               <CardDescription>Update your business hours</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {DAYS_OF_WEEK.map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-4">
-                  <div className="w-28">
-                    <Label className="text-sm font-medium">{label}</Label>
-                  </div>
-                  <div className="flex items-center gap-3 flex-1">
-                    <Checkbox
-                      id={`closed-${key}`}
-                      checked={operatingHours[key]?.closed || false}
-                      onCheckedChange={() => handleDayClosedToggle(key)}
-                    />
-                    <Label
-                      htmlFor={`closed-${key}`}
-                      className="text-sm text-gray-500 cursor-pointer"
-                    >
-                      Closed
-                    </Label>
-                    {!operatingHours[key]?.closed && (
-                      <>
-                        <Input
-                          type="time"
-                          value={operatingHours[key]?.open || '09:00'}
-                          onChange={e => handleHoursChange(key, 'open', e.target.value)}
-                          className="w-32"
-                        />
-                        <span className="text-gray-500">to</span>
-                        <Input
-                          type="time"
-                          value={operatingHours[key]?.close || '21:00'}
-                          onChange={e => handleHoursChange(key, 'close', e.target.value)}
-                          className="w-32"
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <CardContent>
+              <OperatingHoursEditor value={operatingHours} onChange={handleOperatingHoursChange} />
             </CardContent>
           </Card>
 
@@ -271,7 +239,7 @@ function EditRestaurantContent() {
             <Button type="submit" disabled={saving} className="flex-1">
               {saving ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
                 </>
               ) : (

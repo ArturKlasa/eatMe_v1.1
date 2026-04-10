@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Restaurant } from '@/lib/supabase';
-import { ArrowLeft, Edit, Ban, CheckCircle, Loader2, MapPin, Phone, Globe } from 'lucide-react';
+import { Edit, Ban, CheckCircle, MapPin, Phone, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { STATUS_VARIANTS } from '@/lib/ui-constants';
 
 export default function RestaurantDetailsPage() {
   const router = useRouter();
@@ -47,8 +50,15 @@ export default function RestaurantDetailsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+      <div className="space-y-6">
+        <PageHeader
+          title="Loading..."
+          breadcrumbs={[
+            { label: 'Admin', href: '/admin' },
+            { label: 'Restaurants', href: '/admin/restaurants' },
+          ]}
+        />
+        <LoadingSkeleton variant="page" />
       </div>
     );
   }
@@ -57,36 +67,38 @@ export default function RestaurantDetailsPage() {
     return null;
   }
 
+  const statusKey = restaurant.is_active ? 'active' : 'suspended';
+  const statusVariant = STATUS_VARIANTS[statusKey];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/restaurants" className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{restaurant.name}</h1>
-            <p className="mt-2 text-gray-600">Restaurant Details</p>
+      <PageHeader
+        title={restaurant.name}
+        description="Restaurant Details"
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Restaurants', href: '/admin/restaurants' },
+          { label: restaurant.name },
+        ]}
+        badge={{ label: statusVariant.label, variant: statusKey === 'active' ? 'success' : 'destructive' }}
+        actions={
+          <div className="flex gap-3">
+            <Link
+              href={`/admin/restaurants/${restaurant.id}/menus`}
+              className="flex items-center gap-2 px-4 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
+            >
+              Manage Menus
+            </Link>
+            <Link
+              href={`/admin/restaurants/${restaurant.id}/edit`}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+            >
+              <Edit className="h-5 w-5" />
+              Edit Restaurant
+            </Link>
           </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Link
-            href={`/admin/restaurants/${restaurant.id}/menus`}
-            className="flex items-center gap-2 px-4 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
-          >
-            Manage Menus
-          </Link>
-          <Link
-            href={`/admin/restaurants/${restaurant.id}/edit`}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-          >
-            <Edit className="h-5 w-5" />
-            Edit Restaurant
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Status Alert */}
       {!restaurant.is_active && (
@@ -207,17 +219,14 @@ export default function RestaurantDetailsPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Status</h2>
             <div className="space-y-3">
-              {restaurant.is_active ? (
-                <div className="flex items-center gap-2 text-green-700">
+              <div className={`flex items-center gap-2 ${statusVariant.text}`}>
+                {restaurant.is_active ? (
                   <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">Active</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-red-700">
+                ) : (
                   <Ban className="h-5 w-5" />
-                  <span className="font-medium">Suspended</span>
-                </div>
-              )}
+                )}
+                <span className="font-medium">{statusVariant.label}</span>
+              </div>
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Edit, Trash2, Ban, CheckCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Restaurant {
   id: string;
@@ -35,55 +36,56 @@ interface RestaurantTableProps {
 
 export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantTableProps) {
   const [restaurants, setRestaurants] = useState(initialRestaurants);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    confirmVariant: 'destructive' | 'default';
+    onConfirm: () => void;
+  }>({ open: false, title: '', description: '', confirmLabel: 'Confirm', confirmVariant: 'default', onConfirm: () => {} });
 
-  const handleSuspend = async (id: string, currentStatus: boolean) => {
+  const handleSuspend = (id: string, currentStatus: boolean) => {
     const action = currentStatus ? 'suspend' : 'activate';
-    const confirmed = window.confirm(
-      `Are you sure you want to ${action} this restaurant?\n\nThis action will be logged in the audit trail.`
-    );
-
-    if (!confirmed) return;
-
-    try {
-      // TODO: Implement suspend/activate API call with audit logging
-      toast.success(`Restaurant ${action}d successfully`);
-
-      // Update local state
-      setRestaurants(prev =>
-        prev.map(r =>
-          r.id === id
-            ? {
-                ...r,
-                is_active: !currentStatus,
-                suspended_at: !currentStatus ? null : new Date().toISOString(),
-              }
-            : r
-        )
-      );
-    } catch (error) {
-      toast.error(`Failed to ${action} restaurant`);
-    }
+    setConfirmState({
+      open: true,
+      title: `${currentStatus ? 'Suspend' : 'Activate'} Restaurant`,
+      description: `Are you sure you want to ${action} this restaurant? This action will be logged in the audit trail.`,
+      confirmLabel: currentStatus ? 'Suspend' : 'Activate',
+      confirmVariant: currentStatus ? 'destructive' : 'default',
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          // TODO: Implement suspend/activate API call with audit logging
+          toast.success(`Restaurant ${action}d successfully`);
+          setRestaurants(prev =>
+            prev.map(r =>
+              r.id === id
+                ? {
+                    ...r,
+                    is_active: !currentStatus,
+                    suspended_at: !currentStatus ? null : new Date().toISOString(),
+                  }
+                : r
+            )
+          );
+        } catch (error) {
+          toast.error(`Failed to ${action} restaurant`);
+        }
+      },
+    });
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    const confirmed = window.confirm(
-      `⚠️ WARNING: Delete restaurant "${name}"?\n\n` +
-        `This is a PERMANENT action that:\n` +
-        `- Deletes all menus and dishes\n` +
-        `- Cannot be undone\n` +
-        `- Will be logged in audit trail\n\n` +
-        `Consider using Suspend instead. Continue with deletion?`
-    );
-
-    if (!confirmed) return;
-
-    const doubleCheck = window.confirm(
-      `Final confirmation: Type the restaurant name to confirm deletion.\n\nRestaurant: ${name}`
-    );
-
-    if (!doubleCheck) return;
-
-    try {
+  const handleDelete = (id: string, name: string) => {
+    setConfirmState({
+      open: true,
+      title: `Delete Restaurant "${name}"`,
+      description: `This is a permanent action that will delete all menus and dishes. It cannot be undone and will be logged in the audit trail. Consider using Suspend instead.`,
+      confirmLabel: 'Delete',
+      confirmVariant: 'destructive',
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
       // Delete from database
       const { error } = await supabase.from('restaurants').delete().eq('id', id);
 
@@ -109,6 +111,8 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
       console.error('Error in handleDelete:', error);
       toast.error('Failed to delete restaurant');
     }
+      },
+    });
   };
 
   return (
@@ -199,6 +203,7 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                       href={`/admin/restaurants/${restaurant.id}`}
                       className="p-2 text-gray-600 hover:bg-gray-100 rounded"
                       title="View Details"
+                      aria-label="View details"
                     >
                       <Eye className="h-4 w-4" />
                     </Link>
@@ -206,6 +211,7 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                       href={`/admin/restaurants/${restaurant.id}/edit`}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                       title="Edit"
+                      aria-label="Edit restaurant"
                     >
                       <Edit className="h-4 w-4" />
                     </Link>
@@ -217,6 +223,7 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                           : 'text-green-600 hover:bg-green-50'
                       }`}
                       title={restaurant.is_active ? 'Suspend' : 'Activate'}
+                      aria-label={restaurant.is_active ? 'Suspend restaurant' : 'Activate restaurant'}
                     >
                       {restaurant.is_active ? (
                         <Ban className="h-4 w-4" />
@@ -228,6 +235,7 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                       onClick={() => handleDelete(restaurant.id, restaurant.name)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded"
                       title="Delete"
+                      aria-label="Delete restaurant"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -238,6 +246,15 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
           )}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel={confirmState.confirmLabel}
+        confirmVariant={confirmState.confirmVariant}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

@@ -11,11 +11,12 @@ import { FormProgress, Menu, RestaurantType } from '@/types/restaurant';
 import type { Location as AppLocation } from '@/types/restaurant';
 import { basicInfoSchema } from '@/lib/validation';
 import { SPICE_LEVELS } from '@/lib/constants';
-import { ArrowLeft, CheckCircle2, Edit, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Edit, Loader2, UtensilsCrossed, BookOpen, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRestaurantFull, submitRestaurantProfile } from '@/lib/restaurantService';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 
 function ReviewPageContent() {
   const router = useRouter();
@@ -75,7 +76,7 @@ function ReviewPageContent() {
       );
 
       if (user?.id) clearRestaurantData(user.id);
-      setTimeout(() => router.push('/'), 2000);
+      router.push('/');
     } catch (error) {
       console.error('[Review] Submission error:', error);
       toast.error(
@@ -97,10 +98,9 @@ function ReviewPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading restaurant data...</p>
+      <div className="min-h-screen bg-linear-to-br from-orange-50 to-red-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <LoadingSkeleton variant="page" />
         </div>
       </div>
     );
@@ -115,6 +115,8 @@ function ReviewPageContent() {
   }
 
   const totalDishes = restaurantData.menus?.reduce((sum, menu) => sum + menu.dishes.length, 0) || 0;
+  const totalMenus = restaurantData.menus?.length || 0;
+  const cuisineCount = restaurantData.basicInfo?.cuisines?.length || 0;
 
   return (
     <div className="min-h-screen bg-linear-to-br from-orange-50 to-red-50 p-6">
@@ -127,11 +129,38 @@ function ReviewPageContent() {
           </p>
         </div>
 
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <Card className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <BookOpen className="h-4 w-4 text-orange-500" />
+              <span className="text-2xl font-bold text-orange-600">{totalMenus}</span>
+            </div>
+            <p className="text-sm text-gray-600">{totalMenus === 1 ? 'Menu' : 'Menus'}</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <UtensilsCrossed className="h-4 w-4 text-blue-500" />
+              <span className="text-2xl font-bold text-blue-600">{totalDishes}</span>
+            </div>
+            <p className="text-sm text-gray-600">{totalDishes === 1 ? 'Dish' : 'Dishes'}</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Badge variant="secondary" className="text-lg font-bold px-2 py-0">{cuisineCount}</Badge>
+            </div>
+            <p className="text-sm text-gray-600">{cuisineCount === 1 ? 'Cuisine' : 'Cuisines'}</p>
+          </Card>
+        </div>
+
         {/* Restaurant Information Section */}
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl">Restaurant Information</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleBack}>
+            <div className="flex items-center gap-2">
+              {restaurantData.basicInfo && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+              <CardTitle className="text-2xl">Restaurant Information</CardTitle>
+            </div>
+            <Button size="sm" onClick={handleBack}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
@@ -227,15 +256,17 @@ function ReviewPageContent() {
         {/* Menu Section */}
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Menu</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">
-                {restaurantData.menus?.length || 0}{' '}
-                {restaurantData.menus?.length === 1 ? 'menu' : 'menus'} • {totalDishes}{' '}
-                {totalDishes === 1 ? 'dish' : 'dishes'}
-              </p>
+            <div className="flex items-center gap-2">
+              {totalDishes > 0 && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+              <div>
+                <CardTitle className="text-2xl">Menu</CardTitle>
+                <p className="text-sm text-gray-500 mt-1">
+                  {totalMenus} {totalMenus === 1 ? 'menu' : 'menus'} • {totalDishes}{' '}
+                  {totalDishes === 1 ? 'dish' : 'dishes'}
+                </p>
+              </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleEditMenu}>
+            <Button size="sm" onClick={handleEditMenu}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
@@ -307,7 +338,7 @@ function ReviewPageContent() {
                                     key={allergen}
                                     className="bg-orange-100 text-orange-800 capitalize"
                                   >
-                                    ⚠️ {allergen}
+                                    <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />{allergen}
                                   </Badge>
                                 ))}
                               </div>

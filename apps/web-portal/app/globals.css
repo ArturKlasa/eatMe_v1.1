@@ -48,10 +48,20 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Spacing token utilities — consume via p-card, p-card-compact, gap-section, etc. */
+  --spacing-card: var(--card-padding);
+  --spacing-card-compact: var(--card-padding-compact);
+  --spacing-section: var(--section-gap);
 }
 
 :root {
   --radius: 0.625rem;
+
+  /* Standardized spacing tokens */
+  --card-padding: 1.5rem;
+  --card-padding-compact: 1rem;
+  --section-gap: 1.5rem;
 
   /* EatMe brand colors */
   --brand-primary: oklch(0.651 0.201 38.2); /* #FF6B35 – main orange CTA */
@@ -134,4 +144,18 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes auto-save-fade {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-auto-save-fade {
+  animation: auto-save-fade 3s ease-out forwards;
 }

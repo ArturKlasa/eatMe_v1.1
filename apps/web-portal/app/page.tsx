@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Utensils,
-  Settings,
-  Download,
   ChefHat,
   MapPin,
   CheckCircle2,
   ArrowRight,
   LogOut,
+  Clock,
+  Check,
 } from 'lucide-react';
 import { loadRestaurantData } from '@/lib/storage';
 import { FormProgress } from '@/types/restaurant';
@@ -22,6 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { getRestaurantSummary, type DashboardRestaurant } from '@/lib/restaurantService';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 
 function DashboardContent() {
   const { user, signOut } = useAuth();
@@ -99,61 +101,41 @@ function DashboardContent() {
     },
   ];
 
-  const quickActions = [
-    {
-      title: 'Download Template',
-      description: 'Get CSV template for bulk menu import',
-      icon: Download,
-      action: 'download-template',
-    },
-    {
-      title: 'Settings',
-      description: 'Configure portal preferences',
-      icon: Settings,
-      action: 'settings',
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-orange-500 rounded-lg p-2">
-                <ChefHat className="h-6 w-6 text-white" />
+          <PageHeader
+            title="EatMe Restaurant Portal"
+            description={`Welcome, ${user?.user_metadata?.restaurant_name || user?.email}`}
+            actions={
+              <div className="flex items-center gap-4">
+                {savedData?.lastSaved && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Draft saved locally
+                  </Badge>
+                )}
+                {userRestaurant && !savedData?.lastSaved && (
+                  <Badge variant="secondary" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
+                    <Check className="h-3 w-3" />
+                    Saved
+                  </Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">EatMe Restaurant Portal</h1>
-                <p className="text-sm text-gray-600">
-                  Welcome, {user?.user_metadata?.restaurant_name || user?.email}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {savedData?.lastSaved && (
-                <Badge variant="secondary">
-                  Last saved: {new Date(savedData.lastSaved).toLocaleString()}
-                </Badge>
-              )}
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
+            }
+          />
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
         {/* Loading state */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading your restaurant...</p>
-          </div>
-        )}
+        {loading && <LoadingSkeleton variant="card" count={2} />}
 
         {/* New user welcome */}
         {!loading && !userRestaurant && !savedData && (
@@ -280,28 +262,6 @@ function DashboardContent() {
                     </CardContent>
                   </Card>
                 </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        {!loading && (
-          <div>
-            <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              {quickActions.map(action => (
-                <Card key={action.title} className="hover:bg-gray-50 cursor-pointer">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <action.icon className="h-5 w-5 text-gray-600" />
-                      <div>
-                        <CardTitle className="text-base">{action.title}</CardTitle>
-                        <CardDescription className="text-sm">{action.description}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
               ))}
             </div>
           </div>

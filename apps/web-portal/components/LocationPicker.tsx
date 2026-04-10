@@ -19,9 +19,10 @@
  * doesn't support the API or the user denies the permission prompt.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type L from 'leaflet';
 import { parseNominatimAddress, type ParsedLocationDetails } from '@/lib/parseAddress';
+import { toast } from 'sonner';
 
 interface LocationPickerProps {
   initialLat?: number;
@@ -43,28 +44,15 @@ export default function LocationPicker({
   onAddressSelect,
   onLocationDetails,
 }: LocationPickerProps) {
-  console.log(
-    '[LocationPicker] Component render - initialLat:',
-    initialLat,
-    'initialLng:',
-    initialLng
-  );
-
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(
     initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
   );
+  const [mapLoading, setMapLoading] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
-
-  // Component mount/unmount logging
-  useEffect(() => {
-    console.log('[LocationPicker] Component MOUNTED');
-    return () => {
-      console.log('[LocationPicker] Component UNMOUNTING');
-    };
-  }, []);
+  const lastGeocodeRef = useRef<number>(0);
 
   // Get user's current location
   useEffect(() => {
@@ -77,13 +65,15 @@ export default function LocationPicker({
           });
         },
         error => {
-          console.error('Error getting location:', error);
+          if (error.code === error.PERMISSION_DENIED) {
+            toast.warning('Location access denied. Showing default location — click the map to set your restaurant\'s position.');
+          }
           // Default to a central location if geolocation fails
           setUserLocation({ lat: 40.7128, lng: -74.006 }); // New York
         }
       );
     } else {
-      // Default location if geolocation is not supported
+      toast.warning('Geolocation is not supported by your browser. Click the map to set your restaurant\'s position.');
       setUserLocation({ lat: 40.7128, lng: -74.006 }); // New York
     }
   }, []);
@@ -150,13 +140,17 @@ export default function LocationPicker({
         onLocationSelect(lat, lng);
 
         // Perform reverse geocoding when at least one detail callback is provided
+        // Throttle to max 1 request per second
         if (onAddressSelect || onLocationDetails) {
-          try {
-            console.log('[LocationPicker] Fetching reverse geocoding...');
-            console.log('[LocationPicker] Coordinates:', { lat, lng });
+          const now = Date.now();
+          const timeSinceLast = now - lastGeocodeRef.current;
+          if (timeSinceLast < 1000) {
+            await new Promise(resolve => setTimeout(resolve, 1000 - timeSinceLast));
+          }
+          lastGeocodeRef.current = Date.now();
 
+          try {
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
-            console.log('[LocationPicker] Fetching from URL:', url);
 
             const response = await fetch(url, {
               headers: {
@@ -165,25 +159,15 @@ export default function LocationPicker({
               },
             });
 
-            console.log('[LocationPicker] Response status:', response.status);
-
             if (response.ok) {
               const data = await response.json();
-              console.log('[LocationPicker] Response data:', data);
 
-              // Parse the structured address object first so we can reuse it
-              // for both callbacks without parsing twice.
               const parsed = data.address
                 ? parseNominatimAddress(data.display_name || '', data.address)
                 : null;
 
-              // Fill the "Full Address" field with only the street-level part
-              // (house number + road). City, postal code and country are
-              // handled separately via onLocationDetails so they don't end up
-              // duplicated in the address field.
               if (onAddressSelect) {
                 const streetAddress = parsed?.streetAddress || '';
-                console.log('[LocationPicker] Calling onAddressSelect with:', streetAddress);
                 onAddressSelect(streetAddress);
               }
 
@@ -192,21 +176,15 @@ export default function LocationPicker({
               if (onLocationDetails && parsed) {
                 onLocationDetails(parsed);
               }
-            } else {
-              const errorText = await response.text();
-              console.error(
-                '[LocationPicker] Reverse geocoding failed:',
-                response.status,
-                errorText
-              );
             }
-          } catch (error) {
-            console.error('[LocationPicker] Error fetching address:', error);
+          } catch {
+            // Reverse geocoding failed — non-critical, user can fill address manually
           }
         }
       });
 
       mapRef.current = map;
+      setMapLoading(false);
     };
 
     initializeMap();
@@ -224,11 +202,22 @@ export default function LocationPicker({
 
   return (
     <div className="space-y-3">
-      <div
-        ref={mapContainerRef}
-        className="w-full h-64 rounded-lg border-2 border-gray-300 relative z-0"
-        style={{ minHeight: '256px' }}
-      />
+      <div className="relative">
+        {mapLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg z-10">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <span className="text-sm">Loading map...</span>
+            </div>
+          </div>
+        )}
+        <div
+          ref={mapContainerRef}
+          aria-label="Restaurant location map"
+          className="w-full h-64 rounded-lg border-2 border-gray-300 relative z-0"
+          style={{ minHeight: '256px' }}
+        />
+      </div>
     </div>
   );
 }

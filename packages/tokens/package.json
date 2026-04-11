@@ -18,6 +18,7 @@
     "generate:css": "tsx scripts/generate-css-vars.ts"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "culori": "^4.0.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.2"

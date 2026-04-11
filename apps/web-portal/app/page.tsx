@@ -17,7 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { loadRestaurantData } from '@/lib/storage';
-import { FormProgress } from '@/types/restaurant';
+import type { FormProgress } from '@eatme/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { getRestaurantSummary, type DashboardRestaurant } from '@/lib/restaurantService';

@@ -38,7 +38,12 @@ export function estimateAvgPrice(
   }
 }
 
-// Restaurant type used by filter service
+/**
+ * Lightweight restaurant shape consumed by filter and sort algorithms.
+ * Maps from `RestaurantWithDistance` (returned by the geo Edge Function) to
+ * the fields the filter pipeline actually needs, keeping the filter logic
+ * decoupled from the full Supabase response type.
+ */
 export interface Restaurant {
   id: string;
   name: string;
@@ -437,7 +442,11 @@ export function getFilterSuggestions(
 
 /**
  * Performance-optimized filtering for large datasets
- * Uses indexing and memoization for better performance
+ * Uses indexing and memoization for better performance.
+ *
+ * Intended for use when the same filter set is applied repeatedly to a large
+ * list — the hash-based cache avoids re-running the O(n) filter pipeline on
+ * every render when neither the data nor the filter state has changed.
  */
 export class FilterEngine {
   private indexedRestaurants: Map<string, Restaurant[]> = new Map();

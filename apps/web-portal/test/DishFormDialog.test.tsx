@@ -10,7 +10,7 @@ import { DishPhotoField } from '@/components/forms/dish/DishPhotoField';
 import { DishCategorySelect } from '@/components/forms/dish/DishCategorySelect';
 import { IngredientAutocomplete } from '@/components/IngredientAutocomplete';
 import { DishFormDialog } from '@/components/forms/DishFormDialog';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -56,14 +56,7 @@ vi.mock('@/lib/ingredients', () => ({
   searchIngredients: (...args: unknown[]) => mockSearchIngredients(...args),
 }));
 
-// Mock sonner toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-  },
-}));
+// sonner is globally mocked in test/setup.ts
 
 // Mock validation schema
 vi.mock('@/lib/validation', async () => {

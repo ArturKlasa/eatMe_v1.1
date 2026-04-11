@@ -1,21 +1,42 @@
+/**
+ * useDishFormData Hook
+ *
+ * Loads and manages the supporting data (ingredients, allergens, dietary tags,
+ * option groups) required by the dish form dialog. Handles both new-dish creation
+ * and edit mode, resetting state when the dialog opens or the target dish changes.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { type UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
-import type { Dish, OptionGroup } from '@/types/restaurant';
+import type { Dish, OptionGroup } from '@eatme/shared';
 import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 import type { RawOptionGroup } from '@/lib/restaurantService';
 import { toast } from 'sonner';
 
+/** Options for {@link useDishFormData}. */
 interface UseDishFormDataOptions {
+  /** Existing dish to edit, or null/undefined for a new dish. */
   dish?: (Partial<Dish> & { id?: string }) | null;
+  /** Whether the parent dialog is currently open — controls reset timing. */
   isOpen: boolean;
+  /** Pre-fills dishType from the parent menu's type. */
   menuType?: 'food' | 'drink';
+  /** Required in DB mode to set `restaurant_id` on new dishes. */
   restaurantId?: string;
+  /** Required in DB mode to set `menu_category_id` on new dishes. */
   menuCategoryId?: string;
+  /** react-hook-form methods (passed in so the caller keeps control of the form instance). */
   methods: UseFormReturn<DishFormData>;
+  /**
+   * Called instead of a DB write when the form is inside a wizard.
+   * Receives the assembled local Dish object so the caller can stage it.
+   */
   onWizardSubmit?: (dish: Dish) => void;
+  /** Called after a successful DB save so the caller can refresh its data. */
   onSuccess?: () => void;
+  /** Called to close the parent dialog after submit or cancel. */
   onClose: () => void;
 }
 
@@ -38,6 +59,20 @@ const DEFAULT_VALUES: DishFormData = {
   option_groups: [],
 };
 
+/**
+ * Manages dish form state, ingredient/option-group loading, and form submission.
+ *
+ * Handles two submission modes:
+ * - **Wizard mode** (`onWizardSubmit` provided): assembles a local Dish object and
+ *   hands it to the caller without touching Supabase — used in the onboarding wizard.
+ * - **DB mode** (no `onWizardSubmit`): writes directly to Supabase then calls `onSuccess`.
+ *
+ * Automatically loads existing ingredients and option groups when `dish.id` is set
+ * and the dialog is opened.
+ *
+ * @param options - See {@link UseDishFormDataOptions}.
+ * @returns Form state and event handlers to wire into the dish form UI.
+ */
 export function useDishFormData({
   dish,
   isOpen,

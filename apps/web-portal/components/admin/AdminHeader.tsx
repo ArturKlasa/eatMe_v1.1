@@ -33,12 +33,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
 
       if (error) throw error;
 
-      // SECURITY LOG: Admin logout
-      console.log('[Auth] Admin logged out:', {
-        userId: user.id,
-        email: user.email,
-        timestamp: new Date().toISOString(),
-      });
 
       toast.success('Logged out successfully');
       router.push('/auth/login');

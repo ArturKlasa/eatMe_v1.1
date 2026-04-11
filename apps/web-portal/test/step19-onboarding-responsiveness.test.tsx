@@ -28,9 +28,7 @@ vi.mock('@/lib/storage', () => ({
   cancelAutoSave: vi.fn(),
 }));
 
-vi.mock('sonner', () => ({
-  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), warning: vi.fn() }),
-}));
+// sonner is globally mocked in test/setup.ts
 
 vi.mock('@/lib/constants', () => ({
   DAYS_OF_WEEK: [{ key: 'monday', label: 'Monday' }],

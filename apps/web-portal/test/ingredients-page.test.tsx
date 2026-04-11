@@ -2,10 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-// Mock sonner
-vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
-}));
+// sonner is globally mocked in test/setup.ts
 
 // Mock ui-constants — use semantic tokens to avoid the no-hardcoded-colors CI check
 vi.mock('@/lib/ui-constants', () => ({

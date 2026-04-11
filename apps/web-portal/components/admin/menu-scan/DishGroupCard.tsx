@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Unlink, Check, X, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { DISH_KINDS } from '@/lib/constants';
+import { DISH_KINDS } from '@eatme/shared';
 import type { EditableDish } from '@/lib/menu-scan';
 
 interface DishGroupCardProps {

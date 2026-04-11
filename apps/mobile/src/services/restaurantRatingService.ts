@@ -6,6 +6,14 @@
 
 import { supabase } from '../lib/supabase';
 
+/**
+ * Aggregated restaurant-level rating data, derived from the
+ * `restaurant_ratings_summary` materialized view.
+ *
+ * `foodScore` is a 0–100 composite of dish like/dislike ratios.
+ * All `*Percentage` fields represent the share of positive responses
+ * for that experience dimension (0–100).
+ */
 export interface RestaurantRating {
   restaurantId: string;
   foodScore: number;

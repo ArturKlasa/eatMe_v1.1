@@ -1,3 +1,11 @@
+/**
+ * GET /api/admin/import/google — Returns current-month Google Places API usage stats.
+ * POST /api/admin/import/google — Runs a nearby or text search and bulk-imports results.
+ *
+ * Deduplicates against existing restaurants using string-similarity matching.
+ * Usage tracking prevents runaway API costs during bulk import sessions.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
 import {

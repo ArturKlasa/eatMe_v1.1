@@ -1,3 +1,11 @@
+/**
+ * Dish Categories Service
+ *
+ * Supabase data operations for the global dish category taxonomy.
+ * Categories form a two-level tree (parent → child) used to organise menu items
+ * and drive the food-discovery filter UI.
+ */
+
 import { supabase } from './supabase';
 import type { PostgrestError } from '@supabase/supabase-js';
 

@@ -2,7 +2,7 @@
 
 import { useFormContext } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 
 export function DishVisibilityFields() {
   const { register } = useFormContext<DishFormData>();

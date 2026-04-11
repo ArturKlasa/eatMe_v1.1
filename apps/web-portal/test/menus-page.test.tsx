@@ -9,10 +9,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/restaurants/restaurant-123/menus',
 }));
 
-// Mock sonner
-vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
-}));
+// sonner is globally mocked in test/setup.ts
 
 // Mock Supabase with chainable API
 const mockSingle = vi.fn().mockResolvedValue({

@@ -1,3 +1,11 @@
+/**
+ * UI Constants
+ *
+ * Shared design tokens and lookup maps used across the web portal UI:
+ * colour variants for status badges, icon mappings, and display labels.
+ * These are presentation-layer constants — domain constants live in `@eatme/shared`.
+ */
+
 // ---------------------------------------------------------------------------
 // Shared design tokens & constant maps
 // ---------------------------------------------------------------------------

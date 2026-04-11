@@ -11,7 +11,9 @@
 
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { colors } from './theme';
-import { atomic, filterBase, buttonBase, createTextStyle, createBorder } from './common';
+import { atomic } from './atomic';
+import { filterBase, buttonBase } from './bases';
+import { createTextStyle, createBorder } from './factories';
 
 /**
  * Filter Components - Reuses filterBase pattern

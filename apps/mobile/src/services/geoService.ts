@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
 import { debugLog } from '../config/environment';
 
+/** Request payload sent to the nearby-restaurants Edge Function. */
 export interface NearbyRestaurantsRequest {
   latitude: number;
   longitude: number;
@@ -25,6 +26,10 @@ export interface NearbyRestaurantsRequest {
   };
 }
 
+/**
+ * Restaurant row returned by the nearby-restaurants Edge Function,
+ * extended with a `distance` field (kilometres from the user's coordinates).
+ */
 export interface RestaurantWithDistance {
   id: string;
   name: string;
@@ -80,6 +85,7 @@ type EdgeFunctionFilters = {
   proteinFamilies?: string[];
 };
 
+/** Response envelope returned by the nearby-restaurants Edge Function. */
 export interface NearbyRestaurantsResponse {
   restaurants: RestaurantWithDistance[];
   totalCount: number;

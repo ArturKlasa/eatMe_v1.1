@@ -226,6 +226,14 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
   IT: 'EUR',
 };
 
+/**
+ * Resolves the display currency for a restaurant.
+ * Uses `primaryCurrency` if set, falls back to the country→currency map, then defaults to USD.
+ *
+ * @param primaryCurrency - Explicit currency override stored on the restaurant row.
+ * @param countryCode - ISO 3166-1 alpha-2 country code (e.g. "MX", "GB").
+ * @returns ISO 4217 currency code (e.g. "MXN", "USD").
+ */
 export function getCurrencyForRestaurant(
   primaryCurrency: string | null | undefined,
   countryCode: string | null | undefined
@@ -308,6 +316,14 @@ export function normalizeDietaryHint(hint: string): string {
     .toLowerCase();
 }
 
+/**
+ * Converts raw AI dietary hint strings into canonical `dietary_tags.code` values.
+ * Handles multi-language variants, emoji, and common abbreviations.
+ * Automatically adds 'vegetarian' when 'vegan' is present.
+ *
+ * @param hints - Raw strings as returned by GPT-4o (e.g. ["V", "GF", "🌱"]).
+ * @returns Deduplicated array of `dietary_tags.code` values (e.g. ["vegan", "vegetarian", "gluten_free"]).
+ */
 export function mapDietaryHints(hints: string[]): string[] {
   const codes = new Set<string>();
   for (const hint of hints) {
@@ -582,6 +598,17 @@ export function mergeExtractionResults(
 // Convert enriched server result → editable client state
 // ---------------------------------------------------------------------------
 
+/**
+ * Converts the enriched server-side extraction result into the flat editable
+ * client state used by the menu scan review page.
+ *
+ * Parent dishes and their variant children are flattened into a single array
+ * with `parent_id`/`variant_ids` cross-references. Spice level integers are
+ * mapped to string literals ('none' | 'mild' | 'hot').
+ *
+ * @param enriched - Server result from the `/api/menu-scan` endpoint.
+ * @returns Array of editable menus ready to bind to the review UI.
+ */
 export function toEditableMenus(enriched: EnrichedResult): EditableMenu[] {
   return enriched.menus.map(menu => ({
     name: menu.name || 'Menu',
@@ -655,6 +682,17 @@ function enrichedToEditable(
 // Build confirm payload from editable state
 // ---------------------------------------------------------------------------
 
+/**
+ * Builds the {@link ConfirmPayload} to POST to `/api/menu-scan/confirm`.
+ *
+ * Rejected variant groups are excluded. Parent dishes carry their children
+ * in `variant_dishes`; child entries are not emitted at the top level.
+ *
+ * @param menus - Current editable menu state from the review UI.
+ * @param jobId - ID of the `menu_scan_jobs` record to mark as completed.
+ * @param restaurantId - Restaurant the dishes will be inserted under.
+ * @returns Payload ready to send to the confirm endpoint.
+ */
 export function buildConfirmPayload(
   menus: EditableMenu[],
   jobId: string,
@@ -729,6 +767,13 @@ function editableToConfirm(dish: EditableDish): ConfirmDish {
 // Count total dishes across all menus
 // ---------------------------------------------------------------------------
 
+/**
+ * Counts non-rejected dishes across all menus and categories.
+ * Used to show the total dish count in the review UI header.
+ *
+ * @param menus - Current editable menu state.
+ * @returns Total number of non-rejected dishes.
+ */
 export function countDishes(menus: EditableMenu[]): number {
   return menus.reduce(
     (total, menu) =>
@@ -745,6 +790,12 @@ export function countDishes(menus: EditableMenu[]): number {
 // Build an empty new dish for manual addition in the review UI
 // ---------------------------------------------------------------------------
 
+/**
+ * Creates a blank {@link EditableDish} with sensible defaults.
+ * Used when the admin manually adds a dish in the review UI.
+ *
+ * @returns A new dish with a fresh UUID `_id` and `group_status: 'manual'`.
+ */
 export function newEmptyDish(): EditableDish {
   return {
     _id: crypto.randomUUID(),

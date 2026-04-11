@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { InfoBox } from '@/components/InfoBox';
-import { COUNTRIES } from '@/lib/constants';
+import { COUNTRIES } from '@eatme/shared';
 import type { ParsedLocationDetails } from '@/lib/parseAddress';
 import { toast } from 'sonner';
 

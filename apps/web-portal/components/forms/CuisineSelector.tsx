@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
-import { CUISINES, POPULAR_CUISINES } from '@/lib/constants';
+import { CUISINES, POPULAR_CUISINES } from '@eatme/shared';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';

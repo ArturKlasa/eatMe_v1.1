@@ -1,5 +1,13 @@
+/**
+ * Import Validation
+ *
+ * Zod schema and validator for the intermediate `MappedRestaurant` shape produced
+ * by import adapters (CSV, Google Places). Catches bad coordinates, unknown cuisine
+ * codes, and missing required fields before any data is written to the database.
+ */
+
 import { z } from 'zod';
-import { RESTAURANT_TYPES, CUISINES, COUNTRIES } from '@/lib/constants';
+import { RESTAURANT_TYPES, CUISINES, COUNTRIES } from '@eatme/shared';
 import type { MappedRestaurant, ValidationResult, ImportError } from '@/lib/import-types';
 
 const VALID_RESTAURANT_TYPES: string[] = RESTAURANT_TYPES.map((t) => t.value);

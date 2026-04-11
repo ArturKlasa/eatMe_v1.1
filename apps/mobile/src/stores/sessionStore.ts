@@ -15,6 +15,13 @@ import { debugLog } from '../config/environment';
 const SESSION_STORAGE_KEY = 'eatme_session_views';
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour (session ends after 1 hour of inactivity)
 
+/**
+ * State and actions for the session tracking store.
+ *
+ * A "session" represents one continuous period of app use. Views recorded
+ * during a session are persisted to `AsyncStorage` (for offline access) and
+ * synced to the `user_sessions` Supabase table when the user is signed in.
+ */
 interface SessionState {
   // Current session ID from database
   currentSessionId: string | null;
@@ -59,6 +66,13 @@ interface SessionState {
   saveToStorage: () => Promise<void>;
 }
 
+/**
+ * Zustand store for user session tracking.
+ *
+ * Call `startSession()` on app launch and `endSession()` before the app goes
+ * to background. Use `trackRestaurantView` / `trackDishView` on every screen
+ * mount so the rating-prompt logic has enough data to decide when to ask.
+ */
 export const useSessionStore = create<SessionState>((set, get) => ({
   currentSessionId: null,
   views: [],

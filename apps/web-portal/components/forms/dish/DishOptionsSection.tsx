@@ -16,10 +16,10 @@ import {
   DISPLAY_PRICE_PREFIXES,
   SELECTION_TYPES,
   OPTION_PRESETS,
-} from '@/lib/constants';
+} from '@eatme/shared';
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
-import type { OptionGroup } from '@/types/restaurant';
-import type { DishFormData } from '@/lib/validation';
+import type { OptionGroup } from '@eatme/shared';
+import type { DishFormData } from '@eatme/shared';
 
 interface DishOptionsSectionProps {
   optionGroups: OptionGroup[];

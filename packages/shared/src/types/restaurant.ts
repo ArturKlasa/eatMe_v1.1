@@ -1,8 +1,35 @@
-import type { Ingredient } from '@/lib/ingredients';
+/**
+ * Restaurant Domain Types
+ *
+ * Core interfaces for the EatMe data model: locations, ingredients, dishes,
+ * menus, restaurants, and the onboarding wizard state. These are the types
+ * shared between the mobile app and the web portal.
+ *
+ * Relationship overview:
+ *   RestaurantData  — top-level container for one onboarding submission
+ *     ├── restaurant: RestaurantBasicInfo & RestaurantOperations
+ *     └── menus: Menu[]
+ *           └── dishes: Dish[]
+ *                 └── option_groups?: OptionGroup[]
+ *                       └── options: Option[]
+ */
 
+/** Geographic coordinate pair. Matches the PostGIS POINT(lng lat) layout used in Supabase. */
 export interface Location {
   lat: number;
   lng: number;
+}
+
+/** Canonical ingredient alias returned from the ingredient_aliases table. */
+export interface Ingredient {
+  id: string; // ingredient_alias.id
+  display_name: string; // ingredient_alias.display_name
+  canonical_ingredient_id: string;
+  canonical_name?: string; // flattened from canonical_ingredient.canonical_name
+  ingredient_family_name?: string; // flattened from canonical_ingredient.ingredient_family_name
+  is_vegetarian?: boolean; // flattened from canonical_ingredient.is_vegetarian
+  is_vegan?: boolean; // flattened from canonical_ingredient.is_vegan
+  quantity?: string; // optional quantity when added to a dish
 }
 
 /** UI-only: ingredient selected via IngredientAutocomplete, with optional quantity. */
@@ -10,15 +37,20 @@ export interface SelectedIngredient extends Ingredient {
   quantity?: string;
 }
 
+/** How a dish is composed: single item, customisable template, tasting experience, or combo bundle. */
 export type DishKind = 'standard' | 'template' | 'experience' | 'combo';
+/** How a menu's availability repeats: fixed weekly hours, varies day-by-day, or rotates periodically. */
 export type ScheduleType = 'regular' | 'daily' | 'rotating';
+/** How the base price should be labelled in the UI (e.g. "from 12 PLN", "per person", "market price"). */
 export type DisplayPricePrefix = 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
 
+/** A single selectable choice within an option group (e.g. "extra cheese +2 PLN"). */
 export interface Option {
   id?: string;
   option_group_id?: string;
   name: string;
   description?: string;
+  /** Price adjustment in the restaurant's local currency; positive = surcharge, negative = discount. */
   price_delta: number;
   calories_delta?: number | null;
   canonical_ingredient_id?: string | null;
@@ -26,6 +58,11 @@ export interface Option {
   display_order?: number;
 }
 
+/**
+ * A named group of options shown to the guest at order time (e.g. "Choose your size").
+ * Attached to dishes with `dish_kind = 'template'` or `'experience'`, or applied
+ * category-wide via `menu_category_id`.
+ */
 export interface OptionGroup {
   id?: string;
   restaurant_id?: string;
@@ -33,6 +70,7 @@ export interface OptionGroup {
   menu_category_id?: string | null;
   name: string;
   description?: string;
+  /** Controls how many options a guest may pick: single = radio, multiple = checkbox, quantity = stepper. */
   selection_type: 'single' | 'multiple' | 'quantity';
   min_selections?: number;
   max_selections?: number | null;
@@ -41,6 +79,10 @@ export interface OptionGroup {
   options: Option[];
 }
 
+/**
+ * Weekly operating schedule. Each day is optional — omitting a day means the
+ * restaurant is closed that day. Times are HH:MM strings in local time.
+ */
 export interface OperatingHours {
   monday?: { open: string; close: string };
   tuesday?: { open: string; close: string };
@@ -51,6 +93,10 @@ export interface OperatingHours {
   sunday?: { open: string; close: string };
 }
 
+/**
+ * Canonical dish category from the `dish_categories` table (e.g. "Pizza", "Salads").
+ * Categories form a two-level hierarchy via `parent_category_id`.
+ */
 export interface DishCategory {
   id: string;
   name: string;
@@ -61,6 +107,14 @@ export interface DishCategory {
   updated_at: string;
 }
 
+/**
+ * A single menu item. Dishes can be standalone, parent containers (display-only),
+ * or variant children (e.g. different sizes of the same pizza).
+ *
+ * Variant hierarchy: a `parent_dish_id` links a variant to its parent.
+ * Parents with `is_parent = true` are display-only containers and are excluded
+ * from the consumer-facing feed — only their variant children appear.
+ */
 export interface Dish {
   id?: string;
   menu_id?: string; // Reference to which menu this dish belongs to
@@ -100,6 +154,10 @@ export interface Dish {
   variants?: Dish[];
 }
 
+/**
+ * A named collection of dishes offered by a restaurant (e.g. "Lunch Menu", "Drinks").
+ * Each menu has a schedule type that controls when it is available.
+ */
 export interface Menu {
   id: string;
   name: string;
@@ -115,6 +173,10 @@ export interface Menu {
   dishes: Dish[];
 }
 
+/**
+ * Venue classification used for filtering and display.
+ * Must stay in sync with the `RESTAURANT_TYPES` constant and the Postgres enum.
+ */
 export type RestaurantType =
   | 'restaurant'
   | 'cafe'
@@ -127,6 +189,7 @@ export type RestaurantType =
   | 'ghost_kitchen'
   | 'other';
 
+/** Identity and location fields collected on Step 1 of the onboarding wizard. */
 export interface RestaurantBasicInfo {
   name: string;
   restaurant_type?: RestaurantType;
@@ -143,8 +206,10 @@ export interface RestaurantBasicInfo {
   cuisines: string[];
 }
 
+/** Accepted payment methods; shown as a badge on the restaurant detail screen. */
 export type PaymentMethods = 'cash_only' | 'card_only' | 'cash_and_card';
 
+/** Operational attributes collected on Step 1 (cont.) of the onboarding wizard. */
 export interface RestaurantOperations {
   operating_hours: OperatingHours;
   delivery_available: boolean;
@@ -155,12 +220,19 @@ export interface RestaurantOperations {
   payment_methods?: PaymentMethods;
 }
 
+/**
+ * Top-level container for a complete restaurant submission.
+ * Combines the restaurant profile (identity + operations) with its full
+ * menu hierarchy. This is the shape persisted during onboarding and read
+ * back by the admin portal when editing an existing restaurant.
+ */
 export interface RestaurantData {
   restaurant: RestaurantBasicInfo & RestaurantOperations;
   menus: Menu[];
   dishes: Dish[]; // Keep for backwards compatibility, but prefer using menus
 }
 
+/** Metadata for a single step in the onboarding wizard sidebar navigator. */
 export interface WizardStep {
   id: number;
   title: string;
@@ -168,6 +240,10 @@ export interface WizardStep {
   isComplete: boolean;
 }
 
+/**
+ * In-progress onboarding state persisted to localStorage under the
+ * `restaurant-draft` key. Allows the wizard to resume after a page refresh.
+ */
 export interface FormProgress {
   restaurant_id?: string; // Track existing restaurant for updates
   basicInfo: Partial<RestaurantBasicInfo>;

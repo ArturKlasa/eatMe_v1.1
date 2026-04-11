@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RESTAURANT_TYPES } from '@/lib/constants';
+import { RESTAURANT_TYPES } from '@eatme/shared';
 import type { BasicInfoFormData } from './types';
 
 interface BasicInfoFieldsProps {

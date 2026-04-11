@@ -154,8 +154,21 @@ export const restaurantDataSchema = z.object({
 // These are the canonical form-data types used with React Hook Form across the
 // onboarding wizard. Always derive from the schema to keep validation and types in sync.
 
+/** Form data shape for the basic-info wizard step (Step 1a). */
 export type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
+
+/** Form data shape for the operations wizard step (Step 1b: hours, services, payment). */
 export type OperationsFormData = z.infer<typeof operationsSchema>;
+
+/**
+ * Form data shape for a single dish (Step 2).
+ * Uses `z.input` (not `z.infer`) so optional fields with `.default()` are
+ * treated as optional in the form rather than required after transformation.
+ */
 export type DishFormData = z.input<typeof dishSchema>;
+
+/** Form data shape for the full menu submission (array of dishes). */
 export type MenuFormData = z.infer<typeof menuSchema>;
+
+/** Form data shape for the final review step — the complete restaurant + dishes payload. */
 export type RestaurantDataFormData = z.infer<typeof restaurantDataSchema>;

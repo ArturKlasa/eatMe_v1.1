@@ -25,7 +25,7 @@ import type { OperatingHoursValue } from '@/components/forms/OperatingHoursEdito
 import { LocationFormSection } from '@/components/LocationFormSection';
 import { SectionCard } from '@/components/SectionCard';
 import { InfoBox } from '@/components/InfoBox';
-import { RESTAURANT_TYPES, PAYMENT_METHOD_OPTIONS } from '@/lib/constants';
+import { RESTAURANT_TYPES, PAYMENT_METHOD_OPTIONS } from '@eatme/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRestaurantDraft } from '@/lib/hooks/useRestaurantDraft';
 import type { BasicInfoFormData } from '@/components/onboarding/types';

@@ -1,6 +1,6 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Web Portal Redesign
-# Task: Implement 20-step plan at .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
+# Project: EatMe — Codebase Refactor
+# Task: Implement 22-step plan at .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
 # Pattern: Linear pipeline — implementer → verifier (build) → critic (design) → stepper → (loop or done)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
@@ -11,28 +11,27 @@ cli:
 event_loop:
   completion_promise: "LOOP_COMPLETE"
   starting_event: "start"
-  max_iterations: 160              # 20 steps × ~6-8 iterations each (4 hats per cycle)
-  max_runtime_seconds: 21600       # 6 hours
+  max_iterations: 200              # 22 steps × ~6-9 iterations each (4 hats per cycle)
+  max_runtime_seconds: 28800       # 8 hours (refactor touches more files than a feature build)
   idle_timeout_secs: 600           # 10 min idle threshold
   checkpoint_interval: 2           # git checkpoint every 2 iterations
 
 core:
-  specs_dir: ".agents/planning/2026-04-10-web-portal-redesign/"
+  specs_dir: ".agents/planning/2026-04-11-eatme-code-refactor/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Implementation plan: .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md — work through steps in order, one at a time."
-    - "Design document: .agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md — the authoritative source for all interfaces, component specs, and token mappings."
-    - "Steps 1–20 modify apps/web-portal/ only, EXCEPT Step 2 which also modifies packages/tokens/."
-    - "Do NOT modify apps/mobile/, infra/, or any package other than packages/tokens/ (Step 2 only)."
-    - "CRITICAL: Do NOT break existing functionality. Every page and API route that worked before must still work after each step."
-    - "After any TypeScript change, run `pnpm turbo run build --filter=web-portal` and fix ALL errors before marking a step complete."
-    - "After any lint-sensitive change, run `pnpm turbo run lint --filter=web-portal` and fix warnings/errors."
-    - "Each step includes test requirements — write and run those tests before marking the step complete."
-    - "Do NOT add new npm dependencies without first checking that no existing package already provides the functionality."
+    - "Implementation plan: .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md — work through steps in order, one at a time."
+    - "Design document: .agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md — the authoritative source for all package specs, file splits, and component interfaces."
+    - "This is a REFACTOR — no new features, no database changes, no framework migrations. Behavior must be identical before and after each step."
+    - "CRITICAL: Do NOT break existing functionality. Every page, API route, and import that worked before must still work after each step."
+    - "After any TypeScript change, run `turbo build && turbo check-types` and fix ALL errors before marking a step complete."
+    - "After any lint-sensitive change, run `turbo lint` and fix errors (warnings are acceptable)."
+    - "Each step includes test requirements — verify them before marking the step complete."
+    - "Barrel exports must be maintained at all times — splitting files must not break any external imports."
+    - "Do NOT add new npm dependencies without explicit plan authorization (only eslint-plugin-jsdoc, husky, lint-staged are authorized)."
     - "Do NOT modify files unrelated to the current implementation step."
-    - "Do NOT refactor, rename, or reformat code outside the scope of each step."
     - "Prefer editing existing files over creating new ones. Only create new files when the plan explicitly calls for them."
-    - "Never hardcode colors. All colors must use semantic Tailwind token classes (bg-background, text-foreground, text-muted-foreground, bg-brand-primary, etc.)."
+    - "When adding JSDoc comments, focus on 'why' explanations, not restating what the code does. Follow the patterns in packages/database/src/client.ts."
 
 memories:
   enabled: true
@@ -47,14 +46,14 @@ tasks:
 hats:
   implementer:
     name: "Implementer"
-    emoji: "🔧"
+    emoji: "\U0001F527"
     description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs build validation"
     instructions: |
-      You are a senior Next.js / TypeScript / Tailwind CSS v4 / shadcn/ui / Supabase engineer implementing
-      the EatMe web portal redesign.
+      You are a senior TypeScript / React / React Native / Supabase engineer performing a codebase refactor
+      on the EatMe monorepo (pnpm + Turborepo).
 
       Start by reading the checklist in:
-        .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
+        .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
 
       Find the FIRST unchecked item [ ] and implement that step only.
 
@@ -62,135 +61,102 @@ hats:
         1. Read the scratchpad (.agent/scratchpad.md) first — it may contain progress notes from a previous
            iteration on the same step (e.g., after a retry). Continue from where you left off.
         2. Read the full step description in the implementation plan and the relevant section in:
-           .agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md
+           .agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md
         3. Read every file you plan to modify or reference BEFORE changing it.
         4. Implement exactly what the step describes. No extra refactoring, no speculative additions.
-        5. Run `pnpm turbo run build --filter=web-portal` after any TypeScript changes. Fix all errors.
-        6. If the step includes test requirements, write and run tests with `cd apps/web-portal && npx vitest run`. Fix failures.
+        5. Run `turbo build && turbo check-types` after any TypeScript changes. Fix all errors.
+        6. If the step includes test requirements, run `cd apps/web-portal && npx vitest run`. Fix failures.
         7. Mark the step complete: change `[ ]` to `[x]` in the checklist.
         8. Clear the scratchpad (replace contents with "Step N complete") and emit `step.complete` with a short summary.
 
       Step-specific notes:
 
-        Step 1 (quick wins):
-          - Remove mapbox-gl and react-map-gl from apps/web-portal/package.json and run pnpm install.
-          - Create middleware.ts using @supabase/ssr createServerClient to read session cookies.
-          - Protected routes: /admin/*, /menu/*, /restaurant/*, /onboard/* → /auth/login if unauthenticated.
-          - Already-authenticated users on /auth/login or /auth/signup → redirect to /.
-          - Create app/loading.tsx and app/admin/loading.tsx using the existing LoadingSkeleton component.
+        Step 1 (package scaffold):
+          - Create packages/shared/ with package.json, tsconfig.json, and empty barrel exports.
+          - Add "@eatme/shared": "workspace:*" to both apps' package.json.
+          - Add "@eatme/shared" to next.config.ts transpilePackages array (alongside @eatme/database).
+          - Run `pnpm install` to link the workspace package.
+          - pnpm-workspace.yaml already includes packages/* — no change needed there.
 
-        Step 2 (token pipeline):
-          - Add culori and tsx as dev deps to packages/tokens only: pnpm add -D culori tsx.
-          - Create packages/tokens/scripts/generate-css-vars.ts — converts hex→oklch via culori, px→rem.
-          - Add card: 24 to the spacing tokens before generating.
-          - Update @eatme/tokens colors to use orange as brand primary (#FF9800 replacing #007AFF).
-          - Output writes to apps/web-portal/app/tokens.css.
-          - Add @import './tokens.css'; as the FIRST line of apps/web-portal/app/globals.css.
-          - Add prebuild and predev scripts to root package.json.
+        Step 2 (constants extraction):
+          - Create 7 constant files in packages/shared/src/constants/.
+          - Merge web-portal CUISINES (67 items) with mobile ALL_CUISINES (67 items + 4 extras: Asian, Comfort Food, Fine Dining, International).
+          - Export CUISINES as alias for ALL_CUISINES for backward compatibility.
+          - Maintain all `as const` assertions and readonly arrays.
 
-        Step 3 (ThemeProvider + ThemeToggle):
-          - Create components/ThemeToggle.tsx cycling light → dark → system with Sun/Moon/Monitor icons.
-          - Wrap layout.tsx body children with <ThemeProvider attribute="class" defaultTheme="system" enableSystem>.
-          - Add suppressHydrationWarning to the <html> tag.
-          - Add ThemeToggle to AdminHeader.tsx (top-right, next to user email).
-          - Create components/OwnerHeader.tsx — reads useAuth() internally; renders null when user is null
-            or when user.role === 'admin'. Includes logo + ThemeToggle + sign-out. Add to root layout.tsx.
+        Step 3 (types extraction):
+          - Copy all 17 types/interfaces from apps/web-portal/types/restaurant.ts.
+          - Check if any types import from @eatme/database (e.g., Ingredient). If so, add "@eatme/database": "workspace:*" to packages/shared/package.json.
 
-        Step 4 (admin shell color migration):
-          - Replace all hardcoded colors in AdminSidebar.tsx, AdminHeader.tsx, app/admin/layout.tsx with semantic tokens.
-          - Key replacements: bg-white → bg-background, bg-gray-50 → bg-muted/30, border-gray-200 → border,
-            text-gray-500/600 → text-muted-foreground, text-gray-700/800/900 → text-foreground,
-            hover:bg-gray-50/100 → hover:bg-accent, bg-orange-50/text-orange-600 (active nav) → bg-brand-primary/10 text-brand-primary.
-          - Security notice: apply surface-warning text-warning directly (surface-warning added in Step 6;
-            apply the bg/border/text values directly here since the utility class isn't defined yet).
-          - Add --color-brand-primary and --color-brand-accent mappings to globals.css @theme inline block.
+        Step 4 (validation extraction):
+          - Copy 5 schemas + 5 inferred types from apps/web-portal/lib/validation.ts (161 lines).
+          - Update internal imports to use relative paths (../types/restaurant, ../constants/...) instead of @/ aliases.
+          - Verify zod is listed as optional peer dependency.
 
-        Step 5 (full color migration):
-          - Work file-by-file across all admin pages, owner pages, and shared components.
-          - Add --color-success, --color-warning, --color-info to globals.css @theme inline (light) and .dark blocks.
-          - Do NOT touch components/ui/ (shadcn primitives keep their internal classes).
-          - Write a Vitest test using fs.readFileSync that fails if hardcoded color patterns appear outside components/ui/.
+        Step 5 (web-portal migration):
+          - Search for all imports from '@/lib/constants', '@/types/restaurant', '@/lib/validation'.
+          - Replace with imports from '@eatme/shared'.
+          - Check RestaurantForm.tsx for local Zod schemas — consolidate if appropriate.
+          - Delete: apps/web-portal/lib/constants.ts, apps/web-portal/types/restaurant.ts, apps/web-portal/lib/validation.ts.
+          - Remove any "Keep in sync" comments.
 
-        Step 6 (utility layer):
-          - Add @layer utilities block to globals.css with focus-ring, interactive, icon-sm/md, animate-enter, surface-* classes.
-          - Update select.tsx, dropdown-menu.tsx, tabs.tsx shadcn primitives to use the new utility classes.
-          - Note: In Tailwind v4, @layer utilities is valid but @utility directive is also available. Use @layer utilities.
+        Step 6 (mobile migration):
+          - Replace constant imports from '@/constants' with '@eatme/shared'. Keep '@/constants/icons' imports.
+          - Update apps/mobile/src/constants/index.ts: remove POPULAR_CUISINES and ALL_CUISINES definitions,
+            keep icon re-exports, add re-exports from @eatme/shared for backward compatibility.
+          - Leave mobile-specific types (navigation.ts, rating.ts) in place.
 
-        Step 7 (StatusBadge, InfoBox, SectionCard):
-          - StatusBadge: variants active/inactive/pending/error/warning/draft, sizes sm/md. Uses STATUS_CONFIG map.
-          - InfoBox: variants info/warning/success/error/tip. Uses surface-* utility classes from Step 6.
-          - SectionCard: collapsible via Radix <Collapsible> + <CollapsibleContent>. animate-enter targets data-[state] attrs.
-          - Replace existing usages in RestaurantForm.tsx blue info box (line ~362) and admin header admin badge.
+        Step 7 (Turbo test task):
+          - The web-portal "test": "vitest" runs in watch mode — change to "vitest run" for CI,
+            add "test:watch": "vitest" for local dev.
+          - Add "test" task to turbo.json with "dependsOn": ["^build"].
+          - Run full pipeline: turbo build && turbo lint && turbo check-types && turbo test.
 
-        Step 8 (hooks):
-          - Create hooks/useDialog.ts with close() (keeps data) and reset() (clears immediately) semantics.
-          - Create hooks/usePagination.ts: accepts items + pageSize=25, resets to page 1 when items.length changes.
-          - Create hooks/useFilters.ts: FilterEntry<T>[] with value + fn. Active when value is non-empty. AND logic.
+        Steps 8-9 (documentation):
+          - CLAUDE.md must be under 100 lines. Move detail to agent_docs/.
+          - Reference existing docs/project/ files — don't duplicate content.
+          - copilot-instructions.md: targeted fixes only — don't rewrite the whole file.
 
-        Step 9 (hook adoption):
-          - Refactor app/admin/restaurants/[id]/menus/page.tsx to use useDialog.
-          - Refactor app/admin/ingredients/page.tsx to use useDialog + usePagination + useFilters.
-          - useDialog: dialog close via onOpenChange(false) callback, NOT inside the onSuccess handler.
-            Pattern: <Dialog onOpenChange={(open) => { if (!open) dialog.close(); }}>
+        Step 10 (hook split):
+          - 4 existing components import types from useMenuScanState.ts (MenuScanDone, MenuScanUpload,
+            MenuScanProcessing, MenuScanReview). Redirect ALL type imports to menuScanTypes.ts.
+          - Create coordinator hook useMenuScan.ts that composes sub-hooks.
+          - Update page.tsx to import useMenuScan instead of useMenuScanState.
+          - Update test file test/useMenuScanState.test.ts imports.
 
-        Step 10 (DataTable + SearchFilterBar):
-          - Create components/DataTable.tsx: pure renderer — no internal filter/sort state.
-            Parent pre-filters via hooks. Accepts columns, data, pagination prop, emptyState.
-          - Create components/SearchFilterBar.tsx: accepts filters config array + onChange callbacks.
+        Step 12 (RestaurantDetailScreen split):
+          - Create screens/restaurant-detail/ subdirectory with index.tsx barrel.
+          - Update screens/index.ts: change export from './RestaurantDetailScreen' to './restaurant-detail'.
 
-        Step 11 (RestaurantTable replacement):
-          - Use DataTable + SearchFilterBar directly in app/admin/restaurants/page.tsx.
-          - DELETE components/admin/RestaurantTable.tsx entirely.
-          - DataTable pagination prop wires up to usePagination hook in the parent page.
+        Step 13 (common.ts split):
+          - styles/index.ts already has a barrel with imports from './common' plus other modules.
+          - Replace './common' imports with imports from the new modules.
+          - Maintain the backward-compatible commonStyles composite object.
+          - Also update filters.ts, map.ts, navigation.ts if they import from './common'.
 
-        Step 12 (LocationFormSection):
-          - Extract components/LocationFormSection.tsx from RestaurantForm.
-          - Wire into react-hook-form via <Controller>:
-            <Controller name="location" control={control}
-              render={({ field }) => <LocationFormSection value={field.value} onChange={field.onChange} />} />
+        Steps 14-17 (JSDoc):
+          - Follow existing patterns: packages/database/src/client.ts for WHY explanations,
+            apps/mobile/src/services/ratingService.ts for full JSDoc blocks.
+          - Document magic numbers: filterStore.ts price defaults, feed scoring weights, PGRST116 error code.
+          - Do NOT over-document obvious files.
 
-        Step 13 (unified RestaurantForm):
-          - Replace role prop with sections: RestaurantFormSection config object.
-          - Add enableDraft prop — when true, RestaurantForm calls useAuth() internally to get userId.
-          - Merge NewRestaurantForm.tsx logic into RestaurantForm.tsx.
-          - cuisine cascade: show InfoBox variant="warning" if cuisines are changed (warns about dish impact).
+        Step 18 (dead code removal):
+          - Remove console.log (not console.error) from API routes and hooks.
+          - Check baseline-browser-mapping in web-portal devDeps — remove if unused.
+          - Focus verbose pattern cleanup on files touched in Phase 2 splits.
 
-        Step 14 (admin create/edit pages):
-          - Refactor /admin/restaurants/new and /admin/restaurants/[id]/edit to use unified RestaurantForm.
-          - DELETE components/admin/NewRestaurantForm.tsx entirely after verifying no remaining imports.
+        Step 20 (eslint-plugin-jsdoc):
+          - Install at monorepo root: pnpm add -Dw eslint-plugin-jsdoc.
+          - Configure as WARNINGS, not errors. Only check exported declarations.
+          - Document baseline warning count.
 
-        Step 15 (owner edit page):
-          - Add cuisines selector, service options, and payment methods to app/restaurant/edit/page.tsx.
-          - These fields exist in the DB but are missing from the owner edit form.
+        Step 21 (Husky + lint-staged):
+          - pnpm add -Dw husky lint-staged && npx husky init.
+          - Start without --max-warnings=0 if JSDoc warnings are too numerous.
 
-        Step 16 (menu-scan extraction):
-          - Create lib/menu-scan-utils.ts — pure functions extracted from menu-scan page.
-          - Create app/admin/menu-scan/hooks/useMenuScanState.ts — all state, actions, async logic.
-          - Target LOC for menu-scan page BEFORE this step: ~2,500 LOC. Mock pdfToImages for tests:
-            create __mocks__/pdfjs-dist.ts and use vi.mock('pdfjs-dist').
-
-        Step 17 (menu-scan step components):
-          - Create MenuScanUpload.tsx, MenuScanProcessing.tsx, MenuScanReview.tsx in app/admin/menu-scan/components/.
-          - Reduce app/admin/menu-scan/page.tsx to ~80 LOC orchestrator that imports useMenuScanState and the 3 step components.
-
-        Step 18 (auth improvements):
-          - Add password visibility toggle to login and signup forms (eye icon button).
-          - Create app/auth/forgot-password/page.tsx — email input + supabase.auth.resetPasswordForEmail().
-            redirectTo must be the FULL URL: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
-          - Create app/auth/reset-password/page.tsx — reads token_hash + type from URL params.
-            Use supabase.auth.verifyOtp({ token_hash, type: 'recovery' }) NOT exchangeCodeForSession.
-
-        Step 19 (onboarding + mobile):
-          - Fix onboarding routing: app/onboard/basic-info/page.tsx must push to /onboard/menu NOT /onboard/review.
-          - Add mobile responsiveness: hamburger menu in AdminHeader for mobile, responsive grid in admin pages.
-          - Write responsive tests by asserting className strings (jsdom cannot compute layouts),
-            e.g., assert className includes 'md:hidden' or 'hidden md:flex'.
-
-        Step 20 (visual polish):
-          - Spacing pass: replace raw px values with p-card utility (uses --token-space-card from Step 2).
-          - Typography: ensure heading hierarchy uses token-based sizes.
-          - Dialog animations: use @starting-style in globals.css (no @supports wrapper needed).
-          - Badge size variants: ensure StatusBadge sm/md sizes are applied consistently.
+        Step 22 (GitHub Actions CI):
+          - Create .github/workflows/ci.yml with pnpm/action-setup and Turbo cache.
+          - Trigger on push to main and PRs to main.
     triggers:
       - "start"
       - "step.retry"
@@ -200,7 +166,7 @@ hats:
 
   verifier:
     name: "Verifier"
-    emoji: "✅"
+    emoji: "\u2705"
     description: "Build gate — confirms TypeScript compiles, tests pass, and no unintended files were changed"
     instructions: |
       You are a build gate. Your ONLY job is confirming that the code compiles, tests pass, and scope is clean.
@@ -208,17 +174,29 @@ hats:
 
       Run these checks in order:
 
-      1. Build: `pnpm turbo run build --filter=web-portal` — must succeed with zero errors.
+      1. Build: `turbo build` — must succeed with zero errors.
 
-      2. Lint: `pnpm turbo run lint --filter=web-portal` — must pass with zero errors.
+      2. Type-check: `turbo check-types` — must succeed with zero errors.
+
+      3. Lint: `turbo lint` — must pass with zero errors.
          Warnings are acceptable but errors must be fixed.
 
-      3. Tests: `cd apps/web-portal && npx vitest run` — all tests must pass.
+      4. Tests: `cd apps/web-portal && npx vitest run` — all tests must pass.
+         (Skip this check for Steps 8-9, 14-17 which are documentation-only.)
 
-      4. Scope: check that only files relevant to this step were modified.
-         - Step 2: only packages/tokens/ files and apps/web-portal/app/tokens.css and apps/web-portal/app/globals.css
-         - All other steps: only apps/web-portal/ files
-         - No changes to apps/mobile/, infra/, or packages/ (except packages/tokens/ in Step 2)
+      5. Scope: check that only files relevant to this step were modified.
+         - Steps 1-4: packages/shared/ and both apps' package.json and next.config.ts
+         - Step 5: apps/web-portal/ only (deleting constants.ts, types/restaurant.ts, validation.ts)
+         - Step 6: apps/mobile/ only
+         - Step 7: turbo.json and apps/web-portal/package.json
+         - Steps 8-9: CLAUDE.md, agent_docs/, .github/copilot-instructions.md (no code changes)
+         - Steps 10-11: apps/web-portal/app/admin/menu-scan/ and apps/web-portal/test/
+         - Step 12: apps/mobile/src/screens/
+         - Step 13: apps/mobile/src/styles/
+         - Steps 14-17: JSDoc comments only — no logic changes
+         - Step 18: dead code removal across both apps
+         - Step 19: apps/web-portal/test/
+         - Steps 20-22: config files (.eslintrc, .husky/, .github/workflows/, package.json)
          Run `git diff --name-only` to verify.
 
       If any check fails:
@@ -235,7 +213,7 @@ hats:
 
   critic:
     name: "Critic"
-    emoji: "🔍"
+    emoji: "\U0001F50D"
     description: "Design conformance reviewer — reads the design spec with fresh eyes and verifies the implementation matches"
     instructions: |
       You are a design reviewer with fresh eyes. The build already passes — your job is to verify
@@ -244,52 +222,49 @@ hats:
       Read the event payload to identify which step was completed.
 
       1. Read the FULL step description in:
-         .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
+         .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
 
       2. Read the relevant section in:
-         .agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md
+         .agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md
 
       3. Read every file created or modified in this step. Check:
-         - No hardcoded color classes (bg-gray-*, text-gray-*, bg-orange-*, etc.) outside components/ui/
-         - No new npm dependencies added without explicit plan authorization
-         - New components match the interfaces specified in the design document
-         - Existing functionality is not broken — API routes, forms, and navigation still work
+         - Barrel exports are maintained — no external imports broken
+         - No behavior changes — this is a refactor, not a feature
+         - File structure matches the design spec's file trees
+         - JSDoc follows the established patterns (WHY-first, not restating code)
 
       4. Step-specific design checks:
-         - Step 1: middleware.ts handles all 4 protected route patterns. Both loading.tsx files exist and use LoadingSkeleton.
-           mapbox-gl and react-map-gl removed from package.json.
-         - Step 2: tokens.css has --token-color-*, --token-space-*, --token-type-*, --token-radius-* variables.
-           @import './tokens.css' is FIRST line of globals.css. Brand primary is orange (#FF9800-derived oklch).
-           card spacing token (24px → 1.5rem) exists. culori and tsx added to packages/tokens only.
-         - Step 3: ThemeProvider wraps body in layout.tsx. suppressHydrationWarning on <html>.
-           ThemeToggle in AdminHeader. OwnerHeader self-hides for admin users and null users.
-         - Step 4: No bg-white, bg-gray-*, text-gray-* in AdminSidebar, AdminHeader, admin layout.
-           Active nav item uses bg-brand-primary/10 text-brand-primary. Security notice uses correct surface pattern.
-         - Step 5: grep check test exists. All pages pass it. components/ui/ excluded from check.
-           --color-success, --color-warning, --color-info defined in globals.css for both light and .dark.
-         - Step 6: @layer utilities block in globals.css with all 5 surface-* classes and focus-ring, interactive, icon-sm/md, animate-enter.
-           select.tsx, dropdown-menu.tsx, tabs.tsx updated.
-         - Step 7: StatusBadge has all 6 variants. InfoBox has all 5 variants. SectionCard collapsible uses Radix Collapsible.
-           Existing usages in RestaurantForm replaced.
-         - Step 8: useDialog close() keeps data (isOpen=false, data unchanged). reset() clears data to null.
-           useFilters uses FilterEntry<T>[] with value+fn pattern.
-         - Step 9: menus/page uses useDialog. ingredients/page uses all 3 hooks.
-           Dialog closes via onOpenChange callback, NOT inside onSuccess.
-         - Step 10: DataTable has no internal filter state. pagination prop accepted. emptyState prop accepted.
-         - Step 11: RestaurantTable.tsx is DELETED. Restaurants page uses DataTable + SearchFilterBar directly.
-         - Step 12: LocationFormSection wired via <Controller> bridge, not direct field props.
-         - Step 13: sections config object (not role prop). enableDraft uses internal useAuth() for userId.
-           cuisine change warning uses InfoBox variant="warning".
-         - Step 14: NewRestaurantForm.tsx is DELETED. Admin create/edit use unified RestaurantForm.
-         - Step 15: owner edit page has cuisines selector, service options, payment methods fields.
-         - Step 16: menu-scan-utils.ts has pure functions only (no React). useMenuScanState has all async logic.
-           pdfjs-dist mocked via __mocks__/pdfjs-dist.ts.
-         - Step 17: menu-scan/page.tsx is ≤100 LOC. Three step components exist. useMenuScanState imported.
-         - Step 18: verifyOtp({ token_hash, type: 'recovery' }) used (NOT exchangeCodeForSession).
-           redirectTo uses full URL with NEXT_PUBLIC_SITE_URL env var.
-         - Step 19: basic-info/page.tsx pushes to /onboard/menu (NOT /onboard/review).
-           Responsive tests assert className strings, not layout computations.
-         - Step 20: p-card used for card padding. @starting-style in globals.css with NO @supports wrapper.
+         - Step 1: packages/shared/ has package.json with zod optional peer dep. tsconfig.json exists.
+           Both apps have "@eatme/shared": "workspace:*". next.config.ts has @eatme/shared in transpilePackages.
+         - Step 2: All 7 constant files exist. CUISINES is alias for ALL_CUISINES. All `as const` preserved.
+           cuisine.ts has merged list including Asian, Comfort Food, Fine Dining, International.
+           wizard.ts has WIZARD_STEPS. restaurant.ts has SERVICE_SPEED_OPTIONS and COUNTRIES.
+         - Step 3: All 17 types/interfaces exported. No circular deps between @eatme/shared and @eatme/database.
+         - Step 4: All 5 schemas + 5 inferred types. Internal imports use relative paths, not @/ aliases.
+         - Step 5: No imports from '@/lib/constants', '@/types/restaurant', '@/lib/validation' remain.
+           Those 3 files are deleted. No "Keep in sync" comments remain.
+         - Step 6: Mobile constants/index.ts has NO local POPULAR_CUISINES or ALL_CUISINES definitions.
+           Icons re-exports preserved. @eatme/shared re-exports added.
+         - Step 7: turbo.json has "test" task. Web-portal test script runs in single-run mode (vitest run).
+         - Step 8: CLAUDE.md under 100 lines. agent_docs/ has 5 files. References docs/project/ not duplicating.
+         - Step 9: copilot-instructions.md: no "packages/ui", no "packages/typescript-config", no "packages/eslint-config".
+           Says "Next.js 16" not "14". Mentions @eatme/shared. Mentions 49 test files.
+         - Step 10: useMenuScanState.ts deleted. 5-6 new hooks in hooks/ directory. Coordinator useMenuScan.ts exists.
+           All 4 consuming components import types from menuScanTypes.ts not useMenuScanState.
+           page.tsx imports useMenuScan. Test file updated.
+         - Step 11: MenuScanReview.tsx is ~100 lines orchestrator. 6 sub-components exist with typed prop interfaces.
+         - Step 12: screens/restaurant-detail/ directory exists with index.tsx barrel.
+           screens/index.ts exports from './restaurant-detail'. Original file deleted.
+           RestaurantDetailScreen.tsx is ~120 lines orchestrator. 8 supporting files exist.
+         - Step 13: common.ts is deleted. 10 new style modules exist. styles/index.ts updated with same exports.
+           Backward-compatible commonStyles object preserved. No visual regressions.
+         - Steps 14-16: JSDoc on all exports in targeted files. Module-level doc comments on all files.
+         - Step 17: Magic numbers documented. PGRST116 explained. Price defaults explained. Scoring weights explained.
+         - Step 18: No stray console.log in production code. Unused deps removed.
+         - Step 19: test/helpers/ directory exists with shared mock factories. Test files import from helpers.
+         - Step 20: eslint-plugin-jsdoc installed. Rules set as warnings. Baseline count documented.
+         - Step 21: .husky/pre-commit exists. lint-staged config in package.json.
+         - Step 22: .github/workflows/ci.yml exists. Triggers on push/PR to main. Runs build+lint+check-types+test.
 
       If any issue found:
         - Describe the exact issue, the file/line, and what the design spec expects.
@@ -305,26 +280,31 @@ hats:
 
   stepper:
     name: "Stepper"
-    emoji: "📋"
+    emoji: "\U0001F4CB"
     description: "Checks checklist progress after each verified step and drives the loop forward or signals completion"
     instructions: |
-      You are the progress manager for the EatMe web portal redesign implementation.
+      You are the progress manager for the EatMe codebase refactor.
 
       Read the checklist in:
-        .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
+        .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
 
       Count the remaining unchecked items [ ].
 
       If unchecked items remain:
         - Emit `start` to trigger the Implementer for the next step.
 
-      If ALL 20 items are checked [x]:
-        - Run `pnpm turbo run build --filter=web-portal` one final time.
+      If ALL 22 items are checked [x]:
+        - Run `turbo build && turbo lint && turbo check-types` one final time.
         - Run `cd apps/web-portal && npx vitest run` one final time.
-        - Confirm all 20 checklist items are marked [x].
-        - Confirm tokens.css exists and is imported first in globals.css.
-        - Confirm NewRestaurantForm.tsx and RestaurantTable.tsx are deleted.
-        - Confirm app/auth/forgot-password/page.tsx and app/auth/reset-password/page.tsx exist.
+        - Confirm all 22 checklist items are marked [x].
+        - Confirm packages/shared/ exists with constants, types, validation barrels.
+        - Confirm CLAUDE.md exists at root and is under 100 lines.
+        - Confirm .github/workflows/ci.yml exists.
+        - Confirm .husky/pre-commit exists.
+        - Confirm turbo.json has a "test" task.
+        - Confirm apps/web-portal/lib/constants.ts is deleted.
+        - Confirm apps/web-portal/types/restaurant.ts is deleted.
+        - Confirm no file in the split targets exceeds 500 lines.
         - Emit `LOOP_COMPLETE`.
     triggers:
       - "step.verified"

@@ -7,7 +7,7 @@ export { ProfileEditScreen } from './ProfileEditScreen';
 export { ViewedHistoryScreen } from './ViewedHistoryScreen';
 export { EatTogetherScreen } from './EatTogetherScreen';
 export { SettingsScreen } from './SettingsScreen';
-export { RestaurantDetailScreen } from './RestaurantDetailScreen';
+export { RestaurantDetailScreen } from './restaurant-detail';
 
 // Eat Together screens
 export * from './eatTogether';

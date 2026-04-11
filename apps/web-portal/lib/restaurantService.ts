@@ -19,7 +19,7 @@ import type {
   RestaurantType,
   Location as AppLocation,
   SelectedIngredient,
-} from '@/types/restaurant';
+} from '@eatme/shared';
 
 // ─── Raw Supabase select result shapes (exported for reuse in DishFormDialog) ──
 
@@ -138,6 +138,7 @@ export async function getRestaurantSummary(ownerId: string): Promise<DashboardRe
     .eq('owner_id', ownerId)
     .maybeSingle();
 
+  // PGRST116 = PostgREST "row not found" — expected when the owner has no restaurant yet
   if (error && error.code !== 'PGRST116') {
     throw new Error(`Failed to load restaurant: ${error.message}`);
   }
@@ -156,6 +157,7 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
     .eq('owner_id', ownerId)
     .maybeSingle();
 
+  // PGRST116 = PostgREST "row not found" — expected when the owner has no restaurant yet
   if (error && error.code !== 'PGRST116') {
     throw new Error(`Failed to load restaurant: ${error.message}`);
   }
@@ -209,10 +211,10 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
             })),
         }))
       ),
-    })) as import('@/types/restaurant').Menu[]),
+    })) as import('@eatme/shared').Menu[]),
     dishes: (((restaurant.menus ?? []) as RawMenu[]).flatMap(m =>
       ((m.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])
-    ) as import('@/types/restaurant').Dish[]),
+    ) as import('@eatme/shared').Dish[]),
     currentStep: 3,
   };
 }
@@ -231,6 +233,7 @@ export async function getRestaurantWithMenus(
     .eq('owner_id', ownerId)
     .maybeSingle();
 
+  // PGRST116 = PostgREST "row not found" — expected when the owner has no restaurant yet
   if (error && error.code !== 'PGRST116') {
     throw new Error(`Failed to load restaurant menus: ${error.message}`);
   }
@@ -243,7 +246,7 @@ export async function getRestaurantWithMenus(
     menu_type: (menu.menu_type ?? 'food') as 'food' | 'drink',
     is_active: menu.is_active ?? true,
     display_order: menu.display_order ?? 0,
-    dishes: (((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])) as import('@/types/restaurant').Dish[],
+    dishes: (((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])) as import('@eatme/shared').Dish[],
   }));
 
   return { id: restaurant.id, menus };

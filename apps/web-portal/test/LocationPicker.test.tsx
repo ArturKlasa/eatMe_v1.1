@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-// Mock sonner toast — use inline object to avoid hoisting issues
-vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
-}));
+// sonner is globally mocked in test/setup.ts
 
 // Mock leaflet — LocationPicker dynamically imports it
 vi.mock('leaflet', () => {

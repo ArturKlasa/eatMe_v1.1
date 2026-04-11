@@ -5,15 +5,16 @@
 **EatMe** is a food discovery platform combining map-based restaurant discovery with swipe-based preference learning. Three main components:
 
 - **Mobile App** (`apps/mobile`): React Native 0.81 + Expo Bare with Mapbox & Zustand, consumers discover & rate restaurants/dishes
-- **Web Portal** (`apps/web-portal`): Next.js 14 with shadcn/ui, restaurant partners manage menus & ingredients
+- **Web Portal** (`apps/web-portal`): Next.js 16 with shadcn/ui, restaurant partners manage menus & ingredients
 - **Backend**: Supabase (PostgreSQL + PostGIS), RLS-enforced data ownership, ingredient/allergen system
 
 **pnpm + Turborepo monorepo**. Shared packages:
 
-- `packages/database`: Planned Supabase client (web-portal currently has own at `lib/supabase.ts`)
-- `packages/ui`: React components (minimal use)
-- `packages/typescript-config`: TypeScript configs
-- `packages/eslint-config`: ESLint configs
+- `packages/database`: Supabase client factory + generated types (`@eatme/database`) — consumed by both apps
+- `packages/tokens`: Design tokens (`@eatme/tokens`)
+- `packages/shared`: Constants, TypeScript types, Zod validation schemas (`@eatme/shared`) — single source of truth for domain types, cuisine lists, and form validation
+
+For detailed architecture, see `agent_docs/architecture.md`.
 
 ## Architecture & Data Flow
 
@@ -62,7 +63,7 @@ turbo dev --filter=web-portal
 turbo dev --filter=mobile
 ```
 
-### Web Portal (`apps/web-portal`) - Next.js 14
+### Web Portal (`apps/web-portal`) - Next.js 16
 
 ```bash
 cd apps/web-portal
@@ -159,8 +160,9 @@ END $$;
 
 ### TypeScript Types
 
-- **Web Portal DB Types**: `apps/web-portal/lib/supabase.ts` (RestaurantInsert, Restaurant, Dish, etc.)
-- **Mobile Types**: `apps/mobile/src/types/` (separate, not yet connected to Supabase)
+- **Shared Domain Types**: `@eatme/shared` — Restaurant, Dish, OperatingHours, Option, OptionGroup, etc.
+- **Database Types**: `@eatme/database` — Supabase-generated types (RestaurantInsert, etc.)
+- **Mobile Types**: `apps/mobile/src/types/` (navigation, rating — mobile-specific)
 - **Keep synced** with SQL migrations in `infra/supabase/migrations/`
 
 ### State Management
@@ -196,12 +198,6 @@ END $$;
 3. Watch allergen warnings appear (⚠️ Milk, Eggs)
 4. Check dietary badge shows (🌱 Vegetarian)
 5. Verify in Supabase Dashboard that `dishes.allergens` and `dishes.dietary_tags` populated by trigger
-
-## Testing & Validation
-
-- **Web Portal**: Manual testing in browser. Verify Supabase integration via SQL Editor queries.
-- **Mobile**: Test on physical devices or emulators. Use `__DEV__` checks for dev-only features.
-- No automated test suite yet - TDD is aspirational, not current practice.
 
 ## Debugging & Logging Conventions
 
@@ -245,17 +241,17 @@ try {
 
 3. **LocalStorage Keys**: Web portal uses `eatme_restaurant_draft` for form data. Clear it after successful submission to avoid stale data.
 
-4. **Monorepo Paths**: When importing from packages, use workspace protocol: `"@repo/ui": "workspace:*"` in package.json. Don't use relative paths across app boundaries.
+4. **Monorepo Paths**: When importing from packages, use workspace protocol: `"@eatme/shared": "workspace:*"` in package.json. Don't use relative paths across app boundaries.
 
 5. **Mobile Native Modules**: Changes to `app.json`, native dependencies, or native code require a new development build. Restart Metro is not enough.
 
 6. **Turbo Cache**: If builds behave strangely, try `turbo clean` from root to clear cache.
 
-7. **Shared Packages Status**:
-   - `packages/database` contains platform-agnostic Supabase client intended for sharing between mobile and web
-   - Currently **web-portal uses its own client** at `apps/web-portal/lib/supabase.ts` with identical types
-   - Migration to shared package is planned but not yet implemented
-   - When refactoring, use `@eatme/database` export and update environment variable prefixes
+7. **Shared Packages**: Three shared packages exist under `packages/`:
+   - `@eatme/database` — Supabase client factory, consumed by both apps
+   - `@eatme/shared` — Constants, types, and Zod validation schemas (single source of truth)
+   - `@eatme/tokens` — Design tokens
+   - New workspace packages using TypeScript source must be listed in `next.config.ts` `transpilePackages`
 
 ## Mobile Supabase Integration (Planned)
 
@@ -307,11 +303,11 @@ When connecting mobile app to Supabase:
 
 ## Current Development Phase
 
-**Status as of February 2026**:
+**Status as of April 2026**:
 
-- ✅ Web Portal: Live with Supabase integration, ingredient system with allergen triggers complete
-- ⏳ Mobile: Mapbox setup done, Supabase connection planned
-- 📋 Next: Mobile dish/restaurant browsing UI, swipe interface, user preferences
+- Web Portal: Live with Supabase integration, ingredient system, 49 Vitest test files
+- Mobile: Mapbox setup done, restaurant browsing, dish rating flows (full + in-context)
+- Shared: `@eatme/shared` package extracts constants, types, and validation from both apps
 
 **Key Files by Phase**:
 
@@ -322,11 +318,13 @@ When connecting mobile app to Supabase:
 
 ## Testing Strategy
 
-- **Web Portal**: Manual testing in browser. Verify Supabase integration via SQL Editor queries.
-- **Mobile**: Test on physical devices or emulators. Use `__DEV__` checks for dev-only features.
+- **Web Portal**: 49 Vitest test files (`cd apps/web-portal && npx vitest run`). Also manual testing in browser for UI verification.
+- **Mobile**: No automated tests yet. Test on physical devices or emulators. Use `__DEV__` checks for dev-only features.
 - **Ingredient Triggers**: Go to `/onboard/menu`, add dish with 3+ ingredients, check Supabase Dashboard for allergens/dietary_tags JSONB updates
-- No automated test suite yet - TDD is aspirational, not current practice.
+- **Monorepo**: `turbo test` runs all test suites. `turbo build && turbo lint && turbo check-types && turbo test` for full pipeline.
 
 ---
 
-_Last Updated: February 16, 2026_
+_Last Updated: April 11, 2026_
+
+_For detailed documentation, see `agent_docs/` (architecture, commands, conventions, database, terminology)._

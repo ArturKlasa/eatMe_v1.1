@@ -1,3 +1,11 @@
+/**
+ * useFilters Hook
+ *
+ * Generic multi-filter hook with AND logic: returns items that satisfy every
+ * active filter entry. A filter is "active" when its value is a non-empty string,
+ * so inactive filters incur no runtime cost.
+ */
+
 import { useMemo } from "react";
 
 type FilterFn<T> = (item: T, value: string) => boolean;

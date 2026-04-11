@@ -15,7 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 // Track if auth listener is already set up (prevents duplicate listeners)
 let authListenerSubscription: Subscription | null = null;
 
-// Auth state interface
+/** Shape of the authentication state slice in the Zustand store. */
 export interface AuthState {
   user: User | null;
   session: Session | null;
@@ -24,7 +24,11 @@ export interface AuthState {
   error: string | null;
 }
 
-// Auth actions interface
+/**
+ * Actions exposed by the auth store.
+ * All async actions resolve to an `{ error }` object — callers handle errors
+ * declaratively rather than catching exceptions.
+ */
 interface AuthActions {
   // Initialize auth - check for existing session
   initialize: () => Promise<void>;
@@ -67,7 +71,13 @@ interface AuthActions {
 // Combined store type
 type AuthStore = AuthState & AuthActions;
 
-// Create the auth store
+/**
+ * Primary auth store.
+ *
+ * Prefer the focused selector hooks (`useUser`, `useIsAuthenticated`, etc.)
+ * over subscribing to the whole store — they prevent unnecessary re-renders
+ * by selecting only the slice of state each component actually needs.
+ */
 export const useAuthStore = create<AuthStore>((set, get) => ({
   // Initial state
   user: null,
@@ -469,9 +479,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }),
 }));
 
-// Selector hooks for common use cases
+// Selector hooks — subscribe to a single field to minimise re-renders.
+/** Returns the currently authenticated Supabase `User`, or `null` when signed out. */
 export const useUser = () => useAuthStore(state => state.user);
+/** Returns the active Supabase `Session` (includes JWT), or `null` when signed out. */
 export const useSession = () => useAuthStore(state => state.session);
+/** Returns `true` when a valid session exists (i.e. the user is signed in). */
 export const useIsAuthenticated = () => useAuthStore(state => !!state.session);
+/** Returns `true` while an async auth operation (sign-in, init, etc.) is in flight. */
 export const useAuthLoading = () => useAuthStore(state => state.isLoading);
+/** Returns the last auth error message string, or `null` when there is no error. */
 export const useAuthError = () => useAuthStore(state => state.error);

@@ -1,5 +1,13 @@
 'use client';
 
+/**
+ * useRestaurantDraft Hook
+ *
+ * Manages the onboarding wizard's draft state — loading from LocalStorage on
+ * mount, auto-saving on changes, and computing derived UI state (completion
+ * percentages, form defaults). Keeps page components free of storage concerns.
+ */
+
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { type UseFormWatch } from 'react-hook-form';
 import { loadRestaurantData, autoSave, cancelAutoSave } from '@/lib/storage';
@@ -9,8 +17,8 @@ import type {
   FormProgress,
   RestaurantType,
   PaymentMethods,
-} from '@/types/restaurant';
-import { DAYS_OF_WEEK } from '@/lib/constants';
+} from '@eatme/shared';
+import { DAYS_OF_WEEK } from '@eatme/shared';
 import type { BasicInfoFormData } from '@/components/onboarding/types';
 
 const DEFAULT_HOURS: Record<string, { open: string; close: string; closed: boolean }> = {
@@ -33,6 +41,13 @@ export interface DraftData {
   operatingHours: Record<string, { open: string; close: string; closed: boolean }>;
 }
 
+/**
+ * Loads the current draft from localStorage and maps it onto {@link DraftData}.
+ * Returns sensible defaults when called on the server (SSR) or with no userId.
+ *
+ * @param userId - The authenticated user's ID used as the storage key.
+ * @returns Merged draft state for pre-populating the basic-info form.
+ */
 function loadDraftData(userId: string | undefined): DraftData {
   if (typeof window === 'undefined' || !userId) {
     return {
@@ -84,10 +99,15 @@ function loadDraftData(userId: string | undefined): DraftData {
   };
 }
 
+/** Options for {@link useRestaurantDraft}. */
 interface UseRestaurantDraftOptions {
+  /** Authenticated user ID used to scope the localStorage key. */
   userId: string | undefined;
+  /** react-hook-form `watch` — subscribes to field changes to trigger auto-save. */
   watch: UseFormWatch<BasicInfoFormData>;
+  /** Ref holding the current selected cuisines array (not a form field). */
   selectedCuisinesRef: React.RefObject<string[]>;
+  /** Ref holding the current operating-hours state (not a react-hook-form field). */
   operatingHoursRef: React.RefObject<Record<string, { open: string; close: string; closed: boolean }>>;
 }
 
@@ -97,6 +117,17 @@ interface UseRestaurantDraftReturn {
   saving: boolean;
 }
 
+/**
+ * Subscribes to react-hook-form `watch` and auto-saves draft progress to
+ * localStorage on every change (debounced to 500 ms via {@link autoSave}).
+ *
+ * The `saving` flag is set immediately on change and cleared ~600 ms later
+ * (slightly after the debounce settles) so the UI can show a "Saving…" indicator
+ * without flickering on every keystroke.
+ *
+ * @param options - See {@link UseRestaurantDraftOptions}.
+ * @returns `draftData` for form defaults, `lastSaved` timestamp, and `saving` flag.
+ */
 export function useRestaurantDraft({
   userId,
   watch,

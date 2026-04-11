@@ -18,7 +18,7 @@ import { modals } from '@/styles';
 import { colors, spacing, typography, borderRadius } from '@eatme/tokens';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/i18nUtils';
-import { POPULAR_CUISINES, ALL_CUISINES } from '../../constants';
+import { POPULAR_CUISINES, ALL_CUISINES } from '@eatme/shared';
 
 /**
  * Converts a display name like "Comfort Food" or "Fish & Chips" to the

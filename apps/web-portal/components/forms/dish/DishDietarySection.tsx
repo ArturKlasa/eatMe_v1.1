@@ -4,8 +4,8 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Sprout, Leaf } from 'lucide-react';
-import { DIETARY_TAGS, ALLERGENS, RELIGIOUS_REQUIREMENTS } from '@/lib/constants';
-import type { DishFormData } from '@/lib/validation';
+import { DIETARY_TAGS, ALLERGENS, RELIGIOUS_REQUIREMENTS } from '@eatme/shared';
+import type { DishFormData } from '@eatme/shared';
 
 export function DishDietarySection() {
   const { setValue, control } = useFormContext<DishFormData>();

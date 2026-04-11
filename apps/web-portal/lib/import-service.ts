@@ -1,3 +1,11 @@
+/**
+ * Restaurant Import Service
+ *
+ * Orchestrates bulk restaurant imports from external sources (CSV, Google Places).
+ * Uses string-similarity deduplication to skip restaurants whose names closely
+ * match existing records, reducing duplicate entries during batch onboarding.
+ */
+
 import stringSimilarity from 'string-similarity';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@eatme/database';

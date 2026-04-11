@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useMenuScanState } from '@/app/admin/menu-scan/hooks/useMenuScanState';
+import { useMenuScan } from '@/app/admin/menu-scan/hooks/useMenuScan';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -41,46 +41,39 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('sonner', () => ({
-  toast: Object.assign(vi.fn(), {
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  }),
-}));
+// sonner is globally mocked in test/setup.ts
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useMenuScanState', () => {
+describe('useMenuScan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('starts with step = "upload"', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
     expect(result.current.step).toBe('upload');
   });
 
   it('starts with empty imageFiles', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
     expect(result.current.imageFiles).toEqual([]);
   });
 
   it('starts with empty uploadedFiles alias', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
     expect(result.current.uploadedFiles).toEqual([]);
   });
 
   it('starts with empty selectedDishes (selectedGroupIds alias)', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
     expect(result.current.selectedDishes.size).toBe(0);
   });
 
   it('setImageFiles updates imageFiles', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
     const file = new File(['data'], 'test.jpg', { type: 'image/jpeg' });
 
     act(() => {
@@ -92,7 +85,7 @@ describe('useMenuScanState', () => {
   });
 
   it('toggleExpand adds a dish id to expandedDishes', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.toggleExpand('dish-123');
@@ -102,7 +95,7 @@ describe('useMenuScanState', () => {
   });
 
   it('toggleExpand removes an already-expanded dish id', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.toggleExpand('dish-123');
@@ -115,7 +108,7 @@ describe('useMenuScanState', () => {
   });
 
   it('setSelectedGroupIds updates selectedDishes alias', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.setSelectedGroupIds(new Set(['dish-a', 'dish-b']));
@@ -126,7 +119,7 @@ describe('useMenuScanState', () => {
   });
 
   it('resetAll resets step back to "upload"', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.setStep('review');
@@ -140,7 +133,7 @@ describe('useMenuScanState', () => {
   });
 
   it('resetAll clears imageFiles', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
     const file = new File(['data'], 'test.jpg', { type: 'image/jpeg' });
 
     act(() => {
@@ -154,7 +147,7 @@ describe('useMenuScanState', () => {
   });
 
   it('setStep transitions step to "processing"', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.setStep('processing');
@@ -164,7 +157,7 @@ describe('useMenuScanState', () => {
   });
 
   it('setStep transitions step to "review"', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.setStep('review');
@@ -174,7 +167,7 @@ describe('useMenuScanState', () => {
   });
 
   it('setStep transitions step to "done"', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     act(() => {
       result.current.setStep('done');
@@ -184,7 +177,7 @@ describe('useMenuScanState', () => {
   });
 
   it('addDish adds a dish to the specified category and expands it', () => {
-    const { result } = renderHook(() => useMenuScanState());
+    const { result } = renderHook(() => useMenuScan());
 
     // Set up a minimal menu structure
     act(() => {

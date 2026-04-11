@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Menu, MenuCategory, Dish } from '@/lib/supabase';
-import type { Dish as FormDish } from '@/types/restaurant';
+import type { Dish as FormDish } from '@eatme/shared';
 import {
   Plus,
   MoreVertical,
@@ -154,12 +154,6 @@ export default function RestaurantMenusPage() {
         console.error('[Admin] Dishes fetch error:', dishesError);
         throw new Error(`Failed to fetch dishes: ${dishesError.message}`);
       }
-
-      console.log('[Admin] Fetched data:', {
-        menus: menusData?.length || 0,
-        categories: categoriesData?.length || 0,
-        dishes: dishesData?.length || 0,
-      });
 
       const menusWithCategories: MenuWithCategories[] = (menusData || []).map(menu => ({
         ...menu,

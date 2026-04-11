@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { loadRestaurantData, saveRestaurantData } from '@/lib/storage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
-import type { RestaurantBasicInfo, RestaurantOperations, FormProgress, RestaurantType, PaymentMethods } from '@/types/restaurant';
+import type { RestaurantBasicInfo, RestaurantOperations, FormProgress, RestaurantType, PaymentMethods } from '@eatme/shared';
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRestaurantDraft, loadFormDefaults } from '@/lib/hooks/useRestaurantDraft';

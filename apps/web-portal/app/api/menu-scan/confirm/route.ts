@@ -1,3 +1,11 @@
+/**
+ * POST /api/menu-scan/confirm
+ *
+ * Persists the reviewed menu-scan results to the database. Writes menus,
+ * categories, dishes, and option groups in a single transaction-like sequence.
+ * Called after the admin has reviewed and approved the AI extraction output.
+ */
+
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
@@ -53,9 +61,6 @@ export async function POST(request: NextRequest) {
 
   // Count total dishes in the payload for early diagnostics.
   const payloadDishCount = countPayloadDishes(menus);
-  console.log(
-    `[MenuScan/confirm] Payload: ${menus.length} menu(s), ${payloadDishCount} dish(es) for restaurant ${restaurant_id}`
-  );
 
   if (payloadDishCount === 0) {
     return NextResponse.json(

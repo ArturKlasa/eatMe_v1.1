@@ -58,7 +58,7 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// sonner is globally mocked in test/setup.ts
 
 vi.mock('next/dynamic', () => ({
   __esModule: true,

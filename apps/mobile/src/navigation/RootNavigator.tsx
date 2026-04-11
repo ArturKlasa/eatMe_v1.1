@@ -23,7 +23,7 @@ import {
   RecommendationsScreen,
   VotingResultsScreen,
 } from '@/screens/eatTogether';
-import { RestaurantDetailScreen } from '../screens/RestaurantDetailScreen';
+import { RestaurantDetailScreen } from '../screens/restaurant-detail';
 import { useAuthStore } from '../stores/authStore';
 import { initStoreBindings } from '../stores/storeBindings';
 import type {

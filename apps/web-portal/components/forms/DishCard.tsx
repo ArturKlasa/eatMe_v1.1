@@ -3,9 +3,9 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dish } from '@/types/restaurant';
+import type { Dish } from '@eatme/shared';
 import { Edit, Trash2, Copy, Layers, AlertTriangle } from 'lucide-react';
-import { SPICE_LEVELS, DISH_KINDS } from '@/lib/constants';
+import { SPICE_LEVELS, DISH_KINDS } from '@eatme/shared';
 
 interface DishCardProps {
   dish: Dish;

@@ -10,7 +10,8 @@
 
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { colors } from './theme';
-import { atomic, createTextStyle, createShadow } from './common';
+import { atomic } from './atomic';
+import { createTextStyle, createShadow } from './factories';
 
 /**
  * Floating Menu Styles

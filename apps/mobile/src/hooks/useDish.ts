@@ -1,3 +1,9 @@
+/**
+ * useDish Hook
+ *
+ * Fetches a single dish with its parent menu-category and restaurant joined,
+ * providing loading and error state for the consuming component.
+ */
 import { useState, useEffect } from 'react';
 import { supabase, type DishWithRelations } from '../lib/supabase';
 

@@ -1,3 +1,11 @@
+/**
+ * Ingredients Service
+ *
+ * Supabase data operations for the canonical ingredient library.
+ * Canonical ingredients are the source-of-truth records (e.g., "Chicken Breast");
+ * aliases map user-entered or import names back to a canonical record.
+ */
+
 import { supabase } from './supabase';
 
 export interface CanonicalIngredient {
@@ -50,8 +58,12 @@ export interface Ingredient {
 }
 
 /**
- * Search ingredient aliases by display name using full-text search
- * Returns aliases with their canonical ingredient info
+ * Searches ingredient aliases by display name (case-insensitive LIKE).
+ * Returns flattened {@link Ingredient} objects with canonical info included.
+ *
+ * @param query - Partial ingredient name typed by the user.
+ * @param limit - Maximum number of results to return (default 10).
+ * @returns Matched ingredients or an empty array when the query is blank.
  */
 export async function searchIngredients(
   query: string,
@@ -108,7 +120,10 @@ export async function searchIngredients(
 }
 
 /**
- * Get canonical ingredient details with allergens and dietary tags
+ * Fetches a canonical ingredient with its linked allergens and dietary tags.
+ *
+ * @param canonicalIngredientId - UUID of the `canonical_ingredients` row.
+ * @returns The ingredient row with nested `allergens` and `dietary_tags` arrays.
  */
 export async function getIngredientDetails(canonicalIngredientId: string) {
   const { data, error } = await supabase
@@ -152,7 +167,11 @@ export async function getDietaryTags() {
 }
 
 /**
- * Add ingredients to a dish (stores canonical ingredient IDs)
+ * Links canonical ingredients to a dish via the `dish_ingredients` junction table.
+ *
+ * @param dishId - UUID of the dish to add ingredients to.
+ * @param ingredients - Ingredients to link, each with a canonical ingredient ID and optional quantity.
+ * @returns The inserted `dish_ingredients` rows or an error.
  */
 export async function addDishIngredients(
   dishId: string,
@@ -170,7 +189,10 @@ export async function addDishIngredients(
 }
 
 /**
- * Get ingredients for a dish
+ * Fetches all ingredients linked to a dish with their canonical details.
+ *
+ * @param dishId - UUID of the dish to query.
+ * @returns Rows from `dish_ingredients` with nested canonical ingredient info.
  */
 export async function getDishIngredients(dishId: string) {
   const { data, error } = await supabase
@@ -192,7 +214,10 @@ export async function getDishIngredients(dishId: string) {
 }
 
 /**
- * Remove ingredient from dish
+ * Removes a single ingredient link from a dish.
+ *
+ * @param dishId - UUID of the dish.
+ * @param canonicalIngredientId - UUID of the canonical ingredient to unlink.
  */
 export async function removeDishIngredient(dishId: string, canonicalIngredientId: string) {
   const { error } = await supabase
@@ -205,7 +230,11 @@ export async function removeDishIngredient(dishId: string, canonicalIngredientId
 }
 
 /**
- * Update ingredient quantity in dish
+ * Updates the serving quantity for an ingredient already linked to a dish.
+ *
+ * @param dishId - UUID of the dish.
+ * @param canonicalIngredientId - UUID of the canonical ingredient to update.
+ * @param quantity - Human-readable quantity string (e.g. "2 tbsp", "100g").
  */
 export async function updateDishIngredientQuantity(
   dishId: string,
@@ -222,7 +251,11 @@ export async function updateDishIngredientQuantity(
 }
 
 /**
- * Get calculated allergens for a dish (from dishes table after trigger runs)
+ * Fetches allergen details for a dish using the pre-calculated `allergens` column.
+ * The column is populated by a Postgres trigger when `dish_ingredients` changes.
+ *
+ * @param dishId - UUID of the dish.
+ * @returns Full allergen rows for the codes stored on the dish, or an empty array.
  */
 export async function getDishAllergens(dishId: string) {
   const { data, error } = await supabase
@@ -247,7 +280,11 @@ export async function getDishAllergens(dishId: string) {
 }
 
 /**
- * Get calculated dietary tags for a dish (from dishes table after trigger runs)
+ * Fetches dietary tag details for a dish using the pre-calculated `dietary_tags` column.
+ * The column is populated by a Postgres trigger when `dish_ingredients` changes.
+ *
+ * @param dishId - UUID of the dish.
+ * @returns Full dietary tag rows for the codes stored on the dish, or an empty array.
  */
 export async function getDishDietaryTags(dishId: string) {
   const { data, error } = await supabase

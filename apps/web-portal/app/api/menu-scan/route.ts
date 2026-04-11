@@ -1,3 +1,11 @@
+/**
+ * POST /api/menu-scan
+ *
+ * AI-powered menu extraction endpoint. Accepts a base64-encoded menu image,
+ * sends it to the OpenAI Vision API, and returns structured dish data enriched
+ * with matched ingredients and dietary hints for admin review.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
@@ -532,9 +540,7 @@ export async function POST(request: NextRequest) {
     const { merged, flaggedDuplicates } = mergeExtractionResults(rawResults);
 
     if (flaggedDuplicates.length > 0) {
-      console.log(
-        `[MenuScan] Flagged ${flaggedDuplicates.length} potential variant(s) from duplicate detection`
-      );
+      // Variant grouping detected — flagged for user review in review step
     }
 
     // 7. Enrich with ingredient matches + dietary tag codes
@@ -560,10 +566,6 @@ export async function POST(request: NextRequest) {
         processing_ms: processingMs,
       })
       .eq('id', job.id);
-
-    console.log(
-      `[MenuScan] Job ${job.id} completed: ${dishCount} dishes found in ${processingMs}ms`
-    );
 
     return NextResponse.json({
       jobId: job.id,

@@ -1,13 +1,13 @@
 'use client';
 
-import { useMenuScanState } from './hooks/useMenuScanState';
+import { useMenuScan } from './hooks/useMenuScan';
 import { MenuScanUpload } from './components/MenuScanUpload';
 import { MenuScanProcessing } from './components/MenuScanProcessing';
 import { MenuScanReview } from './components/MenuScanReview';
 import { MenuScanDone } from './components/MenuScanDone';
 
 export default function MenuScanPage() {
-  const state = useMenuScanState();
+  const state = useMenuScan();
 
   if (state.step === 'upload') {
     return (

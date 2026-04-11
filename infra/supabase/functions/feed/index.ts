@@ -66,13 +66,19 @@ function getRedis(): Redis | null {
 }
 
 // ── Stage 2 weights ───────────────────────────────────────────────────────────
+//
+// Tuning rationale: personalisation is the primary differentiator for food
+// discovery; rating + popularity together match it to prevent viral-only bias.
+// Distance is intentionally soft — hard radius filtering already happened in
+// Stage 1, so here it only breaks ties between equidistant candidates.
+// Quality is a last-resort tiebreaker for dishes with sparse data.
 
 const W = {
-  similarity: 0.4,
-  rating: 0.2,
-  popularity: 0.15,
-  distance: 0.15,
-  quality: 0.1,
+  similarity: 0.4,   // primary: personalised vector match from user taste profile
+  rating: 0.2,       // dish quality signal from aggregated opinions
+  popularity: 0.15,  // interaction count proxy for crowd-sourced quality
+  distance: 0.15,    // soft proximity boost (hard radius already applied in Stage 1)
+  quality: 0.1,      // content completeness: photos, descriptions, ingredient data
 } as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────

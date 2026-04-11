@@ -6,8 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { SERVICE_SPEED_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/lib/constants';
-import type { PaymentMethods } from '@/types/restaurant';
+import { SERVICE_SPEED_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@eatme/shared';
+import type { PaymentMethods } from '@eatme/shared';
 import type { BasicInfoFormData } from './types';
 
 interface ServiceOptionsSectionProps {

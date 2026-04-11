@@ -1,8 +1,8 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
-import { DISH_KINDS } from '@/lib/constants';
-import type { DishFormData } from '@/lib/validation';
+import { DISH_KINDS } from '@eatme/shared';
+import type { DishFormData } from '@eatme/shared';
 
 export function DishKindSelector() {
   const { register } = useFormContext<DishFormData>();

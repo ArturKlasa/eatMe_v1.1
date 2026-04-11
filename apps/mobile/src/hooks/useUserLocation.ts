@@ -1,3 +1,11 @@
+/**
+ * useUserLocation Hook
+ *
+ * Requests Expo foreground location permission and returns the user's current
+ * coordinates. Exposes permission status and loading state so callers can render
+ * appropriate fallback UI without duplicating permission-request logic.
+ */
+
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import { debugLog } from '../config/environment';

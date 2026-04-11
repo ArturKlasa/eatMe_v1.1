@@ -4,7 +4,7 @@ import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 
 export function DishBasicFields() {
   const {

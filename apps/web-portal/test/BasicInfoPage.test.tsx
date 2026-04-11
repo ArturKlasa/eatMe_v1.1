@@ -25,10 +25,7 @@ vi.mock('@/lib/storage', () => ({
   cancelAutoSave: vi.fn(),
 }));
 
-// Mock sonner
-vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
-}));
+// sonner is globally mocked in test/setup.ts
 
 // Mock constants
 vi.mock('@/lib/constants', () => ({

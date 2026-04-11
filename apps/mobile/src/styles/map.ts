@@ -11,7 +11,8 @@
 
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { colors, spacing, layout, borderRadius } from './theme';
-import { atomic, createTextStyle, createBorder, createShadow, createRounded } from './common';
+import { atomic } from './atomic';
+import { createTextStyle, createBorder, createShadow, createRounded } from './factories';
 
 /**
  * Map Component Styles

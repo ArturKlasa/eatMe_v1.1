@@ -10,14 +10,7 @@ import { MenuScanReview } from '@/app/admin/menu-scan/components/MenuScanReview'
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('sonner', () => ({
-  toast: Object.assign(vi.fn(), {
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  }),
-}));
+// sonner is globally mocked in test/setup.ts
 
 vi.mock('next/link', () => ({
   default: ({

@@ -17,7 +17,14 @@ import {
 } from '../services/userPreferencesService';
 import { getPriceRangeForCurrency, type SupportedCurrency } from '../utils/currencyConfig';
 
-// Daily Filters - Quick, session-based choices
+/**
+ * Daily (session-scoped) filter state.
+ *
+ * These are the quick-pick filters visible in the map filter sheet.
+ * They reset on each app session (not persisted to the database) and
+ * represent the user's mood for today's meal, as opposed to the hard
+ * dietary constraints stored in `PermanentFilters`.
+ */
 export interface DailyFilters {
   // Price range filter ($10 - $50 slider)
   priceRange: {
@@ -248,8 +255,8 @@ interface FilterActions {
 // Default daily filters (USD baseline — see getDefaultDailyFilters() for currency-aware defaults)
 export const defaultDailyFilters: DailyFilters = {
   priceRange: {
-    min: 10,
-    max: 50,
+    min: 10,  // 10 USD: cheapest street food / quick-service item
+    max: 50,  // 50 USD: casual sit-down restaurant meal
   },
   cuisineTypes: [],
   meals: [],
@@ -273,8 +280,8 @@ export const defaultDailyFilters: DailyFilters = {
   },
   spiceLevel: 'eitherWay',
   calorieRange: {
-    min: 200,
-    max: 800,
+    min: 200,  // 200 kcal: small snack or side dish
+    max: 800,  // 800 kcal: full restaurant entrée
     enabled: false,
   },
   maxDistance: 5, // 5km default

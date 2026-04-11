@@ -4,7 +4,7 @@ import { MapPin, ScanLine, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
-import type { RestaurantOption, RestaurantDetailsForm } from '@/app/admin/menu-scan/hooks/useMenuScanState';
+import type { RestaurantOption, RestaurantDetailsForm } from '@/app/admin/menu-scan/hooks/menuScanTypes';
 
 const LocationPickerComponent = dynamic(() => import('@/components/LocationPicker'), {
   ssr: false,

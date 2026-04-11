@@ -7,6 +7,13 @@
 import { supabase } from '../lib/supabase';
 import { colors } from '@eatme/tokens';
 
+/**
+ * Aggregated rating data for a single dish, derived from the
+ * `dish_ratings_summary` materialized view.
+ *
+ * Percentages are stored as 0–100 values and may be `null` when the dish has
+ * received fewer than 3 ratings (not enough data to display meaningfully).
+ */
 export interface DishRating {
   dishId: string;
   likePercentage: number | null;

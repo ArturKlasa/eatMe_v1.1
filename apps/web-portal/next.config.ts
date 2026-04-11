@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Allow Next.js to transpile TypeScript source from workspace packages
-  transpilePackages: ['@eatme/database'],
+  transpilePackages: ['@eatme/database', '@eatme/shared'],
 
   // Increase body size limit for the menu-scan API route.
   // Phone photos resized to 1500px @ 82% JPEG ≈ 300–500 KB base64 each.

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DISH_KINDS } from '@/lib/constants';
+import { DISH_KINDS } from '@eatme/shared';
 import type { EditableDish } from '@/lib/menu-scan';
 
 interface BatchToolbarProps {

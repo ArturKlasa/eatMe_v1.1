@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UtensilsCrossed, GlassWater } from 'lucide-react';
-import type { Dish } from '@/types/restaurant';
-import { dishSchema, type DishFormData } from '@/lib/validation';
+import type { Dish } from '@eatme/shared';
+import { dishSchema, type DishFormData } from '@eatme/shared';
 import { useDishFormData } from '@/lib/hooks/useDishFormData';
 
 import { DishBasicFields } from './dish/DishBasicFields';

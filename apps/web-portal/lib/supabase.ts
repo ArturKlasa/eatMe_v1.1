@@ -1,3 +1,11 @@
+/**
+ * Web Portal — Browser Supabase Client
+ *
+ * Singleton browser client for the Next.js web portal. Uses `@supabase/ssr`
+ * so that auth cookies are handled automatically by the SSR layer.
+ * Server-side operations use `supabase-server.ts` instead.
+ */
+
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database, Tables, TablesInsert } from '@eatme/database';
 

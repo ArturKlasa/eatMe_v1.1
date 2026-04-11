@@ -6,7 +6,7 @@ import { IngredientAutocomplete } from '@/components/IngredientAutocomplete';
 import { AllergenWarnings } from '@/components/AllergenWarnings';
 import { DietaryTagBadges } from '@/components/DietaryTagBadges';
 import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 
 interface DishIngredientSectionProps {
   ingredients: Ingredient[];

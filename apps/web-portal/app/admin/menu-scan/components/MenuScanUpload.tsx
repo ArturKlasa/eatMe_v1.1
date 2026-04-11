@@ -22,7 +22,7 @@ import {
   ADMIN_COMPACT_SECTIONS,
   type RestaurantFormData,
 } from '@/components/admin/RestaurantForm';
-import type { RestaurantOption } from '@/app/admin/menu-scan/hooks/useMenuScanState';
+import type { RestaurantOption } from '@/app/admin/menu-scan/hooks/menuScanTypes';
 
 export interface MenuScanUploadProps {
   // Restaurant state

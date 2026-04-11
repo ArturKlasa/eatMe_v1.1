@@ -16,7 +16,7 @@ import {
 import { GlassWater, UtensilsCrossed } from 'lucide-react';
 import { fetchDishCategories, type DishCategory } from '@/lib/dish-categories';
 import { getCuisineCategories } from '@/lib/cuisine-categories';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 
 interface DishCategorySelectProps {
   dishType: 'food' | 'drink';

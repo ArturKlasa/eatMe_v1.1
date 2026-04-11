@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { CheckCircle2, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { RestaurantOption } from '@/app/admin/menu-scan/hooks/useMenuScanState';
+import type { RestaurantOption } from '@/app/admin/menu-scan/hooks/menuScanTypes';
 
 export interface MenuScanDoneProps {
   savedCount: number;

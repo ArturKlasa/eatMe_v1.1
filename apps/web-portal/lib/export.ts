@@ -9,7 +9,7 @@
  *   <Button onClick={() => exportAsCSV(dishes, restaurant.name)}>Export CSV</Button>
  */
 
-import { RestaurantData, Dish } from '@/types/restaurant';
+import type { RestaurantData, Dish } from '@eatme/shared';
 
 /**
  * Export restaurant data as JSON file

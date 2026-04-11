@@ -1,4 +1,12 @@
-import { FormProgress } from '@/types/restaurant';
+/**
+ * Restaurant Draft Storage
+ *
+ * LocalStorage persistence layer for the restaurant onboarding wizard.
+ * Drafts are keyed per-user so multi-account browsers don't share state.
+ * Auto-save uses a 500 ms debounce to avoid thrashing storage on rapid field edits.
+ */
+
+import type { FormProgress } from '@eatme/shared';
 
 // User-scoped storage key to isolate data per user
 const getStorageKey = (userId: string) => `eatme_draft_${userId}`;
@@ -81,7 +89,6 @@ export const clearIfStale = (userId: string, maxAgeDays = 7): boolean => {
 
     if (ageMs > maxAgeMs) {
       localStorage.removeItem(getStorageKey(userId));
-      console.log(`[Storage] Cleared stale draft for user (age: ${Math.round(ageMs / 86400000)}d)`);
       return true;
     }
 

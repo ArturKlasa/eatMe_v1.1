@@ -12,8 +12,7 @@ vi.mock('next/dynamic', () => ({
   },
 }));
 
-// Mock sonner toast
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// sonner is globally mocked in test/setup.ts
 
 // Mock useAuth
 vi.mock('@/contexts/AuthContext', () => ({

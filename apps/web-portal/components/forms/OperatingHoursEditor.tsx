@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { DAYS_OF_WEEK } from '@/lib/constants';
+import { DAYS_OF_WEEK } from '@eatme/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

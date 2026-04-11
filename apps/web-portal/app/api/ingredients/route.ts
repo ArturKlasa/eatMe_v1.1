@@ -138,8 +138,6 @@ export async function POST(request: NextRequest) {
   // Find the primary alias (matching canonical name) to return to caller
   const primaryAlias = insertedAliases?.find(a => a.display_name === cleanName);
 
-  console.log(`[Ingredients] Created "${cleanName}" (id: ${newIngredient.id})`);
-
   return NextResponse.json({
     ingredient: newIngredient,
     alias: primaryAlias ?? null,

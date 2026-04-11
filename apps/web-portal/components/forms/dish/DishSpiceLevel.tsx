@@ -4,7 +4,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SPICE_LEVEL_CONFIG } from '@/lib/ui-constants';
-import type { DishFormData } from '@/lib/validation';
+import type { DishFormData } from '@eatme/shared';
 
 export function DishSpiceLevel() {
   const { setValue, control } = useFormContext<DishFormData>();

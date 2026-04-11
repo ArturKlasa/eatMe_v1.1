@@ -1,0 +1,715 @@
+# Implementation Plan — Web Portal Redesign
+
+## Checklist
+
+- [ ] Step 1: Quick wins — remove unused deps, middleware, loading skeletons
+- [ ] Step 2: Token pipeline — generate-css-vars script (hex→oklch, px→rem)
+- [ ] Step 3: ThemeProvider + ThemeToggle — dark mode activated end-to-end
+- [ ] Step 4: Migrate admin layout, header, sidebar to semantic tokens
+- [ ] Step 5: Migrate all remaining hardcoded colors across pages and components
+- [ ] Step 6: Utility layer — `@layer utilities` patterns in globals.css
+- [ ] Step 7: StatusBadge, InfoBox, SectionCard shared components
+- [ ] Step 8: useDialog, usePagination, useFilters hooks
+- [ ] Step 9: Refactor menus/page and ingredients/page with new hooks
+- [ ] Step 10: DataTable and SearchFilterBar shared components
+- [ ] Step 11: Refactor RestaurantTable with DataTable + SearchFilterBar
+- [ ] Step 12: LocationFormSection extraction
+- [ ] Step 13: Unified RestaurantForm (sections config, enableDraft)
+- [ ] Step 14: Refactor admin create/edit pages to unified form; delete NewRestaurantForm
+- [ ] Step 15: Owner edit page improvements (cuisines, service options, payment)
+- [ ] Step 16: Extract menu-scan-utils.ts and useMenuScanState hook
+- [ ] Step 17: Split menu-scan page into step components
+- [ ] Step 18: Auth improvements — password toggle, forgot/reset password pages
+- [ ] Step 19: Onboarding routing fix + mobile responsiveness pass
+- [ ] Step 20: Visual polish — spacing, typography, animations, badge size variants
+
+---
+
+## Step 1: Quick Wins — Remove Unused Deps, Middleware, Loading Skeletons
+
+**Objective:** Eliminate 700KB of dead bundle weight, add auth-redirect middleware, and add route-level loading skeletons so the app is faster and more reliable from the first interaction.
+
+**Implementation guidance:**
+- Remove `mapbox-gl` and `react-map-gl` from `apps/web-portal/package.json` and run `pnpm install`
+- Create `apps/web-portal/middleware.ts`:
+  - Read Supabase session cookie using `@supabase/ssr` `createServerClient`
+  - Redirect unauthenticated requests to `/admin/*` → `/auth/login`
+  - Redirect unauthenticated requests to `/menu/*`, `/restaurant/*`, `/onboard/*` → `/auth/login`
+  - Redirect already-authenticated users hitting `/auth/login` or `/auth/signup` → `/`
+- Create `apps/web-portal/app/loading.tsx` — renders `<LoadingSkeleton variant="page" />` (component already exists)
+- Create `apps/web-portal/app/admin/loading.tsx` — renders `<LoadingSkeleton variant="stats" count={4} />`
+
+**Test requirements:**
+- Unit test middleware logic: mock Supabase session, assert redirect URLs for each protected route pattern
+- Test authenticated user hitting login page redirects to dashboard
+- Test unauthenticated user hitting `/admin` redirects to `/auth/login`
+
+**Integration:** Standalone step. No dependencies on later steps.
+
+**Demo:** Load `/admin` without being logged in — immediately redirected to login (no flash of admin UI). Log in, reload — no redirect. App bundle is 700KB lighter (verify with `next build` output).
+
+---
+
+## Step 2: Token Pipeline — generate-css-vars Script
+
+**Objective:** Establish a single source of truth for design tokens by building the script that converts `@eatme/tokens` JS values into CSS custom properties consumed by the web portal.
+
+**Implementation guidance:**
+- Add `culori` as a dev dependency to `packages/tokens`: `pnpm add -D culori`
+- Create `packages/tokens/scripts/generate-css-vars.ts`:
+  - Import all token modules (`colors`, `spacing`, `typography`, `borderRadius`)
+  - **Colors:** convert each hex value to oklch using `culori`'s `formatCss(oklch(parse(hex)))` — output as `--token-color-{name}: oklch(...)`
+  - **Spacing:** divide px numbers by 16 → rem — output as `--token-space-{name}: {n}rem`
+  - **Typography sizes:** same px→rem conversion — output as `--token-type-size-{name}: {n}rem`
+  - **Typography weights/line-heights:** output as-is — `--token-type-weight-{name}` and `--token-type-leading-{name}`
+  - **Border radius:** px→rem — output as `--token-radius-{name}: {n}rem`
+  - **Shadows:** skip React Native properties (`shadowOffset`, `elevation`), output `box-shadow` format — `--token-shadow-{name}: 0 {y}px {blur}px rgba(0,0,0,{opacity})`
+  - Write output to `apps/web-portal/app/tokens.css` wrapped in `:root { ... }`
+  - Also update `@eatme/tokens` colors to use orange as brand primary (replacing the current blue `#007AFF`) — align tokens with the web portal's actual brand identity
+- Add script to `packages/tokens/package.json`: `"generate:css": "tsx scripts/generate-css-vars.ts"`
+- Add `@import './tokens.css';` as the first line of `apps/web-portal/app/globals.css`
+- Add `pnpm --filter @eatme/tokens generate:css` to the root `package.json` `prebuild` and `predev` scripts so tokens are always up to date
+
+**Test requirements:**
+- Test the generator script: given a known token set, assert the output CSS contains correct oklch values, correct rem conversions, correct box-shadow format
+- Test that hex `#FF9800` converts to the expected oklch string
+- Test that `spacing.md` (12px) becomes `--token-space-md: 0.75rem`
+- Test that React Native shadow properties are excluded from output
+
+**Integration:** Builds on nothing. Output (`tokens.css`) is consumed by Steps 3+ when globals.css is updated.
+
+**Demo:** Run `pnpm --filter @eatme/tokens generate:css` — `apps/web-portal/app/tokens.css` is created with all token CSS variables. Open browser DevTools, inspect `:root` — all `--token-*` variables are present. App still looks identical (tokens exist but aren't used by components yet).
+
+---
+
+## Step 3: ThemeProvider + ThemeToggle — Dark Mode Activated
+
+**Objective:** Wire up `next-themes` so dark mode can be toggled. The app will switch between light and dark, though many components will look broken (hardcoded colors) until Steps 4–5 fix them. This makes the problem visible and establishes the infrastructure.
+
+**Implementation guidance:**
+- Create `apps/web-portal/components/ThemeToggle.tsx`:
+  - Use `useTheme()` from `next-themes`
+  - Render a single icon button cycling: `light` → `dark` → `system`
+  - Use `Sun`, `Moon`, `Monitor` icons from `lucide-react`
+  - Button uses existing shadcn `Button` with `variant="ghost" size="icon"`
+- Update `apps/web-portal/app/layout.tsx`:
+  - Wrap the body children with `<ThemeProvider attribute="class" defaultTheme="system" enableSystem>` from `next-themes`
+  - Add `suppressHydrationWarning` to `<html>` tag (required by next-themes to prevent hydration mismatch)
+- Add `ThemeToggle` to `AdminHeader.tsx` (top-right area, next to user email)
+- Add a minimal owner header component `components/OwnerHeader.tsx` with logo + `ThemeToggle` + sign-out button; add it to the root layout for authenticated owner pages
+
+**Test requirements:**
+- Test `ThemeToggle` renders without crashing
+- Test cycling through themes calls `setTheme` with correct values
+- Test that `ThemeProvider` correctly sets `class="dark"` on the html element when `forcedTheme="dark"` (use `renderDark` helper from setup)
+
+**Integration:** Depends on Step 2 (tokens.css imported). `ThemeProvider` must wrap all components for `useTheme()` to work — including the `sonner` Toaster which already uses `useTheme()` (was broken before this step).
+
+**Demo:** Theme toggle button visible in admin header. Click it — page switches to dark mode. Most of the app looks wrong (gray backgrounds turn black, text disappears) — that's expected and is the motivation for Steps 4–5. System preference also respected on first load.
+
+---
+
+## Step 4: Migrate Admin Layout, Header, Sidebar to Semantic Tokens
+
+**Objective:** Fix the admin shell (layout, header, sidebar) to be fully dark-mode compatible. After this step, the admin navigation frame looks correct in both modes.
+
+**Implementation guidance:**
+- Replace all hardcoded color classes in these files with semantic Tailwind token classes:
+
+  | Hardcoded | Replace with |
+  |-----------|-------------|
+  | `bg-white` | `bg-background` |
+  | `bg-gray-50` | `bg-muted/30` |
+  | `border-gray-200` | `border` |
+  | `text-gray-500` | `text-muted-foreground` |
+  | `text-gray-600` | `text-muted-foreground` |
+  | `text-gray-700` | `text-foreground` |
+  | `text-gray-800` / `text-gray-900` | `text-foreground` |
+  | `hover:bg-gray-50` | `hover:bg-accent` |
+  | `hover:bg-gray-100` | `hover:bg-accent` |
+  | `bg-orange-50 text-orange-600` (active nav) | `bg-brand-primary/10 text-brand-primary` |
+  | `bg-yellow-50 border-yellow-200 text-yellow-800` (security notice) | Use `InfoBox variant="warning"` (created in Step 7, use inline styling for now) |
+  | `bg-red-50 border-red-200 text-red-700` (admin badge) | `bg-destructive/10 border-destructive/20 text-destructive` |
+
+- Update `app/admin/layout.tsx`: replace `bg-gray-50` wrapper, remove any hardcoded loading state colors
+- Update `globals.css` `@theme inline` block: add mappings for `--color-brand-primary` and `--color-brand-accent` sourced from `--token-color-brand-primary` and `--token-color-accent`
+
+**Test requirements:**
+- Render `AdminSidebar` with `renderDark()` — assert no `bg-white` or `bg-gray-*` classes present
+- Render `AdminHeader` with `renderDark()` — assert no hardcoded color classes present
+- Snapshot test both components in light and dark mode
+
+**Integration:** Depends on Step 3 (ThemeProvider active). Directly extends the token work from Step 2.
+
+**Demo:** Switch to dark mode — the admin sidebar, header, and layout frame all render correctly with appropriate contrast. The content area pages still have broken colors (fixed in Step 5).
+
+---
+
+## Step 5: Migrate All Remaining Hardcoded Colors
+
+**Objective:** Eliminate all 312+ hardcoded Tailwind color classes across every page and component so the full app is dark-mode compatible.
+
+**Implementation guidance:**
+
+Work file-by-file. Replacement mapping (in addition to Step 4 mappings):
+
+| Hardcoded pattern | Replace with |
+|-------------------|-------------|
+| `text-orange-500/600/700` (brand CTA) | `text-brand-primary` |
+| `bg-orange-50` (brand tint bg) | `bg-brand-primary/5` |
+| `bg-orange-100` | `bg-brand-primary/10` |
+| `bg-orange-600 hover:bg-orange-700` (button) | `bg-brand-primary hover:bg-brand-primary/90` |
+| `text-green-600` (success/price) | `text-success` |
+| `bg-green-50 text-green-700` (success badge) | handled by `StatusBadge` in Step 7; for now `bg-success/10 text-success` |
+| `bg-red-50 text-red-700` (error badge) | `bg-destructive/10 text-destructive` |
+| `text-red-600 hover:bg-red-50` (delete action) | `text-destructive hover:bg-destructive/10` |
+| `bg-blue-50 text-blue-600` (info box) | `bg-info/10 text-info` (or `InfoBox` in Step 7) |
+| `text-gray-300/400` (disabled/placeholder) | `text-muted-foreground` |
+| `border-gray-300` on inputs | `border-input` |
+
+  Priority order: admin pages → owner pages → shared components → UI primitives
+
+- Add `--color-success`, `--color-warning`, `--color-info` to `globals.css` `@theme inline` block (light) and `.dark` override block
+
+**Test requirements:**
+- Write a grep-based CI check (or Vitest test using `fs.readFileSync` on all `.tsx` files) that fails if any of `text-gray-`, `bg-gray-`, `bg-orange-`, `text-orange-`, `bg-green-`, `text-green-`, `bg-red-`, `text-red-`, `bg-blue-`, `text-blue-` appear outside of `components/ui/` (shadcn primitives are allowed to keep their internal classes)
+- Render key pages with `renderDark()` and assert no white or washed-out backgrounds
+
+**Integration:** Depends on Steps 2–4. After this step the full app is dark-mode compatible.
+
+**Demo:** Toggle dark mode — every page (admin dashboard, restaurants list, ingredients, onboarding, menu management) renders correctly. No invisible text, no pure-white cards floating on dark backgrounds.
+
+---
+
+## Step 6: Utility Layer in globals.css
+
+**Objective:** Extract the most frequently repeated Tailwind class combinations into named `@layer utilities` classes, reducing className bloat and ensuring consistency for the new components created in Steps 7–10.
+
+**Implementation guidance:**
+Add `@layer utilities` block to `globals.css` after the `@theme` block:
+
+```css
+@layer utilities {
+  /* Focus rings */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /* Interactive base — disable states */
+  .interactive {
+    @apply transition-colors disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /* SVG icon sizing within containers */
+  .icon-sm { @apply [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:pointer-events-none; }
+  .icon-md { @apply [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:pointer-events-none; }
+
+  /* Enter/exit animations (used by dialogs, dropdowns) */
+  .animate-enter {
+    @apply data-[state=open]:animate-in data-[state=closed]:animate-out
+           data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
+           data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95;
+  }
+
+  /* Info/status surface pattern */
+  .surface-muted   { @apply bg-muted/40 border border-border rounded-md; }
+  .surface-info    { @apply bg-info/10 border border-info/20 rounded-md; }
+  .surface-warning { @apply bg-warning/10 border border-warning/20 rounded-md; }
+  .surface-success { @apply bg-success/10 border border-success/20 rounded-md; }
+  .surface-error   { @apply bg-destructive/10 border border-destructive/20 rounded-md; }
+}
+```
+
+- Update the worst offending shadcn components (`select.tsx`, `dropdown-menu.tsx`, `tabs.tsx`) to use `focus-ring`, `interactive`, `icon-sm`, `animate-enter` where applicable — reduces their className strings significantly
+
+**Test requirements:**
+- Verify utility classes exist in the compiled CSS output (use `next build` and check the CSS file for the class names)
+- Update snapshot tests for `select.tsx`, `tabs.tsx` to reflect the shorter className strings
+
+**Integration:** Depends on Step 5 (semantic tokens in place). New classes reference token variables, so tokens must exist first.
+
+**Demo:** Open DevTools on any page — inspect a Select component. The className string is dramatically shorter. The same focus ring style is visually consistent across Button, Input, Select, and Checkbox.
+
+---
+
+## Step 7: StatusBadge, InfoBox, SectionCard Shared Components
+
+**Objective:** Create the three visual building blocks that replace the most duplicated patterns in the codebase — status coloring (16+ instances), info boxes (6+ instances), and collapsible form sections (used in the compact form variant).
+
+**Implementation guidance:**
+
+**`components/StatusBadge.tsx`:**
+- Accepts `variant: 'active' | 'inactive' | 'pending' | 'error' | 'warning' | 'draft'` and optional `label` override, `size: 'sm' | 'md'`
+- Renders a shadcn `<Badge>` with the appropriate `surface-*` utility class and a small indicator dot
+- Uses the `STATUS_CONFIG` map from the design document — all colors via semantic tokens, no hardcoding
+
+**`components/InfoBox.tsx`:**
+- Accepts `variant: 'info' | 'warning' | 'success' | 'error' | 'tip'`, optional `icon` override, `children`, `className`
+- Uses `surface-*` utility classes from Step 6
+- Default icons per variant: `Info`, `AlertTriangle`, `CheckCircle2`, `XCircle`, `Lightbulb` from lucide-react
+- Renders: `<div className={surface-variant + " flex items-start gap-3 p-3 text-sm"}>`
+
+**`components/SectionCard.tsx`:**
+- Accepts `title`, `icon`, `description`, `collapsible`, `defaultExpanded`, `children`, `action`
+- Uses shadcn `<Card>` internally
+- When `collapsible=true`: toggle button on the header, animates open/close with `animate-enter`
+- When `collapsible=false` (default): always expanded, acts as a labelled card section
+
+- Replace the most obvious existing usages:
+  - Admin layout security notice → `<InfoBox variant="warning">`
+  - Admin header admin badge → `<InfoBox variant="error">` (inline)
+  - `RestaurantForm.tsx` blue info box (line 362) → `<InfoBox variant="info">`
+
+**Test requirements:**
+- `StatusBadge`: render all 6 variants, assert correct text and class presence; render in dark mode with `renderDark()`
+- `InfoBox`: render all 5 variants, test custom icon override, test children rendering, dark mode
+- `SectionCard`: test expanded/collapsed toggle, test non-collapsible always renders children, test action slot renders
+
+**Integration:** Depends on Steps 5–6 (semantic tokens and utility classes). Step 7 components are used in Steps 13–15 (forms).
+
+**Demo:** Visit any admin page with a restaurant form — the info boxes beside location fields now use the consistent `InfoBox` component. The admin "Admin Mode" security banner uses `InfoBox variant="warning"`. Toggle dark mode — all three components adapt correctly.
+
+---
+
+## Step 8: useDialog, usePagination, useFilters Hooks
+
+**Objective:** Create the three hooks that eliminate repeated stateful patterns from page components, with full test coverage before they're applied to pages in Step 9.
+
+**Implementation guidance:**
+
+**`hooks/useDialog.ts`:**
+```typescript
+export function useDialog<T>(initial?: T) {
+  const [state, setState] = useState<{ isOpen: boolean; data: T | null }>({
+    isOpen: false, data: initial ?? null,
+  })
+  return {
+    isOpen: state.isOpen,
+    data: state.data,
+    open: (data?: T) => setState({ isOpen: true, data: data ?? state.data }),
+    close: () => setState(s => ({ ...s, isOpen: false })),  // keeps data for exit animation
+    reset: () => setState({ isOpen: false, data: null }),    // clears data immediately
+  }
+}
+```
+
+**`hooks/usePagination.ts`:**
+- Accepts `items: T[]` and `pageSize = 25`
+- Returns `{ page, totalPages, paginatedItems, setPage, hasNext, hasPrev }`
+- `page` is 1-indexed
+- Resets to page 1 when `items.length` changes (via useEffect)
+
+**`hooks/useFilters.ts`:**
+```typescript
+type FilterFn<T> = (item: T, value: string) => boolean
+export function useFilters<T>(items: T[], searchQuery: string, filterFns: FilterFn<T>[]): T[]
+```
+- Returns items that pass ALL active filter functions
+- A filter function is "active" when `value` is non-empty string
+- Case-insensitive string matching for search
+
+**Test requirements (100% coverage target):**
+- `useDialog`: open with data, open without data (keeps previous), close (isOpen false, data kept), reset (both cleared), initial value
+- `usePagination`: page 1 returns first N items, last page returns remainder, setPage clamps to valid range, resets on items change, hasNext/hasPrev correct at boundaries
+- `useFilters`: single filter matches, multiple filters AND logic, empty query returns all, case insensitivity, empty items array
+
+**Integration:** Standalone hooks. Consumed in Step 9 (pages) and Steps 10–15 (components).
+
+**Demo:** All tests pass. Hooks don't affect visible UI yet — that comes in Step 9.
+
+---
+
+## Step 9: Refactor menus/page and ingredients/page with New Hooks
+
+**Objective:** Apply the new hooks to the two most structurally similar admin pages, validating that the patterns work in real page contexts and demonstrably reducing their complexity.
+
+**Implementation guidance:**
+
+**`app/admin/restaurants/[id]/menus/page.tsx` (713 LOC → ~450 LOC):**
+- Replace 3× `(isOpen + editingItem + formData)` useState triplets with 3× `useDialog<MenuData>()`, `useDialog<CategoryData>()`, `useDialog<DishData>()`
+- The dialog `data` field replaces both `editingItem` and `formData`
+- On `dialog.close()` after successful submit, call `dialog.reset()` in the onSuccess callback
+- No change to the Supabase calls or form rendering — only state management changes
+
+**`app/admin/ingredients/page.tsx` (685 LOC → ~420 LOC):**
+- Replace pagination state (`page`, `setPage`, manual slice logic) with `usePagination(ingredients, 25)`
+- Replace search state + filter logic with `useFilters(ingredients, searchQuery, [searchFn])`
+- Replace 2× dialog state patterns (canonical + alias) with `useDialog<IngredientData>()` and `useDialog<AliasData>()`
+
+**Test requirements:**
+- Update existing tests for both pages to use new hook signatures
+- Add integration test for menus page: open dish dialog, submit, assert dialog closes and data resets
+- Add integration test for ingredients page: search for ingredient, assert filtered list; navigate page, assert paginated slice
+
+**Integration:** Depends on Step 8. Validates hooks work in real pages before they're applied to more complex refactors.
+
+**Demo:** Open admin ingredients page — search works, pagination works. Open a menu in the restaurant menus page — dialogs open and close cleanly. Both pages have ~35% fewer lines of code. No visible UX change for the user.
+
+---
+
+## Step 10: DataTable and SearchFilterBar Shared Components
+
+**Objective:** Build the generic table and filter bar components, replacing the need for each admin page to implement its own table structure and filter UI.
+
+**Implementation guidance:**
+
+**`components/DataTable.tsx`:**
+- Generic `DataTable<T>` component — accepts pre-filtered, pre-paginated `data`
+- Renders: table header from `columns`, rows with optional `render` function per column, `actions` column if provided
+- `loading=true`: renders `<LoadingSkeleton variant="table" />` instead of table
+- `emptyState`: renders custom empty state or default `<EmptyState>` when `data.length === 0`
+- Uses shadcn `<Table>`, `<TableHeader>`, `<TableRow>`, `<TableCell>` primitives
+- No internal state — purely controlled by parent
+
+**`components/SearchFilterBar.tsx`:**
+- Renders a row: search `<Input>` on the left + optional filter `<Select>` components + optional `actions` slot on the right
+- Controlled: all values/onChange handlers passed as props
+- Responsive: wraps to two rows on mobile (`flex-wrap`)
+
+**Test requirements:**
+- `DataTable`: renders correct number of rows, renders custom cell with `render` fn, shows skeleton when `loading=true`, shows emptyState when data is empty, actions column renders per-row
+- `SearchFilterBar`: renders search input, renders filters when provided, renders actions slot, calls onChange on input
+
+**Integration:** Depends on Steps 6–7 (utility classes, consistent component style). Used in Step 11.
+
+**Demo:** Both components render correctly in Storybook or a test page. Not yet wired to a real page — that's Step 11.
+
+---
+
+## Step 11: Refactor RestaurantTable with DataTable + SearchFilterBar
+
+**Objective:** Replace the hand-rolled restaurant table with the new shared components, proving they work in the most complex existing table in the app.
+
+**Implementation guidance:**
+- `components/admin/RestaurantTable.tsx` (299 LOC → ~120 LOC):
+  - Remove internal filter state, pagination state, search state — all moved to parent page
+  - Accept pre-filtered, pre-paginated `data` and `columns` from parent
+  - Use `DataTable` for the table body
+  - Delete inline `<span className="inline-flex items-center ...">` badge patterns — replace with `StatusBadge`
+
+- `app/admin/restaurants/page.tsx`:
+  - Add `useFilters(restaurants, searchQuery, [statusFilter, cuisineFilter])` for filtering
+  - Add `usePagination(filteredRestaurants, 25)` for pagination
+  - Add `SearchFilterBar` with search + status filter + cuisine filter + "New Restaurant" button action
+  - Pass `paginatedItems` and `columns` definition to `RestaurantTable`/`DataTable`
+  - Remove all the filter/pagination logic that was previously inside `RestaurantTable`
+
+- Add shadcn `<Pagination>` component below the table (or add a pagination row to `DataTable` — accept `pagination` prop as optional)
+
+**Test requirements:**
+- Update `RestaurantTable` tests to reflect new interface (it's now a thin wrapper)
+- Integration test for `restaurants/page.tsx`: mock data, assert search filters rows, assert status filter works, assert pagination navigates
+
+**Integration:** Depends on Steps 8–10. This is the first real page that uses the full DataTable + SearchFilterBar + hooks stack together.
+
+**Demo:** Visit admin restaurants list — search and filter work as before, table visually cleaner with consistent `StatusBadge` indicators. Toggle dark mode — table renders correctly. The page is visibly less cluttered.
+
+---
+
+## Step 12: LocationFormSection Extraction
+
+**Objective:** Extract the identical LocationPicker + address fields pattern that's duplicated across `NewRestaurantForm`, `RestaurantForm`, and the onboarding `LocationSection` into a single shared component.
+
+**Implementation guidance:**
+- Create `components/LocationFormSection.tsx`:
+  - Accepts `value: LocationData` and `onChange: (location: LocationData) => void`
+  - Internally uses `dynamic(() => import('./LocationPicker'), { ssr: false })` (same pattern as current files)
+  - Renders: country select, address text input, map picker, lat/lng (hidden but passed through)
+  - Handles `handleLocationSelect`, `handleAddressSelect`, `handleLocationDetails` — currently duplicated in 3 places
+  - `LocationData` type:
+    ```typescript
+    interface LocationData {
+      country: string; address: string; city: string; neighborhood: string;
+      state: string; postalCode: string; lat: number; lng: number;
+    }
+    ```
+
+- Update `components/onboarding/LocationSection.tsx` to use `LocationFormSection` internally
+- Leave `RestaurantForm` and `NewRestaurantForm` unchanged for now — they'll be replaced in Step 13
+
+**Test requirements:**
+- Test `LocationFormSection` renders the country select and address input
+- Test `onChange` is called with correct `LocationData` when address is selected (mock LocationPicker)
+- Test dynamic import SSR: false (verify no SSR-only crash with jsdom)
+
+**Integration:** Depends on Steps 5–7 (tokens + shared components). Directly used in Step 13.
+
+**Demo:** Onboarding basic-info step — location section works identically but is now backed by the shared component. Open DevTools, verify only one `LocationPicker` dynamic import exists in the page bundle.
+
+---
+
+## Step 13: Unified RestaurantForm
+
+**Objective:** Merge `NewRestaurantForm` (748 LOC, plain useState) and `RestaurantForm` (622 LOC, react-hook-form) into a single unified `RestaurantForm` with the `sections` configuration API and `enableDraft` prop.
+
+**Implementation guidance:**
+- Rewrite `components/admin/RestaurantForm.tsx` as the unified form:
+  - Use `react-hook-form` + Zod for all validation (RestaurantForm's current approach)
+  - Accept `mode: 'create' | 'edit'`, `variant: 'full' | 'compact'`, `sections: RestaurantFormSection`, `enableDraft: boolean`, `initialData`, `onSuccess`, `onCancel`
+  - **`full` variant:** sections render as expanded `<Card>` components (current RestaurantForm style)
+  - **`compact` variant:** sections render as collapsible `<SectionCard>` components (NewRestaurantForm's collapsible pattern)
+  - **`enableDraft=true`:** wire the form's `watch()` output into `useRestaurantDraft` for localStorage auto-save
+  - Use `LocationFormSection` from Step 12 for the location section
+  - Use `CuisineSelector`, `OperatingHoursEditor`, `InfoBox` (for the location info tip) — all existing components
+  - Define `ADMIN_FULL_SECTIONS`, `ADMIN_COMPACT_SECTIONS`, `OWNER_EDIT_SECTIONS` as exported constants
+  - Consolidate the Zod schema into one `restaurantSchema` (superset of both current schemas)
+
+**Test requirements:**
+- Test create mode: submitting valid data calls `onSuccess` with new restaurant
+- Test edit mode: `initialData` populates form fields correctly
+- Test compact variant: sections render as `SectionCard` with collapsible behavior
+- Test `sections` config: passing `{ location: false }` does not render the location section
+- Test `enableDraft=true`: form changes are saved to localStorage (mock `useRestaurantDraft`)
+- Test validation: required field errors appear inline on submit attempt
+
+**Integration:** Depends on Steps 7 (SectionCard, InfoBox) and 12 (LocationFormSection). Consumed in Steps 14–15.
+
+**Demo:** Visit admin → create new restaurant — the form works with compact collapsible sections. Visit admin → edit restaurant — full expanded form works identically to before. The two forms are visually consistent.
+
+---
+
+## Step 14: Refactor Admin Create/Edit Pages to Unified Form; Delete NewRestaurantForm
+
+**Objective:** Update all admin pages that use either of the two old forms to use the unified `RestaurantForm`, then delete `NewRestaurantForm.tsx`.
+
+**Implementation guidance:**
+- `app/admin/restaurants/new/page.tsx`: replace `<NewRestaurantForm>` with `<RestaurantForm mode="create" sections={ADMIN_FULL_SECTIONS} />`
+- `app/admin/restaurants/[id]/edit/page.tsx`: replace current form with `<RestaurantForm mode="edit" sections={ADMIN_FULL_SECTIONS} initialData={restaurant} />`
+- `app/admin/menu-scan/page.tsx` (inline new restaurant form in compact mode): replace `<NewRestaurantForm compact>` with `<RestaurantForm mode="create" variant="compact" sections={ADMIN_COMPACT_SECTIONS} onSuccess={handleRestaurantCreated} />`
+- Delete `components/admin/NewRestaurantForm.tsx`
+- Delete the tests that were specific to `NewRestaurantForm` — the unified form tests (Step 13) replace them
+
+**Test requirements:**
+- Smoke test each updated page renders without crashing
+- Test that `restaurants/new` page creates a restaurant on form submit (mock Supabase call)
+- Test that `restaurants/[id]/edit` page loads and populates form with existing data
+
+**Integration:** Depends on Step 13. After this step, `NewRestaurantForm.tsx` is gone and the codebase has ~670 fewer lines.
+
+**Demo:** Create a restaurant via admin — form works. Edit a restaurant — form pre-populated correctly. Menu scan page — compact inline form still works. `NewRestaurantForm.tsx` no longer exists in the project.
+
+---
+
+## Step 15: Owner Edit Page Improvements
+
+**Objective:** Bring the restaurant owner's edit page up to parity with the admin form — add cuisine re-selection, service options, and payment methods editing — using the same unified `RestaurantForm`.
+
+**Implementation guidance:**
+- Replace `app/restaurant/edit/page.tsx` custom form with `<RestaurantForm mode="edit" sections={OWNER_EDIT_SECTIONS} initialData={restaurant} enableDraft={false} />`
+- `OWNER_EDIT_SECTIONS` includes all sections: basicInfo, contact, location, cuisines, operatingHours, serviceOptions
+- When cuisines section is rendered with existing data: display `<InfoBox variant="warning">` below the cuisine selector: "Changing cuisines will not remove existing dishes, but some category assignments may no longer apply. Review your menu after saving."
+- Service options section (delivery/takeout/dine-in, speed, payment methods) is already built in `ServiceOptionsSection` component from onboarding — wire it into the unified form's `serviceOptions` section slot
+
+**Test requirements:**
+- Test owner edit page loads restaurant data and renders unified form
+- Test that changing cuisines shows the cascade warning `InfoBox`
+- Test that service options and payment fields are present and saveable
+- Test unsaved changes warning still triggers on navigation (the `beforeunload` handler should be preserved)
+
+**Integration:** Depends on Step 13. The owner and admin now both use the same form infrastructure.
+
+**Demo:** Log in as a restaurant owner, go to edit page — cuisines, service options, and payment methods are now editable. Change cuisines — warning appears below the selector. Save — changes persist to DB. Toggle dark mode — form looks correct.
+
+---
+
+## Step 16: Extract menu-scan-utils.ts and useMenuScanState Hook
+
+**Objective:** Extract the image/PDF utilities and the 40+ useState calls from `menu-scan/page.tsx` into a library function and a custom hook — without changing any visible behavior yet.
+
+**Implementation guidance:**
+- Create `lib/menu-scan-utils.ts`:
+  - Move `resizeImageToBase64(file: File, maxDimension: number, quality: number): Promise<string>` (currently lines 108-146 of page)
+  - Move `pdfToImages(file: File): Promise<string[]>` (currently lines 153-184 of page)
+  - Both functions export as named exports with explicit TypeScript signatures
+  - Add JSDoc comments
+
+- Create `app/admin/menu-scan/hooks/useMenuScanState.ts`:
+  - Extract all 40+ useState declarations into this hook
+  - Return the shape defined in the design document
+  - Group related state into objects (e.g., `uploadedFiles` + `previews` → single `uploadState` object)
+  - Actions: `setFiles`, `startProcessing`, `resetToUpload`, `toggleDish`, `selectAll`, `clearSelection`, `confirmImport`
+  - `startProcessing` calls the existing API route (`/api/menu-scan`) — no API changes
+
+- Update `menu-scan/page.tsx` to use the new hook and utility imports — no visible change, just cleaner code
+
+**Test requirements:**
+- `menu-scan-utils.ts`:
+  - Test `resizeImageToBase64` with a mock canvas (mock `HTMLCanvasElement`)
+  - Test `pdfToImages` with a mock pdfjs worker
+- `useMenuScanState`:
+  - Test initial state (step = 'upload', empty files)
+  - Test `setFiles` updates uploadedFiles
+  - Test step transitions: upload → processing → review → done
+  - Test `toggleDish` toggles the correct dish ID in selectedDishes
+
+**Integration:** Depends on Step 5 (tokens, so no visual regression). `menu-scan/page.tsx` still a large file — Step 17 splits it.
+
+**Demo:** The menu scan page works exactly as before. Running tests shows the new utility functions and hook are well-covered. The page file has dropped from 2,921 to ~1,800 lines (state and utils extracted).
+
+---
+
+## Step 17: Split menu-scan Page into Step Components
+
+**Objective:** Break the remaining 1,800-line `menu-scan/page.tsx` into three focused step components, making the page orchestrator a clean state machine.
+
+**Implementation guidance:**
+- Create `app/admin/menu-scan/components/MenuScanUpload.tsx`:
+  - Props: `onFilesSelected: (files: File[]) => void`, `isProcessing: boolean`
+  - Renders: drag-and-drop file zone, file list with previews, "Start Scan" button
+  - Handles: file type validation (images + PDF), preview generation (calls `resizeImageToBase64`)
+
+- Create `app/admin/menu-scan/components/MenuScanProcessing.tsx`:
+  - Props: `progress: ProcessingProgress`, `onCancel: () => void`
+  - Renders: progress bar, stage label, current file indicator
+  - No side effects — purely display
+
+- Create `app/admin/menu-scan/components/MenuScanReview.tsx`:
+  - Props: `results: ScanResult`, `reviewState: ReviewState`, `actions: MenuScanActions['review']`
+  - Renders: the dish group cards, duplicate flags, batch toolbar, confirm import button
+  - Uses existing `DishGroupCard`, `FlaggedDuplicateCard`, `BatchToolbar` components from `admin/menu-scan/`
+
+- Rewrite `app/admin/menu-scan/page.tsx` as the orchestrator:
+  ```tsx
+  const { step, ...state } = useMenuScanState()
+  if (step === 'upload')     return <MenuScanUpload ... />
+  if (step === 'processing') return <MenuScanProcessing ... />
+  if (step === 'review')     return <MenuScanReview ... />
+  if (step === 'done')       return <MenuScanDone ... />  // simple success view
+  ```
+  - Page file should be ~80 lines after this split
+
+**Test requirements:**
+- `MenuScanUpload`: renders drop zone, calls `onFilesSelected` with correct files, rejects non-image/PDF files
+- `MenuScanProcessing`: renders progress bar at correct percentage, cancel button calls `onCancel`
+- `MenuScanReview`: renders dish cards from results, select/deselect works, confirm button calls `confirmImport`
+- Update `menu-scan/page.tsx` test (if any) to reflect new orchestrator structure
+
+**Integration:** Depends on Step 16. After this, `menu-scan/page.tsx` goes from 2,921 LOC to ~80 LOC orchestrator + 3 focused step components.
+
+**Demo:** Use the menu scan feature end-to-end — upload images, watch processing, review results, confirm import. All behavior identical to before. Each step is now a separate, readable component file.
+
+---
+
+## Step 18: Auth Improvements — Password Toggle, Forgot/Reset Password Pages
+
+**Objective:** Fix the key auth UX gaps identified in research: password visibility, forgotten password flow, double-error feedback, and optional restaurant name at signup.
+
+**Implementation guidance:**
+- `app/auth/login/page.tsx`:
+  - Add password visibility toggle: Eye/EyeOff icon button inside the password input's trailing slot
+  - Add "Forgot your password?" link below the password field linking to `/auth/forgot-password`
+  - Fix double-error feedback: OAuth errors should only show in the `<Alert>` component, not also as toast
+
+- `app/auth/signup/page.tsx`:
+  - Make restaurant name field optional (remove `required`, update validation schema)
+  - Add label: "Restaurant name (optional — can be added later)"
+  - Fix double-error feedback same as login
+
+- Create `app/auth/forgot-password/page.tsx`:
+  - Simple centered card: email input + "Send reset link" button
+  - Calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: '/auth/reset-password' })`
+  - On success: show confirmation message ("Check your email for a reset link")
+  - On error: show `<Alert variant="destructive">`
+
+- Create `app/auth/reset-password/page.tsx`:
+  - Handles the Supabase email callback (`?code=` param)
+  - Exchanges code for session, then shows a "Set new password" form
+  - Calls `supabase.auth.updateUser({ password: newPassword })`
+  - On success: redirect to `/` with success toast
+
+**Test requirements:**
+- Test password toggle: clicking Eye icon changes input type from `password` to `text`
+- Test forgot password form: valid email → calls `resetPasswordForEmail`, shows confirmation
+- Test forgot password form: Supabase error → shows Alert, no toast
+- Test reset password page: missing code param → redirects to `/auth/login`
+- Test signup: restaurant name field is optional (no validation error when empty)
+
+**Integration:** Depends on Step 3 (ThemeToggle in auth pages so they support dark mode too). Auth pages should also receive ThemeToggle — add it to the auth layout or individual pages.
+
+**Demo:** On login page, click the eye icon — password becomes visible. Click "Forgot your password?" — land on a clean reset page. Enter email — receive confirmation. Auth pages work in dark mode.
+
+---
+
+## Step 19: Onboarding Routing Fix + Mobile Responsiveness Pass
+
+**Objective:** Fix the broken onboarding step order and make every page properly responsive.
+
+**Implementation guidance:**
+
+**Onboarding routing fix:**
+- `app/onboard/basic-info/page.tsx`: change `router.push('/onboard/review')` → `router.push('/onboard/menu')` in the submit handler
+- Update `OnboardingStepper` to show 3 steps: Basic Info → Menu → Review (verify it already does; adjust if needed)
+
+**Mobile responsiveness — systematic pass across all pages:**
+- `app/onboard/review/page.tsx`: `grid grid-cols-3` → `grid grid-cols-1 sm:grid-cols-3`
+- `app/onboard/menu/page.tsx` tabs: add `flex-wrap` and `gap-2` so menu tabs wrap on small screens instead of scrolling
+- All pages with button groups: add `flex-col sm:flex-row gap-2` pattern
+- `dialog.tsx` (shadcn): update max-height to `max-h-[90dvh]` and add `pb-safe-bottom` (maps to `env(safe-area-inset-bottom)` via Tailwind plugin or custom CSS variable)
+- Auth pages: already centered, verify they look reasonable on 375px width
+- Admin pages: verify sidebar collapses or hides on mobile (add `hidden md:flex` to sidebar, add hamburger menu button in header for mobile — minimal implementation)
+
+**Test requirements:**
+- Test onboarding basic-info submit calls `router.push('/onboard/menu')` not `/onboard/review`
+- Render review stats grid at 375px viewport (use jsdom with explicit window.innerWidth mock) — assert `sm:` classes present
+- Test admin layout: sidebar has `hidden md:flex` class; mobile hamburger button renders
+
+**Integration:** Depends on Step 5 (colors correct) and Step 7 (InfoBox, SectionCard in place). Pure UX/routing work.
+
+**Demo:** Go through the full onboarding flow as a new user — Basic Info → Menu (no longer skipped) → Review → Submit. Review the page on a phone viewport — stats grid is readable. Toggle dark mode at any step — everything looks correct.
+
+---
+
+## Step 20: Visual Polish — Spacing, Typography, Animations, Badge Variants
+
+**Objective:** Apply the final layer of visual consistency: standardize spacing using CSS tokens, apply the typography scale, add entrance animations to dialogs, and add badge size variants.
+
+**Implementation guidance:**
+
+**Spacing standardization:**
+- Replace ad-hoc `p-6` / `gap-4` / `py-8` with token-based spacing where inconsistent:
+  - Card padding: use `p-card` (maps to `--spacing-card: var(--token-space-card)`)
+  - Section gaps: use `gap-section`
+  - Focus on admin dashboard, restaurant tables, form pages
+
+**Typography:**
+- Add `@layer base` rules to `globals.css` for consistent heading sizes using token vars:
+  ```css
+  @layer base {
+    h1 { @apply text-[length:--token-type-size-3xl] font-bold tracking-tight; }
+    h2 { @apply text-[length:--token-type-size-2xl] font-semibold; }
+    h3 { @apply text-[length:--token-type-size-xl] font-semibold; }
+  }
+  ```
+- Audit pages for inconsistent heading sizes (some use `text-2xl`, others `text-3xl` for same-level headings)
+
+**Dialog animations (`@starting-style`):**
+- Add to `globals.css`:
+  ```css
+  @supports selector(:open) {
+    @starting-style {
+      [data-state="open"].dialog-content { opacity: 0; transform: scale(0.97) translateY(4px); }
+    }
+    [data-state="open"].dialog-content { transition: opacity 150ms ease, transform 150ms ease; }
+  }
+  ```
+- Add `dialog-content` class to shadcn `DialogContent` component
+
+**Badge size variants:**
+- Update `components/ui/badge.tsx` CVA definition to add:
+  ```typescript
+  size: {
+    sm: 'px-1.5 py-0.5 text-[10px] gap-1',
+    md: 'px-2.5 py-0.5 text-xs gap-1.5',   // current default
+    lg: 'px-3 py-1 text-sm gap-2',
+  }
+  ```
+- Update `StatusBadge` (Step 7) to pass `size` through to the underlying `Badge`
+
+**Test requirements:**
+- `badge.tsx` snapshot test updated to reflect new size variants
+- Verify `sm` badge renders correctly at small sizes (font-size 10px, correct padding)
+- Visual pass: manually verify consistent heading hierarchy on admin dashboard, owner dashboard, and onboarding
+
+**Integration:** Depends on all previous steps. This is the final polish layer.
+
+**Demo:** Full walkthrough of both admin and owner experiences in both light and dark modes. Consistent spacing, readable type hierarchy, smooth dialog animations, badge sizes available for dense UI contexts. The redesign is complete.

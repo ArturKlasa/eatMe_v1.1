@@ -241,7 +241,12 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                 {mode === 'search' ? 'Link Ingredient' : 'Add New Ingredient'}
               </h3>
               <p className="text-xs text-gray-500 truncate">
-                From menu: <span className="italic text-gray-700">{'"'}{rawText}{'"'}</span>
+                From menu:{' '}
+                <span className="italic text-gray-700">
+                  {'"'}
+                  {rawText}
+                  {'"'}
+                </span>
               </p>
             </div>
           </div>
@@ -306,7 +311,9 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                             {familyLabel(item.ingredient_family_name)}
                           </span>
                         )}
-                        {item.is_vegan && <Leaf className="ml-1.5 h-3 w-3 inline-block text-green-600" />}
+                        {item.is_vegan && (
+                          <Leaf className="ml-1.5 h-3 w-3 inline-block text-green-600" />
+                        )}
                         {!item.is_vegan && item.is_vegetarian && (
                           <Sprout className="ml-1.5 h-3 w-3 inline-block text-green-600" />
                         )}
@@ -387,7 +394,9 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                     onChange={e => setIsVegetarian(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <span className="text-sm text-gray-700 flex items-center gap-1"><Sprout className="h-3.5 w-3.5" /> Vegetarian</span>
+                  <span className="text-sm text-gray-700 flex items-center gap-1">
+                    <Sprout className="h-3.5 w-3.5" /> Vegetarian
+                  </span>
                 </label>
                 <label className={cn('flex items-center gap-2 cursor-pointer')}>
                   <input
@@ -396,7 +405,9 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                     onChange={e => setIsVegan(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <span className="text-sm text-gray-700 flex items-center gap-1"><Leaf className="h-3.5 w-3.5" /> Vegan</span>
+                  <span className="text-sm text-gray-700 flex items-center gap-1">
+                    <Leaf className="h-3.5 w-3.5" /> Vegan
+                  </span>
                 </label>
               </div>
 

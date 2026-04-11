@@ -1,8 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Store, Edit, Trash2, Ban, CheckCircle, Eye, ScanLine } from 'lucide-react';
+import {
+  Plus,
+  Store,
+  Edit,
+  Trash2,
+  Ban,
+  CheckCircle,
+  Eye,
+  ScanLine,
+  Phone,
+  Globe,
+  Clock,
+  Truck,
+  UtensilsCrossed,
+  Coffee,
+  CalendarCheck,
+  Map as MapIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import type { Restaurant } from '@/lib/supabase';
@@ -35,6 +52,7 @@ export default function AdminRestaurantsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -42,7 +60,14 @@ export default function AdminRestaurantsPage() {
     confirmLabel: string;
     confirmVariant: 'destructive' | 'default';
     onConfirm: () => void;
-  }>({ open: false, title: '', description: '', confirmLabel: 'Confirm', confirmVariant: 'default', onConfirm: () => {} });
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    confirmLabel: 'Confirm',
+    confirmVariant: 'default',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     const loadRestaurants = async () => {
@@ -61,7 +86,7 @@ export default function AdminRestaurantsPage() {
 
       const dishCountMap = new Map<string, number>();
       if (rows.length > 0) {
-        const ids = rows.map((r) => r.id);
+        const ids = rows.map(r => r.id);
         const { data: dishRows } = await supabase
           .from('dishes')
           .select('restaurant_id')
@@ -73,7 +98,7 @@ export default function AdminRestaurantsPage() {
         }
       }
 
-      const mapped: RestaurantEntry[] = rows.map((restaurant) => ({
+      const mapped: RestaurantEntry[] = rows.map(restaurant => ({
         ...restaurant,
         menuCount: 0,
         dishCount: dishCountMap.get(restaurant.id) ?? 0,
@@ -81,7 +106,10 @@ export default function AdminRestaurantsPage() {
 
       const warnings = new Map<string, WarningFlag[]>();
       for (const restaurant of mapped) {
-        warnings.set(restaurant.id, computeWarningFlags(restaurant, restaurant.dishCount as number));
+        warnings.set(
+          restaurant.id,
+          computeWarningFlags(restaurant, restaurant.dishCount as number)
+        );
       }
 
       setAllRestaurants(mapped);
@@ -164,14 +192,11 @@ export default function AdminRestaurantsPage() {
     },
     {
       value: showFlaggedOnly ? 'flagged' : '',
-      fn: (r) => (warningsMap.get(r.id as string) ?? []).length > 0,
+      fn: r => (warningsMap.get(r.id as string) ?? []).length > 0,
     },
   ]);
 
-  const { page, totalPages, paginatedItems, setPage } = usePagination(
-    filtered,
-    PAGE_SIZE
-  );
+  const { page, totalPages, paginatedItems, setPage } = usePagination(filtered, PAGE_SIZE);
 
   const columns: ColumnDef<RestaurantEntry>[] = [
     {
@@ -221,9 +246,14 @@ export default function AdminRestaurantsPage() {
       header: 'Status',
       render: (_, row) => (
         <div className="flex flex-wrap items-center gap-1">
-          <StatusBadge variant={row.is_active ? 'active' : 'inactive'} label={row.is_active ? 'Active' : 'Suspended'} />
+          <StatusBadge
+            variant={row.is_active ? 'active' : 'inactive'}
+            label={row.is_active ? 'Active' : 'Suspended'}
+          />
           {!row.is_active && row.suspension_reason && (
-            <p className="text-xs text-muted-foreground mt-1 w-full">{row.suspension_reason as string}</p>
+            <p className="text-xs text-muted-foreground mt-1 w-full">
+              {row.suspension_reason as string}
+            </p>
           )}
           <RestaurantWarningBadge warnings={warningsMap.get(row.id as string) ?? []} />
         </div>
@@ -258,11 +288,9 @@ export default function AdminRestaurantsPage() {
         <Edit className="h-4 w-4" />
       </Link>
       <button
-        onClick={() => handleSuspend(row.id as string, !!(row.is_active))}
+        onClick={() => handleSuspend(row.id as string, !!row.is_active)}
         className={`p-2 rounded ${
-          row.is_active
-            ? 'text-warning hover:bg-warning/10'
-            : 'text-success hover:bg-success/10'
+          row.is_active ? 'text-warning hover:bg-warning/10' : 'text-success hover:bg-success/10'
         }`}
         title={row.is_active ? 'Suspend' : 'Activate'}
         aria-label={row.is_active ? 'Suspend restaurant' : 'Activate restaurant'}
@@ -279,6 +307,139 @@ export default function AdminRestaurantsPage() {
       </button>
     </div>
   );
+
+  const getMapsUrl = (row: RestaurantEntry): string => {
+    if (row.google_place_id) {
+      return `https://www.google.com/maps/place/?q=place_id:${row.google_place_id as string}`;
+    }
+    const loc = row.location as { type?: string; coordinates?: [number, number] } | null;
+    if (loc?.coordinates) {
+      const [lng, lat] = loc.coordinates;
+      return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+    return `https://www.google.com/maps/search/${encodeURIComponent(row.address as string)}`;
+  };
+
+  const renderExpandedContent = (row: RestaurantEntry) => {
+    const hours = row.open_hours as Record<string, { open: string; close: string }> | null;
+    const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayLabels: Record<string, string> = {
+      monday: 'Mon',
+      tuesday: 'Tue',
+      wednesday: 'Wed',
+      thursday: 'Thu',
+      friday: 'Fri',
+      saturday: 'Sat',
+      sunday: 'Sun',
+    };
+    const orderedHours = hours
+      ? dayOrder.filter(d => hours[d]).map(d => ({ day: d, ...hours[d] }))
+      : [];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+        {/* Contact */}
+        <div className="space-y-2">
+          <p className="font-medium text-foreground mb-1">Contact</p>
+          {row.phone ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <span>{row.phone as string}</span>
+            </div>
+          ) : null}
+          {row.website ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Globe className="h-3.5 w-3.5 shrink-0" />
+              <a
+                href={row.website as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline truncate max-w-[180px]"
+              >
+                {row.website as string}
+              </a>
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapIcon className="h-3.5 w-3.5 shrink-0" />
+            <a
+              href={getMapsUrl(row)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              Open in Google Maps
+            </a>
+          </div>
+          {!row.phone && !row.website && (
+            <p className="text-muted-foreground italic">No contact info</p>
+          )}
+          {row.description ? (
+            <p className="text-muted-foreground pt-1 line-clamp-3">{row.description as string}</p>
+          ) : null}
+        </div>
+
+        {/* Hours */}
+        <div className="space-y-1">
+          <p className="font-medium text-foreground mb-1 flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" /> Hours
+          </p>
+          {orderedHours.length > 0 ? (
+            <div className="grid grid-cols-[3rem_1fr] gap-x-3 gap-y-0.5 text-muted-foreground">
+              {orderedHours.map(({ day, open, close }) => (
+                <React.Fragment key={day}>
+                  <span className="text-foreground font-medium">{dayLabels[day]}</span>
+                  <span>
+                    {open} – {close}
+                  </span>
+                </React.Fragment>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground italic">No hours on record</p>
+          )}
+        </div>
+
+        {/* Services */}
+        <div className="space-y-2">
+          <p className="font-medium text-foreground mb-1">Services</p>
+          <div className="flex flex-wrap gap-2">
+            {row.delivery_available && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 bg-muted/40 rounded text-foreground">
+                <Truck className="h-3 w-3" /> Delivery
+              </span>
+            )}
+            {row.takeout_available && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 bg-muted/40 rounded text-foreground">
+                <UtensilsCrossed className="h-3 w-3" /> Takeout
+              </span>
+            )}
+            {row.dine_in_available && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 bg-muted/40 rounded text-foreground">
+                <Coffee className="h-3 w-3" /> Dine-in
+              </span>
+            )}
+            {row.accepts_reservations && (
+              <span className="flex items-center gap-1 text-xs px-2 py-1 bg-muted/40 rounded text-foreground">
+                <CalendarCheck className="h-3 w-3" /> Reservations
+              </span>
+            )}
+            {!row.delivery_available &&
+              !row.takeout_available &&
+              !row.dine_in_available &&
+              !row.accepts_reservations && (
+                <p className="text-muted-foreground italic">No service info</p>
+              )}
+          </div>
+          {(row.city || row.postal_code) && (
+            <p className="text-muted-foreground text-xs pt-1">
+              {[row.city, row.state, row.postal_code, row.country_code].filter(Boolean).join(', ')}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -298,14 +459,14 @@ export default function AdminRestaurantsPage() {
       <SearchFilterBar
         search={{
           value: searchQuery,
-          onChange: (v) => setSearchQuery(v),
+          onChange: v => setSearchQuery(v),
           placeholder: 'Search restaurants...',
         }}
         filters={[
           {
             label: 'Status',
             value: statusFilter,
-            onChange: (v) => setStatusFilter(v),
+            onChange: v => setStatusFilter(v),
             options: [
               { label: 'All Status', value: 'all' },
               { label: 'Active', value: 'active' },
@@ -318,7 +479,7 @@ export default function AdminRestaurantsPage() {
             <input
               type="checkbox"
               checked={showFlaggedOnly}
-              onChange={(e) => setShowFlaggedOnly(e.target.checked)}
+              onChange={e => setShowFlaggedOnly(e.target.checked)}
               className="h-4 w-4 rounded border-input text-brand-primary focus:ring-brand-primary"
             />
             <span className="text-foreground">Show flagged only</span>
@@ -331,6 +492,12 @@ export default function AdminRestaurantsPage() {
         columns={columns}
         actions={renderActions}
         loading={loading}
+        expandable={{
+          rowKey: row => row.id as string,
+          expandedId,
+          onToggle: id => setExpandedId(prev => (prev === id ? null : id)),
+          renderContent: renderExpandedContent,
+        }}
         emptyState={
           <EmptyState
             icon={Store}
@@ -352,7 +519,7 @@ export default function AdminRestaurantsPage() {
 
       <ConfirmDialog
         open={confirmState.open}
-        onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}
+        onOpenChange={open => setConfirmState(s => ({ ...s, open }))}
         title={confirmState.title}
         description={confirmState.description}
         confirmLabel={confirmState.confirmLabel}

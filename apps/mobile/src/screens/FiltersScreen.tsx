@@ -12,7 +12,7 @@ import { useSwipeToClose } from '../hooks';
  * Supports swipe-down gesture to close
  */
 export function FiltersScreen({ navigation }: FiltersScreenProps) {
-  const handleClose = () => navigation.navigate('Map');
+  const handleClose = () => navigation.goBack();
   const { translateY, panResponder, handleScroll } = useSwipeToClose(handleClose);
 
   // Reset animation when screen comes into focus

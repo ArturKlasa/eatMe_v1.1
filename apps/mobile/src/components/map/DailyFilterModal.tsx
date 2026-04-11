@@ -55,6 +55,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   const [localFilters, setLocalFilters] = React.useState<DailyFilters>({ ...currentDaily });
   const [cuisineModalVisible, setCuisineModalVisible] = React.useState(false);
   const [mealModalVisible, setMealModalVisible] = React.useState(false);
+  const [sliderDragging, setSliderDragging] = React.useState(false);
 
   // Sync to current applied state each time the modal becomes visible
   React.useEffect(() => {
@@ -112,6 +113,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
             contentContainerStyle={{ paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
             bounces={false}
+            scrollEnabled={!sliderDragging}
           >
             {/* 1. Price Range Section - Dual Slider */}
             <View style={[modals.section, { marginTop: -20 }]}>
@@ -139,6 +141,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   onValuesChange={(min, max) =>
                     setLocalFilters(prev => ({ ...prev, priceRange: { min, max } }))
                   }
+                  onDragStateChange={setSliderDragging}
                 />
               </View>
             </View>
@@ -669,6 +672,7 @@ interface DualRangeSliderProps {
   valueMin: number;
   valueMax: number;
   onValuesChange: (min: number, max: number) => void;
+  onDragStateChange?: (dragging: boolean) => void;
 }
 
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
@@ -677,6 +681,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   valueMin,
   valueMax,
   onValuesChange,
+  onDragStateChange,
 }) => {
   const [activeThumb, setActiveThumb] = React.useState<'min' | 'max' | null>(null);
 
@@ -708,6 +713,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
       onPanResponderGrant: () => {
         startValue = thumb === 'min' ? valueMinRef.current : valueMaxRef.current;
         setActiveThumb(thumb);
+        onDragStateChange?.(true);
       },
       onPanResponderMove: (_evt, gestureState) => {
         if (trackWidthRef.current === 0) return;
@@ -719,8 +725,8 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
           onValuesChange(valueMinRef.current, clamp(newValue, valueMinRef.current + 1, max));
         }
       },
-      onPanResponderRelease: () => setActiveThumb(null),
-      onPanResponderTerminate: () => setActiveThumb(null),
+      onPanResponderRelease: () => { setActiveThumb(null); onDragStateChange?.(false); },
+      onPanResponderTerminate: () => { setActiveThumb(null); onDragStateChange?.(false); },
     });
   };
 
@@ -753,15 +759,16 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
           { left: minLeft, width: maxLeft - minLeft },
         ]}
       />
-      {/* Min thumb — transform centres it on its pixel position without
-          affecting layout bounds (marginLeft would clip on Android) */}
+      {/* Min thumb — left is offset by half the thumb width (12) so the centre
+          aligns with the value position. Direct subtraction avoids transform,
+          which shifts pixels but NOT the touch area on older Android. */}
       <View
         style={[
           modals.priceSliderThumb,
           {
-            left: minLeft,
-            transform: [{ translateX: -12 }],
+            left: minLeft - 12,
             zIndex: activeThumb === 'min' ? 10 : 5,
+            elevation: activeThumb === 'min' ? 6 : 3,
           },
         ]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -772,9 +779,9 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
         style={[
           modals.priceSliderThumb,
           {
-            left: maxLeft,
-            transform: [{ translateX: -12 }],
+            left: maxLeft - 12,
             zIndex: activeThumb === 'max' ? 10 : 5,
+            elevation: activeThumb === 'max' ? 6 : 3,
           },
         ]}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

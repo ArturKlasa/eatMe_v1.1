@@ -1044,7 +1044,8 @@ export const modals = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    // elevation is set per-thumb inline so it varies with active state;
+    // a static elevation here would fight with zIndex on Android.
   } as ViewStyle,
 
   // View mode toggle container

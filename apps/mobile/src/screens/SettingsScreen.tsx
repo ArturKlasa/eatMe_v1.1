@@ -60,7 +60,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 100) {
-          navigation.navigate('Map');
+          navigation.goBack();
         } else {
           Animated.spring(translateY, {
             toValue: 0,
@@ -93,7 +93,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       <TouchableOpacity
         style={modalScreenStyles.overlay}
         activeOpacity={1}
-        onPress={() => navigation.navigate('Map')}
+        onPress={() => navigation.goBack()}
       />
       <Animated.View
         style={[

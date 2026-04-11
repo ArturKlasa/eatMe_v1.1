@@ -15,7 +15,7 @@ import { useSwipeToClose } from '../hooks';
  */
 export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
   const { t } = useTranslation();
-  const handleClose = () => navigation.navigate('Map');
+  const handleClose = () => navigation.goBack();
   const { translateY, panResponder, handleScroll } = useSwipeToClose(handleClose);
 
   // Reset animation when screen comes into focus

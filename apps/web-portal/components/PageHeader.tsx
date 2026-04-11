@@ -23,9 +23,9 @@ interface PageHeaderProps {
 
 const BADGE_VARIANT_MAP: Record<PageHeaderBadge['variant'], string> = {
   default: '',
-  success: 'bg-green-100 text-green-800 border-green-200',
-  warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  destructive: 'bg-red-100 text-red-800 border-red-200',
+  success: 'bg-success/10 text-success border-success/20',
+  warning: 'bg-warning/10 text-warning border-warning/20',
+  destructive: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 export function PageHeader({

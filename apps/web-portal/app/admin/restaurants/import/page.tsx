@@ -16,7 +16,7 @@ import type { ImportSummary } from '@/lib/import-types';
 const ImportAreaSelector = dynamic(
   () => import('@/components/admin/ImportAreaSelector'),
   { ssr: false, loading: () => (
-    <div className="h-80 rounded-lg border-2 border-gray-200 flex items-center justify-center text-muted-foreground text-sm">
+    <div className="h-80 rounded-lg border-2 flex items-center justify-center text-muted-foreground text-sm">
       <Loader2 className="h-5 w-5 animate-spin mr-2" />
       Loading map...
     </div>
@@ -188,13 +188,13 @@ export default function ImportPage() {
         {/* ── Google Places tab ─────────────────────────────────────────── */}
         <TabsContent value="google" className="space-y-6 pt-4">
           {/* Area selector */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
+          <div className="bg-card border rounded-lg p-5 space-y-4">
             <h2 className="text-base font-semibold">Select import area</h2>
             <ImportAreaSelector onAreaSelect={setSelectedArea} />
           </div>
 
           {/* Import controls */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="bg-card border rounded-lg p-5">
             {monthlyApiCalls !== null && (
               <p className="text-xs text-muted-foreground mb-3">
                 {monthlyApiCalls} call{monthlyApiCalls !== 1 ? 's' : ''} this month
@@ -210,7 +210,7 @@ export default function ImportPage() {
                   id="max-pages"
                   value={maxPages}
                   onChange={(e) => setMaxPages(Number(e.target.value))}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="px-3 py-1.5 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n}>
@@ -224,7 +224,7 @@ export default function ImportPage() {
               <Button
                 onClick={handleImport}
                 disabled={!selectedArea || isImporting}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-white"
               >
                 {isImporting ? (
                   <>
@@ -272,13 +272,13 @@ export default function ImportPage() {
               <ImportSummaryCard summary={importResult} />
 
               {importResult.errors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-red-800 mb-2">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-destructive mb-2">
                     Validation errors ({importResult.errors.length})
                   </h3>
                   <ul className="space-y-1">
                     {importResult.errors.map((e, i) => (
-                      <li key={i} className="text-xs text-red-700">
+                      <li key={i} className="text-xs text-destructive">
                         Row {e.index + 1}{e.field ? ` (${e.field})` : ''}: {e.message}
                       </li>
                     ))}
@@ -288,7 +288,7 @@ export default function ImportPage() {
 
               {importResult.restaurants.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-700">
+                  <h3 className="text-sm font-medium text-foreground">
                     Restaurant details ({importResult.restaurants.length} entries)
                   </h3>
                   <ImportResultsTable restaurants={importResult.restaurants} />
@@ -311,7 +311,7 @@ export default function ImportPage() {
         {/* ── CSV Upload tab ─────────────────────────────────────────────── */}
         <TabsContent value="csv" className="space-y-6 pt-4">
           {/* Template download */}
-          <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-3">
+          <div className="bg-card border rounded-lg p-5 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold">Upload CSV File</h2>
@@ -332,10 +332,10 @@ export default function ImportPage() {
               aria-label="Upload CSV file"
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 isDragging
-                  ? 'border-orange-400 bg-orange-50'
+                  ? 'border-brand-primary/50 bg-brand-primary/5'
                   : csvFile
-                  ? 'border-green-400 bg-green-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-success/50 bg-success/10'
+                  : 'border-input hover:border-input'
               }`}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
@@ -357,16 +357,16 @@ export default function ImportPage() {
 
               {csvFile ? (
                 <div className="space-y-2">
-                  <FileText className="h-8 w-8 mx-auto text-green-600" />
-                  <p className="text-sm font-medium text-green-700">{csvFile.name}</p>
+                  <FileText className="h-8 w-8 mx-auto text-success" />
+                  <p className="text-sm font-medium text-success">{csvFile.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {(csvFile.size / 1024).toFixed(1)} KB — click to choose a different file
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                  <p className="text-sm font-medium text-gray-600">
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                  <p className="text-sm font-medium text-muted-foreground">
                     Drag &amp; drop a CSV file here, or click to browse
                   </p>
                   <p className="text-xs text-muted-foreground">Only .csv files are accepted</p>
@@ -379,7 +379,7 @@ export default function ImportPage() {
               <Button
                 onClick={handleCsvImport}
                 disabled={!csvFile || isCsvImporting}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-white"
               >
                 {isCsvImporting ? (
                   <>
@@ -408,9 +408,9 @@ export default function ImportPage() {
 
             {/* Parse error display */}
             {csvParseError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-red-800 mb-1">CSV parse error</p>
-                <p className="text-xs text-red-700">{csvParseError}</p>
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                <p className="text-sm font-medium text-destructive mb-1">CSV parse error</p>
+                <p className="text-xs text-destructive">{csvParseError}</p>
               </div>
             )}
           </div>
@@ -421,13 +421,13 @@ export default function ImportPage() {
               <ImportSummaryCard summary={csvImportResult} />
 
               {csvImportResult.errors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-red-800 mb-2">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-destructive mb-2">
                     Errors ({csvImportResult.errors.length})
                   </h3>
                   <ul className="space-y-1">
                     {csvImportResult.errors.map((e, i) => (
-                      <li key={i} className="text-xs text-red-700">
+                      <li key={i} className="text-xs text-destructive">
                         Row {e.index + 1}{e.field ? ` (${e.field})` : ''}: {e.message}
                       </li>
                     ))}
@@ -437,7 +437,7 @@ export default function ImportPage() {
 
               {csvImportResult.restaurants.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-700">
+                  <h3 className="text-sm font-medium text-foreground">
                     Restaurant details ({csvImportResult.restaurants.length} entries)
                   </h3>
                   <ImportResultsTable restaurants={csvImportResult.restaurants} />

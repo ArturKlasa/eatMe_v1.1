@@ -52,7 +52,7 @@ export function DishCategorySelect({ dishType, restaurantCuisine }: DishCategory
     <div>
       <Label htmlFor="dish_category_id" className="mb-2 block">
         Dish Category *
-        <span className="ml-1 text-xs font-normal text-gray-500">
+        <span className="ml-1 text-xs font-normal text-muted-foreground">
           (Helps customers find similar dishes)
         </span>
       </Label>
@@ -99,7 +99,7 @@ export function DishCategorySelect({ dishType, restaurantCuisine }: DishCategory
           <SelectItem value="none">— No category —</SelectItem>
           {dishType === 'food' && foodCategories.length > 0 && (
             <SelectGroup>
-              <SelectLabel className="text-xs text-gray-500 uppercase tracking-wide">
+              <SelectLabel className="text-xs text-muted-foreground uppercase tracking-wide">
                 <UtensilsCrossed className="h-3 w-3 inline-block mr-0.5" />Food
               </SelectLabel>
               {foodCategories.map(cat => (
@@ -111,7 +111,7 @@ export function DishCategorySelect({ dishType, restaurantCuisine }: DishCategory
           )}
           {dishType === 'drink' && drinkCategories.length > 0 && (
             <SelectGroup>
-              <SelectLabel className="text-xs text-gray-500 uppercase tracking-wide">
+              <SelectLabel className="text-xs text-muted-foreground uppercase tracking-wide">
                 <GlassWater className="h-3 w-3 inline-block mr-0.5" />Drinks
               </SelectLabel>
               {drinkCategories.map(cat => (
@@ -123,13 +123,13 @@ export function DishCategorySelect({ dishType, restaurantCuisine }: DishCategory
           )}
         </SelectContent>
       </Select>
-      <p className="text-xs text-gray-500 mt-1">
+      <p className="text-xs text-muted-foreground mt-1">
         {dishType === 'food'
           ? 'e.g., Pizza, Burger, Salad'
           : 'e.g., Coffee, Smoothie, Cocktail'}
       </p>
       {errors.dish_category_id && (
-        <p className="text-sm text-red-600 mt-1">{errors.dish_category_id.message}</p>
+        <p className="text-sm text-destructive mt-1">{errors.dish_category_id.message}</p>
       )}
     </div>
   );

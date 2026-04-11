@@ -27,25 +27,25 @@ export default function RootError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-6">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
           <CardTitle className="text-xl">Something went wrong</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             An unexpected error occurred. Your data has not been lost — you can try again or refresh
             the page.
           </p>
-          {error.digest && <p className="text-xs text-gray-400">Error ID: {error.digest}</p>}
+          {error.digest && <p className="text-xs text-muted-foreground">Error ID: {error.digest}</p>}
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => window.location.reload()}>
               Refresh page
             </Button>
-            <Button onClick={reset} className="bg-orange-600 hover:bg-orange-700">
+            <Button onClick={reset} className="bg-brand-primary hover:bg-brand-primary/90">
               Try again
             </Button>
           </div>

@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, UtensilsCrossed } from 'lucide-react';
+import { Eye, EyeOff, Loader2, UtensilsCrossed } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleIcon, FacebookIcon } from '@/components/icons/OAuthIcons';
 
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,12 +71,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-primary/5 to-amber-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-orange-600 p-3 rounded-full">
-              <UtensilsCrossed className="h-8 w-8 text-white" />
+            <div className="bg-brand-primary p-3 rounded-full">
+              <UtensilsCrossed className="h-8 w-8 text-background" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
@@ -101,26 +102,46 @@ export default function LoginPage() {
                 required
                 disabled={loading}
               />
-              {emailError && <p className="text-sm text-red-500">{emailError}</p>}
+              {emailError && <p className="text-sm text-destructive">{emailError}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                minLength={6}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-brand-primary hover:text-brand-primary/90"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  minLength={6}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-orange-600 hover:bg-orange-700"
+              className="w-full bg-brand-primary hover:bg-brand-primary/90"
               disabled={loading}
             >
               {loading ? (
@@ -138,7 +159,7 @@ export default function LoginPage() {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
 
@@ -168,11 +189,11 @@ export default function LoginPage() {
               </Button>
             </div>
 
-            <div className="text-center text-sm text-gray-600">
+            <div className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}
               <Link
                 href="/auth/signup"
-                className="text-orange-600 hover:text-orange-700 font-medium"
+                className="text-brand-primary hover:text-brand-primary/90 font-medium"
               >
                 Sign up
               </Link>

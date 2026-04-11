@@ -98,7 +98,7 @@ function ReviewPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-orange-50 to-red-50 p-6">
+      <div className="min-h-screen bg-linear-to-br from-brand-primary/5 to-red-50 p-6">
         <div className="max-w-4xl mx-auto">
           <LoadingSkeleton variant="page" />
         </div>
@@ -109,7 +109,7 @@ function ReviewPageContent() {
   if (!restaurantData || !restaurantData.menus || restaurantData.menus.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">No data found. Redirecting...</p>
+        <p className="text-muted-foreground">No data found. Redirecting...</p>
       </div>
     );
   }
@@ -119,37 +119,37 @@ function ReviewPageContent() {
   const cuisineCount = restaurantData.basicInfo?.cuisines?.length || 0;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-orange-50 to-red-50 p-6">
+    <div className="min-h-screen bg-linear-to-br from-brand-primary/5 to-red-50 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Review & Submit</h1>
-          <p className="text-gray-600">
+          <h1 className="text-4xl font-bold text-foreground mb-2">Review & Submit</h1>
+          <p className="text-muted-foreground">
             Please review all information before submitting your restaurant profile
           </p>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <Card className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <BookOpen className="h-4 w-4 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-600">{totalMenus}</span>
+              <BookOpen className="h-4 w-4 text-brand-primary" />
+              <span className="text-2xl font-bold text-brand-primary">{totalMenus}</span>
             </div>
-            <p className="text-sm text-gray-600">{totalMenus === 1 ? 'Menu' : 'Menus'}</p>
+            <p className="text-sm text-muted-foreground">{totalMenus === 1 ? 'Menu' : 'Menus'}</p>
           </Card>
           <Card className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <UtensilsCrossed className="h-4 w-4 text-blue-500" />
-              <span className="text-2xl font-bold text-blue-600">{totalDishes}</span>
+              <UtensilsCrossed className="h-4 w-4 text-info" />
+              <span className="text-2xl font-bold text-info">{totalDishes}</span>
             </div>
-            <p className="text-sm text-gray-600">{totalDishes === 1 ? 'Dish' : 'Dishes'}</p>
+            <p className="text-sm text-muted-foreground">{totalDishes === 1 ? 'Dish' : 'Dishes'}</p>
           </Card>
           <Card className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Badge variant="secondary" className="text-lg font-bold px-2 py-0">{cuisineCount}</Badge>
             </div>
-            <p className="text-sm text-gray-600">{cuisineCount === 1 ? 'Cuisine' : 'Cuisines'}</p>
+            <p className="text-sm text-muted-foreground">{cuisineCount === 1 ? 'Cuisine' : 'Cuisines'}</p>
           </Card>
         </div>
 
@@ -157,7 +157,7 @@ function ReviewPageContent() {
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
-              {restaurantData.basicInfo && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+              {restaurantData.basicInfo && <CheckCircle2 className="h-5 w-5 text-success" />}
               <CardTitle className="text-2xl">Restaurant Information</CardTitle>
             </div>
             <Button size="sm" onClick={handleBack}>
@@ -169,7 +169,7 @@ function ReviewPageContent() {
             {restaurantData.basicInfo ? (
               <>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Restaurant Name</p>
+                  <p className="text-sm font-medium text-muted-foreground">Restaurant Name</p>
                   <p className="text-lg font-semibold">
                     {restaurantData.basicInfo.name || 'Not specified'}
                   </p>
@@ -178,8 +178,8 @@ function ReviewPageContent() {
                 {restaurantData.basicInfo.restaurant_type && (
                   <>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Restaurant Type</p>
-                      <p className="text-gray-700 capitalize">
+                      <p className="text-sm font-medium text-muted-foreground">Restaurant Type</p>
+                      <p className="text-foreground capitalize">
                         {restaurantData.basicInfo.restaurant_type.replace(/_/g, ' ')}
                       </p>
                     </div>
@@ -188,29 +188,29 @@ function ReviewPageContent() {
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Phone</p>
-                    <p className="text-gray-700">
+                    <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                    <p className="text-foreground">
                       {restaurantData.basicInfo.phone || 'Not specified'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Website</p>
-                    <p className="text-gray-700">
+                    <p className="text-sm font-medium text-muted-foreground">Website</p>
+                    <p className="text-foreground">
                       {restaurantData.basicInfo.website || 'Not specified'}
                     </p>
                   </div>
                 </div>
                 <Separator />
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Country</p>
-                  <p className="text-gray-700">
+                  <p className="text-sm font-medium text-muted-foreground">Country</p>
+                  <p className="text-foreground">
                     {restaurantData.basicInfo.country || 'Not specified'}
                   </p>
                 </div>
                 <Separator />
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p className="text-gray-700">
+                  <p className="text-sm font-medium text-muted-foreground">Address</p>
+                  <p className="text-foreground">
                     {restaurantData.basicInfo.address || 'Not specified'}
                   </p>
                 </div>
@@ -219,7 +219,7 @@ function ReviewPageContent() {
                     <>
                       <Separator />
                       <div>
-                        <p className="text-sm font-medium text-gray-500 mb-2">Cuisines</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Cuisines</p>
                         <div className="flex flex-wrap gap-2">
                           {restaurantData.basicInfo.cuisines.map(cuisine => (
                             <Badge key={cuisine} variant="secondary">
@@ -234,8 +234,8 @@ function ReviewPageContent() {
                   <>
                     <Separator />
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Payment Methods</p>
-                      <p className="text-gray-700">
+                      <p className="text-sm font-medium text-muted-foreground">Payment Methods</p>
+                      <p className="text-foreground">
                         {restaurantData.operations.payment_methods === 'cash_and_card' &&
                           '💵💳 Cash & Card'}
                         {restaurantData.operations.payment_methods === 'cash_only' &&
@@ -248,7 +248,7 @@ function ReviewPageContent() {
                 )}
               </>
             ) : (
-              <p className="text-gray-500 italic">Restaurant information not yet added</p>
+              <p className="text-muted-foreground italic">Restaurant information not yet added</p>
             )}
           </CardContent>
         </Card>
@@ -257,10 +257,10 @@ function ReviewPageContent() {
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
-              {totalDishes > 0 && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+              {totalDishes > 0 && <CheckCircle2 className="h-5 w-5 text-success" />}
               <div>
                 <CardTitle className="text-2xl">Menu</CardTitle>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {totalMenus} {totalMenus === 1 ? 'menu' : 'menus'} • {totalDishes}{' '}
                   {totalDishes === 1 ? 'dish' : 'dishes'}
                 </p>
@@ -289,7 +289,7 @@ function ReviewPageContent() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <h4 className="font-semibold">{dish.name}</h4>
-                                  <span className="text-green-600 font-bold">
+                                  <span className="text-success font-bold">
                                     ${dish.price.toFixed(2)}
                                   </span>
                                   {dish.calories && (
@@ -299,15 +299,15 @@ function ReviewPageContent() {
                                   )}
                                 </div>
                                 {dish.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{dish.description}</p>
+                                  <p className="text-sm text-muted-foreground mt-1">{dish.description}</p>
                                 )}
                               </div>
                             </div>
 
                             {(dish.selectedIngredients?.length ?? 0) > 0 && (
                               <div className="mb-2">
-                                <p className="text-xs font-medium text-gray-500">Ingredients:</p>
-                                <p className="text-sm text-gray-700">
+                                <p className="text-xs font-medium text-muted-foreground">Ingredients:</p>
+                                <p className="text-sm text-foreground">
                                   {dish.selectedIngredients!.map(i => i.display_name).join(', ')}
                                 </p>
                               </div>
@@ -320,7 +320,7 @@ function ReviewPageContent() {
                                 {dish.spice_level != null && dish.spice_level !== 'none' && (
                                   <Badge
                                     variant="outline"
-                                    className="bg-red-50 text-red-700 border-red-200"
+                                    className="bg-destructive/10 text-destructive border-destructive/20"
                                   >
                                     {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
                                   </Badge>
@@ -328,7 +328,7 @@ function ReviewPageContent() {
                                 {dish.dietary_tags.map(tag => (
                                   <Badge
                                     key={tag}
-                                    className="bg-green-100 text-green-800 capitalize"
+                                    className="bg-success/10 text-success capitalize"
                                   >
                                     {tag}
                                   </Badge>
@@ -336,7 +336,7 @@ function ReviewPageContent() {
                                 {dish.allergens.map(allergen => (
                                   <Badge
                                     key={allergen}
-                                    className="bg-orange-100 text-orange-800 capitalize"
+                                    className="bg-brand-primary/10 text-brand-primary capitalize"
                                   >
                                     <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />{allergen}
                                   </Badge>
@@ -347,7 +347,7 @@ function ReviewPageContent() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-500 italic text-sm">No dishes in this menu</p>
+                      <p className="text-muted-foreground italic text-sm">No dishes in this menu</p>
                     )}
 
                     {menu !== restaurantData.menus[restaurantData.menus.length - 1] && (
@@ -357,7 +357,7 @@ function ReviewPageContent() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 italic">No menus added yet</p>
+              <p className="text-muted-foreground italic">No menus added yet</p>
             )}
           </CardContent>
         </Card>
@@ -371,7 +371,7 @@ function ReviewPageContent() {
           <Button
             onClick={handleSubmit}
             size="lg"
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-success hover:bg-success"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

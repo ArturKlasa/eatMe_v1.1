@@ -84,8 +84,8 @@ function DashboardContent() {
       description: 'Update your restaurant details, location, hours, and contact info',
       icon: MapPin,
       href: userRestaurant ? '/restaurant/edit' : '/onboard/basic-info',
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-50',
+      color: 'text-brand-primary',
+      bgColor: 'bg-brand-primary/5',
       status: userRestaurant ? 'completed' : savedData?.basicInfo ? 'in-progress' : 'not-started',
       badge: userRestaurant ? 'Active' : null,
     },
@@ -94,17 +94,17 @@ function DashboardContent() {
       description: 'Add, edit, and organize your menus, dishes with prices and descriptions',
       icon: Utensils,
       href: '/menu/manage',
-      color: 'text-green-500',
-      bgColor: 'bg-green-50',
+      color: 'text-success',
+      bgColor: 'bg-success/10',
       status: totalDishes > 0 ? 'completed' : 'not-started',
       badge: dishBadgeText,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted/30">
       {/* Header */}
-      <header className="bg-white border-b">
+      <header className="bg-background border-b">
         <div className="container mx-auto px-4 py-6">
           <PageHeader
             title="EatMe Restaurant Portal"
@@ -118,7 +118,7 @@ function DashboardContent() {
                   </Badge>
                 )}
                 {userRestaurant && !savedData?.lastSaved && (
-                  <Badge variant="secondary" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
+                  <Badge variant="secondary" className="flex items-center gap-1 bg-success/10 text-success border-success/20">
                     <Check className="h-3 w-3" />
                     Saved
                   </Badge>
@@ -139,19 +139,19 @@ function DashboardContent() {
 
         {/* New user welcome */}
         {!loading && !userRestaurant && !savedData && (
-          <Card className="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
+          <Card className="mb-8 bg-gradient-to-r from-brand-primary/5 to-amber-50 border-brand-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 👋 Welcome to EatMe Restaurant Portal!
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700 mb-4">
+              <p className="text-foreground mb-4">
                 You haven&apos;t created a restaurant yet. Get started by adding your restaurant
                 information and menu.
               </p>
               <Link href="/onboard/basic-info">
-                <Button className="bg-orange-600 hover:bg-orange-700">
+                <Button className="bg-brand-primary hover:bg-brand-primary/90">
                   <ArrowRight className="mr-2 h-4 w-4" />
                   Create Your Restaurant
                 </Button>
@@ -162,10 +162,10 @@ function DashboardContent() {
 
         {/* Existing restaurant or draft progress */}
         {!loading && (userRestaurant || savedData) && (
-          <Card className="mb-8 bg-linear-to-r from-orange-50 to-red-50 border-orange-200">
+          <Card className="mb-8 bg-linear-to-r from-brand-primary/5 to-red-50 border-brand-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-orange-500" />
+                <CheckCircle2 className="h-5 w-5 text-brand-primary" />
                 {userRestaurant ? 'Your Restaurant' : 'Your Progress'}
               </CardTitle>
             </CardHeader>
@@ -173,21 +173,21 @@ function DashboardContent() {
               {userRestaurant ? (
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">{userRestaurant.name}</h3>
-                  <p className="text-sm text-gray-600">{userRestaurant.address}</p>
+                  <p className="text-sm text-muted-foreground">{userRestaurant.address}</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{totalMenus}</div>
-                      <p className="text-sm text-gray-600">Menu{totalMenus !== 1 ? 's' : ''}</p>
+                      <div className="text-2xl font-bold text-success">{totalMenus}</div>
+                      <p className="text-sm text-muted-foreground">Menu{totalMenus !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{totalDishes}</div>
-                      <p className="text-sm text-gray-600">Dish{totalDishes !== 1 ? 'es' : ''}</p>
+                      <div className="text-2xl font-bold text-info">{totalDishes}</div>
+                      <p className="text-sm text-muted-foreground">Dish{totalDishes !== 1 ? 'es' : ''}</p>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-purple-600">
                         {userRestaurant.cuisine_types?.length || 0}
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Cuisine{userRestaurant.cuisine_types?.length !== 1 ? 's' : ''}
                       </p>
                     </div>
@@ -196,28 +196,28 @@ function DashboardContent() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-brand-primary">
                       {savedData?.basicInfo ? '✓' : '○'}
                     </div>
-                    <p className="text-sm text-gray-600">Basic Info</p>
+                    <p className="text-sm text-muted-foreground">Basic Info</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-info">
                       {savedData?.operations ? '✓' : '○'}
                     </div>
-                    <p className="text-sm text-gray-600">Operations</p>
+                    <p className="text-sm text-muted-foreground">Operations</p>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-success">
                       {savedData?.dishes?.length || 0}
                     </div>
-                    <p className="text-sm text-gray-600">Menu Items</p>
+                    <p className="text-sm text-muted-foreground">Menu Items</p>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600">
                       {savedData?.currentStep || 0}/4
                     </div>
-                    <p className="text-sm text-gray-600">Steps Complete</p>
+                    <p className="text-sm text-muted-foreground">Steps Complete</p>
                   </div>
                 </div>
               )}
@@ -248,13 +248,13 @@ function DashboardContent() {
                             )}
                           </div>
                         </div>
-                        <ArrowRight className="h-5 w-5 text-gray-400" />
+                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
                       </div>
                     </CardHeader>
                     <CardContent>
                       <CardDescription>{item.description}</CardDescription>
                       {item.status === 'completed' && (
-                        <div className="flex items-center gap-1 text-green-600 text-sm mt-2">
+                        <div className="flex items-center gap-1 text-success text-sm mt-2">
                           <CheckCircle2 className="h-4 w-4" />
                           Completed
                         </div>
@@ -268,17 +268,17 @@ function DashboardContent() {
         )}
 
         {/* Help Section */}
-        <Card className="mt-8 border-blue-200 bg-blue-50">
+        <Card className="mt-8 border-info/20 bg-info/10">
           <CardHeader>
             <CardTitle className="text-lg">Need Help?</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-700 mb-2">
+            <p className="text-sm text-foreground mb-2">
               Have questions about setting up your restaurant profile?
             </p>
             <a
               href="mailto:partners@eatme.app"
-              className="text-sm text-blue-600 hover:underline font-medium"
+              className="text-sm text-info hover:underline font-medium"
             >
               Contact Support →
             </a>

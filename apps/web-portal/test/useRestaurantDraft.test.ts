@@ -33,7 +33,7 @@ describe('loadFormDefaults (useRestaurantDraft utility)', () => {
     const defaults = loadFormDefaults(undefined);
     expect(defaults.name).toBe('');
     expect(defaults.restaurant_type).toBe('restaurant');
-    expect(defaults.country).toBe('US');
+    expect(defaults.location.country).toBe('US');
     expect(defaults.delivery_available).toBe(true);
     expect(defaults.payment_methods).toBe('cash_and_card');
   });
@@ -74,13 +74,13 @@ describe('loadFormDefaults (useRestaurantDraft utility)', () => {
     const defaults = loadFormDefaults('user-123');
     expect(defaults.name).toBe('Test Restaurant');
     expect(defaults.restaurant_type).toBe('cafe');
-    expect(defaults.country).toBe('GB');
-    expect(defaults.address).toBe('123 Main St');
+    expect(defaults.location.country).toBe('GB');
+    expect(defaults.location.address).toBe('123 Main St');
+    expect(defaults.location.lat).toBe(51.5);
+    expect(defaults.location.lng).toBe(-0.1);
     expect(defaults.delivery_available).toBe(false);
     expect(defaults.service_speed).toBe('fast-food');
     expect(defaults.payment_methods).toBe('card_only');
-    expect(defaults.location_lat).toBe('51.5');
-    expect(defaults.location_lng).toBe('-0.1');
     expect(defaults.phone).toBe('+44123456');
   });
 
@@ -95,7 +95,7 @@ describe('loadFormDefaults (useRestaurantDraft utility)', () => {
 
     const defaults = loadFormDefaults('user-123');
     expect(defaults.name).toBe('Partial');
-    expect(defaults.city).toBe('');
+    expect(defaults.location.city).toBe('');
     expect(defaults.delivery_available).toBe(true); // falls back to default
   });
 });

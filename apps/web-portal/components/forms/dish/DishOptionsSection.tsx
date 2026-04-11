@@ -51,7 +51,7 @@ export function DishOptionsSection({
     <>
       <Separator />
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-700">Price Display</h3>
+        <h3 className="text-sm font-semibold text-foreground">Price Display</h3>
         <Select
           value={(displayPricePrefix as string) ?? 'exact'}
           onValueChange={val =>
@@ -68,7 +68,7 @@ export function DishOptionsSection({
             {DISPLAY_PRICE_PREFIXES.map(p => (
               <SelectItem key={p.value} value={p.value}>
                 <span className="font-medium">{p.label}</span>
-                <span className="ml-2 text-xs text-gray-400">{p.example}</span>
+                <span className="ml-2 text-xs text-muted-foreground">{p.example}</span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -80,7 +80,7 @@ export function DishOptionsSection({
       {/* Option Groups Editor */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">
+          <h3 className="text-sm font-semibold text-foreground">
             Option Groups
             {optionGroups.length > 0 && (
               <Badge variant="secondary" className="ml-2">
@@ -93,7 +93,7 @@ export function DishOptionsSection({
         {/* Preset picker */}
         {optionGroups.length === 0 && (
           <div>
-            <p className="text-xs text-gray-500 mb-2">
+            <p className="text-xs text-muted-foreground mb-2">
               Start from a preset or add groups manually:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -128,7 +128,7 @@ export function DishOptionsSection({
         {/* Groups list */}
         <div className="space-y-4">
           {optionGroups.map((group, gi) => (
-            <div key={gi} className="rounded-lg border p-3 space-y-3 bg-gray-50">
+            <div key={gi} className="rounded-lg border p-3 space-y-3 bg-muted/30">
               {/* Group header */}
               <div className="flex items-center gap-2">
                 <Input
@@ -185,7 +185,7 @@ export function DishOptionsSection({
                     className="w-12 h-8 text-xs text-center"
                     title="Min selections"
                   />
-                  <span className="text-xs text-gray-400">–</span>
+                  <span className="text-xs text-muted-foreground">–</span>
                   <Input
                     type="number"
                     min={1}
@@ -242,7 +242,7 @@ export function DishOptionsSection({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-red-500 hover:text-red-700"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
                   onClick={() =>
                     onOptionGroupsChange(optionGroups.filter((_, i) => i !== gi))
                   }
@@ -274,7 +274,7 @@ export function DishOptionsSection({
                       placeholder="Option name"
                       className="flex-1 h-7 text-xs"
                     />
-                    <span className="text-xs text-gray-400">+$</span>
+                    <span className="text-xs text-muted-foreground">+$</span>
                     <Input
                       type="number"
                       step="0.01"
@@ -302,7 +302,7 @@ export function DishOptionsSection({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-red-400 hover:text-red-600"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
                       onClick={() =>
                         onOptionGroupsChange(
                           optionGroups.map((g, i) =>

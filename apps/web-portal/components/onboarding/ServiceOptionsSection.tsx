@@ -89,7 +89,7 @@ export function ServiceOptionsSection({
                   <Label htmlFor={`speed-${option.value}`} className="font-medium cursor-pointer">
                     {option.label}
                   </Label>
-                  <p className="text-sm text-gray-500">{option.description}</p>
+                  <p className="text-sm text-muted-foreground">{option.description}</p>
                 </div>
               </div>
             ))}
@@ -114,7 +114,7 @@ export function ServiceOptionsSection({
                   <Label htmlFor={`pay-${option.value}`} className="font-medium cursor-pointer">
                     {option.icon} {option.label}
                   </Label>
-                  <p className="text-sm text-gray-500">{option.description}</p>
+                  <p className="text-sm text-muted-foreground">{option.description}</p>
                 </div>
               </div>
             ))}

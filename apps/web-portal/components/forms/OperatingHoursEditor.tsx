@@ -47,8 +47,8 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
   return (
     <div className="space-y-3">
       {/* Quick-fill strip */}
-      <div className="flex flex-wrap items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-        <span className="text-sm font-medium text-gray-700 shrink-0">Apply to:</span>
+      <div className="flex flex-wrap items-center gap-3 p-3 bg-brand-primary/5 border border-brand-primary/10 rounded-lg">
+        <span className="text-sm font-medium text-foreground shrink-0">Apply to:</span>
         <Input
           type="time"
           aria-label="Quick-fill opening time"
@@ -56,7 +56,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
           onChange={e => setQuickHours(q => ({ ...q, open: e.target.value }))}
           className="w-32"
         />
-        <span className="text-sm text-gray-500">to</span>
+        <span className="text-sm text-muted-foreground">to</span>
         <Input
           type="time"
           aria-label="Quick-fill closing time"
@@ -108,7 +108,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
               />
               <Label
                 htmlFor={`closed-${key}`}
-                className="text-sm text-gray-500 cursor-pointer"
+                className="text-sm text-muted-foreground cursor-pointer"
               >
                 Closed
               </Label>
@@ -121,7 +121,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
                     onChange={e => handleHoursChange(key, 'open', e.target.value)}
                     className="w-32"
                   />
-                  <span className="text-gray-500 text-sm">to</span>
+                  <span className="text-muted-foreground text-sm">to</span>
                   <Input
                     type="time"
                     aria-label={`Closing time for ${label}`}

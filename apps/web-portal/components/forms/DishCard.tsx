@@ -54,7 +54,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
                 </Badge>
               )}
 
-              <span className="text-lg font-bold text-green-600">
+              <span className="text-lg font-bold text-success">
                 {formatPrice(dish.price, dish.display_price_prefix)}
               </span>
 
@@ -72,7 +72,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
                 </Badge>
               )}
             </div>
-            {dish.description && <p className="text-sm text-gray-600">{dish.description}</p>}
+            {dish.description && <p className="text-sm text-muted-foreground">{dish.description}</p>}
           </div>
           <div className="flex gap-2 ml-4">
             <Button variant="ghost" size="icon" onClick={() => onEdit(dish)} title="Edit dish" aria-label="Edit dish">
@@ -93,7 +93,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
               onClick={() => dish.id && onDelete(dish.id)}
               title="Delete dish"
               aria-label="Delete dish"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -105,7 +105,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
           {/* Ingredients — shown in wizard mode only (selectedIngredients from autocomplete) */}
           {dish.selectedIngredients && dish.selectedIngredients.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-gray-500 mb-1">Ingredients:</p>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Ingredients:</p>
               <div className="flex flex-wrap gap-1">
                 {dish.selectedIngredients.map((ing, idx) => (
                   <Badge key={ing.id ?? idx} variant="secondary" className="text-xs">
@@ -120,7 +120,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
           <div className="flex flex-wrap gap-2">
             {/* Spice Level */}
             {dish.spice_level && dish.spice_level !== 'none' && (
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
                 {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
               </Badge>
             )}
@@ -130,7 +130,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
               <Badge
                 key={tag}
                 variant="secondary"
-                className="bg-green-100 text-green-800 capitalize"
+                className="bg-success/10 text-success capitalize"
               >
                 {tag}
               </Badge>
@@ -141,7 +141,7 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
               <Badge
                 key={allergen}
                 variant="secondary"
-                className="bg-orange-100 text-orange-800 capitalize"
+                className="bg-brand-primary/10 text-brand-primary capitalize"
               >
                 <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />{allergen}
               </Badge>
@@ -150,8 +150,8 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
 
           {/* Photo indicator */}
           {dish.photo_url && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="text-green-600">✓</span> Photo included
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="text-success">✓</span> Photo included
             </div>
           )}
         </div>

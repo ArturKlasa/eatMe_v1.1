@@ -13,9 +13,10 @@
 
 export const colors = {
   // ─── Primary ─────────────────────────────────────────────────────────────
-  primary: '#007AFF',
-  primaryDark: '#0056CC',
-  primaryLight: '#4DA2FF',
+  /** Orange brand primary — aligns with web portal brand identity */
+  primary: '#FF6B35',
+  primaryDark: '#E55A25',
+  primaryLight: '#FFB74D',
 
   // ─── Status ──────────────────────────────────────────────────────────────
   success: '#4CAF50',

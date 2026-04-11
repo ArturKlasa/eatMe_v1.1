@@ -37,17 +37,17 @@ export function DishGroupCard({
   const confidencePct = Math.round(parent.confidence * 100);
   const confidenceColor =
     parent.confidence >= 0.85
-      ? 'bg-green-100 text-green-700'
+      ? 'bg-success/10 text-success'
       : parent.confidence >= 0.6
         ? 'bg-yellow-100 text-yellow-700'
-        : 'bg-red-100 text-red-700';
+        : 'bg-destructive/10 text-destructive';
 
   const statusColor =
     parent.group_status === 'accepted'
-      ? 'border-green-300 bg-green-50/30'
+      ? 'border-green-300 bg-success/10'
       : parent.group_status === 'rejected'
-        ? 'border-red-300 bg-red-50/30'
-        : 'border-blue-200 bg-blue-50/20';
+        ? 'border-red-300 bg-destructive/10'
+        : 'border-blue-200 bg-info/10';
 
   const dishKindInfo = DISH_KINDS.find(k => k.value === parent.dish_kind);
 
@@ -59,7 +59,7 @@ export function DishGroupCard({
           type="checkbox"
           checked={isSelected}
           onChange={onToggleSelect}
-          className="h-4 w-4 rounded border-gray-300"
+          className="h-4 w-4 rounded border-input"
         />
 
         <div className="flex-1 min-w-0">
@@ -75,7 +75,7 @@ export function DishGroupCard({
             </span>
           </div>
           {parent.description && (
-            <p className="text-xs text-gray-500 mt-0.5 truncate">{parent.description}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{parent.description}</p>
           )}
         </div>
 
@@ -102,7 +102,7 @@ export function DishGroupCard({
             size="sm"
             variant="ghost"
             onClick={onAccept}
-            className="h-7 w-7 p-0 text-green-600 hover:bg-green-100"
+            className="h-7 w-7 p-0 text-success hover:bg-success/10"
             title="Accept (A)"
             aria-label="Accept dish group"
           >
@@ -112,7 +112,7 @@ export function DishGroupCard({
             size="sm"
             variant="ghost"
             onClick={onReject}
-            className="h-7 w-7 p-0 text-red-600 hover:bg-red-100"
+            className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
             title="Reject (R)"
             aria-label="Reject dish group"
           >
@@ -122,7 +122,7 @@ export function DishGroupCard({
             size="sm"
             variant="ghost"
             onClick={onEdit}
-            className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-100"
+            className="h-7 w-7 p-0 text-info hover:bg-info/10"
             title="Edit (E)"
             aria-label="Edit dish group"
           >
@@ -131,7 +131,7 @@ export function DishGroupCard({
 
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 text-gray-400 hover:text-gray-600"
+            className="p-1 text-muted-foreground hover:text-foreground"
             aria-label={isExpanded ? 'Collapse variants' : 'Expand variants'}
           >
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -145,14 +145,14 @@ export function DishGroupCard({
           {children.map(child => (
             <div
               key={child._id}
-              className="flex items-center gap-2 py-1 px-2 rounded bg-white/60 text-sm"
+              className="flex items-center gap-2 py-1 px-2 rounded bg-background/60 text-sm"
             >
               <span className="flex-1 truncate">{child.name}</span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 {currency} {child.price || '—'}
               </span>
               {child.dietary_tags.length > 0 && (
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[10px] text-muted-foreground">
                   {child.dietary_tags.join(', ')}
                 </span>
               )}
@@ -191,7 +191,7 @@ export function DishGroupCard({
                 size="sm"
                 variant="ghost"
                 onClick={() => onUngroup(child._id)}
-                className="h-6 w-6 p-0 text-gray-400 hover:text-orange-600"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-brand-primary"
                 title="Ungroup (remove from parent)"
                 aria-label="Ungroup variant"
               >
@@ -204,7 +204,7 @@ export function DishGroupCard({
 
       {/* Parent-level serves & display_price_prefix */}
       {isExpanded && (
-        <div className="mt-2 ml-4 flex items-center gap-3 text-xs text-gray-500">
+        <div className="mt-2 ml-4 flex items-center gap-3 text-xs text-muted-foreground">
           <label className="flex items-center gap-1">
             Serves:
             <input

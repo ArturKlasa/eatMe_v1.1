@@ -27,8 +27,38 @@ export async function proxy(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
+  // ── Auth pages — redirect authenticated users away ───────────────────────
+  if (path === '/auth/login' || path === '/auth/signup') {
+    if (user) {
+      const homeUrl = req.nextUrl.clone();
+      homeUrl.pathname = '/';
+      homeUrl.search = '';
+      return NextResponse.redirect(homeUrl);
+    }
+  }
+
   // ── Protected: /onboard/* ─────────────────────────────────────────────────
   if (path.startsWith('/onboard')) {
+    if (!user) {
+      const loginUrl = req.nextUrl.clone();
+      loginUrl.pathname = '/auth/login';
+      loginUrl.searchParams.set('redirect', path);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // ── Protected: /menu/* ───────────────────────────────────────────────────
+  if (path.startsWith('/menu')) {
+    if (!user) {
+      const loginUrl = req.nextUrl.clone();
+      loginUrl.pathname = '/auth/login';
+      loginUrl.searchParams.set('redirect', path);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // ── Protected: /restaurant/* ─────────────────────────────────────────────
+  if (path.startsWith('/restaurant')) {
     if (!user) {
       const loginUrl = req.nextUrl.clone();
       loginUrl.pathname = '/auth/login';
@@ -74,7 +104,7 @@ export async function proxy(req: NextRequest) {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.mapbox.com https://events.mapbox.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

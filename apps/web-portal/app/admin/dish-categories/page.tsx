@@ -197,26 +197,26 @@ export default function DishCategoriesPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg border p-4 text-center">
-          <p className="text-2xl font-bold text-orange-600">{categories.length}</p>
-          <p className="text-xs text-gray-500">Total Categories</p>
+        <div className="bg-card rounded-lg border p-4 text-center">
+          <p className="text-2xl font-bold text-brand-primary">{categories.length}</p>
+          <p className="text-xs text-muted-foreground">Total Categories</p>
         </div>
-        <div className="bg-white rounded-lg border p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">
+        <div className="bg-card rounded-lg border p-4 text-center">
+          <p className="text-2xl font-bold text-success">
             {categories.filter(c => !c.is_drink && c.is_active).length}
           </p>
-          <p className="text-xs text-gray-500">Active Food</p>
+          <p className="text-xs text-muted-foreground">Active Food</p>
         </div>
-        <div className="bg-white rounded-lg border p-4 text-center">
-          <p className="text-2xl font-bold text-blue-600">
+        <div className="bg-card rounded-lg border p-4 text-center">
+          <p className="text-2xl font-bold text-info">
             {categories.filter(c => c.is_drink && c.is_active).length}
           </p>
-          <p className="text-xs text-gray-500">Active Drink</p>
+          <p className="text-xs text-muted-foreground">Active Drink</p>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white rounded-lg border p-4 mb-4">
+      <div className="bg-card rounded-lg border p-4 mb-4">
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           {/* Tab switcher */}
           <div className="flex rounded-md border overflow-hidden">
@@ -224,8 +224,8 @@ export default function DishCategoriesPage() {
               onClick={() => setActiveTab('food')}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'food'
-                  ? 'bg-orange-50 text-orange-700 border-r border-orange-200'
-                  : 'text-gray-600 hover:bg-gray-50 border-r'
+                  ? 'bg-brand-primary/5 text-brand-primary border-r border-brand-primary/20'
+                  : 'text-muted-foreground hover:bg-accent border-r'
               }`}
             >
               <UtensilsCrossed className="h-4 w-4" />
@@ -235,8 +235,8 @@ export default function DishCategoriesPage() {
               onClick={() => setActiveTab('drink')}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'drink'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-info/10 text-info'
+                  : 'text-muted-foreground hover:bg-accent'
               }`}
             >
               <GlassWater className="h-4 w-4" />
@@ -247,7 +247,7 @@ export default function DishCategoriesPage() {
           <div className="flex gap-2 w-full sm:w-auto">
             {/* Search */}
             <div className="relative flex-1 sm:w-56">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search categories…"
                 value={searchQuery}
@@ -264,7 +264,7 @@ export default function DishCategoriesPage() {
       </div>
 
       {/* Category table */}
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         {loading ? (
           <div className="p-4">
             <LoadingSkeleton variant="table" count={5} />
@@ -278,20 +278,20 @@ export default function DishCategoriesPage() {
           />
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/30 border-b">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
+                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.map(cat => (
-                <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={cat.id} className="hover:bg-accent transition-colors">
                   <td className="px-4 py-3 font-medium">
                     {cat.name}
                     {cat.parent_category_id && (
-                      <span className="ml-2 text-xs text-gray-400">
+                      <span className="ml-2 text-xs text-muted-foreground">
                         ↳{' '}
                         {categories.find(c => c.id === cat.parent_category_id)?.name ??
                           'subcategory'}
@@ -318,7 +318,7 @@ export default function DishCategoriesPage() {
                         size="sm"
                         onClick={() => setDeleteTarget(cat)}
                         title="Delete"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -347,7 +347,7 @@ export default function DishCategoriesPage() {
             {/* Name */}
             <div>
               <Label htmlFor="cat-name">
-                Name <span className="text-red-500">*</span>
+                Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="cat-name"
@@ -439,7 +439,7 @@ export default function DishCategoriesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-white"
             >
               Delete
             </AlertDialogAction>

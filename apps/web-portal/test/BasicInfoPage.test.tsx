@@ -106,7 +106,7 @@ describe('BasicInfoPage (integration)', () => {
     render(<BasicInfoPage />);
 
     await screen.findByText('Restaurant Information');
-    expect(screen.getByText('Continue to Review')).toBeInTheDocument();
+    expect(screen.getByText('Continue to Menu')).toBeInTheDocument();
     expect(screen.getAllByText(/Back to Dashboard/).length).toBeGreaterThanOrEqual(1);
   });
 

@@ -42,7 +42,7 @@ export function ContactFields() {
           className={errors.website ? 'border-red-500' : ''}
         />
         {errors.website && (
-          <p className="text-sm text-red-500 mt-1">{errors.website.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.website.message}</p>
         )}
       </div>
     </>

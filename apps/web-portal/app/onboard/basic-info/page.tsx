@@ -34,10 +34,8 @@ function BasicInfoPageContent() {
     userId: user?.id, watch: methods.watch, selectedCuisinesRef, operatingHoursRef,
   });
 
-  const [mapCoordinates, setMapCoordinates] = useState(draftData.mapCoordinates);
   const [selectedCuisines, setSelectedCuisines] = useState(draftData.selectedCuisines);
   const [restaurantType, setRestaurantType] = useState(draftData.restaurantType);
-  const [country, setCountry] = useState(draftData.country);
   const [serviceSpeed, setServiceSpeed] = useState(draftData.serviceSpeed);
   const [paymentMethods, setPaymentMethods] = useState(draftData.paymentMethods);
   const [operatingHours, setOperatingHours] = useState(draftData.operatingHours);
@@ -46,7 +44,7 @@ function BasicInfoPageContent() {
   useEffect(() => { operatingHoursRef.current = operatingHours; }, [operatingHours]);
 
   const onSubmit = (data: BasicInfoFormData) => {
-    if (!data.name || !data.address) { toast.error('Please fill in all required fields'); return; }
+    if (!data.name || !data.location?.address) { toast.error('Please fill in all required fields'); return; }
     if (selectedCuisines.length === 0) { toast.error('Please select at least one cuisine type'); return; }
     if (!user?.id) { toast.error('User not authenticated'); return; }
 
@@ -57,11 +55,11 @@ function BasicInfoPageContent() {
 
     const basicInfo: Partial<RestaurantBasicInfo> = {
       name: data.name, restaurant_type: data.restaurant_type as RestaurantType,
-      description: data.description || undefined, country: data.country,
-      city: data.city || undefined, neighbourhood: data.neighbourhood || undefined,
-      state: data.state || undefined, postal_code: data.postal_code || undefined,
-      address: data.address,
-      location: { lat: parseFloat(data.location_lat) || 0, lng: parseFloat(data.location_lng) || 0 },
+      description: data.description || undefined, country: data.location?.country,
+      city: data.location?.city || undefined, neighbourhood: data.location?.neighborhood || undefined,
+      state: data.location?.state || undefined, postal_code: data.location?.postalCode || undefined,
+      address: data.location?.address,
+      location: { lat: data.location?.lat || 0, lng: data.location?.lng || 0 },
       phone: data.phone || undefined, website: data.website || undefined,
       cuisines: selectedCuisines,
     };
@@ -78,13 +76,13 @@ function BasicInfoPageContent() {
       menus: savedData?.menus || [], dishes: savedData?.dishes || [], currentStep: 2,
     } as FormProgress);
     toast.success('Restaurant information saved successfully!');
-    router.push('/onboard/review');
+    router.push('/onboard/menu');
   };
 
   const handleBack = () => router.push('/');
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-orange-50 to-red-50 p-6">
+    <div className="min-h-screen bg-linear-to-br from-brand-primary/5 to-red-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -93,8 +91,8 @@ function BasicInfoPageContent() {
             </Button>
             <AutoSaveIndicator lastSaved={lastSaved} saving={saving} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Restaurant Information</h1>
-          <p className="text-gray-600 mt-2">Provide essential information about your restaurant</p>
+          <h1 className="text-3xl font-bold text-foreground">Restaurant Information</h1>
+          <p className="text-muted-foreground mt-2">Provide essential information about your restaurant</p>
         </div>
 
         <FormProvider {...methods}>
@@ -109,14 +107,11 @@ function BasicInfoPageContent() {
               <CardContent className="space-y-4"><ContactFields /></CardContent>
             </Card>
 
-            <LocationSection
-              mapCoordinates={mapCoordinates} onMapCoordinatesChange={setMapCoordinates}
-              country={country} onCountryChange={setCountry}
-            />
+            <LocationSection />
 
             <Card>
               <CardHeader>
-                <CardTitle>Cuisine Types <span className="text-red-500">*</span></CardTitle>
+                <CardTitle>Cuisine Types <span className="text-destructive">*</span></CardTitle>
                 <CardDescription>Select all cuisines that apply to your restaurant</CardDescription>
               </CardHeader>
               <CardContent>
@@ -145,8 +140,8 @@ function BasicInfoPageContent() {
               <Button type="button" variant="outline" onClick={handleBack}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
               </Button>
-              <Button type="submit" size="lg" className="bg-orange-600 hover:bg-orange-700">
-                Continue to Review <ArrowRight className="ml-2 h-5 w-5" />
+              <Button type="submit" size="lg" className="bg-brand-primary hover:bg-brand-primary/90">
+                Continue to Menu <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
           </form>

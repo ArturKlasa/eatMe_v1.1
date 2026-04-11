@@ -1,39 +1,48 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Store } from 'lucide-react';
 import Link from 'next/link';
+import { Plus, Store, Edit, Trash2, Ban, CheckCircle, Eye, ScanLine } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import type { Restaurant } from '@/lib/supabase';
-import { RestaurantTable } from '@/components/admin/RestaurantTable';
+import { DataTable } from '@/components/DataTable';
+import type { ColumnDef } from '@/components/DataTable';
+import { SearchFilterBar } from '@/components/SearchFilterBar';
 import { PageHeader } from '@/components/PageHeader';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { RestaurantWarningBadge } from '@/components/admin/RestaurantWarningBadge';
 import { Button } from '@/components/ui/button';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from '@/components/ui/pagination';
 import { computeWarningFlags } from '@/lib/import-service';
 import type { WarningFlag } from '@/lib/import-types';
+import { useFilters } from '@/hooks/useFilters';
+import { usePagination } from '@/hooks/usePagination';
+import { StatusBadge } from '@/components/StatusBadge';
 
-type RestaurantWithCounts = Restaurant & { menuCount: number; dishCount: number };
+const PAGE_SIZE = 10;
 
-const PAGE_SIZES = [10, 25, 50] as const;
+type RestaurantEntry = Restaurant & {
+  menuCount: number;
+  dishCount: number;
+  [key: string]: unknown;
+};
 
 export default function AdminRestaurantsPage() {
-  const [allRestaurants, setAllRestaurants] = useState<RestaurantWithCounts[]>([]);
+  const [allRestaurants, setAllRestaurants] = useState<RestaurantEntry[]>([]);
   const [warningsMap, setWarningsMap] = useState<Map<string, WarningFlag[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    confirmVariant: 'destructive' | 'default';
+    onConfirm: () => void;
+  }>({ open: false, title: '', description: '', confirmLabel: 'Confirm', confirmVariant: 'default', onConfirm: () => {} });
 
   useEffect(() => {
     const loadRestaurants = async () => {
@@ -50,7 +59,6 @@ export default function AdminRestaurantsPage() {
 
       const rows = restaurants ?? [];
 
-      // Fetch dish counts for all restaurants
       const dishCountMap = new Map<string, number>();
       if (rows.length > 0) {
         const ids = rows.map((r) => r.id);
@@ -65,47 +73,212 @@ export default function AdminRestaurantsPage() {
         }
       }
 
-      const mapped = rows.map((restaurant) => ({
+      const mapped: RestaurantEntry[] = rows.map((restaurant) => ({
         ...restaurant,
         menuCount: 0,
         dishCount: dishCountMap.get(restaurant.id) ?? 0,
       }));
 
-      // Compute warning flags per restaurant
       const warnings = new Map<string, WarningFlag[]>();
       for (const restaurant of mapped) {
-        warnings.set(restaurant.id, computeWarningFlags(restaurant, restaurant.dishCount));
+        warnings.set(restaurant.id, computeWarningFlags(restaurant, restaurant.dishCount as number));
       }
 
       setAllRestaurants(mapped);
       setWarningsMap(warnings);
       setLoading(false);
     };
-
     loadRestaurants();
   }, []);
 
-  // Filter
-  const filtered = allRestaurants.filter(r => {
-    const matchesSearch =
-      !searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && r.is_active) ||
-      (statusFilter === 'suspended' && !r.is_active);
-    const matchesFlagged =
-      !showFlaggedOnly || (warningsMap.get(r.id) ?? []).length > 0;
-    return matchesSearch && matchesStatus && matchesFlagged;
-  });
+  const handleSuspend = (id: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'suspend' : 'activate';
+    setConfirmState({
+      open: true,
+      title: `${currentStatus ? 'Suspend' : 'Activate'} Restaurant`,
+      description: `Are you sure you want to ${action} this restaurant? This action will be logged in the audit trail.`,
+      confirmLabel: currentStatus ? 'Suspend' : 'Activate',
+      confirmVariant: currentStatus ? 'destructive' : 'default',
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          // TODO: Implement suspend/activate API call with audit logging
+          toast.success(`Restaurant ${action}d successfully`);
+          setAllRestaurants(prev =>
+            prev.map(r =>
+              r.id === id
+                ? {
+                    ...r,
+                    is_active: !currentStatus,
+                    suspended_at: !currentStatus ? null : new Date().toISOString(),
+                  }
+                : r
+            )
+          );
+        } catch {
+          toast.error(`Failed to ${action} restaurant`);
+        }
+      },
+    });
+  };
 
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paginatedRestaurants = filtered.slice(
-    (safePage - 1) * pageSize,
-    safePage * pageSize
+  const handleDelete = (id: string, name: string) => {
+    setConfirmState({
+      open: true,
+      title: `Delete Restaurant "${name}"`,
+      description: `This is a permanent action that will delete all menus and dishes. It cannot be undone and will be logged in the audit trail. Consider using Suspend instead.`,
+      confirmLabel: 'Delete',
+      confirmVariant: 'destructive',
+      onConfirm: async () => {
+        setConfirmState(s => ({ ...s, open: false }));
+        try {
+          const { error } = await supabase.from('restaurants').delete().eq('id', id);
+          if (error) {
+            console.error('Error deleting restaurant:', error);
+            toast.error('Failed to delete restaurant: ' + error.message);
+            return;
+          }
+          try {
+            await supabase.rpc('refresh_materialized_views');
+          } catch (viewError) {
+            console.warn('Failed to refresh materialized views:', viewError);
+          }
+          toast.success('Restaurant deleted successfully');
+          setAllRestaurants(prev => prev.filter(r => r.id !== id));
+        } catch (error) {
+          console.error('Error in handleDelete:', error);
+          toast.error('Failed to delete restaurant');
+        }
+      },
+    });
+  };
+
+  const filtered = useFilters<RestaurantEntry>(allRestaurants, [
+    {
+      value: searchQuery,
+      fn: (r, v) => (r.name as string).toLowerCase().includes(v.toLowerCase()),
+    },
+    {
+      value: statusFilter === 'all' ? '' : statusFilter,
+      fn: (r, v) => (v === 'active' ? !!r.is_active : !r.is_active),
+    },
+    {
+      value: showFlaggedOnly ? 'flagged' : '',
+      fn: (r) => (warningsMap.get(r.id as string) ?? []).length > 0,
+    },
+  ]);
+
+  const { page, totalPages, paginatedItems, setPage } = usePagination(
+    filtered,
+    PAGE_SIZE
   );
 
+  const columns: ColumnDef<RestaurantEntry>[] = [
+    {
+      key: 'name',
+      header: 'Restaurant',
+      render: (_, row) => (
+        <div>
+          <p className="font-medium text-foreground">{row.name as string}</p>
+          <p className="text-xs text-muted-foreground">
+            {row.created_at ? new Date(row.created_at as string).toLocaleDateString() : '—'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'address',
+      header: 'Address',
+    },
+    {
+      key: 'cuisine_types',
+      header: 'Cuisine',
+      render: (_, row) => {
+        const cuisines = (row.cuisine_types as string[] | null) ?? [];
+        return (
+          <div className="flex flex-wrap gap-1">
+            {cuisines.slice(0, 2).map(cuisine => (
+              <span key={cuisine} className="text-xs px-2 py-1 bg-muted/30 text-foreground rounded">
+                {cuisine}
+              </span>
+            ))}
+            {cuisines.length > 2 && (
+              <span className="text-xs px-2 py-1 bg-muted/30 text-foreground rounded">
+                +{cuisines.length - 2}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'menuCount',
+      header: 'Menus/Dishes',
+      render: (_, row) => `${row.menuCount as number} / ${row.dishCount as number}`,
+    },
+    {
+      key: 'is_active',
+      header: 'Status',
+      render: (_, row) => (
+        <div className="flex flex-wrap items-center gap-1">
+          <StatusBadge variant={row.is_active ? 'active' : 'inactive'} label={row.is_active ? 'Active' : 'Suspended'} />
+          {!row.is_active && row.suspension_reason && (
+            <p className="text-xs text-muted-foreground mt-1 w-full">{row.suspension_reason as string}</p>
+          )}
+          <RestaurantWarningBadge warnings={warningsMap.get(row.id as string) ?? []} />
+        </div>
+      ),
+    },
+  ];
+
+  const renderActions = (row: RestaurantEntry) => (
+    <div className="flex items-center justify-end gap-2">
+      <Link
+        href={`/admin/menu-scan?restaurant_id=${row.id as string}`}
+        className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded"
+        title="Scan Menu"
+        aria-label="Scan menu"
+      >
+        <ScanLine className="h-4 w-4" />
+      </Link>
+      <Link
+        href={`/admin/restaurants/${row.id as string}`}
+        className="p-2 text-muted-foreground hover:bg-accent rounded"
+        title="View Details"
+        aria-label="View details"
+      >
+        <Eye className="h-4 w-4" />
+      </Link>
+      <Link
+        href={`/admin/restaurants/${row.id as string}/edit`}
+        className="p-2 text-info hover:bg-info/10 rounded"
+        title="Edit"
+        aria-label="Edit restaurant"
+      >
+        <Edit className="h-4 w-4" />
+      </Link>
+      <button
+        onClick={() => handleSuspend(row.id as string, !!(row.is_active))}
+        className={`p-2 rounded ${
+          row.is_active
+            ? 'text-warning hover:bg-warning/10'
+            : 'text-success hover:bg-success/10'
+        }`}
+        title={row.is_active ? 'Suspend' : 'Activate'}
+        aria-label={row.is_active ? 'Suspend restaurant' : 'Activate restaurant'}
+      >
+        {row.is_active ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+      </button>
+      <button
+        onClick={() => handleDelete(row.id as string, row.name as string)}
+        className="p-2 text-destructive hover:bg-destructive/10 rounded"
+        title="Delete"
+        aria-label="Delete restaurant"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -122,116 +295,70 @@ export default function AdminRestaurantsPage() {
         }
       />
 
-      {/* Filters and Search */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+      <SearchFilterBar
+        search={{
+          value: searchQuery,
+          onChange: (v) => setSearchQuery(v),
+          placeholder: 'Search restaurants...',
+        }}
+        filters={[
+          {
+            label: 'Status',
+            value: statusFilter,
+            onChange: (v) => setStatusFilter(v),
+            options: [
+              { label: 'All Status', value: 'all' },
+              { label: 'Active', value: 'active' },
+              { label: 'Suspended', value: 'suspended' },
+            ],
+          },
+        ]}
+        actions={
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
             <input
-              type="text"
-              placeholder="Search restaurants..."
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              type="checkbox"
+              checked={showFlaggedOnly}
+              onChange={(e) => setShowFlaggedOnly(e.target.checked)}
+              className="h-4 w-4 rounded border-input text-brand-primary focus:ring-brand-primary"
             />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value as 'all' | 'active' | 'suspended'); setPage(1); }}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
-      </div>
+            <span className="text-foreground">Show flagged only</span>
+          </label>
+        }
+      />
 
-      {/* Restaurant Table */}
-      {loading ? (
-        <LoadingSkeleton variant="table" count={5} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Store}
-          title="No restaurants found"
-          description={searchQuery || statusFilter !== 'all'
-            ? 'Try adjusting your search or filter criteria.'
-            : 'No restaurants have been added yet.'}
-          action={
-            !searchQuery && statusFilter === 'all'
-              ? { label: 'Add Restaurant', href: '/admin/restaurants/new' }
-              : undefined
-          }
-        />
-      ) : (
-        <>
-          <RestaurantTable
-            restaurants={paginatedRestaurants}
-            warnings={warningsMap}
-            showFlaggedOnly={showFlaggedOnly}
-            onToggleFlaggedOnly={(v) => { setShowFlaggedOnly(v); setPage(1); }}
+      <DataTable<RestaurantEntry>
+        data={paginatedItems}
+        columns={columns}
+        actions={renderActions}
+        loading={loading}
+        emptyState={
+          <EmptyState
+            icon={Store}
+            title="No restaurants found"
+            description={
+              searchQuery || statusFilter !== 'all'
+                ? 'Try adjusting your search or filter criteria.'
+                : 'No restaurants have been added yet.'
+            }
+            action={
+              !searchQuery && statusFilter === 'all'
+                ? { label: 'Add Restaurant', href: '/admin/restaurants/new' }
+                : undefined
+            }
           />
+        }
+        pagination={{ page, totalPages, onPageChange: setPage }}
+      />
 
-          {/* Pagination */}
-          {filtered.length > pageSize && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>Rows per page:</span>
-                <select
-                  value={pageSize}
-                  onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm"
-                >
-                  {PAGE_SIZES.map(size => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-                <span className="ml-2">
-                  {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} of{' '}
-                  {filtered.length}
-                </span>
-              </div>
-
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      aria-disabled={safePage <= 1}
-                      className={safePage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
-                    .map((p, idx, arr) => (
-                      <PaginationItem key={p}>
-                        {idx > 0 && arr[idx - 1] !== p - 1 && (
-                          <span className="px-2 text-gray-400">...</span>
-                        )}
-                        <PaginationLink
-                          onClick={() => setPage(p)}
-                          isActive={p === safePage}
-                          className="cursor-pointer"
-                        >
-                          {p}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      aria-disabled={safePage >= totalPages}
-                      className={safePage >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-        </>
-      )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel={confirmState.confirmLabel}
+        confirmVariant={confirmState.confirmVariant}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

@@ -26,45 +26,45 @@ export function ImportResultsTable({ restaurants }: ImportResultsTableProps) {
   const sorted = [...restaurants].sort((a, b) => statusOrder(a) - statusOrder(b));
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
+    <div className="overflow-x-auto rounded-lg border border">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">
+          <tr className="bg-muted/30 border-b border">
+            <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
+            <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
               Address
             </th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Warnings</th>
-            <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+            <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+            <th className="text-left px-4 py-3 font-medium text-muted-foreground">Warnings</th>
+            <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-border">
           {sorted.map((r, idx) => (
-            <tr key={`${r.id}-${idx}`} className="hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 font-medium text-gray-900 max-w-[200px] truncate">
+            <tr key={`${r.id}-${idx}`} className="hover:bg-accent transition-colors">
+              <td className="px-4 py-3 font-medium text-foreground max-w-[200px] truncate">
                 {r.name}
               </td>
-              <td className="px-4 py-3 text-gray-600 hidden md:table-cell max-w-[220px] truncate">
+              <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[220px] truncate">
                 {r.address || '—'}
               </td>
               <td className="px-4 py-3">
                 {r.error ? (
                   <span
                     title={r.error}
-                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 cursor-help"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-destructive/10 text-destructive cursor-help"
                   >
                     Error
                   </span>
                 ) : r.skipped ? (
                   <span
                     title={r.skipReason ?? 'Skipped'}
-                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 cursor-help"
+                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted/30 text-muted-foreground cursor-help"
                   >
                     Skipped
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success">
                     Imported
                   </span>
                 )}
@@ -78,7 +78,7 @@ export function ImportResultsTable({ restaurants }: ImportResultsTableProps) {
                     <>
                       <Link
                         href={`/admin/menu-scan?restaurant_id=${r.id}`}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand-primary bg-brand-primary/5 hover:bg-brand-primary/10 rounded transition-colors"
                         title="Scan menu for this restaurant"
                       >
                         <ScanLine className="h-3 w-3" />
@@ -86,7 +86,7 @@ export function ImportResultsTable({ restaurants }: ImportResultsTableProps) {
                       </Link>
                       <Link
                         href={`/admin/restaurants/${r.id}/edit`}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-foreground bg-muted/30 hover:bg-muted rounded transition-colors"
                         title="View restaurant details"
                       >
                         <ExternalLink className="h-3 w-3" />

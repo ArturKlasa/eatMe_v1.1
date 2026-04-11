@@ -85,13 +85,13 @@ export default function RestaurantDetailsPage() {
           <div className="flex gap-3">
             <Link
               href={`/admin/restaurants/${restaurant.id}/menus`}
-              className="flex items-center gap-2 px-4 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50"
+              className="flex items-center gap-2 px-4 py-2 border border-brand-primary text-brand-primary rounded-lg hover:bg-brand-primary/5"
             >
               Manage Menus
             </Link>
             <Link
               href={`/admin/restaurants/${restaurant.id}/edit`}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90"
             >
               <Edit className="h-5 w-5" />
               Edit Restaurant
@@ -102,16 +102,16 @@ export default function RestaurantDetailsPage() {
 
       {/* Status Alert */}
       {!restaurant.is_active && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Ban className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <Ban className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-red-900">Restaurant Suspended</h3>
+              <h3 className="font-semibold text-destructive">Restaurant Suspended</h3>
               {restaurant.suspension_reason && (
-                <p className="text-sm text-red-700 mt-1">{restaurant.suspension_reason}</p>
+                <p className="text-sm text-destructive mt-1">{restaurant.suspension_reason}</p>
               )}
               {restaurant.suspended_at && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-xs text-destructive mt-1">
                   Suspended on {new Date(restaurant.suspended_at).toLocaleString()}
                 </p>
               )}
@@ -124,26 +124,26 @@ export default function RestaurantDetailsPage() {
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Basic Information</h2>
             <dl className="grid grid-cols-2 gap-4">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Restaurant Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">{restaurant.name}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Restaurant Name</dt>
+                <dd className="mt-1 text-sm text-foreground">{restaurant.name}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Type</dt>
-                <dd className="mt-1 text-sm text-gray-900 capitalize">
+                <dt className="text-sm font-medium text-muted-foreground">Type</dt>
+                <dd className="mt-1 text-sm text-foreground capitalize">
                   {restaurant.restaurant_type}
                 </dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-sm font-medium text-gray-500">Cuisine Types</dt>
+                <dt className="text-sm font-medium text-muted-foreground">Cuisine Types</dt>
                 <dd className="mt-2 flex flex-wrap gap-2">
                   {(restaurant.cuisine_types ?? []).map(cuisine => (
                     <span
                       key={cuisine}
-                      className="px-3 py-1 bg-orange-100 text-orange-800 text-sm rounded-full"
+                      className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-sm rounded-full"
                     >
                       {cuisine}
                     </span>
@@ -154,23 +154,23 @@ export default function RestaurantDetailsPage() {
           </div>
 
           {/* Location */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Location</h2>
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Location</h2>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-900">{restaurant.address}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-foreground">{restaurant.address}</p>
+                  <p className="text-sm text-muted-foreground">
                     {restaurant.city}
                     {restaurant.postal_code && `, ${restaurant.postal_code}`}
                   </p>
-                  <p className="text-sm text-gray-600">{restaurant.country_code}</p>
+                  <p className="text-sm text-muted-foreground">{restaurant.country_code}</p>
                 </div>
               </div>
-              <div className="pt-3 border-t border-gray-200">
-                <p className="text-xs text-gray-500">Coordinates</p>
-                <p className="text-sm text-gray-900 mt-1">
+              <div className="pt-3 border-t">
+                <p className="text-xs text-muted-foreground">Coordinates</p>
+                <p className="text-sm text-foreground mt-1">
                   {(restaurant.location as { lat?: number; lng?: number } | null)?.lat?.toFixed(6)},{' '}
                   {(restaurant.location as { lat?: number; lng?: number } | null)?.lng?.toFixed(6)}
                 </p>
@@ -179,29 +179,29 @@ export default function RestaurantDetailsPage() {
           </div>
 
           {/* Contact */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h2>
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Contact Information</h2>
             <dl className="space-y-3">
               {restaurant.phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-gray-400" />
+                  <Phone className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <dt className="text-xs text-gray-500">Phone</dt>
-                    <dd className="text-sm text-gray-900">{restaurant.phone}</dd>
+                    <dt className="text-xs text-muted-foreground">Phone</dt>
+                    <dd className="text-sm text-foreground">{restaurant.phone}</dd>
                   </div>
                 </div>
               )}
               {restaurant.website && (
                 <div className="flex items-center gap-3">
-                  <Globe className="h-5 w-5 text-gray-400" />
+                  <Globe className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <dt className="text-xs text-gray-500">Website</dt>
-                    <dd className="text-sm text-gray-900">
+                    <dt className="text-xs text-muted-foreground">Website</dt>
+                    <dd className="text-sm text-foreground">
                       <a
                         href={restaurant.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-orange-600 hover:underline"
+                        className="text-brand-primary hover:underline"
                       >
                         {restaurant.website}
                       </a>
@@ -216,8 +216,8 @@ export default function RestaurantDetailsPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Status */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Status</h2>
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Status</h2>
             <div className="space-y-3">
               <div className={`flex items-center gap-2 ${statusVariant.text}`}>
                 {restaurant.is_active ? (
@@ -231,30 +231,30 @@ export default function RestaurantDetailsPage() {
           </div>
 
           {/* Service Options */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Service Options</h2>
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Service Options</h2>
             <ul className="space-y-2">
               <li className="flex items-center gap-2 text-sm">
                 <span
-                  className={`w-2 h-2 rounded-full ${restaurant.delivery_available ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`w-2 h-2 rounded-full ${restaurant.delivery_available ? 'bg-success' : 'bg-muted-foreground/50'}`}
                 />
                 Delivery {restaurant.delivery_available ? 'Available' : 'Not Available'}
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <span
-                  className={`w-2 h-2 rounded-full ${restaurant.takeout_available ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`w-2 h-2 rounded-full ${restaurant.takeout_available ? 'bg-success' : 'bg-muted-foreground/50'}`}
                 />
                 Takeout {restaurant.takeout_available ? 'Available' : 'Not Available'}
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <span
-                  className={`w-2 h-2 rounded-full ${restaurant.dine_in_available ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`w-2 h-2 rounded-full ${restaurant.dine_in_available ? 'bg-success' : 'bg-muted-foreground/50'}`}
                 />
                 Dine-in {restaurant.dine_in_available ? 'Available' : 'Not Available'}
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <span
-                  className={`w-2 h-2 rounded-full ${restaurant.accepts_reservations ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`w-2 h-2 rounded-full ${restaurant.accepts_reservations ? 'bg-success' : 'bg-muted-foreground/50'}`}
                 />
                 Reservations {restaurant.accepts_reservations ? 'Accepted' : 'Not Accepted'}
               </li>
@@ -262,24 +262,24 @@ export default function RestaurantDetailsPage() {
           </div>
 
           {/* Metadata */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Metadata</h2>
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Metadata</h2>
             <dl className="space-y-3 text-sm">
               <div>
-                <dt className="text-gray-500">Created</dt>
-                <dd className="text-gray-900 mt-1">
+                <dt className="text-muted-foreground">Created</dt>
+                <dd className="text-foreground mt-1">
                   {restaurant.created_at ? new Date(restaurant.created_at).toLocaleString() : '-'}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Last Updated</dt>
-                <dd className="text-gray-900 mt-1">
+                <dt className="text-muted-foreground">Last Updated</dt>
+                <dd className="text-foreground mt-1">
                   {restaurant.updated_at ? new Date(restaurant.updated_at).toLocaleString() : '-'}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500">Owner ID</dt>
-                <dd className="text-gray-900 mt-1 font-mono text-xs break-all">
+                <dt className="text-muted-foreground">Owner ID</dt>
+                <dd className="text-foreground mt-1 font-mono text-xs break-all">
                   {restaurant.owner_id}
                 </dd>
               </div>

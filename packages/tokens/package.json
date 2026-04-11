@@ -14,9 +14,12 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "generate:css": "tsx scripts/generate-css-vars.ts"
   },
   "devDependencies": {
+    "culori": "^4.0.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.2"
   }
 }

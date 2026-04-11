@@ -38,10 +38,10 @@ export function BatchToolbar({
   const [showFilters, setShowFilters] = useState(false);
 
   return (
-    <div className="sticky top-0 z-10 bg-white border-b shadow-sm px-4 py-2 space-y-2">
+    <div className="sticky top-0 z-10 bg-background border-b shadow-sm px-4 py-2 space-y-2">
       <div className="flex items-center justify-between gap-2">
         {/* Progress counter */}
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-muted-foreground">
           <span className="font-medium">{reviewedCount}</span> of{' '}
           <span className="font-medium">{totalGroups}</span> groups reviewed
         </span>
@@ -54,7 +54,7 @@ export function BatchToolbar({
                 <Check className="h-3 w-3 mr-1" />
                 Accept selected ({selectedIds.size})
               </Button>
-              <Button size="sm" variant="outline" onClick={onRejectSelected} className="text-red-600">
+              <Button size="sm" variant="outline" onClick={onRejectSelected} className="text-destructive">
                 Reject selected ({selectedIds.size})
               </Button>
             </>
@@ -72,7 +72,7 @@ export function BatchToolbar({
             size="sm"
             variant="ghost"
             onClick={() => setShowFilters(!showFilters)}
-            className={showFilters ? 'bg-gray-100' : ''}
+            className={showFilters ? 'bg-muted/30' : ''}
           >
             <Filter className="h-3 w-3 mr-1" />
             Filter

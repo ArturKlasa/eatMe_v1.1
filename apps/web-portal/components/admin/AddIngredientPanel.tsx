@@ -223,26 +223,26 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div className="w-full max-w-md bg-background rounded-xl shadow-2xl border border overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-orange-50">
+        <div className="flex items-center justify-between p-4 border-b border bg-brand-primary/5">
           <div className="flex items-center gap-2 min-w-0">
             {mode === 'add-new' && (
               <button
                 onClick={() => setMode('search')}
-                className="p-1 rounded text-gray-500 hover:text-gray-700 hover:bg-white/60 shrink-0"
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-background/60 shrink-0"
                 title="Back to search"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
             )}
             <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-foreground">
                 {mode === 'search' ? 'Link Ingredient' : 'Add New Ingredient'}
               </h3>
-              <p className="text-xs text-gray-500 truncate">
+              <p className="text-xs text-muted-foreground truncate">
                 From menu:{' '}
-                <span className="italic text-gray-700">
+                <span className="italic text-foreground">
                   {'"'}
                   {rawText}
                   {'"'}
@@ -252,7 +252,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors shrink-0"
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent transition-colors shrink-0"
             aria-label="Close panel"
           >
             <X className="h-5 w-5" />
@@ -265,7 +265,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
             <div className="p-4 space-y-3">
               {/* Editable search input */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   autoFocus
                   value={searchQuery}
@@ -274,19 +274,19 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                   className="pl-9 pr-9"
                 />
                 {searching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
                 )}
               </div>
 
               {/* Results list */}
-              <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
+              <div className="max-h-64 overflow-y-auto rounded-lg border border divide-y divide-muted/30">
                 {!searching && searchQuery.trim().length >= 2 && deduped.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-6">
+                  <p className="text-sm text-muted-foreground text-center py-6">
                     No matches for &ldquo;{searchQuery}&rdquo;
                   </p>
                 )}
                 {searchQuery.trim().length < 2 && (
-                  <p className="text-sm text-gray-400 text-center py-6">
+                  <p className="text-sm text-muted-foreground text-center py-6">
                     Type at least 2 characters to search
                   </p>
                 )}
@@ -295,39 +295,39 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                     key={item.canonical_ingredient_id}
                     type="button"
                     onClick={() => handleLinkExisting(item)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-orange-50 transition-colors text-left group"
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-brand-primary/5 transition-colors text-left group"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {item.display_name}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {item.canonical_name}
                         {item.ingredient_family_name && (
-                          <span className="ml-1.5 text-gray-300">·</span>
+                          <span className="ml-1.5 text-muted-foreground">·</span>
                         )}
                         {item.ingredient_family_name && (
-                          <span className="ml-1 text-gray-400">
+                          <span className="ml-1 text-muted-foreground">
                             {familyLabel(item.ingredient_family_name)}
                           </span>
                         )}
                         {item.is_vegan && (
-                          <Leaf className="ml-1.5 h-3 w-3 inline-block text-green-600" />
+                          <Leaf className="ml-1.5 h-3 w-3 inline-block text-success" />
                         )}
                         {!item.is_vegan && item.is_vegetarian && (
-                          <Sprout className="ml-1.5 h-3 w-3 inline-block text-green-600" />
+                          <Sprout className="ml-1.5 h-3 w-3 inline-block text-success" />
                         )}
                       </p>
                     </div>
-                    <Link2 className="h-4 w-4 text-gray-300 group-hover:text-orange-500 shrink-0 ml-2 transition-colors" />
+                    <Link2 className="h-4 w-4 text-muted-foreground group-hover:text-brand-primary shrink-0 ml-2 transition-colors" />
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-              <p className="text-xs text-gray-400">Not in the list?</p>
+            <div className="flex items-center justify-between px-4 py-3 border-t border bg-muted/30">
+              <p className="text-xs text-muted-foreground">Not in the list?</p>
               <Button
                 size="sm"
                 variant="outline"
@@ -335,7 +335,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                   setCanonicalName(searchQuery.toLowerCase().trim());
                   setMode('add-new');
                 }}
-                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                className="text-brand-primary border-orange-200 hover:bg-brand-primary/5"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add as new
@@ -351,7 +351,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
               {/* Canonical name */}
               <div>
                 <Label htmlFor="canonical_name" className="text-sm font-medium">
-                  Canonical Name <span className="text-red-500">*</span>
+                  Canonical Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="canonical_name"
@@ -361,7 +361,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                   className="mt-1"
                   autoFocus
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Lowercase, singular. Unique DB identifier.
                 </p>
               </div>
@@ -392,9 +392,9 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                     type="checkbox"
                     checked={isVegetarian}
                     onChange={e => setIsVegetarian(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-input"
                   />
-                  <span className="text-sm text-gray-700 flex items-center gap-1">
+                  <span className="text-sm text-foreground flex items-center gap-1">
                     <Sprout className="h-3.5 w-3.5" /> Vegetarian
                   </span>
                 </label>
@@ -403,9 +403,9 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                     type="checkbox"
                     checked={isVegan}
                     onChange={e => setIsVegan(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-input"
                   />
-                  <span className="text-sm text-gray-700 flex items-center gap-1">
+                  <span className="text-sm text-foreground flex items-center gap-1">
                     <Leaf className="h-3.5 w-3.5" /> Vegan
                   </span>
                 </label>
@@ -426,8 +426,8 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                           className={cn(
                             'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
                             selected
-                              ? 'bg-red-100 border-red-300 text-red-800'
-                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
+                              ? 'bg-destructive/10 border-red-300 text-destructive'
+                              : 'bg-muted/30 border hover:border-input text-muted-foreground'
                           )}
                         >
                           <span>{getAllergenIcon(allergen.code)}</span>
@@ -451,21 +451,21 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                   placeholder="e.g. aceite de oliva, EVOO"
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Comma-separated. Canonical name is always added automatically.
                 </p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-100 bg-gray-50">
+            <div className="flex items-center justify-end gap-3 p-4 border-t border bg-muted/30">
               <Button variant="outline" onClick={onClose} disabled={saving}>
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={saving || !canonicalName.trim()}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-brand-primary hover:bg-brand-primary/90 text-background"
               >
                 {saving ? (
                   <>

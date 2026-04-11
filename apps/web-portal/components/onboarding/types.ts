@@ -1,15 +1,12 @@
+import type { LocationData } from '@/components/LocationFormSection';
+
+export type { LocationData };
+
 export interface BasicInfoFormData {
   name: string;
   restaurant_type: string;
   description: string;
-  country: string;
-  city: string;
-  neighbourhood: string;
-  state: string;
-  postal_code: string;
-  address: string;
-  location_lat: string;
-  location_lng: string;
+  location: LocationData;
   phone: string;
   website: string;
   delivery_available: boolean;

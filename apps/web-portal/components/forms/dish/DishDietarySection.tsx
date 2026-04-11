@@ -67,7 +67,7 @@ export function DishDietarySection() {
     <>
       {/* Vegetarian/Vegan Section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-700">Vegetarian/Vegan</h3>
+        <h3 className="text-sm font-semibold text-foreground">Vegetarian/Vegan</h3>
 
         <div className="flex gap-6">
           <div className="flex items-center space-x-2">
@@ -96,10 +96,10 @@ export function DishDietarySection() {
 
       {/* Allergens Section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-700">Allergens</h3>
+        <h3 className="text-sm font-semibold text-foreground">Allergens</h3>
 
         <div>
-          <p className="text-xs text-gray-500 mb-2">Mark allergens present in this dish</p>
+          <p className="text-xs text-muted-foreground mb-2">Mark allergens present in this dish</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {ALLERGENS.map(allergen => (
               <div key={allergen.value} className="flex items-center space-x-2">
@@ -124,7 +124,7 @@ export function DishDietarySection() {
       <div className="space-y-4">
         <div>
           <Label className="mb-2 block">Dietary Tags</Label>
-          <p className="text-xs text-gray-500 mb-2">Select all that apply</p>
+          <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {DIETARY_TAGS.filter(
               tag =>
@@ -152,10 +152,10 @@ export function DishDietarySection() {
 
       {/* Religious Requirements Section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-700">Religious Requirements</h3>
+        <h3 className="text-sm font-semibold text-foreground">Religious Requirements</h3>
 
         <div>
-          <p className="text-xs text-gray-500 mb-2">Select all that apply</p>
+          <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {RELIGIOUS_REQUIREMENTS.map(tag => (
               <div key={tag} className="flex items-center space-x-2">

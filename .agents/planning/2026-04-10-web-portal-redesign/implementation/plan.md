@@ -2,26 +2,26 @@
 
 ## Checklist
 
-- [ ] Step 1: Quick wins — remove unused deps, middleware, loading skeletons
-- [ ] Step 2: Token pipeline — generate-css-vars script (hex→oklch, px→rem)
-- [ ] Step 3: ThemeProvider + ThemeToggle — dark mode activated end-to-end
-- [ ] Step 4: Migrate admin layout, header, sidebar to semantic tokens
-- [ ] Step 5: Migrate all remaining hardcoded colors across pages and components
-- [ ] Step 6: Utility layer — `@layer utilities` patterns in globals.css
-- [ ] Step 7: StatusBadge, InfoBox, SectionCard shared components
-- [ ] Step 8: useDialog, usePagination, useFilters hooks
-- [ ] Step 9: Refactor menus/page and ingredients/page with new hooks
-- [ ] Step 10: DataTable and SearchFilterBar shared components
-- [ ] Step 11: Replace RestaurantTable with DataTable + SearchFilterBar; delete RestaurantTable
-- [ ] Step 12: LocationFormSection extraction
-- [ ] Step 13: Unified RestaurantForm (sections config, enableDraft)
-- [ ] Step 14: Refactor admin create/edit pages to unified form; delete NewRestaurantForm
-- [ ] Step 15: Owner edit page improvements (cuisines, service options, payment)
-- [ ] Step 16: Extract menu-scan-utils.ts and useMenuScanState hook
-- [ ] Step 17: Split menu-scan page into step components
-- [ ] Step 18: Auth improvements — password toggle, forgot/reset password pages
-- [ ] Step 19: Onboarding routing fix + mobile responsiveness pass
-- [ ] Step 20: Visual polish — spacing, typography, animations, badge size variants
+- [x] Step 1: Quick wins — remove unused deps, middleware, loading skeletons
+- [x] Step 2: Token pipeline — generate-css-vars script (hex→oklch, px→rem)
+- [x] Step 3: ThemeProvider + ThemeToggle — dark mode activated end-to-end
+- [x] Step 4: Migrate admin layout, header, sidebar to semantic tokens
+- [x] Step 5: Migrate all remaining hardcoded colors across pages and components
+- [x] Step 6: Utility layer — `@layer utilities` patterns in globals.css
+- [x] Step 7: StatusBadge, InfoBox, SectionCard shared components
+- [x] Step 8: useDialog, usePagination, useFilters hooks
+- [x] Step 9: Refactor menus/page and ingredients/page with new hooks
+- [x] Step 10: DataTable and SearchFilterBar shared components
+- [x] Step 11: Replace RestaurantTable with DataTable + SearchFilterBar; delete RestaurantTable
+- [x] Step 12: LocationFormSection extraction
+- [x] Step 13: Unified RestaurantForm (sections config, enableDraft)
+- [x] Step 14: Refactor admin create/edit pages to unified form; delete NewRestaurantForm
+- [x] Step 15: Owner edit page improvements (cuisines, service options, payment)
+- [x] Step 16: Extract menu-scan-utils.ts and useMenuScanState hook
+- [x] Step 17: Split menu-scan page into step components
+- [x] Step 18: Auth improvements — password toggle, forgot/reset password pages
+- [x] Step 19: Onboarding routing fix + mobile responsiveness pass
+- [x] Step 20: Visual polish — spacing, typography, animations, badge size variants
 
 ---
 

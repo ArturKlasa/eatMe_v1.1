@@ -40,7 +40,7 @@ export function BasicInfoFields({ restaurantType, onRestaurantTypeChange }: Basi
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="name" className="mb-2 block">
-            Restaurant Name <span className="text-red-500">*</span>
+            Restaurant Name <span className="text-destructive">*</span>
           </Label>
           <Input
             id="name"
@@ -64,7 +64,7 @@ export function BasicInfoFields({ restaurantType, onRestaurantTypeChange }: Basi
 
         <div>
           <Label htmlFor="restaurant_type" className="mb-2 block">
-            Restaurant Type <span className="text-red-500">*</span>
+            Restaurant Type <span className="text-destructive">*</span>
           </Label>
           <Select
             value={restaurantType}

@@ -1,3 +1,4 @@
+@import './tokens.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -15,6 +16,9 @@
   --color-brand-primary-light: var(--brand-primary-light);
   --color-brand-accent: var(--brand-accent);
   --color-brand-accent-dark: var(--brand-accent-dark);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -69,6 +73,11 @@
   --brand-primary-light: oklch(0.762 0.155 47.6); /* #FFB74D – soft orange */
   --brand-accent: oklch(0.715 0.168 55.4); /* #FF9800 – warm accent */
   --brand-accent-dark: oklch(0.652 0.168 55.4); /* #F57C00 – darker accent */
+
+  /* Semantic status colors */
+  --success: oklch(0.527 0.154 150.069); /* green-600 equivalent */
+  --warning: oklch(0.769 0.188 70.08);   /* amber/yellow */
+  --info: oklch(0.488 0.243 264.376);    /* blue-600 equivalent */
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -135,6 +144,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --success: oklch(0.696 0.17 162.48);
+  --warning: oklch(0.828 0.189 84.429);
+  --info: oklch(0.6 0.118 184.704);
 }
 
 @layer base {
@@ -144,6 +156,61 @@
   body {
     @apply bg-background text-foreground;
   }
+  h1 {
+    font-size: var(--token-type-size-3xl);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  h2 {
+    font-size: var(--token-type-size-2xl);
+    font-weight: 600;
+  }
+  h3 {
+    font-size: var(--token-type-size-xl);
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  /* Focus rings */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /* Interactive base — disable states */
+  .interactive {
+    @apply transition-colors disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /* SVG icon sizing within containers */
+  .icon-sm { @apply [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:pointer-events-none; }
+  .icon-md { @apply [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:pointer-events-none; }
+
+  /* Enter/exit animations (used by dialogs, dropdowns) */
+  .animate-enter {
+    @apply data-[state=open]:animate-in data-[state=closed]:animate-out
+           data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
+           data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95;
+  }
+
+  /* Info/status surface pattern */
+  .surface-muted   { @apply bg-muted/40 border border-border rounded-md; }
+  .surface-info    { @apply bg-info/10 border border-info/20 rounded-md; }
+  .surface-warning { @apply bg-warning/10 border border-warning/20 rounded-md; }
+  .surface-success { @apply bg-success/10 border border-success/20 rounded-md; }
+  .surface-error   { @apply bg-destructive/10 border border-destructive/20 rounded-md; }
+}
+
+/* Dialog entrance animation using @starting-style (degrades gracefully in unsupported browsers) */
+@starting-style {
+  .dialog-content[data-state="open"] {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+}
+
+.dialog-content[data-state="open"] {
+  transition: opacity 150ms ease, transform 150ms ease;
 }
 
 @keyframes auto-save-fade {

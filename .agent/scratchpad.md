@@ -1,154 +1,243 @@
-## 2026-04-10 — Step 1 complete
+## 2026-04-10 — Recovery: emitting start for Step 5
 
-Implemented Step 1: Database migration for admin restaurant ingestion.
-
-Changes made:
-- `infra/supabase/migrations/080_restaurant_import.sql`: created with exact SQL from design document
-  - Added `google_place_id text` column to `restaurants` with UNIQUE constraint + partial index
-  - Created `restaurant_import_jobs` table with all specified columns and RLS enabled
-  - Created `google_api_usage` table with month UNIQUE constraint and RLS enabled
-- `packages/database/src/types.ts`: manually updated (local Supabase unavailable — Docker not running)
-  - Added `google_place_id: string | null` to restaurants Row/Insert/Update
-  - Added `restaurant_import_jobs` table type (Row/Insert/Update)
-  - Added `google_api_usage` table type (Row/Insert/Update)
-
-Note: Docker was not running so `supabase db reset` and `pnpm supabase gen types typescript --local` could not be run. Types updated manually from the SQL schema. The migration file is ready to apply when local Supabase is available.
-
-Build check: `pnpm turbo run build --filter=web-portal` — 3 successful, no errors.
-
-## 2026-04-10 — Step 2 complete (admin restaurant ingestion)
-
-Implemented Step 2: Shared types, validation, and import service.
-
-Changes made:
-- `lib/import-types.ts`: `MappedRestaurant`, `WarningFlag`, `ImportSummary`, `ImportedRestaurantSummary`, `ImportError`, `SkippedRestaurant`, `ValidationResult`
-- `lib/import-validation.ts`: `validateImportedRestaurant()` — Zod v4 schema, applies defaults (restaurant_type→'restaurant', country_code→'MX'), filters unknown cuisines
-- `lib/import-service.ts`: `deduplicateRestaurants()`, `importRestaurants()` (location:{lat,lng} NOT location_point), `computeWarningFlags()`
-- `test/import-validation.test.ts` + `test/import-service.test.ts`: 145 tests passing
-
-Build: ✓ clean. Tests: 145 passed. Lint: 0 errors.
-
-## 2026-04-10 — Verifier: Step 1 lint failure (pre-existing)
-
-Build passes. Lint FAILS with 10 pre-existing errors (none introduced by Step 1):
-- `public/pdf.worker.min.mjs` — 7x `@typescript-eslint/no-this-alias` (vendor minified file, should be excluded from lint)
-- `app/admin/menu-scan/page.tsx:2184` — `react/no-children-prop`
-- `components/admin/AddIngredientPanel.tsx:244` — 2x `react/no-unescaped-entities`
-
-None of these files were modified by Step 1 (`git diff` confirms). The Implementer must fix these before Step 1 can be verified. Recommended fixes:
-1. Add `public/**` to ESLint ignore in `apps/web-portal/eslint.config.mjs` to exclude the vendor file
-2. Fix `react/no-children-prop` in `app/admin/menu-scan/page.tsx:2184`
-3. Escape quotes in `components/admin/AddIngredientPanel.tsx:244`
-
-Emitting `step.retry` per verifier mandate (lint must pass with zero errors).
+Steps 1–4 are marked [x] in the plan. Build passed after Step 4. Previous iteration didn't emit an event. Emitting `start` to trigger Implementer for Step 5 (Migrate all remaining hardcoded colors).
 
 ## 2026-04-10 — Step 4 complete
 
-Implemented Step 4: POST /api/admin/import/google route.
+Implemented Step 4: Migrate admin layout, header, sidebar to semantic tokens.
 
 Changes made:
-- `app/api/admin/import/google/route.ts`: new file — verifies admin auth via `verifyAdminRequest`, validates body (lat/lng/radius/maxPages), checks monthly budget, paginates up to maxPages calls to `nearbySearchRestaurants`/`textSearchRestaurants`, maps each place via `mapGooglePlaceToRestaurant`, calls `importRestaurants`, increments API usage tracking, handles 403 quota errors (stops pagination, imports partial results with warning). Returns ImportSummary + optional warnings array.
-- `plan.md`: Step 4 marked [x]
+- `AdminSidebar.tsx`: bg-white → bg-background, border-gray-200 → border, active nav bg-orange-50/text-orange-600 → bg-brand-primary/10/text-brand-primary, inactive nav text-gray-700/hover:bg-gray-50 → text-foreground/hover:bg-accent, footer border-gray-200/bg-gray-50 → border/bg-muted/30, footer inner bg-white → bg-background, text-gray-600 → text-muted-foreground, text-orange-600 link → text-brand-primary. Security notice yellow warning kept direct (surface-warning added in Step 6).
+- `AdminHeader.tsx`: bg-white/border-gray-200 → bg-background/border, text-gray-800 → text-foreground, text-gray-700 → text-foreground, text-gray-500 → text-muted-foreground, hover:bg-gray-100 → hover:bg-accent. Admin red badge kept direct (surface-warning Step 6).
+- `app/admin/layout.tsx`: bg-gray-50 → bg-muted/30, border-orange-600 spinner → border-brand-primary, text-gray-600 → text-muted-foreground. Admin mode red banner kept direct (Step 6).
+- `globals.css`: --color-brand-primary and --color-brand-accent already present from Step 3 — no changes needed.
 
-Build: ✓ 3 successful. Lint: 0 errors (28 pre-existing warnings only).
+Build passes clean (3 successful, 0 errors).
 
-## 2026-04-10 — Step 3 complete
+## 2026-04-11 — Recovery: emitting start for Step 6
 
-Implemented Step 3: Google Places API client.
+Steps 1–5 are marked [x] in the plan. Previous iteration did not publish an event. Step 5 (migrate all remaining hardcoded colors) was completed. No runtime tasks exist.
 
-Changes made:
-- `lib/google-places.ts`: new file — `nearbySearchRestaurants`, `textSearchRestaurants` (both with correct POST body, X-Goog-Api-Key / X-Goog-FieldMask headers, backoff for 429), `mapGooglePlaceToRestaurant`, `inferCuisineFromGoogleTypes`, `mapGoogleHoursToOpenHours` (handles standard, 24h, overnight, multiple-periods-per-day, missing), `mapAddressComponents` (Mexican addresses: delegación/colonia/estado), `getMonthlyApiUsage`, `incrementApiUsage`
-- `test/google-places.test.ts`: 36 tests, all passing
-- `.env.example`: added `GOOGLE_PLACES_API_KEY` with placeholder comment
-- `plan.md`: Step 3 marked [x]
+Next step: Step 6 — Utility layer — `@layer utilities` patterns in globals.css (focus-ring, surface-*, animate-enter, icon-sm/md).
 
-Build: ✓ 3 successful. Tests: 36 passed. Lint: 0 errors (28 pre-existing warnings only).
+Emitting `start` to trigger the Implementer for Step 6.
 
-## 2026-04-10 — Step 5 complete
+## 2026-04-11 — Step 6 complete
 
-Implemented Step 5: Warning flags and RestaurantTable enhancements.
+Implemented Step 6: Utility layer — @layer utilities in globals.css.
 
 Changes made:
-- `components/admin/RestaurantWarningBadge.tsx`: new component — shows amber AlertTriangle + count when warnings present, uses `title` attribute for tooltip with human-readable flag labels, renders nothing when empty
-- `components/admin/RestaurantTable.tsx`: added `warnings`, `showFlaggedOnly`, `onToggleFlaggedOnly` props; added "Show flagged only" checkbox above table; added `RestaurantWarningBadge` in Status column; added `ScanLine` "Scan Menu" icon button in Actions column linking to `/admin/menu-scan?restaurant_id={id}`
-- `app/admin/restaurants/page.tsx`: added second Supabase query to fetch dish counts per restaurant; compute `computeWarningFlags()` for each row; added `warningsMap` state and `showFlaggedOnly` state; passes all new props to `RestaurantTable`; flagged-only filter applied before pagination
+- `globals.css`: added `@layer utilities` block with focus-ring, interactive, icon-sm, icon-md, animate-enter, surface-muted, surface-info, surface-warning, surface-success, surface-error
+- `components/ui/select.tsx`: SelectContent — replaced 6 verbose animate-in/out classes with `animate-enter`
+- `components/ui/dropdown-menu.tsx`: DropdownMenuContent + DropdownMenuSubContent — replaced 6 verbose animate classes with `animate-enter`
+- `test/utility-layer.test.ts`: new test file — 7 tests verifying utility classes defined in globals.css and that components use animate-enter
 
-Build: ✓ 3 successful. Lint: 0 errors (28 pre-existing warnings only).
+Build: 3 successful, 0 errors. All 268 tests pass.
 
-## 2026-04-10 — Recovery: Steps 1-5 done, starting Step 6
+## 2026-04-11 — Recovery: emitting start for Step 8
 
-Steps 1-5 all marked [x] in plan. Previous iteration did not publish an event (RECOVERY).
-Next step is Step 6: Import page UI — `/admin/restaurants/import` with map area selector,
-ImportAreaSelector, ImportSummaryCard, ImportResultsTable components, and the page itself.
-Emitting `start` to hand off to Implementer.
+Steps 1–7 are marked [x] in the plan. Previous iteration did not publish an event. Step 7 (StatusBadge, InfoBox, SectionCard) was completed. No runtime tasks exist.
 
-## 2026-04-10 — Step 6 retry fixes complete
+Next step: Step 8 — useDialog, usePagination, useFilters hooks.
 
-Fixed three issues from step.retry event:
+Emitting `start` to trigger the Implementer for Step 8.
 
-1. Sort order in `ImportResultsTable.tsx`: changed statusOrder() so errors=0 (first), flagged=1, clean=2, skipped=3 (last). Previous code had clean=0 first.
+## 2026-04-11 — Step 7 complete
 
-2. Added `error?: string` to `ImportedRestaurantSummary` in `import-types.ts`. Updated `import-service.ts` to populate `error` on batch insert failure (adds error summaries to results table). Updated `ImportResultsTable.tsx` to show red "Error" badge when `r.error` is set (checked before skipped/imported).
-
-3. Monthly API usage display: added GET handler to `/api/admin/import/google/route.ts` returning `{ calls, estimatedCost }`. Import page fetches on mount via `useEffect` and shows "{N} calls this month" above the import controls.
-
-Build: ✓ 3 successful, 0 errors. Lint: 0 errors (29 pre-existing warnings). Tests: 181 passed.
-
-## 2026-04-10 — Step 7 complete
-
-Implemented Step 7: CSV import.
+Implemented Step 7: StatusBadge, InfoBox, SectionCard shared components.
 
 Changes made:
-- Added `papaparse` (5.5.3) + `@types/papaparse` to web-portal deps
-- `lib/csv-import.ts`: new file — `parseCsvToRestaurants()` (papaparse header parse, BOM stripping, semicolon-split cuisine_types, HH:MM-HH:MM hours parsing, required column validation, UTF-8/Latin-1 encoding hint via BOM detection) and `generateCsvTemplate()` (header + example row)
-- `app/api/admin/import/csv/route.ts`: new API route — verifyAdminRequest, multipart form data, UTF-8 with Latin-1 fallback, parseCsvToRestaurants(), structural error → 400, shared importRestaurants(), row-level parse errors merged into summary
-- `app/admin/restaurants/import/page.tsx`: replaced CSV tab placeholder with full UI — drag-and-drop file zone, file name display, "Download Template" button, "Upload & Import" button, inline parse error display, same ImportSummaryCard + ImportResultsTable as Google tab
+- `components/StatusBadge.tsx`: new — 6 variants (active/inactive/pending/error/warning/draft), sm/md sizes, indicator dot, semantic token classes via STATUS_CONFIG map
+- `components/InfoBox.tsx`: new — 5 variants (info/warning/success/error/tip), uses surface-* utility classes, default lucide icons, custom icon override
+- `components/SectionCard.tsx`: new — collapsible via radix-ui Collapsible (Root/Trigger/Content), non-collapsible always renders, title/icon/description/action slots
+- `components/admin/AdminHeader.tsx`: replaced inline red admin badge div → `<InfoBox variant="error">`
+- `components/admin/RestaurantForm.tsx`: replaced inline bg-info/10 div → `<InfoBox variant="info">`
+- `test/StatusBadge.test.tsx`, `test/InfoBox.test.tsx`, `test/SectionCard.test.tsx`: new — 31 tests total
 
-Tests: 17 tests in test/csv-import.test.ts — all pass.
-Build: ✓ 3 successful. Lint: 0 errors (29 pre-existing warnings only).
+Build: 3 successful, 0 errors. All 299 tests pass.
 
-## 2026-04-10 — Step 8 complete
+## 2026-04-11 — Step 8 complete
 
-Implemented Step 8: menu-scan query param support.
-
-Changes made:
-- `app/admin/menu-scan/page.tsx`:
-  - Added `useSearchParams` from `next/navigation`
-  - Added `isPreSelected` state
-  - Added `useEffect` that reads `restaurant_id` from query params, fetches restaurant via Supabase `.single()`, sets selectedRestaurant + isPreSelected; on error/not-found shows `toast.warning` and falls back to dropdown
-  - Modified Restaurant selector section: when `isPreSelected`, shows green "pre-selected" banner with restaurant name + "Change" button (clears isPreSelected, selectedRestaurant, restaurantSearch); normal dropdown shown only when `!isPreSelected`
-
-Build: ✓ 3 successful, 0 errors.
-
-Step 10: E2E tests and UX polish — loading states, toasts, edge cases.
-
-Emitting `start` to hand off to Implementer for Step 8.
-
-## 2026-04-10 — Step 9 complete
-
-Implemented Step 9: Admin sidebar and dashboard integration.
+Implemented Step 8: useDialog, usePagination, useFilters hooks.
 
 Changes made:
-- `components/admin/AdminSidebar.tsx`: Added `Download` icon import; added "Import" nav item after "Restaurants"; added `exact` flag to Dashboard to prevent over-matching; added `exclude` field to Restaurants item so it doesn't highlight when on `/admin/restaurants/import`; updated active check logic to respect both flags
-- `app/admin/page.tsx`: Added `ImportJob` type; added `recentImports` state; updated `loadStats` to run 3 parallel queries (dashboard stats, imported restaurants count, last 5 import jobs); added "Imported Restaurants" stats card (orange); changed grid from 3 to 4 columns; added "Recent Imports" section with empty state and list of last 5 jobs showing source, date, inserted/fetched counts
+- `hooks/useDialog.ts`: new — generic dialog state with close() (keeps data) and reset() (clears data immediately) semantics; open() with optional data keeps previous data when called without arg
+- `hooks/usePagination.ts`: new — page (1-indexed), totalPages, paginatedItems, setPage (clamped), hasNext, hasPrev; resets to page 1 via useEffect when items.length changes; default pageSize=25
+- `hooks/useFilters.ts`: new — FilterEntry<T>[] with value+fn; active when value non-empty; AND logic via Array.every; useMemo for performance
+- `test/useDialog.test.ts`: 7 tests — open with data, open without data (keeps previous), close, reset, initial value, object types
+- `test/usePagination.test.ts`: 11 tests — first/last page items, totalPages, clamping, hasNext/hasPrev at boundaries, reset on length change, default pageSize
+- `test/useFilters.test.ts`: 8 tests — single filter, multi-filter AND, inactive (empty) filter, no matches, case insensitivity in consumer fn, empty items, empty filters array
 
-Build passes cleanly.
+All 27 new tests pass. Build: 3 successful, 0 errors.
 
-## 2026-04-10 — Step 10 complete (retry: API route integration tests)
+## 2026-04-11 — Step 11 verified (Verifier)
 
-Implemented the missing API route integration tests per step.retry event.
+Build: PASS, Lint: PASS (fixed 1 error), Tests: PASS (40 files, 356 tests).
 
-Created:
-- `apps/web-portal/app/api/admin/import/google/route.test.ts` — 23 tests covering:
-  auth (401 unauthenticated, 401 non-admin), GET monthly usage, validation (lat/lng/radius/maxPages),
-  success flow (nearbySearch, textSearch, incrementApiUsage, mapGooglePlaceToRestaurant),
-  pagination (maxPages, early stop on no nextPageToken, pageToken passthrough, apiCallsUsed count),
-  partial failure (skip failing page, 403 quota stop with warning, place mapping error),
-  budget warning (>900 calls shows warning, <=900 no warning)
+Lint fix: Step 11 implementer moved `loadRestaurants` outside `useEffect`, triggering two lint errors:
+1. "Cannot access variable before it is declared" (const not hoisted)
+2. "Calling setState synchronously within an effect" (react-hooks/set-state-in-effect)
 
-- `apps/web-portal/app/api/admin/import/csv/route.test.ts` — 9 tests covering:
-  auth (401), file validation (no file → 400, structural parse errors → 400),
-  success flow (parseCsv + importRestaurants called, parse errors merged into summary),
-  dedup (skipped count returned correctly), encoding (special characters handled without crash)
+Fix: restored original pattern — `loadRestaurants` defined as inner async function INSIDE the useEffect callback, matching the pattern used in ingredients/page.tsx.
 
-All 230 tests pass (25 files). Plan step 10 marked [x].
+Out-of-scope files (mobile/metro.config.js, packages/tokens/) are pre-existing from Steps 1-2, not from Step 11.
+
+## 2026-04-11 — Step 10 complete
+
+Implemented Step 10: DataTable and SearchFilterBar shared components.
+
+Changes made:
+- `components/DataTable.tsx`: new — generic `DataTable<T extends Record<string, unknown>>` component; pure renderer with no internal state; accepts columns, data, onRowClick, actions, emptyState, loading props; shows `<LoadingSkeleton variant="table" />` when loading; shows default "No items found." or custom emptyState when data is empty; renders plain HTML table with Tailwind semantic tokens
+- `components/SearchFilterBar.tsx`: new — controlled search input + optional filter selects + optional actions slot; responsive via `flex-wrap`; uses `<Input>` and `<Select>` shadcn primitives
+- `test/DataTable.test.tsx`: 8 tests — correct rows, column headers, cell values, custom render fn, loading skeleton, default empty state, custom empty state, actions column, onRowClick
+- `test/SearchFilterBar.test.tsx`: 7 tests — search input, default placeholder, onChange, filters rendered, actions slot, no actions, current value
+
+All 356 tests pass. Build: 3 successful, 0 errors.
+
+## 2026-04-11 — Step 9 complete
+
+Implemented Step 9: Hook adoption — menus/page and ingredients/page refactored.
+
+Changes made:
+- `app/admin/restaurants/[id]/menus/page.tsx`: replaced 3× (isOpen + editingItem + formData) triplets with `useDialog<MenuDialogData>()`, `useDialog<CategoryDialogData>()`, `useDialog<DishDialogData>()`. Form inputs now use `dialog.open({ ...dialog.data!, field: value })` pattern. Dialog close via `dialog.close()`; `onOpenChange={(open) => { if (!open) dialog.reset(); }}` handles ESC/overlay. DishFormDialog `onClose` wired to `dishDialog.reset()`. Removed unused imports (ArrowLeft, Link, Textarea).
+- `app/admin/ingredients/page.tsx`: replaced `showCanonicalForm+canonicalFormData` and `showAliasForm+aliasFormData` with `useDialog<CanonicalFormData>()` and `useDialog<AliasFormData>()`; replaced manual pagination state + useEffect with `usePagination(currentItems, 25)`; replaced inline filter logic with `useFilters` called separately for canonical and aliases. Removed the `useEffect(() => { setPage(1) }, [searchQuery, activeTab])` — usePagination auto-resets on items.length change.
+- `test/menus-page.test.tsx`: new integration tests — dialog opens/closes, data resets after reopen, dish dialog wired correctly.
+- `test/ingredients-page.test.tsx`: new integration tests — search filters aliases/canonical, pagination shows correct slice, tab switch works, dialogs open/close.
+
+All 340 tests pass. Build: 3 successful, 0 errors.
+
+## 2026-04-11 — Step 11 complete
+
+Implemented Step 11: Replace RestaurantTable with DataTable + SearchFilterBar.
+
+Changes made:
+- `app/admin/restaurants/page.tsx`: replaced `RestaurantTable` import with `DataTable` + `SearchFilterBar`; moved suspend/delete logic (handleSuspend, handleDelete) and ConfirmDialog state from RestaurantTable into the page; added `useFilters` (search, status, flagged) and `usePagination` (PAGE_SIZE=10); defined `RestaurantEntry` type with index signature for DataTable generic compatibility; columns and renderActions defined in page; SearchFilterBar carries status select + "Show flagged only" checkbox in actions slot
+- `components/admin/RestaurantTable.tsx`: DELETED (no remaining imports)
+
+Build: 3 successful, 0 TypeScript errors.
+
+## 2026-04-11 — Step 11 retry fixed
+
+Fixed four issues from the step.retry event:
+1. Hardcoded `text-purple-600 hover:bg-purple-50` → `text-brand-primary hover:bg-brand-primary/10` (scan menu link)
+2. Hardcoded `text-yellow-600 hover:bg-yellow-50` → `text-warning hover:bg-warning/10` (suspend button)
+3. Status column: replaced inline spans with `<StatusBadge variant="active|inactive" />` 
+4. DataTable: added optional `pagination` prop (`{ page, totalPages, onPageChange }`); renders shadcn Pagination inside the table border when provided; restaurants/page.tsx now passes pagination prop and removes standalone pagination block
+5. Added `test/restaurants-page.test.tsx` integration test (8 tests)
+
+All 367 tests pass. Build: 3 successful, 0 errors.
+
+## 2026-04-11 — Step 12 complete
+
+Implemented Step 12: LocationFormSection extraction.
+
+Changes made:
+- `components/LocationFormSection.tsx`: new — controlled component accepting `value: LocationData` and `onChange: (location: LocationData) => void`; `LocationData` interface with `{ country, address, city, neighborhood, state, postalCode, lat, lng }`; internally uses `dynamic(() => import('./LocationPicker'), { ssr: false })`; renders InfoBox tip, LocationPicker, country Select, and all address fields (city, postal, neighbourhood, state, address, lat/lng readonly); `toast.success` on map click
+- `components/onboarding/LocationSection.tsx`: refactored to use `LocationFormSection` internally; keeps existing external props interface (`mapCoordinates`, `onMapCoordinatesChange`, `country`, `onCountryChange`); uses `useFormContext` + `watch` to construct `LocationData` from individual form fields; `handleLocationChange` deconstructs `LocationData` back to individual `setValue` calls; wraps in Card with same heading as before; `BasicInfoFormData` unchanged — no breaking changes
+- `test/LocationFormSection.test.tsx`: new — 8 tests covering: country select, address input, city/postal/neighbourhood/state, readonly lat/lng, onChange called with correct data, existing value displayed, info tip text
+- `test/LocationSection.test.tsx`: updated — tests now verify rendered fields come via LocationFormSection; added syncs mapCoordinates test; all 6 tests pass
+
+All 377 tests pass. Build: 3 successful, 0 errors.
+
+## 2026-04-11 — Step 12 retry fixed (round 2)
+
+Fixed Step 12 per second `step.retry` event: LocationSection.tsx was still using `watch()+setValue()` on 7 flat fields.
+
+Changes made:
+- `components/onboarding/types.ts`: removed 8 flat location fields (`country`, `city`, `neighbourhood`, `state`, `postal_code`, `address`, `location_lat`, `location_lng`); added `location: LocationData`
+- `components/onboarding/LocationSection.tsx`: replaced all `watch()+setValue()` usage with `<Controller name="location" control={control} defaultValue={EMPTY_LOCATION} render={({ field }) => <LocationFormSection value={field.value ?? EMPTY_LOCATION} onChange={field.onChange} />} />`; removed all props (`mapCoordinates`, `onMapCoordinatesChange`, `country`, `onCountryChange`)
+- `lib/hooks/useRestaurantDraft.ts`: updated autosave subscription to use `currentValues.location.*` (with `neighborhood`→`neighbourhood` mapping); updated `loadFormDefaults` to return `location: LocationData` object instead of flat fields
+- `app/onboard/basic-info/page.tsx`: removed `mapCoordinates`/`country` local state; updated `onSubmit` to use `data.location.*`; removed props from `<LocationSection />`
+- `test/useRestaurantDraft.test.ts`: updated assertions to use `defaults.location.country`, `defaults.location.address`, etc.
+- `test/LocationSection.test.tsx`: removed props from all renders; added two Controller propagation tests (address, city)
+- Build: 3 successful, 0 errors. All 378 tests pass.
+
+## 2026-04-11 — Step 13 complete
+
+Implemented Step 13: Unified RestaurantForm (sections config, enableDraft).
+
+Changes made:
+- `components/admin/RestaurantForm.tsx`: rewrote to unified form
+  - Added `RestaurantFormSection` interface and `ADMIN_FULL_SECTIONS`, `ADMIN_COMPACT_SECTIONS`, `OWNER_EDIT_SECTIONS` constants
+  - Added `variant?: 'full' | 'compact'` prop — compact uses shared `SectionCard` with `collapsible={true}`
+  - Added `sections?: RestaurantFormSection` prop — sections with `=== true` check (undefined/false = hidden)
+  - Added `enableDraft?: boolean` prop — calls `useAuth()` for userId and `useRestaurantDraft` with userId=undefined when disabled
+  - Added `onSuccess` as canonical prop; kept `onSubmit` as backward-compat alias
+  - Added `service_speed` to Zod schema
+  - Shows `<InfoBox variant="warning">` below cuisines in edit mode when cuisines changed from initial
+  - Added `Section` helper component that renders `SectionCard` in compact mode and `Card` in full mode
+- `test/RestaurantForm.test.tsx`: updated — added tests for sections config, compact variant, enableDraft, onSuccess, cuisine cascade warning, legacy onSubmit backward compat
+
+Key design decision: `sections` config uses `=== true` (not `!== false`) so undefined sections default to hidden. This means callers must explicitly enable each section.
+
+All 386 tests pass. Build: 3 successful, 0 errors.
+
+## 2026-04-11 — Recovery: emitting start for Step 15
+
+Steps 1–14 are marked [x] in the plan. Previous iteration did not publish an event. No runtime tasks exist.
+
+Next step: Step 15 — Owner edit page improvements (cuisines selector, service options, payment methods).
+
+Emitting `start` to trigger the Implementer for Step 15.
+
+## 2026-04-11 — Recovery: emitting start for Step 16
+
+Steps 1–15 are marked [x] in the plan. Previous iteration did not publish an event. No runtime tasks exist.
+
+Next step: Step 16 — Extract menu-scan-utils.ts and useMenuScanState hook (2,500 LOC → utilities + hook).
+
+Emitting `start` to trigger the Implementer for Step 16.
+
+## 2026-04-11 — Step 16 complete
+
+Implemented Step 16: Extract menu-scan-utils.ts and useMenuScanState hook.
+
+Changes made:
+- `lib/menu-scan-utils.ts`: new — extracted `resizeImageToBase64` and `pdfToImages` pure browser utilities from menu-scan/page.tsx; both exported as named exports with JSDoc comments
+- `app/admin/menu-scan/hooks/useMenuScanState.ts`: new — extracted all 40+ useState declarations, all useRef, all useEffect hooks, all handlers (handleProcess, handleSave, suggestIngredients, suggestAllDishes, and ~30 more), all derived state (filteredRestaurants, reviewedGroupCount, totalGroupCount); exports `Step`, `RestaurantOption`, `DietaryTagOption`, `AddIngredientTarget`, `RestaurantDetailsForm` types; exposes `uploadedFiles` and `selectedDishes` aliases for design-doc interface compatibility
+- `app/admin/menu-scan/page.tsx`: reduced from 2,942 → 1,691 lines; removed local state/handlers/types; replaced with `const { ... } = useMenuScanState()` destructuring; kept ConfidenceBadge + all JSX unchanged
+- `__mocks__/pdfjs-dist.ts`: new mock file for pdfjs-dist (unavailable in jsdom)
+- `test/menu-scan-utils.test.ts`: new — 11 tests for resizeImageToBase64 (name conversion, URL lifecycle, canvas quality) and pdfToImages (page count, naming, MIME type, maxPages limit)
+- `test/useMenuScanState.test.ts`: new — 11 tests for initial state, step transitions, file updates, toggleExpand, resetAll, addDish
+
+All 423 tests pass. Build: 3 successful, 0 errors.
+
+## 2026-04-11 — Step 17 complete
+
+Implemented Step 17: Split menu-scan page into step components.
+
+Changes made:
+- `app/admin/menu-scan/components/MenuScanUpload.tsx`: new — contains the upload step JSX (restaurant selector, quick-add form, drag-and-drop zone, file thumbnails, submit button); imports RestaurantForm + supabase for inline creation; added `data-testid="drop-zone"` for testability
+- `app/admin/menu-scan/components/MenuScanProcessing.tsx`: new — contains the processing step JSX (AI spinner, stage progress indicators, restaurant details form with map); dynamic-imports LocationPickerComponent internally
+- `app/admin/menu-scan/components/MenuScanDone.tsx`: new — contains the done step JSX (success icon, saved count, "View Restaurants" and "Scan Another Menu" buttons)
+- `app/admin/menu-scan/components/MenuScanReview.tsx`: new — contains the full review step JSX (~530 lines); includes ConfidenceBadge local helper; dynamic-imports LocationPickerComponent for the details tab; passes all props through typed interface
+- `app/admin/menu-scan/page.tsx`: rewritten as ~120-line orchestrator; calls `useMenuScanState()`, conditionally renders the four components with named prop spreads; no logic remains in the page file
+- `test/menu-scan-components.test.tsx`: new — 9 tests across all four components: MenuScanUpload (drop zone renders, button disabled, error display), MenuScanProcessing (heading, stage labels), MenuScanDone (heading, resetAll callback), MenuScanReview (dish count, save button)
+
+Build: 3 successful, 0 errors. All 432 tests pass (47 test files).
+
+## 2026-04-11 — Step 18 complete
+
+Implemented Step 18: Auth improvements.
+
+Changes made:
+- `apps/web-portal/app/auth/login/page.tsx`: added `showPassword` state + Eye/EyeOff icon button inside relative wrapper on password field; added "Forgot password?" link next to Password label
+- `apps/web-portal/app/auth/signup/page.tsx`: added `showPassword` + `showConfirmPassword` state + Eye/EyeOff toggles on both password fields
+- `apps/web-portal/app/auth/forgot-password/page.tsx`: new page — email input, calls `supabase.auth.resetPasswordForEmail()` with `redirectTo: NEXT_PUBLIC_SITE_URL/auth/reset-password`; shows success message after submission
+- `apps/web-portal/app/auth/reset-password/page.tsx`: new page — reads `token_hash` + `type` from URL params; verifies via `supabase.auth.verifyOtp({ token_hash, type: 'recovery' })`; then allows setting new password with strength indicator + visibility toggles; calls `supabase.auth.updateUser({ password })`
+
+Build: 3 successful, 0 errors. All routes shown in build output.
+
+## 2026-04-11 — Step 20 complete
+
+Implemented Step 20: Visual polish — spacing tokens, typography, @starting-style animations, badge size variants.
+
+Changes made:
+- `apps/web-portal/app/globals.css`: Added `@layer base` h1/h2/h3 rules using `--token-type-size-*` CSS variables; added `@starting-style` dialog entrance animation with `.dialog-content[data-state="open"]` CSS
+- `apps/web-portal/components/ui/badge.tsx`: Added `size` CVA variant (sm/md/lg); removed hardcoded `px-2 py-0.5 text-xs gap-1` from base; added `size: "md"` as defaultVariant; Badge now accepts `size` prop
+- `apps/web-portal/components/ui/dialog.tsx`: Added `dialog-content` class to `DialogPrimitive.Content` to target the `@starting-style` animation
+- `apps/web-portal/components/StatusBadge.tsx`: Updated to pass `size={size}` to Badge (uses Badge's size variants instead of manual px/text overrides)
+- `apps/web-portal/app/admin/page.tsx`: Replaced `p-6` → `p-card`, `gap-6` → `gap-section` (semantic token spacing)
+- `apps/web-portal/test/badge.test.tsx`: New test file — verifies sm/md/lg size variants render correct classes
+
+Build: PASS (3 successful). Tests: PASS (49 files, 444 tests). All 20 steps complete.

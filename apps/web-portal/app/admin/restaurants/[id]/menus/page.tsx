@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import type { Menu, MenuCategory, Dish } from '@/lib/supabase';
 import type { Dish as FormDish } from '@/types/restaurant';
 import {
-  ArrowLeft,
   Plus,
   MoreVertical,
   Pencil,
@@ -14,12 +13,10 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +36,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useDialog } from '@/hooks/useDialog';
 
 interface MenuWithCategories extends Menu {
   categories?: MenuCategoryWithDishes[];
@@ -47,6 +45,16 @@ interface MenuWithCategories extends Menu {
 interface MenuCategoryWithDishes extends MenuCategory {
   dishes?: Dish[];
 }
+
+type MenuDialogData = { menu: Menu | null; name: string; description: string };
+type CategoryDialogData = {
+  category: MenuCategory | null;
+  menuId: string;
+  name: string;
+  type: string;
+  description: string;
+};
+type DishDialogData = { dish: Dish | null; categoryId: string };
 
 /** Map a DB Dish row to the shape expected by DishFormDialog. */
 function dbDishToFormDish(d: Dish): Partial<FormDish> & { id?: string } {
@@ -79,21 +87,11 @@ export default function RestaurantMenusPage() {
   const [loading, setLoading] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
-  // Menu dialog state
-  const [isMenuDialogOpen, setIsMenuDialogOpen] = useState(false);
-  const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
-  const [menuFormData, setMenuFormData] = useState({ name: '', description: '' });
+  // Dialog hooks — replace the three (isOpen + editingItem + formData) triplets
+  const menuDialog = useDialog<MenuDialogData>();
+  const categoryDialog = useDialog<CategoryDialogData>();
+  const dishDialog = useDialog<DishDialogData>();
 
-  // Category dialog state
-  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
-  const [selectedMenuForCategory, setSelectedMenuForCategory] = useState<string>('');
-  const [categoryFormData, setCategoryFormData] = useState({ name: '', type: '', description: '' });
-
-  // Dish dialog state
-  const [isDishDialogOpen, setIsDishDialogOpen] = useState(false);
-  const [editingDish, setEditingDish] = useState<Dish | null>(null);
-  const [selectedCategoryForDish, setSelectedCategoryForDish] = useState<string>('');
   const [confirmState, setConfirmState] = useState<{
     open: boolean; title: string; description: string; onConfirm: () => void;
   }>({ open: false, title: '', description: '', onConfirm: () => {} });
@@ -106,7 +104,6 @@ export default function RestaurantMenusPage() {
     try {
       setLoading(true);
 
-      // Fetch restaurant name
       const { data: restaurant, error: restaurantError } = await supabase
         .from('restaurants')
         .select('name, cuisine_types')
@@ -120,13 +117,11 @@ export default function RestaurantMenusPage() {
 
       if (restaurant) {
         setRestaurantName(restaurant.name);
-        // Set first cuisine if available
         if (restaurant.cuisine_types && restaurant.cuisine_types.length > 0) {
           setRestaurantCuisine(restaurant.cuisine_types[0]);
         }
       }
 
-      // Fetch menus
       const { data: menusData, error: menusError } = await supabase
         .from('menus')
         .select('*')
@@ -138,7 +133,6 @@ export default function RestaurantMenusPage() {
         throw new Error(`Failed to fetch menus: ${menusError.message}`);
       }
 
-      // Fetch categories for each menu
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('menu_categories')
         .select('*')
@@ -150,7 +144,6 @@ export default function RestaurantMenusPage() {
         throw new Error(`Failed to fetch categories: ${categoriesError.message}`);
       }
 
-      // Fetch all dishes
       const { data: dishesData, error: dishesError } = await supabase
         .from('dishes')
         .select('*')
@@ -168,7 +161,6 @@ export default function RestaurantMenusPage() {
         dishes: dishesData?.length || 0,
       });
 
-      // Build hierarchy
       const menusWithCategories: MenuWithCategories[] = (menusData || []).map(menu => ({
         ...menu,
         categories: (categoriesData || [])
@@ -205,43 +197,36 @@ export default function RestaurantMenusPage() {
 
   // Menu CRUD operations
   const handleAddMenu = () => {
-    setEditingMenu(null);
-    setMenuFormData({ name: '', description: '' });
-    setIsMenuDialogOpen(true);
+    menuDialog.open({ menu: null, name: '', description: '' });
   };
 
   const handleEditMenu = (menu: Menu) => {
-    setEditingMenu(menu);
-    setMenuFormData({ name: menu.name, description: menu.description || '' });
-    setIsMenuDialogOpen(true);
+    menuDialog.open({ menu, name: menu.name, description: menu.description || '' });
   };
 
   const handleSaveMenu = async () => {
+    if (!menuDialog.data) return;
+    const { menu, name, description } = menuDialog.data;
     try {
-      if (editingMenu) {
-        // Update
+      if (menu) {
         const { error } = await supabase
           .from('menus')
-          .update({ name: menuFormData.name, description: menuFormData.description })
-          .eq('id', editingMenu.id);
-
+          .update({ name, description })
+          .eq('id', menu.id);
         if (error) throw error;
         toast.success('Menu updated');
       } else {
-        // Create
         const { error } = await supabase.from('menus').insert({
           restaurant_id: restaurantId,
-          name: menuFormData.name,
-          description: menuFormData.description,
+          name,
+          description,
           display_order: menus.length,
           is_active: true,
         });
-
         if (error) throw error;
         toast.success('Menu added');
       }
-
-      setIsMenuDialogOpen(false);
+      menuDialog.close();
       fetchData();
     } catch (error: unknown) {
       console.error('[Admin] Error saving menu:', error);
@@ -273,57 +258,45 @@ export default function RestaurantMenusPage() {
 
   // Category CRUD operations
   const handleAddCategory = (menuId: string) => {
-    setEditingCategory(null);
-    setSelectedMenuForCategory(menuId);
-    setCategoryFormData({ name: '', type: '', description: '' });
-    setIsCategoryDialogOpen(true);
+    categoryDialog.open({ category: null, menuId, name: '', type: '', description: '' });
   };
 
   const handleEditCategory = (category: MenuCategory) => {
-    setEditingCategory(category);
-    setSelectedMenuForCategory(category.menu_id ?? '');
-    setCategoryFormData({
+    categoryDialog.open({
+      category,
+      menuId: category.menu_id ?? '',
       name: category.name,
       type: category.type || '',
       description: category.description || '',
     });
-    setIsCategoryDialogOpen(true);
   };
 
   const handleSaveCategory = async () => {
+    if (!categoryDialog.data) return;
+    const { category, menuId, name, type, description } = categoryDialog.data;
     try {
-      if (editingCategory) {
-        // Update
+      if (category) {
         const { error } = await supabase
           .from('menu_categories')
-          .update({
-            name: categoryFormData.name,
-            type: categoryFormData.type,
-            description: categoryFormData.description,
-          })
-          .eq('id', editingCategory.id);
-
+          .update({ name, type, description })
+          .eq('id', category.id);
         if (error) throw error;
         toast.success('Category updated');
       } else {
-        // Create
-        const menu = menus.find(m => m.id === selectedMenuForCategory);
+        const menu = menus.find(m => m.id === menuId);
         const categoryCount = menu?.categories?.length || 0;
-
         const { error } = await supabase.from('menu_categories').insert({
           restaurant_id: restaurantId,
-          menu_id: selectedMenuForCategory,
-          name: categoryFormData.name,
-          type: categoryFormData.type,
-          description: categoryFormData.description,
+          menu_id: menuId,
+          name,
+          type,
+          description,
           display_order: categoryCount,
         });
-
         if (error) throw error;
         toast.success('Category added');
       }
-
-      setIsCategoryDialogOpen(false);
+      categoryDialog.close();
       fetchData();
     } catch (error: unknown) {
       console.error('[Admin] Error saving category:', error);
@@ -355,15 +328,11 @@ export default function RestaurantMenusPage() {
 
   // Dish operations
   const handleAddDish = (categoryId: string) => {
-    setEditingDish(null);
-    setSelectedCategoryForDish(categoryId);
-    setIsDishDialogOpen(true);
+    dishDialog.open({ dish: null, categoryId });
   };
 
   const handleEditDish = (dish: Dish) => {
-    setEditingDish(dish);
-    setSelectedCategoryForDish(dish.menu_category_id ?? '');
-    setIsDishDialogOpen(true);
+    dishDialog.open({ dish, categoryId: dish.menu_category_id ?? '' });
   };
 
   const handleDeleteDish = (dishId: string, dishName: string) => {
@@ -434,13 +403,13 @@ export default function RestaurantMenusPage() {
           />
         ) : (
           menus.map(menu => (
-            <div key={menu.id} className="bg-white rounded-lg border border-gray-200">
+            <div key={menu.id} className="bg-card rounded-lg border">
               {/* Menu Header */}
-              <div className="p-4 flex items-center justify-between bg-gray-50 rounded-t-lg">
+              <div className="p-4 flex items-center justify-between bg-muted/30 rounded-t-lg">
                 <div className="flex items-center space-x-3 flex-1">
                   <button
                     onClick={() => toggleMenuExpanded(menu.id)}
-                    className="text-gray-600 hover:text-gray-900"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     {expandedMenus.has(menu.id) ? (
                       <ChevronDown className="w-5 h-5" />
@@ -451,9 +420,9 @@ export default function RestaurantMenusPage() {
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold">{menu.name}</h2>
                     {menu.description && (
-                      <p className="text-sm text-gray-600">{menu.description}</p>
+                      <p className="text-sm text-muted-foreground">{menu.description}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {menu.categories?.length || 0} categories,{' '}
                       {menu.categories?.reduce((sum, cat) => sum + (cat.dishes?.length || 0), 0) ||
                         0}{' '}
@@ -479,7 +448,7 @@ export default function RestaurantMenusPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDeleteMenu(menu.id, menu.name)}
-                        className="text-red-600"
+                        className="text-destructive"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete Menu
@@ -494,15 +463,15 @@ export default function RestaurantMenusPage() {
                 <div className="p-4 space-y-4">
                   {menu.categories && menu.categories.length > 0 ? (
                     menu.categories.map(category => (
-                      <div key={category.id} className="border border-gray-200 rounded-lg">
+                      <div key={category.id} className="border rounded-lg">
                         {/* Category Header */}
-                        <div className="p-3 bg-gray-50 flex items-center justify-between">
+                        <div className="p-3 bg-muted/30 flex items-center justify-between">
                           <div className="flex-1">
                             <h3 className="font-medium">{category.name}</h3>
                             {category.type && (
-                              <span className="text-xs text-gray-500">{category.type}</span>
+                              <span className="text-xs text-muted-foreground">{category.type}</span>
                             )}
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {category.dishes?.length || 0} dishes
                             </p>
                           </div>
@@ -528,7 +497,7 @@ export default function RestaurantMenusPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleDeleteCategory(category.id, category.name)}
-                                  className="text-red-600"
+                                  className="text-destructive"
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
                                   Delete Category
@@ -550,7 +519,7 @@ export default function RestaurantMenusPage() {
                                   <h4 className="font-medium text-sm">{dish.name}</h4>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <button className="text-gray-400 hover:text-gray-600">
+                                      <button className="text-muted-foreground hover:text-foreground">
                                         <MoreVertical className="w-4 h-4" />
                                       </button>
                                     </DropdownMenuTrigger>
@@ -561,7 +530,7 @@ export default function RestaurantMenusPage() {
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
                                         onClick={() => handleDeleteDish(dish.id, dish.name)}
-                                        className="text-red-600"
+                                        className="text-destructive"
                                       >
                                         <Trash2 className="w-3 h-3 mr-2" />
                                         Delete
@@ -570,9 +539,9 @@ export default function RestaurantMenusPage() {
                                   </DropdownMenu>
                                 </div>
                                 {dish.description && (
-                                  <p className="text-xs text-gray-600 mb-2">{dish.description}</p>
+                                  <p className="text-xs text-muted-foreground mb-2">{dish.description}</p>
                                 )}
-                                <p className="text-sm font-semibold text-green-600">
+                                <p className="text-sm font-semibold text-success">
                                   ${dish.price.toFixed(2)}
                                 </p>
                               </div>
@@ -597,110 +566,127 @@ export default function RestaurantMenusPage() {
       </div>
 
       {/* Menu Dialog */}
-      {isMenuDialogOpen && (
-        <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingMenu ? 'Edit Menu' : 'Add Menu'}</DialogTitle>
-              <DialogDescription>
-                {editingMenu
-                  ? 'Update menu details'
-                  : 'Create a new menu (e.g., Breakfast, Lunch, Dinner)'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Menu Name</Label>
-                <Input
-                  value={menuFormData.name}
-                  onChange={e => setMenuFormData({ ...menuFormData, name: e.target.value })}
-                  placeholder="e.g., Breakfast, Lunch, Dinner, Brunch"
-                />
-              </div>
-              <div>
-                <Label>Description (optional)</Label>
-                <Input
-                  value={menuFormData.description}
-                  onChange={e => setMenuFormData({ ...menuFormData, description: e.target.value })}
-                  placeholder="e.g., Available 6am - 11am"
-                />
-              </div>
+      <Dialog
+        open={menuDialog.isOpen}
+        onOpenChange={(open) => { if (!open) menuDialog.reset(); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{menuDialog.data?.menu ? 'Edit Menu' : 'Add Menu'}</DialogTitle>
+            <DialogDescription>
+              {menuDialog.data?.menu
+                ? 'Update menu details'
+                : 'Create a new menu (e.g., Breakfast, Lunch, Dinner)'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Menu Name</Label>
+              <Input
+                value={menuDialog.data?.name ?? ''}
+                onChange={e =>
+                  menuDialog.data &&
+                  menuDialog.open({ ...menuDialog.data, name: e.target.value })
+                }
+                placeholder="e.g., Breakfast, Lunch, Dinner, Brunch"
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsMenuDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveMenu}>{editingMenu ? 'Update' : 'Create'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div>
+              <Label>Description (optional)</Label>
+              <Input
+                value={menuDialog.data?.description ?? ''}
+                onChange={e =>
+                  menuDialog.data &&
+                  menuDialog.open({ ...menuDialog.data, description: e.target.value })
+                }
+                placeholder="e.g., Available 6am - 11am"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => menuDialog.close()}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveMenu}>
+              {menuDialog.data?.menu ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Category Dialog */}
-      {isCategoryDialogOpen && (
-        <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
-              <DialogDescription>
-                {editingCategory
-                  ? 'Update category details'
-                  : 'Create a new category (e.g., Appetizers, Entrees, Drinks)'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Category Name</Label>
-                <Input
-                  value={categoryFormData.name}
-                  onChange={e => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                  placeholder="e.g., Appetizers, Entrees, Soups"
-                />
-              </div>
-              <div>
-                <Label>Type (optional)</Label>
-                <Input
-                  value={categoryFormData.type}
-                  onChange={e => setCategoryFormData({ ...categoryFormData, type: e.target.value })}
-                  placeholder="e.g., appetizers, mains, desserts"
-                />
-              </div>
-              <div>
-                <Label>Description (optional)</Label>
-                <Input
-                  value={categoryFormData.description}
-                  onChange={e =>
-                    setCategoryFormData({ ...categoryFormData, description: e.target.value })
-                  }
-                  placeholder="Brief description"
-                />
-              </div>
+      <Dialog
+        open={categoryDialog.isOpen}
+        onOpenChange={(open) => { if (!open) categoryDialog.reset(); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {categoryDialog.data?.category ? 'Edit Category' : 'Add Category'}
+            </DialogTitle>
+            <DialogDescription>
+              {categoryDialog.data?.category
+                ? 'Update category details'
+                : 'Create a new category (e.g., Appetizers, Entrees, Drinks)'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Category Name</Label>
+              <Input
+                value={categoryDialog.data?.name ?? ''}
+                onChange={e =>
+                  categoryDialog.data &&
+                  categoryDialog.open({ ...categoryDialog.data, name: e.target.value })
+                }
+                placeholder="e.g., Appetizers, Entrees, Soups"
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveCategory}>{editingCategory ? 'Update' : 'Create'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div>
+              <Label>Type (optional)</Label>
+              <Input
+                value={categoryDialog.data?.type ?? ''}
+                onChange={e =>
+                  categoryDialog.data &&
+                  categoryDialog.open({ ...categoryDialog.data, type: e.target.value })
+                }
+                placeholder="e.g., appetizers, mains, desserts"
+              />
+            </div>
+            <div>
+              <Label>Description (optional)</Label>
+              <Input
+                value={categoryDialog.data?.description ?? ''}
+                onChange={e =>
+                  categoryDialog.data &&
+                  categoryDialog.open({ ...categoryDialog.data, description: e.target.value })
+                }
+                placeholder="Brief description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => categoryDialog.close()}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCategory}>
+              {categoryDialog.data?.category ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dish Dialog */}
-      {isDishDialogOpen && (
-        <DishFormDialog
-          isOpen={isDishDialogOpen}
-          onClose={() => {
-            setIsDishDialogOpen(false);
-            setEditingDish(null);
-          }}
-          restaurantId={restaurantId}
-          menuCategoryId={selectedCategoryForDish}
-          dish={editingDish ? dbDishToFormDish(editingDish) : null}
-          onSuccess={fetchData}
-          restaurantCuisine={restaurantCuisine}
-        />
-      )}
+      <DishFormDialog
+        isOpen={dishDialog.isOpen}
+        onClose={() => dishDialog.reset()}
+        restaurantId={restaurantId}
+        menuCategoryId={dishDialog.data?.categoryId ?? ''}
+        dish={dishDialog.data?.dish ? dbDishToFormDish(dishDialog.data.dish) : null}
+        onSuccess={fetchData}
+        restaurantCuisine={restaurantCuisine}
+      />
+
       <ConfirmDialog
         open={confirmState.open}
         onOpenChange={(open) => setConfirmState(s => ({ ...s, open }))}

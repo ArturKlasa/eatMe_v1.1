@@ -84,22 +84,22 @@ export function InlineIngredientSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex items-center gap-1 border border-orange-300 rounded-lg px-2 py-1 bg-white focus-within:ring-1 focus-within:ring-orange-400">
-        <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+      <div className="flex items-center gap-1 border border-orange-300 rounded-lg px-2 py-1 bg-background focus-within:ring-1 focus-within:ring-orange-400">
+        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <input
           ref={inputRef}
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search ingredient…"
-          className="flex-1 text-xs bg-transparent outline-none min-w-0 placeholder:text-gray-400"
+          className="flex-1 text-xs bg-transparent outline-none min-w-0 placeholder:text-muted-foreground"
         />
         {searching ? (
-          <Loader2 className="h-3.5 w-3.5 text-gray-400 animate-spin shrink-0" />
+          <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin shrink-0" />
         ) : (
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 shrink-0"
+            className="text-muted-foreground hover:text-foreground shrink-0"
             aria-label="Close search"
           >
             <X className="h-3.5 w-3.5" />
@@ -108,7 +108,7 @@ export function InlineIngredientSearch({
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-30 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-30 top-full mt-1 w-56 bg-background border border rounded-lg shadow-lg overflow-hidden">
           {results.map(item => {
             const already = existingIds.has(item.canonical_ingredient_id);
             return (
@@ -118,18 +118,18 @@ export function InlineIngredientSearch({
                 disabled={already}
                 onClick={() => handleSelect(item)}
                 className={cn(
-                  'w-full flex items-center justify-between px-3 py-2 text-left text-xs border-b border-gray-50 last:border-0 transition-colors',
-                  already ? 'text-gray-300 cursor-default' : 'hover:bg-orange-50 text-gray-700'
+                  'w-full flex items-center justify-between px-3 py-2 text-left text-xs border-b border last:border-0 transition-colors',
+                  already ? 'text-muted-foreground cursor-default' : 'hover:bg-brand-primary/5 text-foreground'
                 )}
               >
                 <span className="truncate">
                   {item.display_name}
-                  {item.is_vegan && <Leaf className="ml-1 h-3 w-3 inline-block text-green-600" />}
+                  {item.is_vegan && <Leaf className="ml-1 h-3 w-3 inline-block text-success" />}
                   {!item.is_vegan && item.is_vegetarian && (
-                    <Sprout className="ml-1 h-3 w-3 inline-block text-green-600" />
+                    <Sprout className="ml-1 h-3 w-3 inline-block text-success" />
                   )}
                 </span>
-                {!already && <Plus className="h-3 w-3 text-orange-400 shrink-0 ml-1" />}
+                {!already && <Plus className="h-3 w-3 text-brand-primary/70 shrink-0 ml-1" />}
               </button>
             );
           })}

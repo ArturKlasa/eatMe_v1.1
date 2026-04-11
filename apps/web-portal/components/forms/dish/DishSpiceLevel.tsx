@@ -12,7 +12,7 @@ export function DishSpiceLevel() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-700">Spice Level</h3>
+      <h3 className="text-sm font-semibold text-foreground">Spice Level</h3>
 
       <RadioGroup
         value={spiceLevel || 'none'}

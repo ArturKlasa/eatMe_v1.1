@@ -20,13 +20,13 @@ export function DishBasicFields() {
           Dish Name *
         </Label>
         <Input id="name" {...register('name')} placeholder="e.g., Margherita Pizza" />
-        {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>}
+        {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
       </div>
 
       {/* Description */}
       <div>
         <Label htmlFor="description" className="mb-2 block">
-          Description <span className="text-gray-400 font-normal text-xs">(optional)</span>
+          Description <span className="text-muted-foreground font-normal text-xs">(optional)</span>
         </Label>
         <Textarea
           id="description"
@@ -36,7 +36,7 @@ export function DishBasicFields() {
           className="resize-none"
         />
         {errors.description && (
-          <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.description.message}</p>
         )}
       </div>
 
@@ -53,7 +53,7 @@ export function DishBasicFields() {
             {...register('price', { valueAsNumber: true })}
             placeholder="16.99"
           />
-          {errors.price && <p className="text-sm text-red-600 mt-1">{errors.price.message}</p>}
+          {errors.price && <p className="text-sm text-destructive mt-1">{errors.price.message}</p>}
         </div>
 
         <div>
@@ -67,7 +67,7 @@ export function DishBasicFields() {
             placeholder="350"
           />
           {errors.calories && (
-            <p className="text-sm text-red-600 mt-1">{errors.calories.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.calories.message}</p>
           )}
         </div>
       </div>

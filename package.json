@@ -2,6 +2,8 @@
   "name": "eatMe_v1",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm --filter @eatme/tokens generate:css",
+    "predev": "pnpm --filter @eatme/tokens generate:css",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",

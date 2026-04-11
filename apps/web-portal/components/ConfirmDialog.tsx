@@ -35,7 +35,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const variantClasses =
     confirmVariant === 'destructive'
-      ? 'bg-red-600 hover:bg-red-700 text-white'
+      ? 'bg-destructive hover:bg-destructive text-background'
       : '';
 
   return (

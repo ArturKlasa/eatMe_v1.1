@@ -25,8 +25,8 @@ export function DishIngredientSection({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-700">Ingredients</h3>
-      <p className="text-xs text-gray-500">
+      <h3 className="text-sm font-semibold text-foreground">Ingredients</h3>
+      <p className="text-xs text-muted-foreground">
         Search from our ingredient database. Allergens and dietary tags will auto-calculate.
       </p>
 
@@ -42,7 +42,7 @@ export function DishIngredientSection({
         <div className="space-y-2">
           <Label className="text-sm">Auto-detected Dietary Tags:</Label>
           <DietaryTagBadges dietaryTags={calculatedDietaryTags} />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             These tags were calculated based on ingredients. You can add more tags below.
           </p>
         </div>
@@ -61,7 +61,7 @@ export function DishIngredientSection({
           ).map(opt => (
             <label
               key={opt.value}
-              className="flex items-start gap-2 cursor-pointer flex-1 rounded-lg border p-3 hover:bg-gray-50 has-checked:border-primary has-checked:bg-primary/5"
+              className="flex items-start gap-2 cursor-pointer flex-1 rounded-lg border p-3 hover:bg-accent has-checked:border-primary has-checked:bg-primary/5"
             >
               <input
                 type="radio"
@@ -71,7 +71,7 @@ export function DishIngredientSection({
               />
               <div>
                 <span className="text-sm font-medium">{opt.label}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{opt.hint}</p>
               </div>
             </label>
           ))}

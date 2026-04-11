@@ -47,7 +47,7 @@ export function FlaggedDuplicateCard({
             size="sm"
             variant="ghost"
             onClick={onKeepSeparate}
-            className="text-xs h-7 text-gray-500"
+            className="text-xs h-7 text-muted-foreground"
           >
             <Unlink className="h-3 w-3 mr-1" />
             Keep separate

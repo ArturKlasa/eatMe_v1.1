@@ -27,7 +27,7 @@ export function DishVisibilityFields() {
         ).map(opt => (
           <label
             key={opt.value}
-            className="flex items-start gap-2 cursor-pointer flex-1 rounded-lg border p-3 hover:bg-gray-50 has-checked:border-primary has-checked:bg-primary/5"
+            className="flex items-start gap-2 cursor-pointer flex-1 rounded-lg border p-3 hover:bg-accent has-checked:border-primary has-checked:bg-primary/5"
           >
             <input
               type="radio"
@@ -37,7 +37,7 @@ export function DishVisibilityFields() {
             />
             <div>
               <span className="text-sm font-medium">{opt.label}</span>
-              <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{opt.hint}</p>
             </div>
           </label>
         ))}

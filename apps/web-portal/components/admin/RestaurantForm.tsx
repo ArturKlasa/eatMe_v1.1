@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useRef } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, MapPin, Utensils, Building2, Globe, Clock } from 'lucide-react';
-import { toast } from 'sonner';
-import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,21 +19,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { CuisineSelector } from '@/components/forms/CuisineSelector';
 import { OperatingHoursEditor } from '@/components/forms/OperatingHoursEditor';
 import type { OperatingHoursValue } from '@/components/forms/OperatingHoursEditor';
-import { RESTAURANT_TYPES, COUNTRIES, PAYMENT_METHOD_OPTIONS } from '@/lib/constants';
-import type { ParsedLocationDetails } from '@/lib/parseAddress';
-
-const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
-  ssr: false,
-  loading: () => <LoadingSkeleton variant="card" />,
-});
+import { LocationFormSection } from '@/components/LocationFormSection';
+import { SectionCard } from '@/components/SectionCard';
+import { InfoBox } from '@/components/InfoBox';
+import { RESTAURANT_TYPES, PAYMENT_METHOD_OPTIONS } from '@/lib/constants';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRestaurantDraft } from '@/lib/hooks/useRestaurantDraft';
+import type { BasicInfoFormData } from '@/components/onboarding/types';
+import type { UseFormWatch } from 'react-hook-form';
 
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------
+
+const locationSchema = z.object({
+  country: z.string().min(1),
+  address: z.string(),
+  city: z.string(),
+  neighborhood: z.string(),
+  state: z.string(),
+  postalCode: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+});
 
 const restaurantSchema = z.object({
   name: z.string().min(1, 'Restaurant name is required'),
@@ -43,22 +52,53 @@ const restaurantSchema = z.object({
   description: z.string().optional(),
   phone: z.string().optional(),
   website: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  postal_code: z.string().optional(),
-  country_code: z.string().min(1),
-  neighbourhood: z.string().optional(),
-  state: z.string().optional(),
-  latitude: z.string().optional(),
-  longitude: z.string().optional(),
+  location: locationSchema,
   delivery_available: z.boolean(),
   takeout_available: z.boolean(),
   dine_in_available: z.boolean(),
   accepts_reservations: z.boolean(),
   payment_methods: z.enum(['cash_only', 'card_only', 'cash_and_card']),
+  service_speed: z.enum(['fast-food', 'regular']).optional(),
 });
 
 type RestaurantFormValues = z.infer<typeof restaurantSchema>;
+
+// ---------------------------------------------------------------------------
+// Sections config
+// ---------------------------------------------------------------------------
+
+export interface RestaurantFormSection {
+  basicInfo?: boolean;
+  contact?: boolean;
+  location?: boolean;
+  cuisines?: boolean;
+  operatingHours?: boolean;
+  serviceOptions?: boolean;
+}
+
+export const ADMIN_FULL_SECTIONS: RestaurantFormSection = {
+  basicInfo: true,
+  contact: true,
+  location: true,
+  cuisines: true,
+  operatingHours: true,
+  serviceOptions: true,
+};
+
+export const ADMIN_COMPACT_SECTIONS: RestaurantFormSection = {
+  basicInfo: true,
+  location: true,
+  cuisines: true,
+};
+
+export const OWNER_EDIT_SECTIONS: RestaurantFormSection = {
+  basicInfo: true,
+  contact: true,
+  location: true,
+  cuisines: true,
+  operatingHours: true,
+  serviceOptions: true,
+};
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -89,9 +129,15 @@ export interface RestaurantFormData {
 
 export interface RestaurantFormProps {
   mode: 'create' | 'edit';
+  variant?: 'full' | 'compact';
+  sections?: RestaurantFormSection;
   initialData?: Partial<RestaurantFormData>;
-  onSubmit: (data: RestaurantFormData) => Promise<void>;
-  onCancel: () => void;
+  enableDraft?: boolean;
+  /** Canonical callback — called with form data on successful submit. */
+  onSuccess?: (data: RestaurantFormData) => Promise<void>;
+  /** Backward-compat alias for onSuccess. */
+  onSubmit?: (data: RestaurantFormData) => Promise<void>;
+  onCancel?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,19 +237,91 @@ const DEFAULT_HOURS: Record<string, OperatingHoursValue> = {
 };
 
 // ---------------------------------------------------------------------------
+// Section wrapper helper
+// ---------------------------------------------------------------------------
+
+function Section({
+  compact,
+  title,
+  description,
+  icon,
+  children,
+  defaultExpanded = true,
+}: {
+  compact: boolean;
+  title: string;
+  description?: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  defaultExpanded?: boolean;
+}) {
+  if (compact) {
+    return (
+      <SectionCard
+        title={title}
+        icon={icon}
+        description={description}
+        collapsible
+        defaultExpanded={defaultExpanded}
+      >
+        {children}
+      </SectionCard>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {icon}
+          {title}
+        </CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: RestaurantFormProps) {
+export function RestaurantForm({
+  mode,
+  variant = 'full',
+  sections = ADMIN_FULL_SECTIONS,
+  initialData,
+  enableDraft = false,
+  onSuccess,
+  onSubmit: onSubmitProp,
+  onCancel,
+}: RestaurantFormProps) {
+  const compact = variant === 'compact';
+
   const [submitting, setSubmitting] = useState(false);
   const [cuisines, setCuisines] = useState<string[]>(initialData?.cuisine_types ?? []);
   const [operatingHours, setOperatingHours] = useState<Record<string, OperatingHoursValue>>(
     initialData?.operating_hours ?? DEFAULT_HOURS
   );
 
+  // Track if cuisines changed from initial (for edit mode cascade warning)
+  const initialCuisines = initialData?.cuisine_types ?? [];
+  const cuisinesChanged =
+    mode === 'edit' &&
+    (cuisines.length !== initialCuisines.length ||
+      cuisines.some(c => !initialCuisines.includes(c)));
+
+  // Refs for draft hook
+  const cuisinesRef = useRef<string[]>(cuisines);
+  cuisinesRef.current = cuisines;
+  const operatingHoursRef = useRef<Record<string, OperatingHoursValue>>(operatingHours);
+  operatingHoursRef.current = operatingHours;
+
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     watch,
     formState: { errors },
@@ -215,20 +333,34 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
       description: initialData?.description ?? '',
       phone: initialData?.phone ?? '',
       website: initialData?.website ?? '',
-      address: initialData?.address ?? '',
-      city: initialData?.city ?? '',
-      postal_code: initialData?.postal_code ?? '',
-      country_code: initialData?.country_code ?? 'US',
-      neighbourhood: initialData?.neighbourhood ?? '',
-      state: initialData?.state ?? '',
-      latitude: initialData?.latitude ?? '',
-      longitude: initialData?.longitude ?? '',
+      location: {
+        country: initialData?.country_code ?? 'US',
+        address: initialData?.address ?? '',
+        city: initialData?.city ?? '',
+        neighborhood: initialData?.neighbourhood ?? '',
+        state: initialData?.state ?? '',
+        postalCode: initialData?.postal_code ?? '',
+        lat: parseFloat(initialData?.latitude ?? '') || 0,
+        lng: parseFloat(initialData?.longitude ?? '') || 0,
+      },
       delivery_available: initialData?.delivery_available ?? true,
       takeout_available: initialData?.takeout_available ?? true,
       dine_in_available: initialData?.dine_in_available ?? true,
       accepts_reservations: initialData?.accepts_reservations ?? false,
       payment_methods: initialData?.payment_methods ?? 'cash_and_card',
+      service_speed: 'regular',
     },
+  });
+
+  // Draft auto-save — only active when enableDraft=true
+  const { user } = useAuth();
+  useRestaurantDraft({
+    userId: enableDraft ? user?.id : undefined,
+    watch: watch as unknown as UseFormWatch<BasicInfoFormData>,
+    selectedCuisinesRef: cuisinesRef as React.RefObject<string[]>,
+    operatingHoursRef: operatingHoursRef as React.RefObject<
+      Record<string, { open: string; close: string; closed: boolean }>
+    >,
   });
 
   const deliveryAvailable = watch('delivery_available');
@@ -236,34 +368,32 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
   const dineInAvailable = watch('dine_in_available');
   const acceptsReservations = watch('accepts_reservations');
   const paymentMethods = watch('payment_methods');
-  const latitude = watch('latitude');
-  const longitude = watch('longitude');
 
-  const handleLocationSelect = (lat: number, lng: number) => {
-    setValue('latitude', lat.toString());
-    setValue('longitude', lng.toString());
-    toast.success('Location marked on map!');
-  };
-
-  const handleAddressSelect = (address: string) => {
-    setValue('address', address);
-    toast.success('Address auto-filled from map location!');
-  };
-
-  const handleLocationDetails = (details: ParsedLocationDetails) => {
-    const supportedCountry = COUNTRIES.find(c => c.value === details.countryCode);
-    if (details.city) setValue('city', details.city);
-    if (details.neighbourhood) setValue('neighbourhood', details.neighbourhood);
-    if (details.state) setValue('state', details.state);
-    if (details.postalCode) setValue('postal_code', details.postalCode);
-    if (supportedCountry) setValue('country_code', details.countryCode);
-  };
+  const submitHandler = onSuccess ?? onSubmitProp;
 
   const onFormSubmit = async (values: RestaurantFormValues) => {
+    if (!submitHandler) return;
     setSubmitting(true);
     try {
-      await onSubmit({
-        ...values,
+      await submitHandler({
+        name: values.name,
+        restaurant_type: values.restaurant_type,
+        description: values.description,
+        phone: values.phone,
+        website: values.website,
+        address: values.location.address,
+        city: values.location.city,
+        postal_code: values.location.postalCode,
+        country_code: values.location.country,
+        neighbourhood: values.location.neighborhood,
+        state: values.location.state,
+        latitude: values.location.lat ? values.location.lat.toString() : '',
+        longitude: values.location.lng ? values.location.lng.toString() : '',
+        delivery_available: values.delivery_available,
+        takeout_available: values.takeout_available,
+        dine_in_available: values.dine_in_available,
+        accepts_reservations: values.accepts_reservations,
+        payment_methods: values.payment_methods,
         cuisine_types: cuisines,
         operating_hours: operatingHours,
       });
@@ -275,18 +405,16 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* Basic Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Utensils className="h-5 w-5 text-orange-600" />
-            Basic Information
-          </CardTitle>
-          <CardDescription>General details about the restaurant</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {sections.basicInfo === true && (
+        <Section
+          compact={compact}
+          title="Basic Information"
+          description="General details about the restaurant"
+          icon={<Utensils className="h-5 w-5 text-brand-primary" />}
+        >
           <div className="space-y-2">
             <Label htmlFor="rf-name">
-              Restaurant Name <span className="text-red-500">*</span>
+              Restaurant Name <span className="text-destructive">*</span>
             </Label>
             <Input
               id="rf-name"
@@ -294,13 +422,13 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
               placeholder="e.g., The Golden Spoon"
             />
             {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
+              <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="rf-type">
-              Restaurant Type <span className="text-red-500">*</span>
+              Restaurant Type <span className="text-destructive">*</span>
             </Label>
             <Select
               value={watch('restaurant_type')}
@@ -332,155 +460,55 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
               placeholder="Share what makes this restaurant special..."
             />
           </div>
-        </CardContent>
-      </Card>
+        </Section>
+      )}
 
       {/* Cuisines */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-orange-600" />
-            Cuisine Types <span className="text-red-500">*</span>
-          </CardTitle>
-          <CardDescription>Select all cuisines that apply to this restaurant</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {sections.cuisines === true && (
+        <Section
+          compact={compact}
+          title="Cuisine Types"
+          description="Select all cuisines that apply to this restaurant"
+          icon={<Building2 className="h-5 w-5 text-brand-primary" />}
+          defaultExpanded={!compact}
+        >
           <CuisineSelector selected={cuisines} onChange={setCuisines} />
-        </CardContent>
-      </Card>
+          {cuisinesChanged && (
+            <InfoBox variant="warning" className="mt-3">
+              Changing cuisines will not remove existing dishes, but some category assignments may
+              no longer apply. Review your menu after saving.
+            </InfoBox>
+          )}
+        </Section>
+      )}
 
       {/* Location */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-orange-600" />
-            Location
-          </CardTitle>
-          <CardDescription>Where can customers find this restaurant?</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
-            <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
-            <p>
-              Click anywhere on the map to pin the restaurant. Country, city, postal code and
-              address will be auto-filled — you can still edit them manually.
-            </p>
-          </div>
-
-          <LocationPicker
-            initialLat={latitude ? parseFloat(latitude) : undefined}
-            initialLng={longitude ? parseFloat(longitude) : undefined}
-            onLocationSelect={handleLocationSelect}
-            onAddressSelect={handleAddressSelect}
-            onLocationDetails={handleLocationDetails}
+      {sections.location === true && (
+        <Section
+          compact={compact}
+          title="Location"
+          description="Where can customers find this restaurant?"
+          icon={<MapPin className="h-5 w-5 text-brand-primary" />}
+        >
+          <Controller
+            name="location"
+            control={control}
+            render={({ field }) => (
+              <LocationFormSection value={field.value} onChange={field.onChange} />
+            )}
           />
-
-          <div className="space-y-2">
-            <Label htmlFor="rf-country">
-              Country <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={watch('country_code')}
-              onValueChange={v => setValue('country_code', v)}
-            >
-              <SelectTrigger id="rf-country">
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent>
-                {COUNTRIES.map(c => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rf-city">City</Label>
-              <Input
-                id="rf-city"
-                {...register('city')}
-                placeholder="San Francisco"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rf-postal">Postal Code</Label>
-              <Input
-                id="rf-postal"
-                {...register('postal_code')}
-                placeholder="94102"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rf-neighbourhood">
-                Neighbourhood{' '}
-                <span className="text-gray-400 font-normal text-xs">(optional)</span>
-              </Label>
-              <Input
-                id="rf-neighbourhood"
-                {...register('neighbourhood')}
-                placeholder="Downtown"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rf-state">State / Province</Label>
-              <Input
-                id="rf-state"
-                {...register('state')}
-                placeholder="California"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="rf-address">
-              Full Address <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="rf-address"
-              {...register('address')}
-              placeholder="123 Main Street, City, State, ZIP"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rf-lat">Latitude</Label>
-              <Input
-                id="rf-lat"
-                {...register('latitude')}
-                readOnly
-                placeholder="Click map to set"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rf-lng">Longitude</Label>
-              <Input
-                id="rf-lng"
-                {...register('longitude')}
-                readOnly
-                placeholder="Click map to set"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </Section>
+      )}
 
       {/* Contact */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-orange-600" />
-            Contact Information
-          </CardTitle>
-          <CardDescription>How can customers reach this restaurant?</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {sections.contact === true && (
+        <Section
+          compact={compact}
+          title="Contact Information"
+          description="How can customers reach this restaurant?"
+          icon={<Globe className="h-5 w-5 text-brand-primary" />}
+          defaultExpanded={!compact}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="rf-phone">Phone Number</Label>
@@ -500,16 +528,17 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </Section>
+      )}
 
       {/* Service Options */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Options</CardTitle>
-          <CardDescription>What services does this restaurant offer?</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {sections.serviceOptions === true && (
+        <Section
+          compact={compact}
+          title="Service Options"
+          description="What services does this restaurant offer?"
+          defaultExpanded={!compact}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -552,16 +581,17 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
               </Label>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </Section>
+      )}
 
       {/* Payment Methods */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Methods</CardTitle>
-          <CardDescription>What payment methods are accepted?</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {sections.serviceOptions === true && (
+        <Section
+          compact={compact}
+          title="Payment Methods"
+          description="What payment methods are accepted?"
+          defaultExpanded={!compact}
+        >
           <RadioGroup
             value={paymentMethods}
             onValueChange={value =>
@@ -577,45 +607,55 @@ export function RestaurantForm({ mode, initialData, onSubmit, onCancel }: Restau
                   className="mt-0.5"
                 />
                 <div>
-                  <Label htmlFor={`rf-pay-${option.value}`} className="font-medium cursor-pointer">
+                  <Label
+                    htmlFor={`rf-pay-${option.value}`}
+                    className="font-medium cursor-pointer"
+                  >
                     {option.icon} {option.label}
                   </Label>
-                  <p className="text-xs text-gray-500">{option.description}</p>
+                  <p className="text-xs text-muted-foreground">{option.description}</p>
                 </div>
               </div>
             ))}
           </RadioGroup>
-        </CardContent>
-      </Card>
+        </Section>
+      )}
 
       {/* Operating Hours */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-600" />
-            Operating Hours
-          </CardTitle>
-          <CardDescription>When is the restaurant open for business?</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {sections.operatingHours === true && (
+        <Section
+          compact={compact}
+          title="Operating Hours"
+          description="When is the restaurant open for business?"
+          icon={<Clock className="h-5 w-5 text-brand-primary" />}
+          defaultExpanded={!compact}
+        >
           <OperatingHoursEditor value={operatingHours} onChange={setOperatingHours} />
-        </CardContent>
-      </Card>
+        </Section>
+      )}
 
       {/* Actions */}
       <div className="flex gap-4 pt-4">
         <Button
           type="submit"
           disabled={submitting}
-          size="lg"
-          className="bg-orange-600 hover:bg-orange-700"
+          size={compact ? 'sm' : 'lg'}
+          className="bg-brand-primary hover:bg-brand-primary/90"
         >
           {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === 'create' ? 'Create Restaurant' : 'Save Changes'}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </Button>
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            size={compact ? 'sm' : 'default'}
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
   );

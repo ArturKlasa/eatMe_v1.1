@@ -96,14 +96,14 @@ export function DishFormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{dish ? 'Edit Dish' : 'Add New Dish'}</DialogTitle>
-          <p className="text-sm text-gray-500">Information will be visible to customers</p>
+          <p className="text-sm text-muted-foreground">Information will be visible to customers</p>
         </DialogHeader>
 
         <FormProvider {...methods}>
           <form onSubmit={methods.handleSubmit(handleFormSubmit)} className="space-y-6">
             {/* Food/Drink Toggle */}
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <span className="text-sm font-medium text-gray-700 mr-2">Type:</span>
+            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border">
+              <span className="text-sm font-medium text-foreground mr-2">Type:</span>
               <Button
                 type="button"
                 variant={dishType === 'food' ? 'default' : 'outline'}
@@ -126,7 +126,7 @@ export function DishFormDialog({
 
             {/* Basic Information Section */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700">Basic Information</h3>
+              <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
               <DishCategorySelect dishType={dishType} restaurantCuisine={restaurantCuisine} />
               <DishBasicFields />
               <DishVisibilityFields />

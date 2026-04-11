@@ -131,14 +131,14 @@ export function IngredientAutocomplete({
 
         {/* Loading skeleton for initial fetch */}
         {isLoading && debouncedQuery.trim().length >= 2 && suggestions.length === 0 && !error && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-2">
+          <div className="absolute z-50 w-full mt-1 bg-background border border rounded-md shadow-lg p-2">
             <LoadingSkeleton variant="card" count={3} />
           </div>
         )}
 
         {/* Error message */}
         {error && (
-          <p className="text-sm text-red-600 mt-1">{error}</p>
+          <p className="text-sm text-destructive mt-1">{error}</p>
         )}
 
         {/* Suggestions Dropdown */}
@@ -147,19 +147,19 @@ export function IngredientAutocomplete({
             ref={dropdownRef}
             id="ingredient-suggestions"
             role="listbox"
-            className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+            className="absolute z-50 w-full mt-1 bg-background border border rounded-md shadow-lg max-h-60 overflow-auto"
           >
             {suggestions.map(ingredient => (
               <button
                 key={ingredient.id}
                 onClick={() => handleSelectIngredient(ingredient)}
                 role="option"
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between group"
+                className="w-full px-4 py-2 text-left hover:bg-accent flex items-center justify-between group"
               >
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">{ingredient.display_name}</div>
+                  <div className="font-medium text-foreground">{ingredient.display_name}</div>
                   {ingredient.canonical_name && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       Canonical: {ingredient.canonical_name}
                     </div>
                   )}
@@ -171,7 +171,7 @@ export function IngredientAutocomplete({
                     </Badge>
                   )}
                   {ingredient.is_vegan && (
-                    <Badge variant="secondary" className="text-xs bg-green-100">
+                    <Badge variant="secondary" className="text-xs bg-success/10">
                       <Leaf className="h-3 w-3 mr-1" /> Vegan
                     </Badge>
                   )}
@@ -185,25 +185,25 @@ export function IngredientAutocomplete({
       {/* Selected Ingredients */}
       {selectedIngredients.length > 0 && (
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-foreground">
             Selected Ingredients ({selectedIngredients.length})
           </label>
           <div className="space-y-2">
             {selectedIngredients.map(ingredient => (
               <div
                 key={ingredient.id}
-                className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{ingredient.display_name}</span>
+                    <span className="font-medium text-foreground">{ingredient.display_name}</span>
                     {ingredient.is_vegetarian && (
                       <Badge variant="secondary" className="text-xs">
                         <Sprout className="h-3 w-3" />
                       </Badge>
                     )}
                     {ingredient.is_vegan && (
-                      <Badge variant="secondary" className="text-xs bg-green-100">
+                      <Badge variant="secondary" className="text-xs bg-success/10">
                         <Leaf className="h-3 w-3" />
                       </Badge>
                     )}
@@ -214,7 +214,7 @@ export function IngredientAutocomplete({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveIngredient(ingredient.id)}
-                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -226,8 +226,8 @@ export function IngredientAutocomplete({
 
       {/* Empty State */}
       {selectedIngredients.length === 0 && (
-        <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-lg">
-          <Plus className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+        <div className="text-center py-6 text-muted-foreground text-sm border-2 border-dashed border rounded-lg">
+          <Plus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
           <p>No ingredients added yet</p>
           <p className="text-xs mt-1">Start typing to search for ingredients</p>
         </div>

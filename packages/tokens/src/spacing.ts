@@ -15,6 +15,8 @@ export const spacing = {
   base: 16, // 4 units
   lg: 20, // 5 units
   xl: 24, // 6 units
+  /** Card/panel padding — 24px = 1.5rem; powers `p-card` utility in web */
+  card: 24, // 6 units
   '2xl': 32, // 8 units
   '3xl': 40, // 10 units
   '4xl': 48, // 12 units

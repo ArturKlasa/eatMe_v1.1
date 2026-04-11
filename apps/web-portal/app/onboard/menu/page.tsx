@@ -338,7 +338,7 @@ function MenuPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-muted/30 py-8">
         <div className="container mx-auto px-4 max-w-5xl">
           <LoadingSkeleton variant="card" count={3} />
         </div>
@@ -347,12 +347,12 @@ function MenuPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-muted/30 py-8">
       <div className="container mx-auto px-4 max-w-5xl">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Menu Management</h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Organize your menu items into different menus. Create multiple menus for different meal
             times or seasons.
           </p>
@@ -362,14 +362,14 @@ function MenuPageContent() {
         <Card className="mb-6">
           <Tabs value={activeMenuId || undefined} onValueChange={setActiveMenuId}>
             <div className="flex items-center justify-between p-4 border-b gap-2">
-              <div className="overflow-x-auto flex-1 [mask-image:linear-gradient(to_right,transparent,black_8px,black_calc(100%-8px),transparent)]">
-              <TabsList>
+              <div className="flex-1">
+              <TabsList className="flex-wrap gap-2 h-auto">
                 {menus.map(menu => (
                   <TabsTrigger key={menu.id} value={menu.id}>
                     {menu.menu_type === 'drink' ? <GlassWater className="h-3.5 w-3.5 mr-1 inline-block" /> : <UtensilsCrossed className="h-3.5 w-3.5 mr-1 inline-block" />}
                     {menu.name}
                     {menu.dishes.length > 0 && (
-                      <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                      <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded-full">
                         {menu.dishes.length}
                       </span>
                     )}
@@ -402,7 +402,7 @@ function MenuPageContent() {
                       <DropdownMenuItem
                         onClick={() => handleDeleteMenu(menu.id)}
                         disabled={menus.length === 1}
-                        className="text-red-600"
+                        className="text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Menu
@@ -423,12 +423,12 @@ function MenuPageContent() {
                 {menu.dishes.length === 0 ? (
                   <Card className="p-12 text-center border-dashed">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="bg-gray-100 rounded-full p-6">
-                        <PlusCircle className="h-12 w-12 text-gray-400" />
+                      <div className="bg-muted/30 rounded-full p-6">
+                        <PlusCircle className="h-12 w-12 text-muted-foreground" />
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold mb-2">No dishes in this menu yet</h3>
-                        <p className="text-gray-600 mb-4">Start adding dishes to {menu.name}</p>
+                        <p className="text-muted-foreground mb-4">Start adding dishes to {menu.name}</p>
                         <Button onClick={handleOpenDishDialog}>
                           <PlusCircle className="mr-2 h-4 w-4" />
                           Add Your First Dish
@@ -506,7 +506,7 @@ function MenuPageContent() {
                   value={menuName}
                   onChange={e => setMenuName(e.target.value)}
                 />
-                <p className="text-xs text-gray-500 mt-1">Menu Name will be visible to customers</p>
+                <p className="text-xs text-muted-foreground mt-1">Menu Name will be visible to customers</p>
               </div>
               <div>
                 <Label className="mb-2 block">Menu Type *</Label>
@@ -528,7 +528,7 @@ function MenuPageContent() {
                     </Label>
                   </div>
                 </RadioGroup>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Drink menus are excluded from food recommendations in the mobile app.
                 </p>
               </div>

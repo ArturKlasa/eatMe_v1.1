@@ -62,15 +62,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verifying admin access...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verifying admin access...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted/30">
       {/* Admin Header */}
       <AdminHeader user={user!} />
 
@@ -80,8 +80,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Main Content */}
         <main className="flex-1 p-8">
-          {/* SECURITY: Add visual indicator that this is admin area */}
-          <div className="sticky top-0 z-10 mb-4 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+          {/* SECURITY: Add visual indicator that this is admin area — red colors applied directly (surface-warning utility added in Step 6) */}
+          <div className="sticky top-0 z-10 mb-4 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
             🔒 <strong>Admin Mode</strong> - All actions are logged and monitored
           </div>
 

@@ -106,9 +106,23 @@ export type EditableRestaurant = {
   name: string;
   description: string | null;
   address: string;
+  city: string | null;
+  neighbourhood: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country_code: string | null;
   phone: string | null;
   website: string | null;
   open_hours: Record<string, { open: string; close: string }> | null;
+  cuisine_types: string[] | null;
+  restaurant_type: string | null;
+  delivery_available: boolean | null;
+  takeout_available: boolean | null;
+  dine_in_available: boolean | null;
+  accepts_reservations: boolean | null;
+  payment_methods: string | null;
+  service_speed: string | null;
+  location: { lat?: number; lng?: number } | null;
 };
 
 // ─── Read operations ───────────────────────────────────────────────────────────
@@ -242,7 +256,9 @@ export async function getRestaurantWithMenus(
 export async function getRestaurantForEdit(ownerId: string): Promise<EditableRestaurant> {
   const { data, error } = await supabase
     .from('restaurants')
-    .select('id, name, description, address, phone, website, open_hours')
+    .select(
+      'id, name, description, address, city, neighbourhood, state, postal_code, country_code, phone, website, open_hours, cuisine_types, restaurant_type, delivery_available, takeout_available, dine_in_available, accepts_reservations, payment_methods, service_speed, location'
+    )
     .eq('owner_id', ownerId)
     .single();
 

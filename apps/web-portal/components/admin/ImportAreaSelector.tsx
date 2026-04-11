@@ -212,7 +212,7 @@ export default function ImportAreaSelector({ onAreaSelect }: ImportAreaSelectorP
       {/* City search */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search city (e.g. Mexico City, Guadalajara)..."
@@ -249,7 +249,7 @@ export default function ImportAreaSelector({ onAreaSelect }: ImportAreaSelectorP
         <div
           ref={mapContainerRef}
           aria-label="Restaurant import area map — click to select search center"
-          className="w-full rounded-lg border-2 border-gray-300 relative z-0"
+          className="w-full rounded-lg border-2 border-input relative z-0"
           style={{ height: '320px' }}
         />
       </div>
@@ -292,9 +292,9 @@ export default function ImportAreaSelector({ onAreaSelect }: ImportAreaSelectorP
 
       {/* Selection summary */}
       {selectedLatLng ? (
-        <div className="flex items-center gap-2 text-sm bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-          <span className="text-orange-600 font-medium">Selected:</span>
-          <span className="text-orange-800">
+        <div className="flex items-center gap-2 text-sm bg-brand-primary/5 border border-orange-200 rounded-lg px-3 py-2">
+          <span className="text-brand-primary font-medium">Selected:</span>
+          <span className="text-brand-primary">
             {selectionLabel || `${selectedLatLng.lat.toFixed(4)}, ${selectedLatLng.lng.toFixed(4)}`}
             {' '}— {radiusKm} km radius
             {textQuery.trim() && ` — "${textQuery.trim()}"`}

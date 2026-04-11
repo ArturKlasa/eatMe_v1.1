@@ -1,11 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Store, Utensils, Users, Activity, Shield } from 'lucide-react';
+import { Store, Utensils, Users, Activity, Shield, Download } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { PageHeader } from '@/components/PageHeader';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+
+type ImportJob = {
+  id: string;
+  source: string;
+  total_inserted: number | null;
+  total_fetched: number | null;
+  created_at: string | null;
+};
 
 export default function AdminDashboardPage() {
   const [statsData, setStatsData] = useState<{
@@ -15,11 +23,24 @@ export default function AdminDashboardPage() {
     totalDishes: number;
     activeDishes: number;
     totalUsers: number;
+    importedRestaurants: number;
   } | null>(null);
+  const [recentImports, setRecentImports] = useState<ImportJob[]>([]);
 
   useEffect(() => {
     const loadStats = async () => {
-      const { data, error } = await supabase.from('admin_dashboard_stats').select('*').single();
+      const [{ data, error }, { count: importedCount }, { data: importJobs }] = await Promise.all([
+        supabase.from('admin_dashboard_stats').select('*').single(),
+        supabase
+          .from('restaurants')
+          .select('id', { count: 'exact', head: true })
+          .not('google_place_id', 'is', null),
+        supabase
+          .from('restaurant_import_jobs')
+          .select('id, source, total_inserted, total_fetched, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5),
+      ]);
 
       if (error) {
         console.error('[Admin] Failed to load stats:', {
@@ -39,7 +60,12 @@ export default function AdminDashboardPage() {
           totalDishes: data.total_dishes || 0,
           activeDishes: data.active_dishes || 0,
           totalUsers: (data.restaurant_owners || 0) + (data.admin_users || 0),
+          importedRestaurants: importedCount || 0,
         });
+      }
+
+      if (importJobs) {
+        setRecentImports(importJobs);
       }
     };
 
@@ -72,6 +98,14 @@ export default function AdminDashboardPage() {
           color: 'text-purple-600',
           bgColor: 'bg-purple-50',
         },
+        {
+          name: 'Imported Restaurants',
+          value: statsData.importedRestaurants,
+          subtext: 'Via Google Places or CSV',
+          icon: Download,
+          color: 'text-orange-600',
+          bgColor: 'bg-orange-50',
+        },
       ]
     : null;
 
@@ -86,7 +120,7 @@ export default function AdminDashboardPage() {
       {!stats ? (
         <LoadingSkeleton variant="stats" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map(stat => {
             const Icon = stat.icon;
             return (
@@ -136,6 +170,49 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
         </div>
+      </div>
+
+      {/* Recent Imports */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Imports</h2>
+          <Link
+            href="/admin/restaurants/import"
+            className="text-sm text-orange-600 hover:underline"
+          >
+            Go to Import
+          </Link>
+        </div>
+        {recentImports.length === 0 ? (
+          <p className="text-sm text-gray-500">No imports yet. Use the Import page to bulk-add restaurants.</p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {recentImports.map(job => (
+              <div key={job.id} className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {job.source === 'google_places' ? 'Google Places' : 'CSV Upload'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {job.created_at
+                      ? new Date(job.created_at).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{job.total_inserted ?? 0} inserted</p>
+                  <p className="text-xs text-gray-500">of {job.total_fetched ?? 0} fetched</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Single-line security reminder */}

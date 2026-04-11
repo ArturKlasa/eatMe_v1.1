@@ -10,12 +10,14 @@ import {
   Leaf,
   Tag,
   ScanLine,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Restaurants', href: '/admin/restaurants', icon: Store },
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
+  { name: 'Restaurants', href: '/admin/restaurants', icon: Store, exclude: '/admin/restaurants/import' },
+  { name: 'Import', href: '/admin/restaurants/import', icon: Download },
   { name: 'Ingredients', href: '/admin/ingredients', icon: Leaf },
   { name: 'Dish Categories', href: '/admin/dish-categories', icon: Tag },
   { name: 'Menu Scan', href: '/admin/menu-scan', icon: ScanLine },
@@ -36,7 +38,10 @@ export function AdminSidebar() {
 
         {/* Navigation Links */}
         {navigation.map(item => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = item.exact
+            ? pathname === item.href
+            : (pathname === item.href || pathname.startsWith(`${item.href}/`)) &&
+              (!item.exclude || !pathname.startsWith(item.exclude));
           const Icon = item.icon;
 
           return (

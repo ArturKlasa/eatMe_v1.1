@@ -1006,6 +1006,7 @@ export const modals = StyleSheet.create({
   // caused the slider to be unresponsive on physical devices.
   priceSliderWrapper: {
     height: 44,
+    width: '100%',
     position: 'relative',
   } as ViewStyle,
 

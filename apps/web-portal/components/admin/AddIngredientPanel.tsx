@@ -241,7 +241,7 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                 {mode === 'search' ? 'Link Ingredient' : 'Add New Ingredient'}
               </h3>
               <p className="text-xs text-gray-500 truncate">
-                From menu: <span className="italic text-gray-700">"{rawText}"</span>
+                From menu: <span className="italic text-gray-700">{'"'}{rawText}{'"'}</span>
               </p>
             </div>
           </div>

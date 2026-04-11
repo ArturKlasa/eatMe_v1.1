@@ -1,40 +1,43 @@
-# EatMe — Web Portal UX/UI Redesign
+# EatMe — Admin Restaurant Data Ingestion
 
 ## Objective
 
-Implement the 12-step web portal UX/UI redesign per the checklist in:
-  `.agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md`
+Implement the 10-step admin restaurant data ingestion system per the checklist in:
+  `.agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md`
 
 Work through steps in order, one at a time. Mark each step `[x]` when complete.
 
 ## Context
 
-EatMe is a food discovery platform (pnpm + Turborepo monorepo). This task modifies **only** the web portal:
+EatMe is a food discovery platform (pnpm + Turborepo monorepo). This task touches:
+- **`infra/supabase/migrations/`** — Step 1 only: DB migration SQL file
 - **`apps/web-portal`** — Next.js 16 + React 19, shadcn/ui (Radix), Tailwind CSS 4, Supabase client
-- Two modes: **Admin** (`/admin/*`) and **Restaurant Owner** (dashboard, onboarding, edit)
-- UI components in `components/ui/` (shadcn), domain components in `components/`, `components/admin/`, `components/forms/`
+  - New API routes: `app/api/admin/import/google/route.ts`, `app/api/admin/import/csv/route.ts`
+  - New lib files: `lib/google-places.ts`, `lib/import-service.ts`, `lib/import-validation.ts`, `lib/import-types.ts`, `lib/csv-import.ts`
+  - New UI: `app/admin/restaurants/import/page.tsx`, `components/admin/Import*.tsx`, `components/admin/RestaurantWarningBadge.tsx`
+  - Modified: `components/admin/AdminSidebar.tsx`, `components/admin/RestaurantTable.tsx`, `app/admin/restaurants/page.tsx`, `app/admin/menu-scan/page.tsx`, `app/admin/page.tsx`
 
-**Do NOT modify**: `apps/mobile/`, `packages/`, `infra/`, database schema, API routes.
+**Do NOT modify**: `apps/mobile/`, `packages/`, existing Supabase schema beyond migration 080.
+
+**CRITICAL — preserve the manual flow**: The existing single-restaurant creation and edit flow (`/admin/restaurants/new`, `/admin/restaurants/[id]/edit`, `components/admin/RestaurantForm.tsx`) must remain fully functional. The bulk import feature is **additive** — a new path alongside manual entry, not a replacement for it.
 
 ## Key Documents
 
-- **Implementation plan** (checklist): `.agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md`
-- **Design spec** (authoritative): `.agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md`
+- **Implementation plan** (checklist): `.agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md`
+- **Design spec** (authoritative): `.agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md`
 
 ## Steps
 
-1. Prerequisites — install shadcn skeleton/pagination, set up Vitest
-2. Design tokens & constants — `lib/ui-constants.ts`, OAuthIcons, useDebounce
-3. Core shared components — PageHeader, LoadingSkeleton, EmptyState, ConfirmDialog
-4. Onboarding stepper — OnboardingStepper + `/app/onboard/layout.tsx`
-5. Form sub-components — OperatingHoursEditor, CuisineSelector (test in isolation only)
-6. Admin RestaurantForm — shared new/edit, thin page wrappers
-7. DishFormDialog decomposition — 1,354 lines → orchestrator + 9 sub-components
-8. BasicInfo decomposition — 1,027 lines → orchestrator + 7 sub-components + useRestaurantDraft hook
-9. Admin pages polish — sidebar, dashboard, restaurant list, ingredients, categories, menus, audit
-10. Owner pages polish — dashboard, auth, review, restaurant edit, onboarding menu
-11. ConfirmDialog integration — replace 8 `confirm()` calls across 3 admin files
-12. Menu Scan light touch + accessibility pass + transitions + code cleanup
+1. DB migration — `google_place_id` column, `restaurant_import_jobs`, `google_api_usage` tables
+2. Shared types, validation, and import service — `import-types.ts`, `import-validation.ts`, `import-service.ts`
+3. Google Places API client — `google-places.ts` with Nearby Search, Text Search, field mapping
+4. Google import API route — `POST /api/admin/import/google` (search + dedup + insert)
+5. Warning flags and RestaurantTable enhancements — badges, flagged filter, scan menu button
+6. Import page UI — `/admin/restaurants/import` with map area selector and results display
+7. CSV import — `csv-import.ts`, `POST /api/admin/import/csv`, CSV tab on import page
+8. Menu-scan query param support — accept `?restaurant_id=` in menu-scan page
+9. Admin sidebar and dashboard integration — nav item, import stats
+10. End-to-end testing and polish — full flow tests, edge cases, UX refinements
 
 ## Validation
 
@@ -44,4 +47,4 @@ EatMe is a food discovery platform (pnpm + Turborepo monorepo). This task modifi
 
 ## Success Criteria
 
-All 12 checklist items marked `[x]`, build succeeds, and tests pass.
+All 10 checklist items marked `[x]`, build succeeds, tests pass, and `GOOGLE_PLACES_API_KEY` is documented in `.env.example`.

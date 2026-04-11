@@ -140,7 +140,6 @@ $$;
 -- get_vote_results()
 -- Called by eatTogetherService.ts (line 370) to fetch aggregated vote tallies.
 -- Verifies the caller is an active participant before returning data.
-DROP FUNCTION IF EXISTS public.get_vote_results(UUID);
 CREATE OR REPLACE FUNCTION public.get_vote_results(p_session_id UUID)
 RETURNS TABLE (
   restaurant_id UUID,

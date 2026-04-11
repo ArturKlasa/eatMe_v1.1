@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Edit, Trash2, Ban, CheckCircle, Eye } from 'lucide-react';
+import { Edit, Trash2, Ban, CheckCircle, Eye, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { RestaurantWarningBadge } from '@/components/admin/RestaurantWarningBadge';
+import type { WarningFlag } from '@/lib/import-types';
 
 interface Restaurant {
   id: string;
@@ -22,6 +24,9 @@ interface Restaurant {
 
 interface RestaurantTableProps {
   restaurants: Restaurant[];
+  warnings?: Map<string, WarningFlag[]>;
+  showFlaggedOnly?: boolean;
+  onToggleFlaggedOnly?: (value: boolean) => void;
 }
 
 /**
@@ -34,8 +39,17 @@ interface RestaurantTableProps {
  * - Status indicators
  */
 
-export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantTableProps) {
+export function RestaurantTable({
+  restaurants: initialRestaurants,
+  warnings = new Map(),
+  showFlaggedOnly = false,
+  onToggleFlaggedOnly,
+}: RestaurantTableProps) {
   const [restaurants, setRestaurants] = useState(initialRestaurants);
+
+  const displayedRestaurants = showFlaggedOnly
+    ? restaurants.filter((r) => (warnings.get(r.id) ?? []).length > 0)
+    : restaurants;
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -117,6 +131,20 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {onToggleFlaggedOnly && (
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+          <input
+            id="flagged-only-toggle"
+            type="checkbox"
+            checked={showFlaggedOnly}
+            onChange={(e) => onToggleFlaggedOnly(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+          />
+          <label htmlFor="flagged-only-toggle" className="text-sm text-gray-700 cursor-pointer">
+            Show flagged only
+          </label>
+        </div>
+      )}
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -141,14 +169,14 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {restaurants.length === 0 ? (
+          {displayedRestaurants.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                 No restaurants found
               </td>
             </tr>
           ) : (
-            restaurants.map(restaurant => (
+            displayedRestaurants.map(restaurant => (
               <tr key={restaurant.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   <div>
@@ -180,25 +208,36 @@ export function RestaurantTable({ restaurants: initialRestaurants }: RestaurantT
                   {restaurant.menuCount} / {restaurant.dishCount}
                 </td>
                 <td className="px-6 py-4">
-                  {restaurant.is_active ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded">
-                      <CheckCircle className="h-3 w-3" />
-                      Active
-                    </span>
-                  ) : (
-                    <div>
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 text-xs font-medium rounded">
-                        <Ban className="h-3 w-3" />
-                        Suspended
+                  <div className="flex flex-wrap items-center gap-1">
+                    {restaurant.is_active ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded">
+                        <CheckCircle className="h-3 w-3" />
+                        Active
                       </span>
-                      {restaurant.suspension_reason && (
-                        <p className="text-xs text-gray-500 mt-1">{restaurant.suspension_reason}</p>
-                      )}
-                    </div>
-                  )}
+                    ) : (
+                      <div>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 text-xs font-medium rounded">
+                          <Ban className="h-3 w-3" />
+                          Suspended
+                        </span>
+                        {restaurant.suspension_reason && (
+                          <p className="text-xs text-gray-500 mt-1">{restaurant.suspension_reason}</p>
+                        )}
+                      </div>
+                    )}
+                    <RestaurantWarningBadge warnings={warnings.get(restaurant.id) ?? []} />
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
+                    <Link
+                      href={`/admin/menu-scan?restaurant_id=${restaurant.id}`}
+                      className="p-2 text-purple-600 hover:bg-purple-50 rounded"
+                      title="Scan Menu"
+                      aria-label="Scan menu"
+                    >
+                      <ScanLine className="h-4 w-4" />
+                    </Link>
                     <Link
                       href={`/admin/restaurants/${restaurant.id}`}
                       className="p-2 text-gray-600 hover:bg-gray-100 rounded"

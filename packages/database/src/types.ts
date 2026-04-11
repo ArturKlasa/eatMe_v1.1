@@ -784,6 +784,30 @@ export type Database = {
         }
         Relationships: []
       }
+      google_api_usage: {
+        Row: {
+          api_calls: number | null
+          estimated_cost_usd: number | null
+          id: string
+          month: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_calls?: number | null
+          estimated_cost_usd?: number | null
+          id?: string
+          month: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_calls?: number | null
+          estimated_cost_usd?: number | null
+          id?: string
+          month?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ingredient_aliases: {
         Row: {
           canonical_ingredient_id: string
@@ -1198,6 +1222,63 @@ export type Database = {
           },
         ]
       }
+      restaurant_import_jobs: {
+        Row: {
+          admin_email: string
+          admin_id: string
+          api_calls_used: number | null
+          completed_at: string | null
+          created_at: string | null
+          errors: Json | null
+          estimated_cost_usd: number | null
+          id: string
+          restaurant_ids: string[] | null
+          search_params: Json | null
+          source: string
+          status: string
+          total_fetched: number | null
+          total_flagged: number | null
+          total_inserted: number | null
+          total_skipped: number | null
+        }
+        Insert: {
+          admin_email: string
+          admin_id: string
+          api_calls_used?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          estimated_cost_usd?: number | null
+          id?: string
+          restaurant_ids?: string[] | null
+          search_params?: Json | null
+          source: string
+          status?: string
+          total_fetched?: number | null
+          total_flagged?: number | null
+          total_inserted?: number | null
+          total_skipped?: number | null
+        }
+        Update: {
+          admin_email?: string
+          admin_id?: string
+          api_calls_used?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          errors?: Json | null
+          estimated_cost_usd?: number | null
+          id?: string
+          restaurant_ids?: string[] | null
+          search_params?: Json | null
+          source?: string
+          status?: string
+          total_fetched?: number | null
+          total_flagged?: number | null
+          total_inserted?: number | null
+          total_skipped?: number | null
+        }
+        Relationships: []
+      }
       restaurants: {
         Row: {
           accepts_reservations: boolean | null
@@ -1209,6 +1290,7 @@ export type Database = {
           delivery_available: boolean | null
           description: string | null
           dine_in_available: boolean | null
+          google_place_id: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -1243,6 +1325,7 @@ export type Database = {
           delivery_available?: boolean | null
           description?: string | null
           dine_in_available?: boolean | null
+          google_place_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -1277,6 +1360,7 @@ export type Database = {
           delivery_available?: boolean | null
           description?: string | null
           dine_in_available?: boolean | null
+          google_place_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null

@@ -1,6 +1,6 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Web Portal UX/UI Redesign
-# Task: Implement 12-step plan at .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
+# Project: EatMe — Admin Restaurant Data Ingestion
+# Task: Implement 10-step plan at .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
 # Pattern: Linear pipeline — implementer → verifier (build) → critic (design) → stepper → (loop or done)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
@@ -11,24 +11,27 @@ cli:
 event_loop:
   completion_promise: "LOOP_COMPLETE"
   starting_event: "start"
-  max_iterations: 75               # 12 steps × ~5-6 iterations each (4 hats per cycle)
-  max_runtime_seconds: 10800       # 3 hours
+  max_iterations: 80               # 10 steps × ~6-8 iterations each (4 hats per cycle)
+  max_runtime_seconds: 14400       # 4 hours
   idle_timeout_secs: 600           # 10 min idle threshold
   checkpoint_interval: 2           # git checkpoint every 2 iterations
 
 core:
-  specs_dir: ".agents/planning/2026-04-09-web-portal-ux-redesign/"
+  specs_dir: ".agents/planning/2026-04-10-admin-restaurant-ingestion/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Implementation plan: .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md — work through steps in order, one at a time."
-    - "Design document: .agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md — the authoritative source for all component interfaces, page changes, and constants."
-    - "All changes are in apps/web-portal/ — do NOT modify apps/mobile/, packages/, or infra/ directories."
+    - "Implementation plan: .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md — work through steps in order, one at a time."
+    - "Design document: .agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md — the authoritative source for all interfaces, field mappings, SQL schema, and component specs."
+    - "Step 1 writes to infra/supabase/migrations/. All other steps write to apps/web-portal/ only."
+    - "Do NOT modify apps/mobile/, packages/, or any migration files other than 080_restaurant_import.sql."
+    - "CRITICAL: Do NOT delete, replace, or break the existing manual restaurant creation flow. The pages app/admin/restaurants/new/page.tsx, app/admin/restaurants/[id]/edit/page.tsx, and components/admin/RestaurantForm.tsx must remain fully functional. The bulk import feature is ADDITIVE — it sits alongside the manual flow, not in place of it."
     - "After any TypeScript change, run `pnpm turbo run build --filter=web-portal` and fix ALL errors before marking a step complete."
     - "After any lint-sensitive change, run `pnpm turbo run lint --filter=web-portal` and fix warnings/errors."
+    - "CRITICAL: When building DB rows in import-service.ts, set `location` as `{ lat, lng }` jsonb. Do NOT set `location_point` — the DB auto-computes it from `location` via the DEFAULT expression."
+    - "Google Places API key is `GOOGLE_PLACES_API_KEY`. It must only be read server-side (API routes). Never expose it to the client."
     - "Do NOT add new npm dependencies without first checking that no existing package already provides the functionality."
     - "Do NOT modify files unrelated to the current implementation step."
     - "Do NOT refactor, rename, or reformat code outside the scope of each step."
-    - "Do NOT change database schema, API routes, or Supabase configuration — this is a frontend-only redesign."
     - "Prefer editing existing files over creating new ones. Only create new files when the plan explicitly calls for them."
 
 memories:
@@ -47,47 +50,89 @@ hats:
     emoji: "🔧"
     description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs build validation"
     instructions: |
-      You are a senior Next.js / React 19 / TypeScript / Tailwind CSS / shadcn/ui engineer implementing the EatMe web portal UX/UI redesign.
+      You are a senior Next.js / TypeScript / Supabase / Google Places API engineer implementing
+      the EatMe admin restaurant data ingestion system.
 
       Start by reading the checklist in:
-        .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
+        .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
 
       Find the FIRST unchecked item [ ] and implement that step only.
 
       For every step:
         1. Read the scratchpad (.agent/scratchpad.md) first — it may contain progress notes from a previous
-           iteration on the same step (e.g., after a retry). Continue from where you left off, don't redo completed work.
-        2. Read the design document section relevant to this step:
-           .agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md
-        3. Read every file you plan to modify BEFORE changing it — understand the current code.
+           iteration on the same step (e.g., after a retry). Continue from where you left off.
+        2. Read the full step description in the implementation plan and the relevant section in:
+           .agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md
+        3. Read every file you plan to modify or reference BEFORE changing it.
         4. Implement exactly what the step describes. No extra refactoring, no speculative additions.
-        5. For multi-page steps (especially Steps 9 and 10), update the scratchpad after completing each
-           sub-item so retries can resume from the right place. Example:
-           "Step 9: ✅ sidebar ✅ dashboard ✅ restaurant list — next: ingredients"
-        6. Run `pnpm turbo run build --filter=web-portal` after any TypeScript changes. Fix all errors.
-        7. If the step includes test requirements, write and run tests with `cd apps/web-portal && npx vitest run`. Fix failures.
-        8. Mark the step complete: change `[ ]` to `[x]` in the checklist.
-        9. Clear the scratchpad (replace contents with "Step N complete") and emit `step.complete` with a short summary, e.g.:
-           step.complete "Step 3: Core shared UI components — PageHeader, LoadingSkeleton, EmptyState, ConfirmDialog created with tests"
+        5. Run `pnpm turbo run build --filter=web-portal` after any TypeScript changes. Fix all errors.
+        6. If the step includes test requirements, write and run tests with `cd apps/web-portal && npx vitest run`. Fix failures.
+        7. Mark the step complete: change `[ ]` to `[x]` in the checklist.
+        8. Clear the scratchpad (replace contents with "Step N complete") and emit `step.complete` with a short summary.
 
       Step-specific notes:
-        - Step 1 (prerequisites): Install shadcn components with `cd apps/web-portal && npx shadcn@latest add skeleton && npx shadcn@latest add pagination`.
-          Install test deps: `cd apps/web-portal && npm install -D vitest @testing-library/react @testing-library/jest-dom @vitejs/plugin-react jsdom`.
-          Create vitest.config.ts with jsdom environment and @/ path alias matching tsconfig.json.
-        - Step 2 (constants): Extract color maps from actual existing code. Read ingredients page for INGREDIENT_FAMILY_COLORS,
-          read DietaryTagBadges.tsx for DIETARY_TAG_COLORS (note: it uses combined strings including border class).
-          Read auth login/signup pages to extract the inline SVG paths for OAuthIcons.
-        - Step 3 (ConfirmDialog): Model after the existing AlertDialog pattern in /app/admin/dish-categories/page.tsx (lines 427-449).
-        - Step 5 (form sub-components): Create and test in isolation only — do NOT wire into pages yet (Steps 6/8/10 handle wiring).
-        - Step 6 (RestaurantForm): This is admin-only. Do NOT use it for the owner edit page or onboarding.
-        - Step 7 (DishFormDialog): The file is 1,354 lines. Use FormProvider + useFormContext pattern.
-          Keep selectedIngredients state and allergen/dietary calculation in the orchestrator or a custom hook.
-        - Step 8 (BasicInfo): The file is 1,027 lines. The auto-save watch() + refs pattern must be preserved.
-          Create useRestaurantDraft hook to encapsulate localStorage data loading and debounced saving.
-        - Step 11 (ConfirmDialog integration): 8 confirm() calls across 3 files:
-          RestaurantTable.tsx (lines 41, 69, 80), ingredients/page.tsx (lines 144, 162),
-          admin restaurants menus/page.tsx (lines 248, 331, 363).
-          Onboarding menu deletions (handleDeleteMenu line 180, handleDeleteDish line 237) are handled in Step 10.
+
+        Step 1 (DB migration):
+          - Create infra/supabase/migrations/080_restaurant_import.sql with the exact SQL from the design document.
+          - Apply to local Supabase: `supabase db reset` or `supabase migration up`.
+          - Regenerate types: `pnpm supabase gen types typescript --local > packages/database/src/types.ts`
+          - Verify the `google_place_id` column, UNIQUE constraint, and both new tables exist.
+
+        Step 2 (shared types and import service):
+          - Create lib/import-types.ts, lib/import-validation.ts, lib/import-service.ts in apps/web-portal/.
+          - Use Zod for validation. Reuse existing constants from lib/constants.ts for enum values.
+          - In importRestaurants(), build DB rows with `location: { lat: r.latitude, lng: r.longitude }`.
+            Do NOT set `location_point` — the DB computes it automatically.
+          - Use `string-similarity` (already in deps) for fuzzy name matching in deduplicateRestaurants().
+          - The admin_audit_log entry must include: action: 'bulk_import', resource_type: 'restaurants'.
+
+        Step 3 (Google Places client):
+          - Create lib/google-places.ts in apps/web-portal/.
+          - Nearby Search endpoint: POST https://places.googleapis.com/v1/places:searchNearby
+          - Text Search endpoint: POST https://places.googleapis.com/v1/places:searchText
+          - Use the exact FIELD_MASK from the design document (Essentials + Enterprise + Enterprise Plus fields).
+          - Pass key via X-Goog-Api-Key header and fields via X-Goog-FieldMask header.
+          - Implement exponential backoff for 429 errors (retry up to 3×, delays 1s/2s/4s).
+          - Add GOOGLE_PLACES_API_KEY to .env.example with a placeholder comment.
+
+        Step 4 (Google import API route):
+          - Create app/api/admin/import/google/route.ts in apps/web-portal/.
+          - Verify admin auth using the existing verifyAdminRequest() pattern from other admin API routes.
+          - Loop up to maxPages (default 1, max 10), each page fetches up to 20 restaurants directly with full details.
+          - On Google 403: stop pagination, import partial results, include budget warning in response.
+
+        Step 5 (warning flags and RestaurantTable):
+          - Create components/admin/RestaurantWarningBadge.tsx.
+          - Import computeWarningFlags from lib/import-service.ts.
+          - Update the restaurants list page query to include dish count subquery.
+          - Add warning badge, "Show flagged only" filter, and "Scan Menu" button to RestaurantTable.
+
+        Step 6 (import page UI):
+          - Create app/admin/restaurants/import/page.tsx and components/admin/ImportAreaSelector.tsx,
+            ImportResultsTable.tsx, ImportSummaryCard.tsx.
+          - Reuse Leaflet patterns from the existing LocationPicker.tsx (dynamic import, ssr: false).
+          - Use Nominatim for city geocoding (same throttle pattern as LocationPicker).
+          - CSV tab is a placeholder in this step — full CSV support comes in Step 7.
+
+        Step 7 (CSV import):
+          - Add papaparse: `cd apps/web-portal && pnpm add papaparse && pnpm add -D @types/papaparse`
+          - Create lib/csv-import.ts and app/api/admin/import/csv/route.ts.
+          - CSV parse errors (missing required columns, invalid structure) return 400 with detail.
+          - Share the same importRestaurants() function as the Google path.
+
+        Step 8 (menu-scan query param):
+          - Modify app/admin/menu-scan/page.tsx to read `restaurant_id` from useSearchParams().
+          - If present, fetch that restaurant and set as selectedRestaurant on mount.
+          - Show "Change" button to clear the pre-selection and revert to dropdown.
+
+        Step 9 (sidebar and dashboard):
+          - Add "Import" nav item (Download icon) after "Restaurants" in AdminSidebar.tsx.
+          - Add import stats card and "Recent Imports" section (last 5 jobs) to app/admin/page.tsx.
+
+        Step 10 (E2E tests and polish):
+          - Write integration tests for both API routes.
+          - Add loading states, toasts, empty states, and accessibility improvements to the import page.
+          - Verify the full Google → restaurant list → menu scan flow works end-to-end.
     triggers:
       - "start"
       - "step.retry"
@@ -110,12 +155,13 @@ hats:
       2. Lint: `pnpm turbo run lint --filter=web-portal` — must pass with zero errors.
          Warnings are acceptable but errors must be fixed.
 
-      3. Tests (if step 2+): `cd apps/web-portal && npx vitest run` — all tests must pass.
-         For Step 1, just verify the smoke test passes.
+      3. Tests (Steps 2+): `cd apps/web-portal && npx vitest run` — all tests must pass.
 
       4. Scope: check that only files relevant to this step were modified.
-         No changes to apps/mobile/, packages/, infra/, or database schema.
-         Run `git diff --name-only` to see what changed.
+         - Step 1: only infra/supabase/migrations/080_restaurant_import.sql and packages/database/src/types.ts
+         - All other steps: only apps/web-portal/ files
+         - No changes to apps/mobile/, packages/ (except DB types in Step 1), other infra/ files
+         Run `git diff --name-only` to verify.
 
       If any check fails:
         - Report the exact error output.
@@ -140,31 +186,48 @@ hats:
       Read the event payload to identify which step was completed.
 
       1. Read the FULL step description in:
-         .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
+         .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
 
       2. Read the relevant section in:
-         .agents/planning/2026-04-09-web-portal-ux-redesign/design/detailed-design.md
+         .agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md
 
-      3. Read every file that was created or modified in this step. Check:
-         - Component interfaces match the TypeScript props defined in the design document
-         - shadcn/ui components used correctly (not raw HTML overlays where Dialog/AlertDialog is specified)
-         - Constants come from lib/ui-constants.ts (not hardcoded in components)
-         - Accessibility attributes present where the plan specifies (aria-labels, roles)
-         - No remaining window.confirm() calls if the step was supposed to replace them
-         - No remaining emojis if the step was supposed to replace them with Lucide icons
+      3. Read every file created or modified in this step. Check:
+         - TypeScript interfaces match exactly what the design document specifies
+         - Field mappings (Google → MappedRestaurant → DB) are correct
+         - No location_point being set manually (DB auto-computes it)
+         - No Google API key exposed client-side
+         - SQL schema matches the design document exactly (column names, types, constraints, RLS)
+         - Warning flags are computed at query time, not stored in DB
+         - Auth verification (verifyAdminRequest) present on all admin API routes
+         - The manual restaurant creation flow is intact: verify that
+           app/admin/restaurants/new/page.tsx, app/admin/restaurants/[id]/edit/page.tsx,
+           and components/admin/RestaurantForm.tsx were NOT modified (run `git diff --name-only`).
+           If any of these appear in the diff, flag it as a violation immediately.
 
       4. Step-specific design checks:
-         - Step 1: vitest.config.ts exists with jsdom env and @/ alias, smoke test file exists
-         - Step 3: ConfirmDialog follows the AlertDialog pattern from dish-categories/page.tsx
-         - Step 4: /app/onboard/layout.tsx exists, uses usePathname(), renders OnboardingStepper
-         - Step 5: Components are NOT wired into pages yet (isolation only)
-         - Step 6: admin new/edit pages are thin wrappers (<100 lines each), RestaurantForm is in components/admin/
-         - Step 7: DishFormDialog.tsx orchestrator is under 300 lines, 9 sub-components in components/forms/dish/
-         - Step 8: basic-info/page.tsx is under 200 lines, useRestaurantDraft hook in lib/hooks/
-         - Step 9: Restaurant list page has pagination, all admin pages use PageHeader
-         - Step 10: Quick Actions cards removed from dashboard, OAuth buttons use OAuthIcon components
-         - Step 11: grep for `window.confirm\|[^a-z]confirm(` in .tsx files — zero results
-         - Step 12: grep for emoji characters (⚠️🌱🥬🍽🥤) in component files — zero results
+         - Step 1: 080_restaurant_import.sql exists with correct SQL. google_place_id has UNIQUE constraint
+           and partial index WHERE NOT NULL. Both new tables have RLS enabled.
+         - Step 2: MappedRestaurant has all fields from design. importRestaurants() writes
+           admin_audit_log with action='bulk_import', resource_type='restaurants'.
+           location built as `{ lat, lng }` — NOT location_point.
+         - Step 3: FIELD_MASK header includes all Essentials + Enterprise + Enterprise Plus fields from design.
+           nearbySearchRestaurants uses POST (not GET). exponential backoff present for 429.
+           GOOGLE_PLACES_API_KEY in .env.example.
+         - Step 4: Route loops up to maxPages, each page calls one search (no separate Place Details).
+           apiCallsUsed in ImportSummary equals number of search pages fetched.
+           403 handling stops pagination and returns partial results with warning.
+         - Step 5: computeWarningFlags covers all 4 flags (missing_cuisine, missing_hours,
+           missing_contact, missing_menu). Restaurant list query includes dish_count subquery.
+           RestaurantWarningBadge renders nothing when warnings is empty.
+         - Step 6: Leaflet map loaded with next/dynamic + ssr: false. Nominatim throttled to 1 req/sec.
+           CSV tab is placeholder only (no CSV functionality yet).
+         - Step 7: papaparse used for CSV parsing. cuisine_types parsed as semicolon-separated.
+           CSV route shares importRestaurants() from import-service — no duplicated insert logic.
+         - Step 8: useSearchParams() reads restaurant_id. Invalid ID shows toast and falls back to dropdown.
+           "Change" button clears pre-selection.
+         - Step 9: "Import" nav item uses Download icon from lucide-react, placed after "Restaurants".
+           Dashboard queries restaurant_import_jobs for last 5 entries.
+         - Step 10: Both API routes have integration tests. Import page has loading states and toasts.
 
       If any issue found:
         - Describe the exact issue, the file/line, and what the design spec expects.
@@ -183,20 +246,21 @@ hats:
     emoji: "📋"
     description: "Checks checklist progress after each verified step and drives the loop forward or signals completion"
     instructions: |
-      You are the progress manager for the EatMe web portal UX/UI redesign.
+      You are the progress manager for the EatMe admin restaurant data ingestion implementation.
 
       Read the checklist in:
-        .agents/planning/2026-04-09-web-portal-ux-redesign/implementation/plan.md
+        .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
 
       Count the remaining unchecked items [ ].
 
       If unchecked items remain:
         - Emit `start` to trigger the Implementer for the next step.
 
-      If ALL 12 items are checked [x]:
+      If ALL 10 items are checked [x]:
         - Run `pnpm turbo run build --filter=web-portal` one final time.
         - Run `cd apps/web-portal && npx vitest run` one final time.
-        - Confirm all 12 checklist items are marked [x].
+        - Confirm all 10 checklist items are marked [x].
+        - Confirm GOOGLE_PLACES_API_KEY is documented in .env.example.
         - Emit `LOOP_COMPLETE`.
     triggers:
       - "step.verified"

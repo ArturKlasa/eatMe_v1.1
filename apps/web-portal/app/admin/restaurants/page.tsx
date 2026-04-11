@@ -18,6 +18,8 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from '@/components/ui/pagination';
+import { computeWarningFlags } from '@/lib/import-service';
+import type { WarningFlag } from '@/lib/import-types';
 
 type RestaurantWithCounts = Restaurant & { menuCount: number; dishCount: number };
 
@@ -25,9 +27,11 @@ const PAGE_SIZES = [10, 25, 50] as const;
 
 export default function AdminRestaurantsPage() {
   const [allRestaurants, setAllRestaurants] = useState<RestaurantWithCounts[]>([]);
+  const [warningsMap, setWarningsMap] = useState<Map<string, WarningFlag[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
@@ -44,13 +48,37 @@ export default function AdminRestaurantsPage() {
         return;
       }
 
-      const mapped = (restaurants || []).map(restaurant => ({
+      const rows = restaurants ?? [];
+
+      // Fetch dish counts for all restaurants
+      const dishCountMap = new Map<string, number>();
+      if (rows.length > 0) {
+        const ids = rows.map((r) => r.id);
+        const { data: dishRows } = await supabase
+          .from('dishes')
+          .select('restaurant_id')
+          .in('restaurant_id', ids);
+        for (const dish of dishRows ?? []) {
+          if (dish.restaurant_id) {
+            dishCountMap.set(dish.restaurant_id, (dishCountMap.get(dish.restaurant_id) ?? 0) + 1);
+          }
+        }
+      }
+
+      const mapped = rows.map((restaurant) => ({
         ...restaurant,
         menuCount: 0,
-        dishCount: 0,
+        dishCount: dishCountMap.get(restaurant.id) ?? 0,
       }));
 
+      // Compute warning flags per restaurant
+      const warnings = new Map<string, WarningFlag[]>();
+      for (const restaurant of mapped) {
+        warnings.set(restaurant.id, computeWarningFlags(restaurant, restaurant.dishCount));
+      }
+
       setAllRestaurants(mapped);
+      setWarningsMap(warnings);
       setLoading(false);
     };
 
@@ -65,7 +93,9 @@ export default function AdminRestaurantsPage() {
       statusFilter === 'all' ||
       (statusFilter === 'active' && r.is_active) ||
       (statusFilter === 'suspended' && !r.is_active);
-    return matchesSearch && matchesStatus;
+    const matchesFlagged =
+      !showFlaggedOnly || (warningsMap.get(r.id) ?? []).length > 0;
+    return matchesSearch && matchesStatus && matchesFlagged;
   });
 
   // Pagination
@@ -135,7 +165,12 @@ export default function AdminRestaurantsPage() {
         />
       ) : (
         <>
-          <RestaurantTable restaurants={paginatedRestaurants} />
+          <RestaurantTable
+            restaurants={paginatedRestaurants}
+            warnings={warningsMap}
+            showFlaggedOnly={showFlaggedOnly}
+            onToggleFlaggedOnly={(v) => { setShowFlaggedOnly(v); setPage(1); }}
+          />
 
           {/* Pagination */}
           {filtered.length > pageSize && (

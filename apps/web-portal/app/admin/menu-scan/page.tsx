@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Upload,
   ChevronLeft,
@@ -211,11 +212,15 @@ export default function MenuScanPage() {
   // ---------- step state ----------
   const [step, setStep] = useState<Step>('upload');
 
+  // ---------- query param pre-selection ----------
+  const searchParams = useSearchParams();
+
   // ---------- upload step ----------
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [restaurantSearch, setRestaurantSearch] = useState('');
   const [showRestaurantDropdown, setShowRestaurantDropdown] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantOption | null>(null);
+  const [isPreSelected, setIsPreSelected] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -318,6 +323,29 @@ export default function MenuScanPage() {
       .order('name')
       .then(({ data }) => setDietaryTags((data as DietaryTagOption[]) ?? []));
   }, []);
+
+  // ---------- query-param restaurant pre-selection ----------
+  useEffect(() => {
+    const restaurantId = searchParams.get('restaurant_id');
+    if (!restaurantId) return;
+
+    supabase
+      .from('restaurants')
+      .select('id, name, city, country_code')
+      .eq('id', restaurantId)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          toast.warning('Restaurant not found — please select one from the list');
+          return;
+        }
+        const r = data as RestaurantOption;
+        setSelectedRestaurant(r);
+        setRestaurantSearch(r.name);
+        setIsPreSelected(true);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // ---------- filtered restaurant list ----------
   const filteredRestaurants = restaurantSearch.trim()
@@ -1425,20 +1453,46 @@ export default function MenuScanPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-800">1. Select Restaurant</h2>
-            <button
-              onClick={() => {
-                setQuickAddInitialName(restaurantSearch);
-                setShowQuickAdd(v => !v);
-              }}
-              className="flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 font-medium"
-            >
-              <Store className="h-4 w-4" />
-              New Restaurant
-            </button>
+            {!isPreSelected && (
+              <button
+                onClick={() => {
+                  setQuickAddInitialName(restaurantSearch);
+                  setShowQuickAdd(v => !v);
+                }}
+                className="flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 font-medium"
+              >
+                <Store className="h-4 w-4" />
+                New Restaurant
+              </button>
+            )}
           </div>
 
+          {/* Pre-selected from query param */}
+          {isPreSelected && selectedRestaurant && (
+            <div className="flex items-center justify-between rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+              <p className="text-sm text-green-700 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                <span className="font-medium">{selectedRestaurant.name}</span>
+                {selectedRestaurant.city && (
+                  <span className="text-green-600">— {selectedRestaurant.city}</span>
+                )}
+              </p>
+              <button
+                onClick={() => {
+                  setIsPreSelected(false);
+                  setSelectedRestaurant(null);
+                  setRestaurantSearch('');
+                  setShowRestaurantDropdown(false);
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700 underline ml-4 shrink-0"
+              >
+                Change
+              </button>
+            </div>
+          )}
+
           {/* Quick-add restaurant inline form */}
-          {showQuickAdd && (
+          {!isPreSelected && showQuickAdd && (
             <div className="max-h-[75vh] overflow-y-auto pr-1">
               <NewRestaurantForm
                 compact
@@ -1461,7 +1515,7 @@ export default function MenuScanPage() {
             </div>
           )}
 
-          {!showQuickAdd && (
+          {!isPreSelected && !showQuickAdd && (
             <div className="relative">
               <Input
                 value={restaurantSearch}
@@ -1513,7 +1567,7 @@ export default function MenuScanPage() {
               )}
             </div>
           )}
-          {selectedRestaurant && (
+          {!isPreSelected && selectedRestaurant && (
             <p className="text-xs text-green-600 flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
               {selectedRestaurant.name}
@@ -2181,6 +2235,7 @@ export default function MenuScanPage() {
                               >
                                 <DishGroupCard
                                   parent={dish}
+                                  // eslint-disable-next-line react/no-children-prop
                                   children={children}
                                   onAccept={() => acceptGroup(dish._id)}
                                   onReject={() => rejectGroup(dish._id)}

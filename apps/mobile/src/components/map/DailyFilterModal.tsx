@@ -735,10 +735,13 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   return (
     <View
       style={modals.priceSliderWrapper}
+      collapsable={false}
       onLayout={e => {
         const w = e.nativeEvent.layout.width;
-        trackWidthRef.current = w;
-        setTrackWidth(w);
+        if (w > 0) {
+          trackWidthRef.current = w;
+          setTrackWidth(w);
+        }
       }}
     >
       {/* Visual track bar */}
@@ -761,6 +764,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
             zIndex: activeThumb === 'min' ? 10 : 5,
           },
         ]}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         {...minPanResponder.panHandlers}
       />
       {/* Max thumb */}
@@ -773,6 +777,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
             zIndex: activeThumb === 'max' ? 10 : 5,
           },
         ]}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         {...maxPanResponder.panHandlers}
       />
     </View>

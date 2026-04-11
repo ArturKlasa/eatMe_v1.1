@@ -16,6 +16,10 @@ const config = getDefaultConfig(projectRoot);
 // avoid this:  sudo apt install watchman
 config.watchFolders = [monorepoRoot];
 
+// Required for pnpm workspaces: follow symlinks in node_modules so Metro can
+// resolve workspace packages (e.g. @eatme/shared) to their source in packages/.
+config.resolver.unstable_enableSymlinks = true;
+
 // Resolve modules from the monorepo root node_modules as well as the app's own
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),

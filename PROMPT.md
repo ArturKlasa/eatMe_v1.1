@@ -1,43 +1,57 @@
-# EatMe — Admin Restaurant Data Ingestion
+# EatMe — Web Portal Redesign
 
 ## Objective
 
-Implement the 10-step admin restaurant data ingestion system per the checklist in:
-  `.agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md`
+Implement the 20-step web portal redesign per the checklist in:
+  `.agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md`
 
 Work through steps in order, one at a time. Mark each step `[x]` when complete.
 
 ## Context
 
-EatMe is a food discovery platform (pnpm + Turborepo monorepo). This task touches:
-- **`infra/supabase/migrations/`** — Step 1 only: DB migration SQL file
-- **`apps/web-portal`** — Next.js 16 + React 19, shadcn/ui (Radix), Tailwind CSS 4, Supabase client
-  - New API routes: `app/api/admin/import/google/route.ts`, `app/api/admin/import/csv/route.ts`
-  - New lib files: `lib/google-places.ts`, `lib/import-service.ts`, `lib/import-validation.ts`, `lib/import-types.ts`, `lib/csv-import.ts`
-  - New UI: `app/admin/restaurants/import/page.tsx`, `components/admin/Import*.tsx`, `components/admin/RestaurantWarningBadge.tsx`
-  - Modified: `components/admin/AdminSidebar.tsx`, `components/admin/RestaurantTable.tsx`, `app/admin/restaurants/page.tsx`, `app/admin/menu-scan/page.tsx`, `app/admin/page.tsx`
+EatMe is a food discovery platform (pnpm + Turborepo monorepo). This redesign touches:
+- **`packages/tokens/`** — Step 2 only: add `generate-css-vars.ts` script + culori/tsx dev deps
+- **`apps/web-portal`** — Next.js 16 + React 19, shadcn/ui (Radix), Tailwind CSS v4, Supabase client
+  - New shared components: `DataTable`, `SearchFilterBar`, `StatusBadge`, `InfoBox`, `SectionCard`, `ThemeToggle`, `OwnerHeader`, `LocationFormSection`
+  - New hooks: `hooks/useDialog.ts`, `hooks/usePagination.ts`, `hooks/useFilters.ts`
+  - New pages: `app/auth/forgot-password/page.tsx`, `app/auth/reset-password/page.tsx`
+  - New infra: `middleware.ts`, `app/tokens.css`, `app/loading.tsx`, `app/admin/loading.tsx`
+  - New menu-scan artifacts: `lib/menu-scan-utils.ts`, `app/admin/menu-scan/hooks/useMenuScanState.ts`, 3 step components
+  - Unified `components/admin/RestaurantForm.tsx` (sections config + enableDraft)
+  - Deleted: `components/admin/NewRestaurantForm.tsx`, `components/admin/RestaurantTable.tsx`
 
-**Do NOT modify**: `apps/mobile/`, `packages/`, existing Supabase schema beyond migration 080.
+**Do NOT modify**: `apps/mobile/`, `infra/`, any package other than `packages/tokens/`.
 
-**CRITICAL — preserve the manual flow**: The existing single-restaurant creation and edit flow (`/admin/restaurants/new`, `/admin/restaurants/[id]/edit`, `components/admin/RestaurantForm.tsx`) must remain fully functional. The bulk import feature is **additive** — a new path alongside manual entry, not a replacement for it.
+**CRITICAL — never break existing functionality**: every page and API route that works before each step must still work after it.
 
 ## Key Documents
 
-- **Implementation plan** (checklist): `.agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md`
-- **Design spec** (authoritative): `.agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md`
+- **Implementation plan** (checklist): `.agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md`
+- **Design spec** (authoritative): `.agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md`
+- **Project summary**: `.agents/planning/2026-04-10-web-portal-redesign/summary.md`
 
 ## Steps
 
-1. DB migration — `google_place_id` column, `restaurant_import_jobs`, `google_api_usage` tables
-2. Shared types, validation, and import service — `import-types.ts`, `import-validation.ts`, `import-service.ts`
-3. Google Places API client — `google-places.ts` with Nearby Search, Text Search, field mapping
-4. Google import API route — `POST /api/admin/import/google` (search + dedup + insert)
-5. Warning flags and RestaurantTable enhancements — badges, flagged filter, scan menu button
-6. Import page UI — `/admin/restaurants/import` with map area selector and results display
-7. CSV import — `csv-import.ts`, `POST /api/admin/import/csv`, CSV tab on import page
-8. Menu-scan query param support — accept `?restaurant_id=` in menu-scan page
-9. Admin sidebar and dashboard integration — nav item, import stats
-10. End-to-end testing and polish — full flow tests, edge cases, UX refinements
+1. Quick wins — remove mapbox-gl/react-map-gl (-700KB), add middleware.ts auth redirects, add loading.tsx skeletons
+2. Token pipeline — `packages/tokens/scripts/generate-css-vars.ts` (hex→oklch, px→rem) → `app/tokens.css`
+3. ThemeProvider + ThemeToggle — dark mode activated end-to-end (many components will look broken until Step 5)
+4. Migrate admin layout, header, sidebar to semantic tokens (bg-background, text-foreground, etc.)
+5. Migrate all remaining hardcoded colors across every page and component
+6. Utility layer — `@layer utilities` in globals.css: focus-ring, surface-*, animate-enter, icon-sm/md
+7. StatusBadge, InfoBox, SectionCard shared components
+8. useDialog, usePagination, useFilters hooks
+9. Refactor menus/page and ingredients/page with new hooks
+10. DataTable and SearchFilterBar shared components
+11. Replace RestaurantTable with DataTable + SearchFilterBar in restaurants page; delete RestaurantTable.tsx
+12. LocationFormSection extraction (wired via react-hook-form `<Controller>`)
+13. Unified RestaurantForm (sections config object, enableDraft prop)
+14. Refactor admin create/edit pages to unified form; delete NewRestaurantForm.tsx
+15. Owner edit page — add cuisines selector, service options, payment methods
+16. Extract menu-scan-utils.ts and useMenuScanState hook (2,500 LOC → utilities + hook)
+17. Split menu-scan page into three step components; page becomes ~80 LOC orchestrator
+18. Auth improvements — password visibility toggle, forgot-password page, reset-password page
+19. Onboarding routing fix (basic-info → menu, not review) + mobile responsiveness pass
+20. Visual polish — spacing tokens (p-card), typography, @starting-style animations, badge sizes
 
 ## Validation
 
@@ -47,4 +61,11 @@ EatMe is a food discovery platform (pnpm + Turborepo monorepo). This task touche
 
 ## Success Criteria
 
-All 10 checklist items marked `[x]`, build succeeds, tests pass, and `GOOGLE_PLACES_API_KEY` is documented in `.env.example`.
+All 20 checklist items marked `[x]`, build succeeds, all tests pass, and:
+- `apps/web-portal/app/tokens.css` exists and is imported as the first line of `globals.css`
+- Dark mode is fully functional across all pages (toggle in admin header + owner header)
+- Zero hardcoded color classes outside `components/ui/` (enforced by a Vitest grep check from Step 5)
+- `components/admin/NewRestaurantForm.tsx` is deleted
+- `components/admin/RestaurantTable.tsx` is deleted
+- `app/auth/forgot-password/page.tsx` and `app/auth/reset-password/page.tsx` exist
+- `app/onboard/basic-info/page.tsx` routes to `/onboard/menu` (not `/onboard/review`)

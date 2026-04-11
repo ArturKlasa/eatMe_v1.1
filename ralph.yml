@@ -1,6 +1,6 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Admin Restaurant Data Ingestion
-# Task: Implement 10-step plan at .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
+# Project: EatMe — Web Portal Redesign
+# Task: Implement 20-step plan at .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
 # Pattern: Linear pipeline — implementer → verifier (build) → critic (design) → stepper → (loop or done)
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
@@ -11,28 +11,28 @@ cli:
 event_loop:
   completion_promise: "LOOP_COMPLETE"
   starting_event: "start"
-  max_iterations: 80               # 10 steps × ~6-8 iterations each (4 hats per cycle)
-  max_runtime_seconds: 14400       # 4 hours
+  max_iterations: 160              # 20 steps × ~6-8 iterations each (4 hats per cycle)
+  max_runtime_seconds: 21600       # 6 hours
   idle_timeout_secs: 600           # 10 min idle threshold
   checkpoint_interval: 2           # git checkpoint every 2 iterations
 
 core:
-  specs_dir: ".agents/planning/2026-04-10-admin-restaurant-ingestion/"
+  specs_dir: ".agents/planning/2026-04-10-web-portal-redesign/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Implementation plan: .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md — work through steps in order, one at a time."
-    - "Design document: .agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md — the authoritative source for all interfaces, field mappings, SQL schema, and component specs."
-    - "Step 1 writes to infra/supabase/migrations/. All other steps write to apps/web-portal/ only."
-    - "Do NOT modify apps/mobile/, packages/, or any migration files other than 080_restaurant_import.sql."
-    - "CRITICAL: Do NOT delete, replace, or break the existing manual restaurant creation flow. The pages app/admin/restaurants/new/page.tsx, app/admin/restaurants/[id]/edit/page.tsx, and components/admin/RestaurantForm.tsx must remain fully functional. The bulk import feature is ADDITIVE — it sits alongside the manual flow, not in place of it."
+    - "Implementation plan: .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md — work through steps in order, one at a time."
+    - "Design document: .agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md — the authoritative source for all interfaces, component specs, and token mappings."
+    - "Steps 1–20 modify apps/web-portal/ only, EXCEPT Step 2 which also modifies packages/tokens/."
+    - "Do NOT modify apps/mobile/, infra/, or any package other than packages/tokens/ (Step 2 only)."
+    - "CRITICAL: Do NOT break existing functionality. Every page and API route that worked before must still work after each step."
     - "After any TypeScript change, run `pnpm turbo run build --filter=web-portal` and fix ALL errors before marking a step complete."
     - "After any lint-sensitive change, run `pnpm turbo run lint --filter=web-portal` and fix warnings/errors."
-    - "CRITICAL: When building DB rows in import-service.ts, set `location` as `{ lat, lng }` jsonb. Do NOT set `location_point` — the DB auto-computes it from `location` via the DEFAULT expression."
-    - "Google Places API key is `GOOGLE_PLACES_API_KEY`. It must only be read server-side (API routes). Never expose it to the client."
+    - "Each step includes test requirements — write and run those tests before marking the step complete."
     - "Do NOT add new npm dependencies without first checking that no existing package already provides the functionality."
     - "Do NOT modify files unrelated to the current implementation step."
     - "Do NOT refactor, rename, or reformat code outside the scope of each step."
     - "Prefer editing existing files over creating new ones. Only create new files when the plan explicitly calls for them."
+    - "Never hardcode colors. All colors must use semantic Tailwind token classes (bg-background, text-foreground, text-muted-foreground, bg-brand-primary, etc.)."
 
 memories:
   enabled: true
@@ -50,11 +50,11 @@ hats:
     emoji: "🔧"
     description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs build validation"
     instructions: |
-      You are a senior Next.js / TypeScript / Supabase / Google Places API engineer implementing
-      the EatMe admin restaurant data ingestion system.
+      You are a senior Next.js / TypeScript / Tailwind CSS v4 / shadcn/ui / Supabase engineer implementing
+      the EatMe web portal redesign.
 
       Start by reading the checklist in:
-        .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
+        .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
 
       Find the FIRST unchecked item [ ] and implement that step only.
 
@@ -62,7 +62,7 @@ hats:
         1. Read the scratchpad (.agent/scratchpad.md) first — it may contain progress notes from a previous
            iteration on the same step (e.g., after a retry). Continue from where you left off.
         2. Read the full step description in the implementation plan and the relevant section in:
-           .agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md
+           .agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md
         3. Read every file you plan to modify or reference BEFORE changing it.
         4. Implement exactly what the step describes. No extra refactoring, no speculative additions.
         5. Run `pnpm turbo run build --filter=web-portal` after any TypeScript changes. Fix all errors.
@@ -72,67 +72,125 @@ hats:
 
       Step-specific notes:
 
-        Step 1 (DB migration):
-          - Create infra/supabase/migrations/080_restaurant_import.sql with the exact SQL from the design document.
-          - Apply to local Supabase: `supabase db reset` or `supabase migration up`.
-          - Regenerate types: `pnpm supabase gen types typescript --local > packages/database/src/types.ts`
-          - Verify the `google_place_id` column, UNIQUE constraint, and both new tables exist.
+        Step 1 (quick wins):
+          - Remove mapbox-gl and react-map-gl from apps/web-portal/package.json and run pnpm install.
+          - Create middleware.ts using @supabase/ssr createServerClient to read session cookies.
+          - Protected routes: /admin/*, /menu/*, /restaurant/*, /onboard/* → /auth/login if unauthenticated.
+          - Already-authenticated users on /auth/login or /auth/signup → redirect to /.
+          - Create app/loading.tsx and app/admin/loading.tsx using the existing LoadingSkeleton component.
 
-        Step 2 (shared types and import service):
-          - Create lib/import-types.ts, lib/import-validation.ts, lib/import-service.ts in apps/web-portal/.
-          - Use Zod for validation. Reuse existing constants from lib/constants.ts for enum values.
-          - In importRestaurants(), build DB rows with `location: { lat: r.latitude, lng: r.longitude }`.
-            Do NOT set `location_point` — the DB computes it automatically.
-          - Use `string-similarity` (already in deps) for fuzzy name matching in deduplicateRestaurants().
-          - The admin_audit_log entry must include: action: 'bulk_import', resource_type: 'restaurants'.
+        Step 2 (token pipeline):
+          - Add culori and tsx as dev deps to packages/tokens only: pnpm add -D culori tsx.
+          - Create packages/tokens/scripts/generate-css-vars.ts — converts hex→oklch via culori, px→rem.
+          - Add card: 24 to the spacing tokens before generating.
+          - Update @eatme/tokens colors to use orange as brand primary (#FF9800 replacing #007AFF).
+          - Output writes to apps/web-portal/app/tokens.css.
+          - Add @import './tokens.css'; as the FIRST line of apps/web-portal/app/globals.css.
+          - Add prebuild and predev scripts to root package.json.
 
-        Step 3 (Google Places client):
-          - Create lib/google-places.ts in apps/web-portal/.
-          - Nearby Search endpoint: POST https://places.googleapis.com/v1/places:searchNearby
-          - Text Search endpoint: POST https://places.googleapis.com/v1/places:searchText
-          - Use the exact FIELD_MASK from the design document (Essentials + Enterprise + Enterprise Plus fields).
-          - Pass key via X-Goog-Api-Key header and fields via X-Goog-FieldMask header.
-          - Implement exponential backoff for 429 errors (retry up to 3×, delays 1s/2s/4s).
-          - Add GOOGLE_PLACES_API_KEY to .env.example with a placeholder comment.
+        Step 3 (ThemeProvider + ThemeToggle):
+          - Create components/ThemeToggle.tsx cycling light → dark → system with Sun/Moon/Monitor icons.
+          - Wrap layout.tsx body children with <ThemeProvider attribute="class" defaultTheme="system" enableSystem>.
+          - Add suppressHydrationWarning to the <html> tag.
+          - Add ThemeToggle to AdminHeader.tsx (top-right, next to user email).
+          - Create components/OwnerHeader.tsx — reads useAuth() internally; renders null when user is null
+            or when user.role === 'admin'. Includes logo + ThemeToggle + sign-out. Add to root layout.tsx.
 
-        Step 4 (Google import API route):
-          - Create app/api/admin/import/google/route.ts in apps/web-portal/.
-          - Verify admin auth using the existing verifyAdminRequest() pattern from other admin API routes.
-          - Loop up to maxPages (default 1, max 10), each page fetches up to 20 restaurants directly with full details.
-          - On Google 403: stop pagination, import partial results, include budget warning in response.
+        Step 4 (admin shell color migration):
+          - Replace all hardcoded colors in AdminSidebar.tsx, AdminHeader.tsx, app/admin/layout.tsx with semantic tokens.
+          - Key replacements: bg-white → bg-background, bg-gray-50 → bg-muted/30, border-gray-200 → border,
+            text-gray-500/600 → text-muted-foreground, text-gray-700/800/900 → text-foreground,
+            hover:bg-gray-50/100 → hover:bg-accent, bg-orange-50/text-orange-600 (active nav) → bg-brand-primary/10 text-brand-primary.
+          - Security notice: apply surface-warning text-warning directly (surface-warning added in Step 6;
+            apply the bg/border/text values directly here since the utility class isn't defined yet).
+          - Add --color-brand-primary and --color-brand-accent mappings to globals.css @theme inline block.
 
-        Step 5 (warning flags and RestaurantTable):
-          - Create components/admin/RestaurantWarningBadge.tsx.
-          - Import computeWarningFlags from lib/import-service.ts.
-          - Update the restaurants list page query to include dish count subquery.
-          - Add warning badge, "Show flagged only" filter, and "Scan Menu" button to RestaurantTable.
+        Step 5 (full color migration):
+          - Work file-by-file across all admin pages, owner pages, and shared components.
+          - Add --color-success, --color-warning, --color-info to globals.css @theme inline (light) and .dark blocks.
+          - Do NOT touch components/ui/ (shadcn primitives keep their internal classes).
+          - Write a Vitest test using fs.readFileSync that fails if hardcoded color patterns appear outside components/ui/.
 
-        Step 6 (import page UI):
-          - Create app/admin/restaurants/import/page.tsx and components/admin/ImportAreaSelector.tsx,
-            ImportResultsTable.tsx, ImportSummaryCard.tsx.
-          - Reuse Leaflet patterns from the existing LocationPicker.tsx (dynamic import, ssr: false).
-          - Use Nominatim for city geocoding (same throttle pattern as LocationPicker).
-          - CSV tab is a placeholder in this step — full CSV support comes in Step 7.
+        Step 6 (utility layer):
+          - Add @layer utilities block to globals.css with focus-ring, interactive, icon-sm/md, animate-enter, surface-* classes.
+          - Update select.tsx, dropdown-menu.tsx, tabs.tsx shadcn primitives to use the new utility classes.
+          - Note: In Tailwind v4, @layer utilities is valid but @utility directive is also available. Use @layer utilities.
 
-        Step 7 (CSV import):
-          - Add papaparse: `cd apps/web-portal && pnpm add papaparse && pnpm add -D @types/papaparse`
-          - Create lib/csv-import.ts and app/api/admin/import/csv/route.ts.
-          - CSV parse errors (missing required columns, invalid structure) return 400 with detail.
-          - Share the same importRestaurants() function as the Google path.
+        Step 7 (StatusBadge, InfoBox, SectionCard):
+          - StatusBadge: variants active/inactive/pending/error/warning/draft, sizes sm/md. Uses STATUS_CONFIG map.
+          - InfoBox: variants info/warning/success/error/tip. Uses surface-* utility classes from Step 6.
+          - SectionCard: collapsible via Radix <Collapsible> + <CollapsibleContent>. animate-enter targets data-[state] attrs.
+          - Replace existing usages in RestaurantForm.tsx blue info box (line ~362) and admin header admin badge.
 
-        Step 8 (menu-scan query param):
-          - Modify app/admin/menu-scan/page.tsx to read `restaurant_id` from useSearchParams().
-          - If present, fetch that restaurant and set as selectedRestaurant on mount.
-          - Show "Change" button to clear the pre-selection and revert to dropdown.
+        Step 8 (hooks):
+          - Create hooks/useDialog.ts with close() (keeps data) and reset() (clears immediately) semantics.
+          - Create hooks/usePagination.ts: accepts items + pageSize=25, resets to page 1 when items.length changes.
+          - Create hooks/useFilters.ts: FilterEntry<T>[] with value + fn. Active when value is non-empty. AND logic.
 
-        Step 9 (sidebar and dashboard):
-          - Add "Import" nav item (Download icon) after "Restaurants" in AdminSidebar.tsx.
-          - Add import stats card and "Recent Imports" section (last 5 jobs) to app/admin/page.tsx.
+        Step 9 (hook adoption):
+          - Refactor app/admin/restaurants/[id]/menus/page.tsx to use useDialog.
+          - Refactor app/admin/ingredients/page.tsx to use useDialog + usePagination + useFilters.
+          - useDialog: dialog close via onOpenChange(false) callback, NOT inside the onSuccess handler.
+            Pattern: <Dialog onOpenChange={(open) => { if (!open) dialog.close(); }}>
 
-        Step 10 (E2E tests and polish):
-          - Write integration tests for both API routes.
-          - Add loading states, toasts, empty states, and accessibility improvements to the import page.
-          - Verify the full Google → restaurant list → menu scan flow works end-to-end.
+        Step 10 (DataTable + SearchFilterBar):
+          - Create components/DataTable.tsx: pure renderer — no internal filter/sort state.
+            Parent pre-filters via hooks. Accepts columns, data, pagination prop, emptyState.
+          - Create components/SearchFilterBar.tsx: accepts filters config array + onChange callbacks.
+
+        Step 11 (RestaurantTable replacement):
+          - Use DataTable + SearchFilterBar directly in app/admin/restaurants/page.tsx.
+          - DELETE components/admin/RestaurantTable.tsx entirely.
+          - DataTable pagination prop wires up to usePagination hook in the parent page.
+
+        Step 12 (LocationFormSection):
+          - Extract components/LocationFormSection.tsx from RestaurantForm.
+          - Wire into react-hook-form via <Controller>:
+            <Controller name="location" control={control}
+              render={({ field }) => <LocationFormSection value={field.value} onChange={field.onChange} />} />
+
+        Step 13 (unified RestaurantForm):
+          - Replace role prop with sections: RestaurantFormSection config object.
+          - Add enableDraft prop — when true, RestaurantForm calls useAuth() internally to get userId.
+          - Merge NewRestaurantForm.tsx logic into RestaurantForm.tsx.
+          - cuisine cascade: show InfoBox variant="warning" if cuisines are changed (warns about dish impact).
+
+        Step 14 (admin create/edit pages):
+          - Refactor /admin/restaurants/new and /admin/restaurants/[id]/edit to use unified RestaurantForm.
+          - DELETE components/admin/NewRestaurantForm.tsx entirely after verifying no remaining imports.
+
+        Step 15 (owner edit page):
+          - Add cuisines selector, service options, and payment methods to app/restaurant/edit/page.tsx.
+          - These fields exist in the DB but are missing from the owner edit form.
+
+        Step 16 (menu-scan extraction):
+          - Create lib/menu-scan-utils.ts — pure functions extracted from menu-scan page.
+          - Create app/admin/menu-scan/hooks/useMenuScanState.ts — all state, actions, async logic.
+          - Target LOC for menu-scan page BEFORE this step: ~2,500 LOC. Mock pdfToImages for tests:
+            create __mocks__/pdfjs-dist.ts and use vi.mock('pdfjs-dist').
+
+        Step 17 (menu-scan step components):
+          - Create MenuScanUpload.tsx, MenuScanProcessing.tsx, MenuScanReview.tsx in app/admin/menu-scan/components/.
+          - Reduce app/admin/menu-scan/page.tsx to ~80 LOC orchestrator that imports useMenuScanState and the 3 step components.
+
+        Step 18 (auth improvements):
+          - Add password visibility toggle to login and signup forms (eye icon button).
+          - Create app/auth/forgot-password/page.tsx — email input + supabase.auth.resetPasswordForEmail().
+            redirectTo must be the FULL URL: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
+          - Create app/auth/reset-password/page.tsx — reads token_hash + type from URL params.
+            Use supabase.auth.verifyOtp({ token_hash, type: 'recovery' }) NOT exchangeCodeForSession.
+
+        Step 19 (onboarding + mobile):
+          - Fix onboarding routing: app/onboard/basic-info/page.tsx must push to /onboard/menu NOT /onboard/review.
+          - Add mobile responsiveness: hamburger menu in AdminHeader for mobile, responsive grid in admin pages.
+          - Write responsive tests by asserting className strings (jsdom cannot compute layouts),
+            e.g., assert className includes 'md:hidden' or 'hidden md:flex'.
+
+        Step 20 (visual polish):
+          - Spacing pass: replace raw px values with p-card utility (uses --token-space-card from Step 2).
+          - Typography: ensure heading hierarchy uses token-based sizes.
+          - Dialog animations: use @starting-style in globals.css (no @supports wrapper needed).
+          - Badge size variants: ensure StatusBadge sm/md sizes are applied consistently.
     triggers:
       - "start"
       - "step.retry"
@@ -155,12 +213,12 @@ hats:
       2. Lint: `pnpm turbo run lint --filter=web-portal` — must pass with zero errors.
          Warnings are acceptable but errors must be fixed.
 
-      3. Tests (Steps 2+): `cd apps/web-portal && npx vitest run` — all tests must pass.
+      3. Tests: `cd apps/web-portal && npx vitest run` — all tests must pass.
 
       4. Scope: check that only files relevant to this step were modified.
-         - Step 1: only infra/supabase/migrations/080_restaurant_import.sql and packages/database/src/types.ts
+         - Step 2: only packages/tokens/ files and apps/web-portal/app/tokens.css and apps/web-portal/app/globals.css
          - All other steps: only apps/web-portal/ files
-         - No changes to apps/mobile/, packages/ (except DB types in Step 1), other infra/ files
+         - No changes to apps/mobile/, infra/, or packages/ (except packages/tokens/ in Step 2)
          Run `git diff --name-only` to verify.
 
       If any check fails:
@@ -186,48 +244,52 @@ hats:
       Read the event payload to identify which step was completed.
 
       1. Read the FULL step description in:
-         .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
+         .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
 
       2. Read the relevant section in:
-         .agents/planning/2026-04-10-admin-restaurant-ingestion/design/detailed-design.md
+         .agents/planning/2026-04-10-web-portal-redesign/design/detailed-design.md
 
       3. Read every file created or modified in this step. Check:
-         - TypeScript interfaces match exactly what the design document specifies
-         - Field mappings (Google → MappedRestaurant → DB) are correct
-         - No location_point being set manually (DB auto-computes it)
-         - No Google API key exposed client-side
-         - SQL schema matches the design document exactly (column names, types, constraints, RLS)
-         - Warning flags are computed at query time, not stored in DB
-         - Auth verification (verifyAdminRequest) present on all admin API routes
-         - The manual restaurant creation flow is intact: verify that
-           app/admin/restaurants/new/page.tsx, app/admin/restaurants/[id]/edit/page.tsx,
-           and components/admin/RestaurantForm.tsx were NOT modified (run `git diff --name-only`).
-           If any of these appear in the diff, flag it as a violation immediately.
+         - No hardcoded color classes (bg-gray-*, text-gray-*, bg-orange-*, etc.) outside components/ui/
+         - No new npm dependencies added without explicit plan authorization
+         - New components match the interfaces specified in the design document
+         - Existing functionality is not broken — API routes, forms, and navigation still work
 
       4. Step-specific design checks:
-         - Step 1: 080_restaurant_import.sql exists with correct SQL. google_place_id has UNIQUE constraint
-           and partial index WHERE NOT NULL. Both new tables have RLS enabled.
-         - Step 2: MappedRestaurant has all fields from design. importRestaurants() writes
-           admin_audit_log with action='bulk_import', resource_type='restaurants'.
-           location built as `{ lat, lng }` — NOT location_point.
-         - Step 3: FIELD_MASK header includes all Essentials + Enterprise + Enterprise Plus fields from design.
-           nearbySearchRestaurants uses POST (not GET). exponential backoff present for 429.
-           GOOGLE_PLACES_API_KEY in .env.example.
-         - Step 4: Route loops up to maxPages, each page calls one search (no separate Place Details).
-           apiCallsUsed in ImportSummary equals number of search pages fetched.
-           403 handling stops pagination and returns partial results with warning.
-         - Step 5: computeWarningFlags covers all 4 flags (missing_cuisine, missing_hours,
-           missing_contact, missing_menu). Restaurant list query includes dish_count subquery.
-           RestaurantWarningBadge renders nothing when warnings is empty.
-         - Step 6: Leaflet map loaded with next/dynamic + ssr: false. Nominatim throttled to 1 req/sec.
-           CSV tab is placeholder only (no CSV functionality yet).
-         - Step 7: papaparse used for CSV parsing. cuisine_types parsed as semicolon-separated.
-           CSV route shares importRestaurants() from import-service — no duplicated insert logic.
-         - Step 8: useSearchParams() reads restaurant_id. Invalid ID shows toast and falls back to dropdown.
-           "Change" button clears pre-selection.
-         - Step 9: "Import" nav item uses Download icon from lucide-react, placed after "Restaurants".
-           Dashboard queries restaurant_import_jobs for last 5 entries.
-         - Step 10: Both API routes have integration tests. Import page has loading states and toasts.
+         - Step 1: middleware.ts handles all 4 protected route patterns. Both loading.tsx files exist and use LoadingSkeleton.
+           mapbox-gl and react-map-gl removed from package.json.
+         - Step 2: tokens.css has --token-color-*, --token-space-*, --token-type-*, --token-radius-* variables.
+           @import './tokens.css' is FIRST line of globals.css. Brand primary is orange (#FF9800-derived oklch).
+           card spacing token (24px → 1.5rem) exists. culori and tsx added to packages/tokens only.
+         - Step 3: ThemeProvider wraps body in layout.tsx. suppressHydrationWarning on <html>.
+           ThemeToggle in AdminHeader. OwnerHeader self-hides for admin users and null users.
+         - Step 4: No bg-white, bg-gray-*, text-gray-* in AdminSidebar, AdminHeader, admin layout.
+           Active nav item uses bg-brand-primary/10 text-brand-primary. Security notice uses correct surface pattern.
+         - Step 5: grep check test exists. All pages pass it. components/ui/ excluded from check.
+           --color-success, --color-warning, --color-info defined in globals.css for both light and .dark.
+         - Step 6: @layer utilities block in globals.css with all 5 surface-* classes and focus-ring, interactive, icon-sm/md, animate-enter.
+           select.tsx, dropdown-menu.tsx, tabs.tsx updated.
+         - Step 7: StatusBadge has all 6 variants. InfoBox has all 5 variants. SectionCard collapsible uses Radix Collapsible.
+           Existing usages in RestaurantForm replaced.
+         - Step 8: useDialog close() keeps data (isOpen=false, data unchanged). reset() clears data to null.
+           useFilters uses FilterEntry<T>[] with value+fn pattern.
+         - Step 9: menus/page uses useDialog. ingredients/page uses all 3 hooks.
+           Dialog closes via onOpenChange callback, NOT inside onSuccess.
+         - Step 10: DataTable has no internal filter state. pagination prop accepted. emptyState prop accepted.
+         - Step 11: RestaurantTable.tsx is DELETED. Restaurants page uses DataTable + SearchFilterBar directly.
+         - Step 12: LocationFormSection wired via <Controller> bridge, not direct field props.
+         - Step 13: sections config object (not role prop). enableDraft uses internal useAuth() for userId.
+           cuisine change warning uses InfoBox variant="warning".
+         - Step 14: NewRestaurantForm.tsx is DELETED. Admin create/edit use unified RestaurantForm.
+         - Step 15: owner edit page has cuisines selector, service options, payment methods fields.
+         - Step 16: menu-scan-utils.ts has pure functions only (no React). useMenuScanState has all async logic.
+           pdfjs-dist mocked via __mocks__/pdfjs-dist.ts.
+         - Step 17: menu-scan/page.tsx is ≤100 LOC. Three step components exist. useMenuScanState imported.
+         - Step 18: verifyOtp({ token_hash, type: 'recovery' }) used (NOT exchangeCodeForSession).
+           redirectTo uses full URL with NEXT_PUBLIC_SITE_URL env var.
+         - Step 19: basic-info/page.tsx pushes to /onboard/menu (NOT /onboard/review).
+           Responsive tests assert className strings, not layout computations.
+         - Step 20: p-card used for card padding. @starting-style in globals.css with NO @supports wrapper.
 
       If any issue found:
         - Describe the exact issue, the file/line, and what the design spec expects.
@@ -246,21 +308,23 @@ hats:
     emoji: "📋"
     description: "Checks checklist progress after each verified step and drives the loop forward or signals completion"
     instructions: |
-      You are the progress manager for the EatMe admin restaurant data ingestion implementation.
+      You are the progress manager for the EatMe web portal redesign implementation.
 
       Read the checklist in:
-        .agents/planning/2026-04-10-admin-restaurant-ingestion/implementation/plan.md
+        .agents/planning/2026-04-10-web-portal-redesign/implementation/plan.md
 
       Count the remaining unchecked items [ ].
 
       If unchecked items remain:
         - Emit `start` to trigger the Implementer for the next step.
 
-      If ALL 10 items are checked [x]:
+      If ALL 20 items are checked [x]:
         - Run `pnpm turbo run build --filter=web-portal` one final time.
         - Run `cd apps/web-portal && npx vitest run` one final time.
-        - Confirm all 10 checklist items are marked [x].
-        - Confirm GOOGLE_PLACES_API_KEY is documented in .env.example.
+        - Confirm all 20 checklist items are marked [x].
+        - Confirm tokens.css exists and is imported first in globals.css.
+        - Confirm NewRestaurantForm.tsx and RestaurantTable.tsx are deleted.
+        - Confirm app/auth/forgot-password/page.tsx and app/auth/reset-password/page.tsx exist.
         - Emit `LOOP_COMPLETE`.
     triggers:
       - "step.verified"

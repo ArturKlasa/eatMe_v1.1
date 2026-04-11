@@ -986,7 +986,7 @@ export const modals = StyleSheet.create({
   // Price slider
   priceSliderContainer: {
     marginVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
   } as ViewStyle,
 
   priceSliderLabels: {

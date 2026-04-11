@@ -57,6 +57,13 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   const [mealModalVisible, setMealModalVisible] = React.useState(false);
   const [sliderDragging, setSliderDragging] = React.useState(false);
 
+  // Incremented each time the modal finishes its slide-in animation (onShow fires
+  // after the native animation completes). Used as a key on DualRangeSlider so it
+  // remounts at a point when the modal is fully visible and onLayout reports the
+  // correct width — avoiding the physical-Android issue where onLayout fires once
+  // during the animation with width=0 and never again.
+  const [sliderMountKey, setSliderMountKey] = React.useState(0);
+
   // Sync to current applied state each time the modal becomes visible
   React.useEffect(() => {
     if (visible) {
@@ -65,7 +72,13 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   }, [visible]); // intentionally only on open; currentDaily not in deps
 
   return (
-    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+      onShow={() => setSliderMountKey(k => k + 1)}
+    >
       <TouchableOpacity style={modals.overlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity
           style={[modals.container, modals.darkContainer]}
@@ -134,6 +147,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   </Text>
                 </View>
                 <DualRangeSlider
+                  key={sliderMountKey}
                   min={10}
                   max={50}
                   valueMin={localFilters.priceRange.min}
@@ -689,6 +703,24 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   // (which break on Android physical devices) are never used.
   const [trackWidth, setTrackWidth] = React.useState(0);
   const trackWidthRef = React.useRef(0);
+  const wrapperRef = React.useRef<View>(null);
+
+  // Fallback measurement: if onLayout fired during the Modal's slide-in animation
+  // and reported width=0 (the if(w>0) guard dropped it), it won't fire again.
+  // After 50ms — enough for one or two layout passes to settle — query the native
+  // layer directly via measure(). Only runs when trackWidth is still 0.
+  React.useEffect(() => {
+    if (trackWidth > 0) return;
+    const id = setTimeout(() => {
+      wrapperRef.current?.measure((_x, _y, width) => {
+        if (width > 0) {
+          trackWidthRef.current = width;
+          setTrackWidth(width);
+        }
+      });
+    }, 50);
+    return () => clearTimeout(id);
+  }, [trackWidth]);
 
   // Keep fresh refs for PanResponder closures so they always see current values
   const valueMinRef = React.useRef(valueMin);
@@ -740,6 +772,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
 
   return (
     <View
+      ref={wrapperRef}
       style={modals.priceSliderWrapper}
       collapsable={false}
       onLayout={e => {

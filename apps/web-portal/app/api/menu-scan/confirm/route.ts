@@ -160,7 +160,9 @@ export async function POST(request: NextRequest) {
           const { error: parentError } = await supabase.from('dishes').insert(parentRow);
 
           if (parentError) {
-            errors.push(`Failed to insert parent dish "${parentDish.name}": ${parentError.message}`);
+            errors.push(
+              `Failed to insert parent dish "${parentDish.name}": ${parentError.message}`
+            );
             totalDishesFailed += 1 + (parentDish.variant_dishes?.length ?? 0);
             console.error('[MenuScan/confirm] Parent dish insert error:', parentError);
             continue; // Skip children if parent fails (prevents orphans)
@@ -224,7 +226,10 @@ export async function POST(request: NextRequest) {
               `Failed to insert dishes for category "${catData.name}": ${standaloneBatchError.message}`
             );
             totalDishesFailed += standaloneRows.length;
-            console.error('[MenuScan/confirm] Standalone batch insert error:', standaloneBatchError);
+            console.error(
+              '[MenuScan/confirm] Standalone batch insert error:',
+              standaloneBatchError
+            );
           } else {
             totalDishesInserted += standaloneRows.length;
             // Insert ingredients/options for each standalone dish
@@ -237,8 +242,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Mark job status
-    const finalStatus =
-      totalDishesInserted === 0 && errors.length > 0 ? 'failed' : 'completed';
+    const finalStatus = totalDishesInserted === 0 && errors.length > 0 ? 'failed' : 'completed';
     await supabase
       .from('menu_scan_jobs')
       .update({ status: finalStatus, dishes_saved: totalDishesInserted })
@@ -300,6 +304,10 @@ function buildDishRow(
   menuCategoryId: string,
   overrides?: Partial<Record<string, unknown>>
 ) {
+  const conf = dish.confidence;
+  const enrichmentConfidence =
+    conf !== undefined ? (conf >= 0.7 ? 'high' : conf >= 0.5 ? 'medium' : 'low') : null;
+
   return {
     id,
     restaurant_id: restaurantId,
@@ -317,6 +325,10 @@ function buildDishRow(
     serves: dish.serves ?? 1,
     display_price_prefix: dish.display_price_prefix ?? 'exact',
     parent_dish_id: (overrides?.parent_dish_id as string) ?? null,
+    allergens: dish.allergens ?? [],
+    enrichment_status: 'pending',
+    enrichment_source: 'ai',
+    enrichment_confidence: enrichmentConfidence,
   };
 }
 
@@ -337,9 +349,7 @@ async function insertIngredientsAndOptions(
   }
 
   if (ingredientRows.length > 0) {
-    const { error: ingError } = await supabase
-      .from('dish_ingredients')
-      .insert(ingredientRows);
+    const { error: ingError } = await supabase.from('dish_ingredients').insert(ingredientRows);
 
     if (ingError) {
       console.warn(

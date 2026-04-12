@@ -46,8 +46,24 @@ export interface RawExtractedMenu {
   categories: RawExtractedCategory[];
 }
 
+export interface ExtractionNote {
+  type:
+    | 'likely_ocr_error'
+    | 'price_outlier'
+    | 'unreadable_section'
+    | 'ingredient_mismatch'
+    | 'dish_category_mismatch';
+  /** Human-readable path: "Menu > Category > Dish" or "page_N" for page-scoped issues */
+  path: string;
+  message: string;
+  /** Optional proposed fix (e.g. "looks like 'Pad Thai'") */
+  suggestion: string | null;
+}
+
 export interface RawExtractionResult {
   menus: RawExtractedMenu[];
+  /** AI-reported quality issues detected during extraction */
+  extraction_notes?: ExtractionNote[];
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +97,8 @@ export interface EnrichedMenu {
 export interface EnrichedResult {
   menus: EnrichedMenu[];
   currency: string;
+  /** AI-reported quality issues from extraction (merged across pages) */
+  extractionNotes?: ExtractionNote[];
 }
 
 // ---------------------------------------------------------------------------
@@ -159,6 +177,10 @@ export interface ConfirmDish {
   serves: number;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
   variant_dishes?: ConfirmDish[];
+  /** AI-suggested allergen codes. Supplementary until DB trigger computes from ingredients. */
+  allergens?: string[];
+  /** GPT-4o extraction confidence [0–1]. Used to populate enrichment_confidence at confirm. */
+  confidence?: number;
 }
 
 export interface ConfirmCategory {
@@ -275,14 +297,14 @@ const DIETARY_HINT_MAP: Record<string, string> = {
   'nut free': 'nut_free',
   nut_free: 'nut_free',
   organic: 'organic',
-  'orgánico': 'organic',
+  orgánico: 'organic',
   organico: 'organic',
 
   // --- Regional spellings ---
-  'végétarien': 'vegetarian',
-  'végétarienne': 'vegetarian',
-  'végétalien': 'vegan',
-  'végétalienne': 'vegan',
+  végétarien: 'vegetarian',
+  végétarienne: 'vegetarian',
+  végétalien: 'vegan',
+  végétalienne: 'vegan',
   'senza glutine': 'gluten_free',
   'sin lácteos': 'dairy_free',
   'sans gluten': 'gluten_free',
@@ -371,7 +393,7 @@ const CATEGORY_SYNONYMS: Record<string, string> = {
   sides: 'sides',
   accompaniments: 'sides',
   guarniciones: 'sides',
-  'acompañamientos': 'sides',
+  acompañamientos: 'sides',
   extras: 'sides',
 
   soups: 'soups',
@@ -421,10 +443,10 @@ const CATEGORY_SYNONYMS: Record<string, string> = {
 
   cocktails: 'cocktails',
   cocteles: 'cocktails',
-  'cócteles': 'cocktails',
+  cócteles: 'cocktails',
 
   coffee: 'coffee',
-  'café': 'coffee',
+  café: 'coffee',
   cafe: 'coffee',
 };
 
@@ -510,14 +532,26 @@ function matchCategory(
  * Duplicate dishes with different prices are flagged as potential variants.
  * Null categories get page-indexed placeholders.
  */
-export function mergeExtractionResults(
-  results: RawExtractionResult[]
-): { merged: RawExtractionResult; flaggedDuplicates: FlaggedDuplicate[] } {
+export function mergeExtractionResults(results: RawExtractionResult[]): {
+  merged: RawExtractionResult;
+  flaggedDuplicates: FlaggedDuplicate[];
+  extractionNotes: ExtractionNote[];
+} {
   const mergedMenus: RawExtractedMenu[] = [];
   const flaggedDuplicates: FlaggedDuplicate[] = [];
+  const extractionNotes: ExtractionNote[] = [];
 
   for (let pageIndex = 0; pageIndex < results.length; pageIndex++) {
     const result = results[pageIndex];
+
+    // Collect extraction notes, prefixing path with page number when it's page-scoped
+    for (const note of result.extraction_notes ?? []) {
+      const prefixed: ExtractionNote =
+        results.length > 1 && /^page_\d+/.test(note.path)
+          ? { ...note, path: note.path.replace(/^page_\d+/, `page_${pageIndex + 1}`) }
+          : note;
+      extractionNotes.push(prefixed);
+    }
 
     for (const incomingMenu of result.menus) {
       const incomingMenuName = (incomingMenu.name ?? '').toLowerCase().trim();
@@ -591,7 +625,11 @@ export function mergeExtractionResults(
     }
   }
 
-  return { merged: { menus: mergedMenus }, flaggedDuplicates };
+  return {
+    merged: { menus: mergedMenus, extraction_notes: extractionNotes },
+    flaggedDuplicates,
+    extractionNotes,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -760,6 +798,8 @@ function editableToConfirm(dish: EditableDish): ConfirmDish {
     is_parent: dish.is_parent,
     serves: dish.serves ?? 1,
     display_price_prefix: dish.display_price_prefix,
+    allergens: dish.suggested_allergens ?? [],
+    confidence: dish.confidence,
   };
 }
 

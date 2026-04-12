@@ -47,6 +47,19 @@ const DishSchema: z.ZodType<unknown> = z.lazy(() =>
   })
 );
 
+const ExtractionNoteSchema = z.object({
+  type: z.enum([
+    'likely_ocr_error',
+    'price_outlier',
+    'unreadable_section',
+    'ingredient_mismatch',
+    'dish_category_mismatch',
+  ]),
+  path: z.string(),
+  message: z.string(),
+  suggestion: z.string().nullable(),
+});
+
 const MenuExtractionSchema = z.object({
   menus: z.array(
     z.object({
@@ -60,6 +73,7 @@ const MenuExtractionSchema = z.object({
       ),
     })
   ),
+  extraction_notes: z.array(ExtractionNoteSchema),
 });
 
 // ---------------------------------------------------------------------------
@@ -117,7 +131,21 @@ Menu showing "Poke Bowl" with options "Salmon $189", "Tofu $159", "Shrimp $179":
 Example 3 — Combo:
 Menu showing "Lunch Special $129 — includes soup, main course, and drink":
 → Parent: name="Lunch Special", dish_kind="combo", is_parent=true, price=0, display_price_prefix="exact"
-→ Variants: [{name:"Lunch Special — Soup"}, {name:"Lunch Special — Main Course"}, {name:"Lunch Special — Drink"}]`;
+→ Variants: [{name:"Lunch Special — Soup"}, {name:"Lunch Special — Main Course"}, {name:"Lunch Special — Drink"}]
+
+INGREDIENT EXTRACTION — when populating raw_ingredients, include only ingredients you can read confidently. If you are guessing, omit the ingredient rather than fabricate it. Prefer null over a partial/guessed list.
+
+QUALITY SELF-REPORT — after extraction, populate extraction_notes with issues YOU observed. This is a self-review step to help the admin verify accuracy.
+Note types:
+- likely_ocr_error: a dish name or description appears garbled or partially corrupted (e.g. "Mrghrtta Pzz" → likely "Margherita Pizza")
+- price_outlier: a price is wildly inconsistent with nearby dishes on the same menu (possible decimal/comma error, e.g. $1,200 among $8–15 dishes)
+- unreadable_section: a portion of the image was too obscured to extract confidently (use path "page_1", "page_2", etc.)
+- ingredient_mismatch: a dish description mentions ingredients that don't match the dish name (e.g. "Pizza" description mentions noodles)
+- dish_category_mismatch: a dish appears to be in the wrong category (e.g. "Caesar Salad" under "Desserts")
+
+Format: { type, path ("Menu Name > Category > Dish Name" or "page_X"), message, suggestion (proposed fix or null) }.
+Report ONLY high-confidence issues. Do not flag stylistic choices, minor spelling quirks, or anything you're uncertain about.
+Return an empty array if the menu looks clean.`;
 
 // ---------------------------------------------------------------------------
 // OpenAI client (lazy init to avoid crashing at import time if key missing)
@@ -159,6 +187,7 @@ async function extractMenuFromImage(
     ],
     response_format: zodResponseFormat(MenuExtractionSchema, 'menu_extraction'),
     max_tokens: 16384,
+    temperature: 0.1,
   });
 
   const choice = completion.choices[0];
@@ -174,6 +203,19 @@ async function extractMenuFromImage(
 
   // Structured Outputs guarantees valid JSON matching the schema
   const parsed = JSON.parse(content) as RawExtractionResult;
+
+  // If GPT-4o hit the token limit, inject a visible extraction note so the
+  // admin sees the warning in the review UI rather than a silent console log.
+  if (choice.finish_reason === 'length') {
+    parsed.extraction_notes = parsed.extraction_notes ?? [];
+    parsed.extraction_notes.push({
+      type: 'unreadable_section',
+      path: '(full menu)',
+      message:
+        'AI response was cut off due to token limit — some dishes near the end of the menu may be missing.',
+      suggestion: 'Re-scan the menu in smaller sections or split across multiple images.',
+    });
+  }
 
   // Apply defaults for fields GPT may have set to null within valid schema
   for (const menu of parsed.menus) {
@@ -202,6 +244,38 @@ function applyDishDefaults(dish: RawExtractedDish): void {
       variant.is_parent = false; // variants are never parents
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Country code → BCP-47 language tag for ingredient alias persistence.
+// Used to tag newly-discovered aliases with the correct source language
+// instead of hardcoding 'es'.
+// ---------------------------------------------------------------------------
+
+const COUNTRY_LANGUAGE_MAP: Record<string, string> = {
+  MX: 'es',
+  ES: 'es',
+  AR: 'es',
+  CO: 'es',
+  PE: 'es',
+  CL: 'es',
+  FR: 'fr',
+  DE: 'de',
+  IT: 'it',
+  PT: 'pt',
+  BR: 'pt',
+  PL: 'pl',
+  JP: 'ja',
+  CN: 'zh',
+  US: 'en',
+  GB: 'en',
+  AU: 'en',
+  CA: 'en',
+};
+
+function getMenuLanguage(countryCode: string | null | undefined): string {
+  if (!countryCode) return 'und'; // undetermined
+  return COUNTRY_LANGUAGE_MAP[countryCode.toUpperCase()] ?? 'und';
 }
 
 // ---------------------------------------------------------------------------
@@ -320,7 +394,8 @@ async function saveNewAlias(
 async function matchIngredients(
   rawIngredients: string[],
   supabase: ReturnType<typeof createServerSupabaseClient>,
-  openai: OpenAI
+  openai: OpenAI,
+  menuLanguage: string
 ): Promise<MatchedIngredient[]> {
   if (!rawIngredients || rawIngredients.length === 0) return [];
 
@@ -370,7 +445,7 @@ async function matchIngredients(
         display_name: alias.display_name,
       };
 
-      void saveNewAlias(trimmed, 'es', alias.canonical_ingredient_id, supabase);
+      void saveNewAlias(trimmed, menuLanguage, alias.canonical_ingredient_id, supabase);
     }
   }
 
@@ -384,9 +459,10 @@ async function matchIngredients(
 async function enrichDish(
   dish: RawExtractedDish,
   supabase: ReturnType<typeof createServerSupabaseClient>,
-  openai: OpenAI
+  openai: OpenAI,
+  menuLanguage: string
 ): Promise<EnrichedDish> {
-  const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai);
+  const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai, menuLanguage);
 
   // Normalise LLM-returned spice_level to the allowed set {0, 1, 3}.
   const rawSpice: number | null = dish.spice_level ?? null;
@@ -398,7 +474,7 @@ async function enrichDish(
   if (dish.variants && dish.variants.length > 0) {
     enrichedVariants = [];
     for (const variant of dish.variants) {
-      enrichedVariants.push(await enrichDish(variant, supabase, openai));
+      enrichedVariants.push(await enrichDish(variant, supabase, openai, menuLanguage));
     }
   }
 
@@ -414,7 +490,8 @@ async function enrichDish(
 async function enrichResult(
   raw: RawExtractionResult,
   supabase: ReturnType<typeof createServerSupabaseClient>,
-  openai: OpenAI
+  openai: OpenAI,
+  menuLanguage: string
 ): Promise<Pick<EnrichedResult, 'menus'>> {
   const enrichedMenus: EnrichedMenu[] = [];
 
@@ -425,7 +502,7 @@ async function enrichResult(
       const enrichedDishes: EnrichedDish[] = [];
 
       for (const dish of cat.dishes) {
-        enrichedDishes.push(await enrichDish(dish, supabase, openai));
+        enrichedDishes.push(await enrichDish(dish, supabase, openai, menuLanguage));
       }
 
       enrichedCategories.push({ name: cat.name, dishes: enrichedDishes });
@@ -488,6 +565,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   const currency = getCurrencyForRestaurant(null, restaurant?.country_code);
+  const menuLanguage = getMenuLanguage(restaurant?.country_code);
 
   // 4. Create the job record (status: processing)
   const startTime = Date.now();
@@ -537,16 +615,20 @@ export async function POST(request: NextRequest) {
     );
 
     // 6. Merge multi-page results (with 3-layer fuzzy matching)
-    const { merged, flaggedDuplicates } = mergeExtractionResults(rawResults);
+    const { merged, flaggedDuplicates, extractionNotes } = mergeExtractionResults(rawResults);
 
     if (flaggedDuplicates.length > 0) {
       // Variant grouping detected — flagged for user review in review step
     }
 
     // 7. Enrich with ingredient matches + dietary tag codes
-    const { menus: enrichedMenus } = await enrichResult(merged, supabase, openai);
+    const { menus: enrichedMenus } = await enrichResult(merged, supabase, openai, menuLanguage);
 
-    const fullResult: EnrichedResult = { menus: enrichedMenus, currency };
+    const fullResult: EnrichedResult = {
+      menus: enrichedMenus,
+      currency,
+      extractionNotes: extractionNotes.length > 0 ? extractionNotes : undefined,
+    };
 
     const dishCount = enrichedMenus.reduce(
       (total, menu) => total + menu.categories.reduce((sum, cat) => sum + cat.dishes.length, 0),
@@ -560,7 +642,10 @@ export async function POST(request: NextRequest) {
       .from('menu_scan_jobs')
       .update({
         status: 'needs_review',
-        result_json: fullResult,
+        result_json: {
+          ...fullResult,
+          flaggedDuplicates: flaggedDuplicates.length > 0 ? flaggedDuplicates : undefined,
+        },
         image_storage_paths: imagePaths,
         dishes_found: dishCount,
         processing_ms: processingMs,
@@ -574,6 +659,7 @@ export async function POST(request: NextRequest) {
       dishCount,
       processingMs,
       flaggedDuplicates: flaggedDuplicates.length > 0 ? flaggedDuplicates : undefined,
+      extractionNotes: extractionNotes.length > 0 ? extractionNotes : undefined,
     });
   } catch (error: unknown) {
     console.error('[MenuScan] Processing failed:', error);

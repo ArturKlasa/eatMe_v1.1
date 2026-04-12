@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase, formatLocationForSupabase } from '@/lib/supabase';
 import {
@@ -12,6 +12,8 @@ import {
   buildConfirmPayload,
 } from '@/lib/menu-scan';
 import { fetchDishCategories, type DishCategory } from '@/lib/dish-categories';
+import type { ExtractionNote } from '@/lib/menu-scan';
+import { computeMenuWarnings, extractionNotesToWarnings } from '@/lib/menu-scan-warnings';
 import type {
   RestaurantOption,
   DietaryTagOption,
@@ -35,6 +37,7 @@ export function useReviewState(deps: ReviewDeps) {
   const [dishCategories, setDishCategories] = useState<DishCategory[]>([]);
   const [dietaryTags, setDietaryTags] = useState<DietaryTagOption[]>([]);
   const [expandedDishes, setExpandedDishes] = useState<Set<string>>(new Set());
+  const [extractionNotes, setExtractionNotes] = useState<ExtractionNote[]>([]);
   const [saving, setSaving] = useState(false);
 
   // ---------- done step ----------
@@ -267,7 +270,19 @@ export function useReviewState(deps: ReviewDeps) {
     );
   };
 
+  const menuWarnings = useMemo(
+    () => [
+      ...computeMenuWarnings(editableMenus, currency),
+      ...extractionNotesToWarnings(extractionNotes),
+    ],
+    [editableMenus, extractionNotes, currency]
+  );
+
   return {
+    // Warnings
+    menuWarnings,
+    setExtractionNotes,
+
     // State
     jobId,
     setJobId,

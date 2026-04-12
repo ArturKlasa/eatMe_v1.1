@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/login?error=callback_failed`);
   }
 
-  const role = data.session.user.user_metadata?.role;
+  const role = data.session.user.app_metadata?.role;
   const destination = role === 'admin' ? '/admin' : next === '/' ? '/' : next;
 
   return NextResponse.redirect(`${origin}${destination}`);

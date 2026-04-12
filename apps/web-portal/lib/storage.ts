@@ -12,12 +12,16 @@ import type { FormProgress } from '@eatme/shared';
 const getStorageKey = (userId: string) => `eatme_draft_${userId}`;
 const AUTO_SAVE_DEBOUNCE = 500; // 500ms debounce
 
+interface DraftData extends FormProgress {
+  lastSaved: string;
+}
+
 /**
  * Save restaurant form data to LocalStorage (user-scoped)
  */
 export const saveRestaurantData = (userId: string, data: FormProgress): void => {
   try {
-    const dataToSave = {
+    const dataToSave: DraftData = {
       ...data,
       lastSaved: new Date().toISOString(),
     };
@@ -81,7 +85,7 @@ export const clearIfStale = (userId: string, maxAgeDays = 7): boolean => {
     const raw = localStorage.getItem(getStorageKey(userId));
     if (!raw) return false;
 
-    const parsed = JSON.parse(raw) as FormProgress;
+    const parsed = JSON.parse(raw) as DraftData;
     if (!parsed.lastSaved) return false;
 
     const ageMs = Date.now() - new Date(parsed.lastSaved).getTime();

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase-server';
 
 /**
- * Next.js Proxy (replaces the deprecated "middleware" file convention).
+ * Next.js middleware for session refresh and route protection.
  *
  * Responsibilities:
  * 1. Refresh the Supabase session cookie on every request (keeps session alive)
@@ -13,7 +13,7 @@ import { createMiddlewareClient } from '@/lib/supabase-server';
  * Auth flow: PKCE (via @supabase/ssr createBrowserClient in lib/supabase.ts).
  * Session lives in cookies — readable here at the edge.
  */
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   // Start with a pass-through response so we can attach updated cookies
   let response = NextResponse.next({ request: req });
 
@@ -77,7 +77,9 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (user.user_metadata?.role !== 'admin') {
+    // app_metadata is writable only by the service role — safe for access control.
+    // user_metadata is user-editable and must NOT be used for admin checks.
+    if (user.app_metadata?.role !== 'admin') {
       const homeUrl = req.nextUrl.clone();
       homeUrl.pathname = '/';
       homeUrl.searchParams.set('error', 'admin_only');

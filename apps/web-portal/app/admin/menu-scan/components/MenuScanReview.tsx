@@ -9,6 +9,7 @@ import type {
   DietaryTagOption,
 } from '@/app/admin/menu-scan/hooks/menuScanTypes';
 import type { EditableIngredient, FlaggedDuplicate } from '@/lib/menu-scan';
+import type { MenuWarning } from '@/lib/menu-scan-warnings';
 import type { DishCategory } from '@/lib/dish-categories';
 import type { BatchFilters } from '@/components/admin/menu-scan/BatchToolbar';
 import { ReviewHeader } from './ReviewHeader';
@@ -42,7 +43,9 @@ export interface MenuScanReviewProps {
   inlineSearchTarget: { mIdx: number; cIdx: number; dIdx: number } | null;
   setInlineSearchTarget: (v: { mIdx: number; cIdx: number; dIdx: number } | null) => void;
   subIngredientEditTarget: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null;
-  setSubIngredientEditTarget: (v: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null) => void;
+  setSubIngredientEditTarget: (
+    v: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null
+  ) => void;
   saving: boolean;
   flaggedDuplicates: FlaggedDuplicate[];
   selectedGroupIds: Set<string>;
@@ -60,6 +63,9 @@ export interface MenuScanReviewProps {
   reviewedGroupCount: number;
   totalGroupCount: number;
 
+  // Warnings
+  menuWarnings: MenuWarning[];
+
   // Step navigation
   setStep: (step: 'upload' | 'processing' | 'review' | 'done') => void;
 
@@ -68,12 +74,37 @@ export interface MenuScanReviewProps {
   updateMenu: (mIdx: number, patch: Partial<EditableMenu>) => void;
   updateCategory: (mIdx: number, cIdx: number, patch: { name?: string }) => void;
   updateDish: (mIdx: number, cIdx: number, dIdx: number, patch: Partial<EditableDish>) => void;
-  resolveIngredient: (mIdx: number, cIdx: number, dIdx: number, rawText: string, resolved: EditableIngredient) => void;
+  resolveIngredient: (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    rawText: string,
+    resolved: EditableIngredient
+  ) => void;
   addIngredientToDish: (mIdx: number, cIdx: number, dIdx: number, ing: EditableIngredient) => void;
   removeIngredientFromDish: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => void;
-  addSubIngredient: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number, sub: EditableIngredient) => void;
-  removeSubIngredient: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number, subIdx: number) => void;
-  suggestIngredients: (dishId: string, dishName: string, description: string, mIdx: number, cIdx: number, dIdx: number) => Promise<void>;
+  addSubIngredient: (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ingIdx: number,
+    sub: EditableIngredient
+  ) => void;
+  removeSubIngredient: (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ingIdx: number,
+    subIdx: number
+  ) => void;
+  suggestIngredients: (
+    dishId: string,
+    dishName: string,
+    description: string,
+    mIdx: number,
+    cIdx: number,
+    dIdx: number
+  ) => Promise<void>;
   suggestAllDishes: () => Promise<void>;
   deleteDish: (mIdx: number, cIdx: number, dIdx: number) => void;
   addDish: (mIdx: number, cIdx: number) => void;
@@ -127,6 +158,7 @@ export function MenuScanReview(props: MenuScanReviewProps) {
         saving={props.saving}
         setStep={props.setStep}
         handleSave={props.handleSave}
+        menuWarnings={props.menuWarnings}
       />
 
       {/* Two-panel body */}

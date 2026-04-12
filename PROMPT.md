@@ -1,63 +1,70 @@
-# EatMe — Codebase Refactor
+# EatMe — Auth Flow Fixes
 
 ## Objective
 
-Implement the 22-step codebase refactor per the checklist in:
-  `.agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md`
+Implement the auth flow fixes documented in the implementation plan at:
+`.agents/planning/2026-04-12-auth-flow-review/implementation/plan.md`
 
-Work through steps in order, one at a time. Mark each step `[x]` when complete.
+Work through the checklist in order. Every step must pass `turbo check-types` and
+`npx vitest run` (web-portal) before being marked complete.
+
+---
 
 ## Context
 
-EatMe is a food discovery platform (pnpm + Turborepo monorepo, ~68K LOC). This refactor improves code quality, AI friendliness, comment coverage, and developer productivity across:
-- **`packages/shared/`** — NEW package: `@eatme/shared` with constants, types, and validation schemas extracted from both apps
-- **`packages/database/`** — JSDoc improvements only
-- **`packages/tokens/`** — No changes
-- **`apps/web-portal/`** — Next.js 16 + React 19, shadcn/ui, Tailwind CSS v4, Supabase, Vitest (49 test files)
-  - Import migration from local constants/types/validation to `@eatme/shared`
-  - File splits: `useMenuScanState.ts` (1,378 lines) and `MenuScanReview.tsx` (1,265 lines)
-  - JSDoc coverage pass on `lib/`, hooks, API routes
-  - Dead code removal, test mock consolidation
-- **`apps/mobile/`** — Expo 54 + React Native 0.81, Zustand (zero test files)
-  - Import migration from local constants to `@eatme/shared`
-  - File splits: `RestaurantDetailScreen.tsx` (1,003 lines) and `common.ts` (1,202 lines)
-  - JSDoc coverage pass on services, stores, hooks
-- **Root** — CLAUDE.md, agent_docs/, turbo.json, GitHub Actions CI, Husky pre-commit hooks, copilot-instructions.md updates
+All research, findings, and fix specifications live in:
+```
+.agents/planning/2026-04-12-auth-flow-review/
+├── research/auth-flow-findings.md   — 13 issues with file:line citations
+├── research/new-user-creation.md    — DB trigger gaps + new-user flow
+├── design/detailed-design.md        — exact code snippets for every fix
+└── implementation/plan.md           — the checklist you are working through
+```
 
-## Key Documents
+Read `design/detailed-design.md` for the exact code changes for each step before
+implementing. Do not invent solutions — the design is already specified.
 
-- **Implementation plan** (checklist): `.agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md`
-- **Design spec** (authoritative): `.agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md`
-- **Research**: `.agents/planning/2026-04-11-eatme-code-refactor/research/` (5 files)
-- **Requirements Q&A**: `.agents/planning/2026-04-11-eatme-code-refactor/idea-honing.md`
+---
 
-## Phases
+## Steps (in order)
 
-**Phase 1: Foundation (Steps 1-7)** — Create `@eatme/shared`, extract constants/types/validation, migrate imports, wire Turbo test task
-**Phase 2: AI Readiness (Steps 8-13)** — CLAUDE.md + agent_docs/, update copilot-instructions.md, split 4 oversized files
-**Phase 3: Code Quality (Steps 14-19)** — JSDoc passes, magic number docs, dead code removal, test mock consolidation
-**Phase 4: Infrastructure (Steps 20-22)** — eslint-plugin-jsdoc, Husky + lint-staged, GitHub Actions CI
+- [ ] Step 1: Rename `proxy.ts` → `middleware.ts`, rename export `proxy` → `middleware`
+- [ ] Step 2: Change admin role checks from `user_metadata?.role` to `app_metadata?.role` in `callback/route.ts` and `middleware.ts`
+- [ ] Step 3: Create `infra/supabase/migrations/082_wire_signup_triggers.sql` — bind the existing `create_user_preferences_on_signup()` function to a trigger
+- [ ] Step 4: Create `infra/supabase/migrations/083_signup_user_profile_trigger.sql` — auto-create `public.users` and `user_behavior_profiles` on signup, with backfill
+- [ ] Step 5: Consume `?redirect` query param in `login/page.tsx` after successful sign-in
+- [ ] Step 6: Replace dual `getSession()` + `onAuthStateChange` in `AuthContext.tsx` with a single `onAuthStateChange` listener using the `INITIAL_SESSION` event
+- [ ] Step 7: Update `AuthContext` `signUp` to return `needsEmailVerification`; update `signup/page.tsx` to use it
+- [ ] Step 8: Create `components/AdminRoute.tsx`; replace `ProtectedRoute` with `AdminRoute` in all `/admin` pages
+- [ ] Step 9: Add `emailRedirectTo: 'eatme://auth/callback'` to `authStore.ts` mobile `signUp`
+- [ ] Step 10: Add `DraftData` interface extending `FormProgress` in `storage.ts`; fix `lastSaved` cast
+- [ ] Step 11: Update `docs/project/workflows/auth-flow.md` per the spec in Step 11 of the plan
 
-## Validation
+---
 
-- Build: `turbo build`
-- Lint: `turbo lint`
-- Type-check: `turbo check-types`
-- Tests: `cd apps/web-portal && npx vitest run`
-- Full pipeline: `turbo build && turbo lint && turbo check-types`
+## Acceptance Criteria
 
-## Success Criteria
+Each step is done when:
+1. The change matches the specification in `design/detailed-design.md`
+2. `cd apps/web-portal && npx turbo check-types` exits 0
+3. `cd apps/web-portal && npx vitest run` exits 0
+4. The checkbox in `implementation/plan.md` is marked `[x]`
 
-All 22 checklist items marked `[x]`, full pipeline passes, and:
-- `packages/shared/` exists with constants, types, and validation exported via barrel exports
-- `@eatme/shared` is in both apps' `package.json` and `next.config.ts` `transpilePackages`
-- `apps/web-portal/lib/constants.ts`, `apps/web-portal/types/restaurant.ts`, and `apps/web-portal/lib/validation.ts` are deleted
-- `apps/mobile/src/constants/index.ts` only re-exports icons + shared package (no local cuisine definitions)
-- No file over 500 lines in the split targets (useMenuScanState hooks, MenuScanReview components, restaurant-detail/, styles/)
-- `CLAUDE.md` exists at root, under 100 lines
-- `agent_docs/` directory exists with 5 files
-- `.github/copilot-instructions.md` has no references to nonexistent packages or wrong version numbers
-- `.github/workflows/ci.yml` exists and runs build + lint + check-types + test
-- `.husky/pre-commit` exists and runs lint-staged
-- `turbo.json` has a `test` task
-- All 49 web-portal test files pass
+SQL migration steps (3, 4) are done when the `.sql` file is written correctly.
+There is no automated DB test — verify the SQL is syntactically correct and matches
+the specification before marking done.
+
+The final step (11) is done when the doc is updated. Emit `LOOP_COMPLETE` after Step 11.
+
+---
+
+## Guardrails
+
+- Read `design/detailed-design.md` before implementing each step — don't guess.
+- Run `turbo check-types` and `vitest run` after every TypeScript change.
+- Do not modify any files outside the scope of the current step.
+- Do not rename or move files other than `proxy.ts` → `middleware.ts`.
+- DB migration filenames must follow the pattern: `NNN_description.sql`.
+- Do not implement Facebook OAuth — it is explicitly deferred.
+- Mark each step `[x]` in `implementation/plan.md` only after verification passes.
+- If `check-types` or `vitest` fails, fix the failure before moving to the next step.

@@ -7,11 +7,12 @@
  * via the `useAuth()` hook without prop-drilling.
  *
  * Session lifecycle:
- *  1. On mount, `getSession()` hydrates initial state (covers hard-refreshes).
- *  2. `onAuthStateChange` keeps the context in sync with Supabase's internal
- *     token refresh and OAuth callback events going forward.
- *  3. Stale form drafts (>7 days) are cleared on initial load once the user
- *     session is confirmed.
+ *  1. `onAuthStateChange` fires with `INITIAL_SESSION` on mount, hydrating
+ *     state from cookies (covers hard-refreshes and fresh logins in one place).
+ *  2. Subsequent events (`SIGNED_IN`, `TOKEN_REFRESHED`, `SIGNED_OUT`) keep
+ *     state in sync automatically.
+ *  3. Stale form drafts (>7 days) are cleared once per mount when the initial
+ *     session is confirmed via the `INITIAL_SESSION` event.
  *
  * Usage:
  *   const { user, signIn, signOut } = useAuth();
@@ -34,13 +35,14 @@ interface AuthContextType {
    * Register a new restaurant partner account.
    * Stores `restaurantName` in Supabase user_metadata so the dashboard can
    * display it before the partner completes onboarding.
-   * Sends a confirmation email; the user must verify before logging in.
+   * Returns `needsEmailVerification: true` when email confirmation is required
+   * (Supabase "Confirm email" ON), false when the user is auto-logged in.
    */
   signUp: (
     email: string,
     password: string,
     restaurantName: string
-  ) => Promise<{ error: Error | null }>;
+  ) => Promise<{ error: Error | null; needsEmailVerification: boolean }>;
   /** Sign in with email and password using Supabase password auth. */
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   /**
@@ -61,22 +63,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      // Clear any draft that hasn't been touched in >7 days (A7)
-      if (session?.user?.id) clearIfStale(session.user.id);
-    });
-
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Clear stale drafts once per mount — covers hard-refresh AND fresh logins
+      if (event === 'INITIAL_SESSION' && session?.user?.id) {
+        clearIfStale(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -88,22 +84,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          data: {
-            restaurant_name: restaurantName,
-          },
+          data: { restaurant_name: restaurantName },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) {
         console.error('Supabase Auth signup error:', error);
-        throw error;
+        return { error, needsEmailVerification: false };
       }
 
-      return { error: null };
+      return { error: null, needsEmailVerification: !data.session && !!data.user };
     } catch (error) {
       console.error('Signup error:', error);
-      return { error: error as Error };
+      return { error: error as Error, needsEmailVerification: false };
     }
   };
 

@@ -130,7 +130,16 @@ export default function AdminRestaurantsPage() {
       onConfirm: async () => {
         setConfirmState(s => ({ ...s, open: false }));
         try {
-          // TODO: Implement suspend/activate API call with audit logging
+          const nowIso = new Date().toISOString();
+          const update = currentStatus
+            ? { is_active: false, suspended_at: nowIso }
+            : { is_active: true, suspended_at: null, suspension_reason: null };
+          const { error } = await supabase.from('restaurants').update(update).eq('id', id);
+          if (error) {
+            console.error(`Error ${action}ing restaurant:`, error);
+            toast.error(`Failed to ${action} restaurant: ${error.message}`);
+            return;
+          }
           toast.success(`Restaurant ${action}d successfully`);
           setAllRestaurants(prev =>
             prev.map(r =>
@@ -138,12 +147,14 @@ export default function AdminRestaurantsPage() {
                 ? {
                     ...r,
                     is_active: !currentStatus,
-                    suspended_at: !currentStatus ? null : new Date().toISOString(),
+                    suspended_at: currentStatus ? nowIso : null,
+                    suspension_reason: currentStatus ? r.suspension_reason : null,
                   }
                 : r
             )
           );
-        } catch {
+        } catch (err) {
+          console.error(`Error in handle${currentStatus ? 'Suspend' : 'Activate'}:`, err);
           toast.error(`Failed to ${action} restaurant`);
         }
       },

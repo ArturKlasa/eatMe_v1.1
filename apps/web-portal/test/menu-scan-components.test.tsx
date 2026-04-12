@@ -152,7 +152,7 @@ describe('MenuScanUpload', () => {
     handleDragLeave: noOp,
     handleDrop: noOp,
     handleProcess: asyncNoOp,
-    processingError: '',
+    restaurantsWithoutMenu: [],
   };
 
   it('renders drop zone', () => {
@@ -166,10 +166,16 @@ describe('MenuScanUpload', () => {
     expect(button).toBeDisabled();
   });
 
-  it('renders error when processingError is set', () => {
-    render(<MenuScanUpload {...defaultProps} processingError="Network error" />);
-    expect(screen.getByText('Processing failed')).toBeInTheDocument();
-    expect(screen.getByText('Network error')).toBeInTheDocument();
+  it('renders restaurants without menus section when available', () => {
+    render(
+      <MenuScanUpload
+        {...defaultProps}
+        restaurantsWithoutMenu={[
+          { id: '1', name: 'Test Restaurant', city: 'NYC', country_code: 'US' },
+        ]}
+      />
+    );
+    expect(screen.getByText(/restaurants needing menus/i)).toBeInTheDocument();
   });
 });
 
@@ -205,26 +211,14 @@ describe('MenuScanProcessing', () => {
 
 describe('MenuScanDone', () => {
   it('renders "Saved Successfully!" heading', () => {
-    render(
-      <MenuScanDone
-        savedCount={12}
-        selectedRestaurant={mockRestaurant}
-        resetAll={noOp}
-      />
-    );
+    render(<MenuScanDone savedCount={12} selectedRestaurant={mockRestaurant} resetAll={noOp} />);
     expect(screen.getByText('Saved Successfully!')).toBeInTheDocument();
     expect(screen.getByText(/12 dishes/)).toBeInTheDocument();
   });
 
   it('calls resetAll when "Scan Another Menu" clicked', async () => {
     const resetAll = vi.fn();
-    render(
-      <MenuScanDone
-        savedCount={5}
-        selectedRestaurant={mockRestaurant}
-        resetAll={resetAll}
-      />
-    );
+    render(<MenuScanDone savedCount={5} selectedRestaurant={mockRestaurant} resetAll={resetAll} />);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /scan another menu/i }));
     expect(resetAll).toHaveBeenCalledOnce();
@@ -334,6 +328,7 @@ describe('MenuScanReview', () => {
     acceptHighConfidence: noOp,
     acceptSelected: noOp,
     rejectSelected: noOp,
+    menuWarnings: [],
   };
 
   it('renders dish count', () => {

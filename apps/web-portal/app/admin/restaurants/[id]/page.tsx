@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Restaurant } from '@/lib/supabase';
-import { Edit, Ban, CheckCircle, MapPin, Phone, Globe } from 'lucide-react';
+import { Edit, Ban, CheckCircle, MapPin, Phone, Globe, Map as MapIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/PageHeader';
@@ -67,6 +67,18 @@ export default function RestaurantDetailsPage() {
     return null;
   }
 
+  const getMapsUrl = () => {
+    if (restaurant.google_place_id) {
+      return `https://www.google.com/maps/place/?q=place_id:${restaurant.google_place_id}`;
+    }
+    const loc = restaurant.location as { type?: string; coordinates?: [number, number] } | null;
+    if (loc?.coordinates) {
+      const [lng, lat] = loc.coordinates;
+      return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+    return `https://www.google.com/maps/search/${encodeURIComponent(restaurant.address)}`;
+  };
+
   const statusKey = restaurant.is_active ? 'active' : 'suspended';
   const statusVariant = STATUS_VARIANTS[statusKey];
 
@@ -80,7 +92,10 @@ export default function RestaurantDetailsPage() {
           { label: 'Restaurants', href: '/admin/restaurants' },
           { label: restaurant.name },
         ]}
-        badge={{ label: statusVariant.label, variant: statusKey === 'active' ? 'success' : 'destructive' }}
+        badge={{
+          label: statusVariant.label,
+          variant: statusKey === 'active' ? 'success' : 'destructive',
+        }}
         actions={
           <div className="flex gap-3">
             <Link
@@ -174,6 +189,17 @@ export default function RestaurantDetailsPage() {
                   {(restaurant.location as { lat?: number; lng?: number } | null)?.lat?.toFixed(6)},{' '}
                   {(restaurant.location as { lat?: number; lng?: number } | null)?.lng?.toFixed(6)}
                 </p>
+              </div>
+              <div className="pt-3 border-t">
+                <a
+                  href={getMapsUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-brand-primary hover:underline"
+                >
+                  <MapIcon className="h-4 w-4" />
+                  Open in Google Maps
+                </a>
               </div>
             </div>
           </div>

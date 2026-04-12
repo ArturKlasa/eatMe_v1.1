@@ -1,7 +1,7 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Codebase Refactor
-# Task: Implement 22-step plan at .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
-# Pattern: Linear pipeline — implementer → verifier (build) → critic (design) → stepper → (loop or done)
+# Project: EatMe — Auth Flow Fixes
+# Task: Implement 11-step auth fix plan (proxy rename, app_metadata, DB triggers, etc.)
+# Pattern: planner → implementer (loops) → documenter → done
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -11,27 +11,22 @@ cli:
 event_loop:
   completion_promise: "LOOP_COMPLETE"
   starting_event: "start"
-  max_iterations: 200              # 22 steps × ~6-9 iterations each (4 hats per cycle)
-  max_runtime_seconds: 28800       # 8 hours (refactor touches more files than a feature build)
-  idle_timeout_secs: 600           # 10 min idle threshold
-  checkpoint_interval: 2           # git checkpoint every 2 iterations
+  max_iterations: 40
+  max_runtime_seconds: 7200        # 2 hours
+  idle_timeout_secs: 300
+  checkpoint_interval: 3
 
 core:
-  specs_dir: ".agents/planning/2026-04-11-eatme-code-refactor/"
+  specs_dir: "apps/web-portal/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Implementation plan: .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md — work through steps in order, one at a time."
-    - "Design document: .agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md — the authoritative source for all package specs, file splits, and component interfaces."
-    - "This is a REFACTOR — no new features, no database changes, no framework migrations. Behavior must be identical before and after each step."
-    - "CRITICAL: Do NOT break existing functionality. Every page, API route, and import that worked before must still work after each step."
-    - "After any TypeScript change, run `turbo build && turbo check-types` and fix ALL errors before marking a step complete."
-    - "After any lint-sensitive change, run `turbo lint` and fix errors (warnings are acceptable)."
-    - "Each step includes test requirements — verify them before marking the step complete."
-    - "Barrel exports must be maintained at all times — splitting files must not break any external imports."
-    - "Do NOT add new npm dependencies without explicit plan authorization (only eslint-plugin-jsdoc, husky, lint-staged are authorized)."
-    - "Do NOT modify files unrelated to the current implementation step."
-    - "Prefer editing existing files over creating new ones. Only create new files when the plan explicitly calls for them."
-    - "When adding JSDoc comments, focus on 'why' explanations, not restating what the code does. Follow the patterns in packages/database/src/client.ts."
+    - "Read design/detailed-design.md before implementing each step — do not guess."
+    - "Run 'cd apps/web-portal && npx turbo check-types' after every TypeScript change."
+    - "Run 'cd apps/web-portal && npx vitest run' after every TypeScript change."
+    - "If type-check or tests fail, fix the failure before moving to the next step."
+    - "Do NOT implement Facebook OAuth — it is explicitly deferred."
+    - "Mark each step [x] in implementation/plan.md only after verification passes."
+    - "Do not modify files outside the scope of the current step."
 
 memories:
   enabled: true
@@ -44,272 +39,97 @@ tasks:
   enabled: true
 
 hats:
+  planner:
+    name: "Planner"
+    emoji: "📋"
+    description: "Reads the implementation plan and sets up the work queue"
+    instructions: |
+      You are a senior engineer preparing to implement a series of auth flow fixes.
+
+      Read these files in order:
+      1. PROMPT.md — the task overview and acceptance criteria
+      2. .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md — the 11-step checklist
+      3. .agents/planning/2026-04-12-auth-flow-review/design/detailed-design.md — code specs
+
+      Then write a concise work queue to .agent/scratchpad.md with:
+      - A summary of which steps are already checked [x] vs pending [ ]
+      - The next step to implement (the first unchecked one)
+      - Key files that step touches
+      - Any prerequisite awareness (e.g. Step 2 needs Step 1 done first)
+
+      Do NOT make any code changes.
+
+      When the scratchpad is written, emit `plan.ready`.
+    triggers:
+      - "start"
+    publishes:
+      - "plan.ready"
+
   implementer:
     name: "Implementer"
-    emoji: "\U0001F527"
-    description: "Reads the implementation plan, implements the next unchecked step with minimal change, and runs build validation"
+    emoji: "🔨"
+    description: "Picks the next unchecked step, implements it, verifies, and marks it done"
     instructions: |
-      You are a senior TypeScript / React / React Native / Supabase engineer performing a codebase refactor
-      on the EatMe monorepo (pnpm + Turborepo).
+      You are a senior engineer implementing auth flow fixes one step at a time.
 
-      Start by reading the checklist in:
-        .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
+      Start every activation by:
+      1. Reading .agent/scratchpad.md to know which step to do next
+      2. Reading the full step spec from .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md
+      3. Reading the matching section in .agents/planning/2026-04-12-auth-flow-review/design/detailed-design.md for exact code
 
-      Find the FIRST unchecked item [ ] and implement that step only.
+      Implement the step. Then verify:
+      - For TypeScript changes: run `cd apps/web-portal && npx turbo check-types` then `cd apps/web-portal && npx vitest run`
+      - For SQL migration files: review the SQL for correctness — no automated test, just confirm it matches the spec
+      - For doc changes (Step 11): confirm the doc accurately reflects the fixed code
 
-      For every step:
-        1. Read the scratchpad (.agent/scratchpad.md) first — it may contain progress notes from a previous
-           iteration on the same step (e.g., after a retry). Continue from where you left off.
-        2. Read the full step description in the implementation plan and the relevant section in:
-           .agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md
-        3. Read every file you plan to modify or reference BEFORE changing it.
-        4. Implement exactly what the step describes. No extra refactoring, no speculative additions.
-        5. Run `turbo build && turbo check-types` after any TypeScript changes. Fix all errors.
-        6. If the step includes test requirements, run `cd apps/web-portal && npx vitest run`. Fix failures.
-        7. Mark the step complete: change `[ ]` to `[x]` in the checklist.
-        8. Clear the scratchpad (replace contents with "Step N complete") and emit `step.complete` with a short summary.
+      If verification fails:
+      - Fix the failure (do not move on)
+      - Re-run verification until it passes
 
-      Step-specific notes:
+      When the step passes:
+      1. Mark it [x] in .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md
+      2. Update .agent/scratchpad.md to show which step comes next
+      3. Check if any steps remain unchecked (Steps 1–10 only — Step 11 is handled by the documenter)
 
-        Step 1 (package scaffold):
-          - Create packages/shared/ with package.json, tsconfig.json, and empty barrel exports.
-          - Add "@eatme/shared": "workspace:*" to both apps' package.json.
-          - Add "@eatme/shared" to next.config.ts transpilePackages array (alongside @eatme/database).
-          - Run `pnpm install` to link the workspace package.
-          - pnpm-workspace.yaml already includes packages/* — no change needed there.
+      If steps 1–10 still have unchecked items, emit `step.done` to loop back.
+      If steps 1–10 are all checked [x], emit `code.complete` to hand off to the documenter.
 
-        Step 2 (constants extraction):
-          - Create 7 constant files in packages/shared/src/constants/.
-          - Merge web-portal CUISINES (67 items) with mobile ALL_CUISINES (67 items + 4 extras: Asian, Comfort Food, Fine Dining, International).
-          - Export CUISINES as alias for ALL_CUISINES for backward compatibility.
-          - Maintain all `as const` assertions and readonly arrays.
-
-        Step 3 (types extraction):
-          - Copy all 17 types/interfaces from apps/web-portal/types/restaurant.ts.
-          - Check if any types import from @eatme/database (e.g., Ingredient). If so, add "@eatme/database": "workspace:*" to packages/shared/package.json.
-
-        Step 4 (validation extraction):
-          - Copy 5 schemas + 5 inferred types from apps/web-portal/lib/validation.ts (161 lines).
-          - Update internal imports to use relative paths (../types/restaurant, ../constants/...) instead of @/ aliases.
-          - Verify zod is listed as optional peer dependency.
-
-        Step 5 (web-portal migration):
-          - Search for all imports from '@/lib/constants', '@/types/restaurant', '@/lib/validation'.
-          - Replace with imports from '@eatme/shared'.
-          - Check RestaurantForm.tsx for local Zod schemas — consolidate if appropriate.
-          - Delete: apps/web-portal/lib/constants.ts, apps/web-portal/types/restaurant.ts, apps/web-portal/lib/validation.ts.
-          - Remove any "Keep in sync" comments.
-
-        Step 6 (mobile migration):
-          - Replace constant imports from '@/constants' with '@eatme/shared'. Keep '@/constants/icons' imports.
-          - Update apps/mobile/src/constants/index.ts: remove POPULAR_CUISINES and ALL_CUISINES definitions,
-            keep icon re-exports, add re-exports from @eatme/shared for backward compatibility.
-          - Leave mobile-specific types (navigation.ts, rating.ts) in place.
-
-        Step 7 (Turbo test task):
-          - The web-portal "test": "vitest" runs in watch mode — change to "vitest run" for CI,
-            add "test:watch": "vitest" for local dev.
-          - Add "test" task to turbo.json with "dependsOn": ["^build"].
-          - Run full pipeline: turbo build && turbo lint && turbo check-types && turbo test.
-
-        Steps 8-9 (documentation):
-          - CLAUDE.md must be under 100 lines. Move detail to agent_docs/.
-          - Reference existing docs/project/ files — don't duplicate content.
-          - copilot-instructions.md: targeted fixes only — don't rewrite the whole file.
-
-        Step 10 (hook split):
-          - 4 existing components import types from useMenuScanState.ts (MenuScanDone, MenuScanUpload,
-            MenuScanProcessing, MenuScanReview). Redirect ALL type imports to menuScanTypes.ts.
-          - Create coordinator hook useMenuScan.ts that composes sub-hooks.
-          - Update page.tsx to import useMenuScan instead of useMenuScanState.
-          - Update test file test/useMenuScanState.test.ts imports.
-
-        Step 12 (RestaurantDetailScreen split):
-          - Create screens/restaurant-detail/ subdirectory with index.tsx barrel.
-          - Update screens/index.ts: change export from './RestaurantDetailScreen' to './restaurant-detail'.
-
-        Step 13 (common.ts split):
-          - styles/index.ts already has a barrel with imports from './common' plus other modules.
-          - Replace './common' imports with imports from the new modules.
-          - Maintain the backward-compatible commonStyles composite object.
-          - Also update filters.ts, map.ts, navigation.ts if they import from './common'.
-
-        Steps 14-17 (JSDoc):
-          - Follow existing patterns: packages/database/src/client.ts for WHY explanations,
-            apps/mobile/src/services/ratingService.ts for full JSDoc blocks.
-          - Document magic numbers: filterStore.ts price defaults, feed scoring weights, PGRST116 error code.
-          - Do NOT over-document obvious files.
-
-        Step 18 (dead code removal):
-          - Remove console.log (not console.error) from API routes and hooks.
-          - Check baseline-browser-mapping in web-portal devDeps — remove if unused.
-          - Focus verbose pattern cleanup on files touched in Phase 2 splits.
-
-        Step 20 (eslint-plugin-jsdoc):
-          - Install at monorepo root: pnpm add -Dw eslint-plugin-jsdoc.
-          - Configure as WARNINGS, not errors. Only check exported declarations.
-          - Document baseline warning count.
-
-        Step 21 (Husky + lint-staged):
-          - pnpm add -Dw husky lint-staged && npx husky init.
-          - Start without --max-warnings=0 if JSDoc warnings are too numerous.
-
-        Step 22 (GitHub Actions CI):
-          - Create .github/workflows/ci.yml with pnpm/action-setup and Turbo cache.
-          - Trigger on push to main and PRs to main.
+      Scope discipline: only touch files described in the current step. Do not fix
+      unrelated things you notice along the way.
     triggers:
-      - "start"
-      - "step.retry"
+      - "plan.ready"
+      - "step.done"
     publishes:
-      - "step.complete"
-      - "step.blocked"
+      - "step.done"
+      - "code.complete"
 
-  verifier:
-    name: "Verifier"
-    emoji: "\u2705"
-    description: "Build gate — confirms TypeScript compiles, tests pass, and no unintended files were changed"
+  documenter:
+    name: "Documenter"
+    emoji: "📝"
+    description: "Updates auth-flow.md to match the fixed code, then completes the loop"
     instructions: |
-      You are a build gate. Your ONLY job is confirming that the code compiles, tests pass, and scope is clean.
-      Do NOT review design conformance — the Critic handles that.
+      You are a technical writer updating the auth flow documentation to match the
+      code that was just fixed.
 
-      Run these checks in order:
+      Read:
+      - .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md Step 11 — exact changes required
+      - docs/project/workflows/auth-flow.md — current state of the doc
+      - The key fixed files to confirm what they actually do now:
+        - apps/web-portal/middleware.ts
+        - apps/web-portal/app/auth/callback/route.ts
+        - apps/web-portal/contexts/AuthContext.tsx
+        - apps/web-portal/components/AdminRoute.tsx (if it exists)
+        - infra/supabase/migrations/082_wire_signup_triggers.sql
+        - infra/supabase/migrations/083_signup_user_profile_trigger.sql
 
-      1. Build: `turbo build` — must succeed with zero errors.
+      Apply all changes specified in Step 11 of the plan to auth-flow.md.
 
-      2. Type-check: `turbo check-types` — must succeed with zero errors.
+      When done, mark Step 11 [x] in .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md.
 
-      3. Lint: `turbo lint` — must pass with zero errors.
-         Warnings are acceptable but errors must be fixed.
-
-      4. Tests: `cd apps/web-portal && npx vitest run` — all tests must pass.
-         (Skip this check for Steps 8-9, 14-17 which are documentation-only.)
-
-      5. Scope: check that only files relevant to this step were modified.
-         - Steps 1-4: packages/shared/ and both apps' package.json and next.config.ts
-         - Step 5: apps/web-portal/ only (deleting constants.ts, types/restaurant.ts, validation.ts)
-         - Step 6: apps/mobile/ only
-         - Step 7: turbo.json and apps/web-portal/package.json
-         - Steps 8-9: CLAUDE.md, agent_docs/, .github/copilot-instructions.md (no code changes)
-         - Steps 10-11: apps/web-portal/app/admin/menu-scan/ and apps/web-portal/test/
-         - Step 12: apps/mobile/src/screens/
-         - Step 13: apps/mobile/src/styles/
-         - Steps 14-17: JSDoc comments only — no logic changes
-         - Step 18: dead code removal across both apps
-         - Step 19: apps/web-portal/test/
-         - Steps 20-22: config files (.eslintrc, .husky/, .github/workflows/, package.json)
-         Run `git diff --name-only` to verify.
-
-      If any check fails:
-        - Report the exact error output.
-        - Emit `step.retry` so the Implementer can fix it.
-
-      If all checks pass:
-        - Emit `build.verified` with the step number.
+      Then emit `LOOP_COMPLETE`.
     triggers:
-      - "step.complete"
+      - "code.complete"
     publishes:
-      - "build.verified"
-      - "step.retry"
-
-  critic:
-    name: "Critic"
-    emoji: "\U0001F50D"
-    description: "Design conformance reviewer — reads the design spec with fresh eyes and verifies the implementation matches"
-    instructions: |
-      You are a design reviewer with fresh eyes. The build already passes — your job is to verify
-      the implementation matches the design spec and catches issues the Implementer may have missed.
-
-      Read the event payload to identify which step was completed.
-
-      1. Read the FULL step description in:
-         .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
-
-      2. Read the relevant section in:
-         .agents/planning/2026-04-11-eatme-code-refactor/design/detailed-design.md
-
-      3. Read every file created or modified in this step. Check:
-         - Barrel exports are maintained — no external imports broken
-         - No behavior changes — this is a refactor, not a feature
-         - File structure matches the design spec's file trees
-         - JSDoc follows the established patterns (WHY-first, not restating code)
-
-      4. Step-specific design checks:
-         - Step 1: packages/shared/ has package.json with zod optional peer dep. tsconfig.json exists.
-           Both apps have "@eatme/shared": "workspace:*". next.config.ts has @eatme/shared in transpilePackages.
-         - Step 2: All 7 constant files exist. CUISINES is alias for ALL_CUISINES. All `as const` preserved.
-           cuisine.ts has merged list including Asian, Comfort Food, Fine Dining, International.
-           wizard.ts has WIZARD_STEPS. restaurant.ts has SERVICE_SPEED_OPTIONS and COUNTRIES.
-         - Step 3: All 17 types/interfaces exported. No circular deps between @eatme/shared and @eatme/database.
-         - Step 4: All 5 schemas + 5 inferred types. Internal imports use relative paths, not @/ aliases.
-         - Step 5: No imports from '@/lib/constants', '@/types/restaurant', '@/lib/validation' remain.
-           Those 3 files are deleted. No "Keep in sync" comments remain.
-         - Step 6: Mobile constants/index.ts has NO local POPULAR_CUISINES or ALL_CUISINES definitions.
-           Icons re-exports preserved. @eatme/shared re-exports added.
-         - Step 7: turbo.json has "test" task. Web-portal test script runs in single-run mode (vitest run).
-         - Step 8: CLAUDE.md under 100 lines. agent_docs/ has 5 files. References docs/project/ not duplicating.
-         - Step 9: copilot-instructions.md: no "packages/ui", no "packages/typescript-config", no "packages/eslint-config".
-           Says "Next.js 16" not "14". Mentions @eatme/shared. Mentions 49 test files.
-         - Step 10: useMenuScanState.ts deleted. 5-6 new hooks in hooks/ directory. Coordinator useMenuScan.ts exists.
-           All 4 consuming components import types from menuScanTypes.ts not useMenuScanState.
-           page.tsx imports useMenuScan. Test file updated.
-         - Step 11: MenuScanReview.tsx is ~100 lines orchestrator. 6 sub-components exist with typed prop interfaces.
-         - Step 12: screens/restaurant-detail/ directory exists with index.tsx barrel.
-           screens/index.ts exports from './restaurant-detail'. Original file deleted.
-           RestaurantDetailScreen.tsx is ~120 lines orchestrator. 8 supporting files exist.
-         - Step 13: common.ts is deleted. 10 new style modules exist. styles/index.ts updated with same exports.
-           Backward-compatible commonStyles object preserved. No visual regressions.
-         - Steps 14-16: JSDoc on all exports in targeted files. Module-level doc comments on all files.
-         - Step 17: Magic numbers documented. PGRST116 explained. Price defaults explained. Scoring weights explained.
-         - Step 18: No stray console.log in production code. Unused deps removed.
-         - Step 19: test/helpers/ directory exists with shared mock factories. Test files import from helpers.
-         - Step 20: eslint-plugin-jsdoc installed. Rules set as warnings. Baseline count documented.
-         - Step 21: .husky/pre-commit exists. lint-staged config in package.json.
-         - Step 22: .github/workflows/ci.yml exists. Triggers on push/PR to main. Runs build+lint+check-types+test.
-
-      If any issue found:
-        - Describe the exact issue, the file/line, and what the design spec expects.
-        - Emit `step.retry` so the Implementer can fix it.
-
-      If everything matches the design:
-        - Emit `step.verified` with the step number and a one-line confirmation.
-    triggers:
-      - "build.verified"
-    publishes:
-      - "step.verified"
-      - "step.retry"
-
-  stepper:
-    name: "Stepper"
-    emoji: "\U0001F4CB"
-    description: "Checks checklist progress after each verified step and drives the loop forward or signals completion"
-    instructions: |
-      You are the progress manager for the EatMe codebase refactor.
-
-      Read the checklist in:
-        .agents/planning/2026-04-11-eatme-code-refactor/implementation/plan.md
-
-      Count the remaining unchecked items [ ].
-
-      If unchecked items remain:
-        - Emit `start` to trigger the Implementer for the next step.
-
-      If ALL 22 items are checked [x]:
-        - Run `turbo build && turbo lint && turbo check-types` one final time.
-        - Run `cd apps/web-portal && npx vitest run` one final time.
-        - Confirm all 22 checklist items are marked [x].
-        - Confirm packages/shared/ exists with constants, types, validation barrels.
-        - Confirm CLAUDE.md exists at root and is under 100 lines.
-        - Confirm .github/workflows/ci.yml exists.
-        - Confirm .husky/pre-commit exists.
-        - Confirm turbo.json has a "test" task.
-        - Confirm apps/web-portal/lib/constants.ts is deleted.
-        - Confirm apps/web-portal/types/restaurant.ts is deleted.
-        - Confirm no file in the split targets exceeds 500 lines.
-        - Emit `LOOP_COMPLETE`.
-    triggers:
-      - "step.verified"
-    publishes:
-      - "start"
       - "LOOP_COMPLETE"
 
 features:

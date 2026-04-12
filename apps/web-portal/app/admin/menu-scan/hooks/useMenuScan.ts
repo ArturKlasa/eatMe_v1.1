@@ -1,14 +1,21 @@
 'use client';
 
+import { useCallback } from 'react';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { toEditableMenus } from '@/lib/menu-scan';
 import { useMenuScanStep } from './useMenuScanStep';
 import { useUploadState } from './useUploadState';
 import { useProcessingState } from './useProcessingState';
 import { useReviewState } from './useReviewState';
 import { useGroupState } from './useGroupState';
+import { useJobQueue } from './useJobQueue';
+import type { ScanJob } from './menuScanTypes';
 
 /**
  * Coordinator hook that composes all menu-scan sub-hooks.
- * Exposes the same API surface as the original useMenuScanState.
+ * Exposes the same API surface as the original useMenuScanState,
+ * plus a background job queue.
  */
 export function useMenuScan() {
   const { step, setStep } = useMenuScanStep();
@@ -28,32 +35,100 @@ export function useMenuScan() {
     selectedRestaurant: upload.selectedRestaurant,
     imageFiles: upload.imageFiles,
     isPdfConverting: upload.isPdfConverting,
-    setStep,
-    onProcessingStart: restaurant => {
+  });
+  const jobQueue = useJobQueue();
+
+  // ---------- fire a scan and immediately reset the upload form ----------
+  const handleProcess = useCallback(async () => {
+    const fired = await processing.fireProcess();
+    if (!fired) return;
+
+    // Submit to the background job queue
+    jobQueue.submitJob(fired.restaurantId, fired.restaurantName, fired.fetchPromise);
+    toast.success(`Scan started for ${fired.restaurantName}`);
+
+    // Reset upload form so the admin can start the next restaurant
+    upload.setSelectedRestaurant(null);
+    upload.setRestaurantSearch('');
+    upload.setImageFiles([]);
+    upload.setPreviewUrls(prev => {
+      prev.forEach(url => URL.revokeObjectURL(url));
+      return [];
+    });
+    upload.setIsPreSelected(false);
+    upload.setShowQuickAdd(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [processing.fireProcess, jobQueue.submitJob]);
+
+  // ---------- enter review mode from a completed job ----------
+  const enterReview = useCallback(
+    async (tempId: string) => {
+      const job = jobQueue.getJob(tempId);
+      if (!job?.result || job.status !== 'needs_review') return;
+
+      // Populate review state from the job result
+      const menus = toEditableMenus(job.result.result);
+
+      const autoExpanded = new Set<string>();
+      menus.forEach(menu =>
+        menu.categories.forEach(cat =>
+          cat.dishes.forEach(dish => {
+            if (dish.confidence < 0.7) autoExpanded.add(dish._id);
+          })
+        )
+      );
+
+      review.setJobId(job.jobId ?? '');
+      review.setCurrency(job.result.currency);
+      review.setEditableMenus(menus);
+      review.setExpandedDishes(autoExpanded);
+      review.setExtractionNotes(job.result.extractionNotes ?? []);
+      group.setFlaggedDuplicates(job.result.flaggedDuplicates);
+
+      // Set restaurant context for review
+      upload.setSelectedRestaurant({
+        id: job.restaurantId,
+        name: job.restaurantName,
+        city: null,
+        country_code: null,
+      });
       review.setRestaurantDetails({
         address: '',
-        city: restaurant.city || '',
+        city: '',
         neighbourhood: '',
         state: '',
         postal_code: '',
-        country_code: restaurant.country_code || 'MX',
+        country_code: 'MX',
         phone: '',
         website: '',
         lat: null,
         lng: null,
         dirty: false,
       });
-      review.setLeftPanelTab('images');
-    },
-    onProcessingResult: result => {
-      review.setJobId(result.jobId);
-      review.setCurrency(result.currency);
-      review.setEditableMenus(result.menus);
-      review.setExpandedDishes(result.autoExpanded);
-      group.setFlaggedDuplicates(result.flaggedDuplicates);
+
+      // Recover preview URLs from Supabase Storage
+      if (job.imageStoragePaths?.length) {
+        const urls = await Promise.all(
+          job.imageStoragePaths.map(async (path: string) => {
+            const { data } = await supabase.storage.from('menu-scans').createSignedUrl(path, 3600);
+            return data?.signedUrl ?? '';
+          })
+        );
+        upload.setPreviewUrls(urls.filter(Boolean));
+      } else {
+        upload.setPreviewUrls([]);
+      }
       upload.setCurrentImageIdx(0);
+
+      review.setLeftPanelTab('images');
+      setStep('review');
+
+      // Remove from queue since we're now reviewing it
+      jobQueue.dismissJob(tempId);
     },
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [jobQueue.getJob, jobQueue.dismissJob]
+  );
 
   const resetAll = () => {
     setStep('upload');
@@ -64,8 +139,8 @@ export function useMenuScan() {
     review.setJobId('');
     review.setEditableMenus([]);
     review.setExpandedDishes(new Set());
+    review.setExtractionNotes([]);
     review.setSavedCount(0);
-    processing.setProcessingError('');
     review.setRestaurantDetails({
       address: '',
       city: '',
@@ -115,15 +190,22 @@ export function useMenuScan() {
     handleDragOver: upload.handleDragOver,
     handleDragLeave: upload.handleDragLeave,
     handleDrop: upload.handleDrop,
-    handleProcess: processing.handleProcess,
+    handleProcess,
     showQuickAdd: upload.showQuickAdd,
     setShowQuickAdd: upload.setShowQuickAdd,
     quickAddInitialName: upload.quickAddInitialName,
     setQuickAddInitialName: upload.setQuickAddInitialName,
 
-    // Processing
-    processingError: processing.processingError,
-    processingStage: processing.processingStage,
+    // Restaurants without menus
+    restaurantsWithoutMenu: upload.restaurantsWithoutMenu,
+
+    // Job queue
+    jobs: jobQueue.jobs,
+    enterReview,
+    dismissJob: jobQueue.dismissJob,
+
+    // Warnings
+    menuWarnings: review.menuWarnings,
 
     // Review
     jobId: review.jobId,

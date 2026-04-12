@@ -1,0 +1,5 @@
+- [Auth Flow Findings](research/auth-flow-findings.md) — 13 issues found in auth code audit (2 critical, 3 high, 3 medium, 5 low)
+- [New User Creation](research/new-user-creation.md) — DB trigger gaps: CREATE TRIGGER missing from migrations, public.users + user_behavior_profiles never auto-created, 3 inconsistent role systems
+- [Fix Specifications](design/detailed-design.md) — exact code changes for each issue
+- [Implementation Plan](implementation/plan.md) — 11-step ordered plan (Facebook OAuth deferred)
+- [Summary](summary.md) — overview + next steps + ralph handoff commands

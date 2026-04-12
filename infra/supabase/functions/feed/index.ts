@@ -695,10 +695,10 @@ serve(async (req: Request) => {
 
     // ── Build dishes result ──────────────────────────────────────────────────
 
-    let dishPool = diversified;
-    if (filters.openNow) {
-      dishPool = diversified.filter(d => isOpenNow(openHoursMap.get(d.restaurant_id)));
-    }
+    // Always exclude closed restaurants from recommendations — a dish you can't
+    // buy right now is not a useful recommendation. The `filters.openNow` toggle
+    // is redundant but preserved for API compatibility.
+    const dishPool = diversified.filter(d => isOpenNow(openHoursMap.get(d.restaurant_id)));
 
     const dishResult =
       mode === 'restaurants'

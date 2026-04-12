@@ -44,14 +44,17 @@ export default function SignupPage() {
 
     setLoading(true);
 
-    const { error } = await signUp(email, password, restaurantName);
+    const { error, needsEmailVerification } = await signUp(email, password, restaurantName);
 
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
+    } else if (needsEmailVerification) {
       toast.success('Account created! Please check your email to verify your account.');
       router.push('/auth/login');
+    } else {
+      toast.success('Account created! Welcome aboard.');
+      router.push('/');
     }
   };
 
@@ -76,9 +79,22 @@ export default function SignupPage() {
     }
   };
 
-  const passwordStrength = password.length === 0 ? null : password.length < 6 ? 'weak' : password.length < 8 ? 'fair' : 'strong';
-  const strengthColor = passwordStrength === 'weak' ? 'bg-destructive' : passwordStrength === 'fair' ? 'bg-yellow-500' : 'bg-success';
-  const strengthWidth = passwordStrength === 'weak' ? 'w-1/3' : passwordStrength === 'fair' ? 'w-2/3' : 'w-full';
+  const passwordStrength =
+    password.length === 0
+      ? null
+      : password.length < 6
+        ? 'weak'
+        : password.length < 8
+          ? 'fair'
+          : 'strong';
+  const strengthColor =
+    passwordStrength === 'weak'
+      ? 'bg-destructive'
+      : passwordStrength === 'fair'
+        ? 'bg-yellow-500'
+        : 'bg-success';
+  const strengthWidth =
+    passwordStrength === 'weak' ? 'w-1/3' : passwordStrength === 'fair' ? 'w-2/3' : 'w-full';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-primary/5 to-amber-50 p-4">
@@ -153,14 +169,24 @@ export default function SignupPage() {
               {passwordStrength && (
                 <div className="space-y-1">
                   <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full ${strengthColor} ${strengthWidth} rounded-full transition-all duration-300`} />
+                    <div
+                      className={`h-full ${strengthColor} ${strengthWidth} rounded-full transition-all duration-300`}
+                    />
                   </div>
-                  <p className={`text-xs ${passwordStrength === 'weak' ? 'text-destructive' : passwordStrength === 'fair' ? 'text-yellow-600' : 'text-success'}`}>
-                    {passwordStrength === 'weak' ? 'Too short — at least 6 characters' : passwordStrength === 'fair' ? 'Fair — try 8+ characters' : 'Strong password'}
+                  <p
+                    className={`text-xs ${passwordStrength === 'weak' ? 'text-destructive' : passwordStrength === 'fair' ? 'text-yellow-600' : 'text-success'}`}
+                  >
+                    {passwordStrength === 'weak'
+                      ? 'Too short — at least 6 characters'
+                      : passwordStrength === 'fair'
+                        ? 'Fair — try 8+ characters'
+                        : 'Strong password'}
                   </p>
                 </div>
               )}
-              {!passwordStrength && <p className="text-xs text-muted-foreground">At least 6 characters</p>}
+              {!passwordStrength && (
+                <p className="text-xs text-muted-foreground">At least 6 characters</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -184,7 +210,11 @@ export default function SignupPage() {
                   tabIndex={-1}
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>

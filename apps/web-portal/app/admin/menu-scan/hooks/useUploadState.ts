@@ -30,16 +30,29 @@ export function useUploadState() {
   // ---------- image navigation ----------
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
 
+  // ---------- restaurants without menus ----------
+  const [restaurantsWithoutMenu, setRestaurantsWithoutMenu] = useState<RestaurantOption[]>([]);
+
   // ---------- load restaurants on mount ----------
   useEffect(() => {
-    supabase
-      .from('restaurants')
-      .select('id, name, city, country_code')
-      .order('name')
-      .then(({ data, error }) => {
-        if (error) console.error('[MenuScan] Failed to load restaurants:', error.message);
-        setRestaurants((data as RestaurantOption[]) ?? []);
-      });
+    const load = async () => {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('id, name, city, country_code')
+        .order('name');
+      if (error) {
+        console.error('[MenuScan] Failed to load restaurants:', error.message);
+        return;
+      }
+      const all = (data as RestaurantOption[]) ?? [];
+      setRestaurants(all);
+
+      // Find restaurants with zero dishes
+      const { data: dishRows } = await supabase.from('dishes').select('restaurant_id');
+      const withDishes = new Set(dishRows?.map(d => d.restaurant_id) ?? []);
+      setRestaurantsWithoutMenu(all.filter(r => !withDishes.has(r.id)));
+    };
+    load();
   }, []);
 
   // ---------- query-param restaurant pre-selection ----------
@@ -156,6 +169,7 @@ export function useUploadState() {
     setShowQuickAdd,
     quickAddInitialName,
     setQuickAddInitialName,
+    restaurantsWithoutMenu,
     filteredRestaurants,
     handleFilesSelected,
     removeImage,

@@ -195,6 +195,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         password,
         options: {
           data: metadata,
+          emailRedirectTo: 'eatme://auth/callback',
         },
       });
 

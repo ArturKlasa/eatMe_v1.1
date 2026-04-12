@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,9 @@ import { Eye, EyeOff, Loader2, UtensilsCrossed } from 'lucide-react';
 import { toast } from 'sonner';
 import { GoogleIcon, FacebookIcon } from '@/components/icons/OAuthIcons';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, signInWithOAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +39,10 @@ export default function LoginPage() {
       setLoading(false);
     } else {
       toast.success('Logged in successfully!');
-      router.push('/');
+      const redirectParam = searchParams.get('redirect') ?? '/';
+      // Only follow relative redirects to prevent open redirect attacks
+      const redirect = redirectParam.startsWith('/') ? redirectParam : '/';
+      router.push(redirect);
     }
   };
 
@@ -54,6 +59,9 @@ export default function LoginPage() {
         setOauthLoading(false);
       }
       // If successful, user will be redirected by Supabase
+      // Note: OAuth leaves the page via browser redirect so ?redirect is lost.
+      // The callback Route Handler accepts a ?next= param for OAuth round-trips,
+      // but that is a separate enhancement.
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('An unexpected error occurred');
@@ -97,7 +105,10 @@ export default function LoginPage() {
                 type="email"
                 placeholder="restaurant@example.com"
                 value={email}
-                onChange={e => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError('');
+                }}
                 onBlur={e => validateEmail(e.target.value)}
                 required
                 disabled={loading}
@@ -202,5 +213,19 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

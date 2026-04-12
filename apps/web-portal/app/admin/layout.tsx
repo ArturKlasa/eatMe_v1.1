@@ -1,98 +1,35 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import type { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { ReactNode } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-
-/**
- * SECURITY: Admin Layout with Server-Side Authentication Check
- *
- * This layout:
- * 1. Runs on the server (cannot be bypassed by client)
- * 2. Verifies user is authenticated AND has admin role
- * 3. Redirects unauthorized users before rendering
- * 4. Provides consistent admin UI structure
- *
- * @security This is a critical security boundary - all admin pages
- * inherit this protection automatically
- */
+import { AdminRoute } from '@/components/AdminRoute';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error || !session?.user) {
-        router.replace('/auth/login?error=unauthorized&redirect=/admin');
-        return;
-      }
-
-      const userRole = session.user.user_metadata?.role;
-
-      if (userRole !== 'admin') {
-        console.warn('[SECURITY] Non-admin user blocked from admin layout:', {
-          userId: session.user.id,
-          email: session.user.email,
-          role: userRole || 'none',
-          timestamp: new Date().toISOString(),
-        });
-
-        router.replace('/?error=admin_only');
-        return;
-      }
-
-      setUser(session.user);
-      setLoading(false);
-    };
-
-    checkAdmin();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Verifying admin access...</p>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Admin Header */}
-      <AdminHeader user={user!} />
+    <AdminRoute>
+      <div className="min-h-screen bg-muted/30">
+        {/* Admin Header */}
+        <AdminHeader user={user!} />
 
-      <div className="flex">
-        {/* Sidebar Navigation */}
-        <AdminSidebar />
+        <div className="flex">
+          {/* Sidebar Navigation */}
+          <AdminSidebar />
 
-        {/* Main Content */}
-        <main className="flex-1 p-8">
-          {/* SECURITY: Add visual indicator that this is admin area — red colors applied directly (surface-warning utility added in Step 6) */}
-          <div className="sticky top-0 z-10 mb-4 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
-            🔒 <strong>Admin Mode</strong> - All actions are logged and monitored
-          </div>
+          {/* Main Content */}
+          <main className="flex-1 p-8">
+            {/* SECURITY: Add visual indicator that this is admin area */}
+            <div className="sticky top-0 z-10 mb-4 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
+              🔒 <strong>Admin Mode</strong> - All actions are logged and monitored
+            </div>
 
-          {children}
-        </main>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AdminRoute>
   );
 }
-
-/**
- * SECURITY NOTE: Admin access is enforced client-side here due to
- * local dev OAuth cookie propagation issues. RLS still protects data.
- */

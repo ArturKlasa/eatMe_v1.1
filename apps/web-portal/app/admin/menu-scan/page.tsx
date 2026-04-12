@@ -2,56 +2,53 @@
 
 import { useMenuScan } from './hooks/useMenuScan';
 import { MenuScanUpload } from './components/MenuScanUpload';
-import { MenuScanProcessing } from './components/MenuScanProcessing';
 import { MenuScanReview } from './components/MenuScanReview';
 import { MenuScanDone } from './components/MenuScanDone';
+import { ScanJobQueue } from './components/ScanJobQueue';
 
 export default function MenuScanPage() {
   const state = useMenuScan();
 
   if (state.step === 'upload') {
     return (
-      <MenuScanUpload
-        restaurants={state.restaurants}
-        setRestaurants={state.setRestaurants}
-        restaurantSearch={state.restaurantSearch}
-        setRestaurantSearch={state.setRestaurantSearch}
-        showRestaurantDropdown={state.showRestaurantDropdown}
-        setShowRestaurantDropdown={state.setShowRestaurantDropdown}
-        selectedRestaurant={state.selectedRestaurant}
-        setSelectedRestaurant={state.setSelectedRestaurant}
-        isPreSelected={state.isPreSelected}
-        setIsPreSelected={state.setIsPreSelected}
-        filteredRestaurants={state.filteredRestaurants}
-        showQuickAdd={state.showQuickAdd}
-        setShowQuickAdd={state.setShowQuickAdd}
-        quickAddInitialName={state.quickAddInitialName}
-        setQuickAddInitialName={state.setQuickAddInitialName}
-        imageFiles={state.imageFiles}
-        previewUrls={state.previewUrls}
-        isDragging={state.isDragging}
-        isPdfConverting={state.isPdfConverting}
-        fileInputRef={state.fileInputRef}
-        handleFilesSelected={state.handleFilesSelected}
-        removeImage={state.removeImage}
-        handleDragOver={state.handleDragOver}
-        handleDragLeave={state.handleDragLeave}
-        handleDrop={state.handleDrop}
-        handleProcess={state.handleProcess}
-        processingError={state.processingError}
-      />
-    );
-  }
-
-  if (state.step === 'processing') {
-    return (
-      <MenuScanProcessing
-        imageFiles={state.imageFiles}
-        selectedRestaurant={state.selectedRestaurant}
-        processingStage={state.processingStage}
-        restaurantDetails={state.restaurantDetails}
-        updateRestaurantDetails={state.updateRestaurantDetails}
-      />
+      <div className="space-y-6">
+        <MenuScanUpload
+          restaurants={state.restaurants}
+          setRestaurants={state.setRestaurants}
+          restaurantSearch={state.restaurantSearch}
+          setRestaurantSearch={state.setRestaurantSearch}
+          showRestaurantDropdown={state.showRestaurantDropdown}
+          setShowRestaurantDropdown={state.setShowRestaurantDropdown}
+          selectedRestaurant={state.selectedRestaurant}
+          setSelectedRestaurant={state.setSelectedRestaurant}
+          isPreSelected={state.isPreSelected}
+          setIsPreSelected={state.setIsPreSelected}
+          filteredRestaurants={state.filteredRestaurants}
+          showQuickAdd={state.showQuickAdd}
+          setShowQuickAdd={state.setShowQuickAdd}
+          quickAddInitialName={state.quickAddInitialName}
+          setQuickAddInitialName={state.setQuickAddInitialName}
+          imageFiles={state.imageFiles}
+          previewUrls={state.previewUrls}
+          isDragging={state.isDragging}
+          isPdfConverting={state.isPdfConverting}
+          fileInputRef={state.fileInputRef}
+          handleFilesSelected={state.handleFilesSelected}
+          removeImage={state.removeImage}
+          handleDragOver={state.handleDragOver}
+          handleDragLeave={state.handleDragLeave}
+          handleDrop={state.handleDrop}
+          handleProcess={state.handleProcess}
+          restaurantsWithoutMenu={state.restaurantsWithoutMenu}
+        />
+        <div className="max-w-2xl mx-auto">
+          <ScanJobQueue
+            jobs={state.jobs}
+            onReview={state.enterReview}
+            onDismiss={state.dismissJob}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -69,6 +66,7 @@ export default function MenuScanPage() {
     <MenuScanReview
       selectedRestaurant={state.selectedRestaurant}
       currency={state.currency}
+      menuWarnings={state.menuWarnings}
       imageFiles={state.imageFiles}
       previewUrls={state.previewUrls}
       editableMenus={state.editableMenus}

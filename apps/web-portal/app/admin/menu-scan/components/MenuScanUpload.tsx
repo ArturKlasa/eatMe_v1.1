@@ -1,15 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Upload,
   ChevronDown,
+  ChevronUp,
   Loader2,
   CheckCircle2,
-  AlertTriangle,
   ScanLine,
   X,
   Store,
   Plus,
+  UtensilsCrossed,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -27,7 +30,9 @@ import type { RestaurantOption } from '@/app/admin/menu-scan/hooks/menuScanTypes
 export interface MenuScanUploadProps {
   // Restaurant state
   restaurants: RestaurantOption[];
-  setRestaurants: (v: RestaurantOption[] | ((prev: RestaurantOption[]) => RestaurantOption[])) => void;
+  setRestaurants: (
+    v: RestaurantOption[] | ((prev: RestaurantOption[]) => RestaurantOption[])
+  ) => void;
   restaurantSearch: string;
   setRestaurantSearch: (v: string) => void;
   showRestaurantDropdown: boolean;
@@ -59,8 +64,8 @@ export interface MenuScanUploadProps {
   handleDrop: (e: React.DragEvent) => void;
   handleProcess: () => Promise<void>;
 
-  // Error
-  processingError: string;
+  // Restaurants without menus
+  restaurantsWithoutMenu: RestaurantOption[];
 }
 
 export function MenuScanUpload({
@@ -90,8 +95,10 @@ export function MenuScanUpload({
   handleDragLeave,
   handleDrop,
   handleProcess,
-  processingError,
+  restaurantsWithoutMenu,
 }: MenuScanUploadProps) {
+  const [showNeedsMenu, setShowNeedsMenu] = useState(false);
+
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
@@ -103,16 +110,6 @@ export function MenuScanUpload({
           Upload photos of a restaurant menu — AI extracts the dishes for you to review.
         </p>
       </div>
-
-      {processingError && (
-        <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium">Processing failed</p>
-            <p className="mt-0.5">{processingError}</p>
-          </div>
-        </div>
-      )}
 
       {/* Restaurant selector */}
       <div className="bg-card rounded-xl border p-6 space-y-4">
@@ -142,17 +139,29 @@ export function MenuScanUpload({
                 <span className="text-success">— {selectedRestaurant.city}</span>
               )}
             </p>
-            <button
-              onClick={() => {
-                setIsPreSelected(false);
-                setSelectedRestaurant(null);
-                setRestaurantSearch('');
-                setShowRestaurantDropdown(false);
-              }}
-              className="text-xs text-muted-foreground hover:text-foreground underline ml-4 shrink-0"
-            >
-              Change
-            </button>
+            <div className="flex items-center gap-3 ml-4 shrink-0">
+              <a
+                href={`https://www.google.com/maps/search/${encodeURIComponent([selectedRestaurant.name, selectedRestaurant.city].filter(Boolean).join(' '))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                title="View on Google Maps"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Google Maps
+              </a>
+              <button
+                onClick={() => {
+                  setIsPreSelected(false);
+                  setSelectedRestaurant(null);
+                  setRestaurantSearch('');
+                  setShowRestaurantDropdown(false);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Change
+              </button>
+            </div>
           </div>
         )}
 
@@ -172,7 +181,11 @@ export function MenuScanUpload({
                 }
                 const { data: created, error } = await supabase
                   .from('restaurants')
-                  .insert({ ...formDataToDbColumns(data), owner_id: userData.user.id, is_active: true })
+                  .insert({
+                    ...formDataToDbColumns(data),
+                    owner_id: userData.user.id,
+                    is_active: true,
+                  })
                   .select('id, name, city, country_code')
                   .single();
                 if (error || !created) {
@@ -249,13 +262,63 @@ export function MenuScanUpload({
           </div>
         )}
         {!isPreSelected && selectedRestaurant && (
-          <p className="text-xs text-success flex items-center gap-1">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            {selectedRestaurant.name}
-            {selectedRestaurant.country_code && ` — ${selectedRestaurant.country_code}`}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-success flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {selectedRestaurant.name}
+              {selectedRestaurant.country_code && ` — ${selectedRestaurant.country_code}`}
+            </p>
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent([selectedRestaurant.name, selectedRestaurant.city].filter(Boolean).join(' '))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              title="View on Google Maps"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Google Maps
+            </a>
+          </div>
         )}
       </div>
+
+      {/* Restaurants needing menus */}
+      {restaurantsWithoutMenu.length > 0 && !isPreSelected && !selectedRestaurant && (
+        <div className="bg-card rounded-xl border p-5">
+          <button
+            onClick={() => setShowNeedsMenu(v => !v)}
+            className="w-full flex items-center justify-between text-sm font-medium text-foreground"
+          >
+            <span className="flex items-center gap-2">
+              <UtensilsCrossed className="h-4 w-4 text-warning" />
+              Restaurants needing menus ({restaurantsWithoutMenu.length})
+            </span>
+            {showNeedsMenu ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+          {showNeedsMenu && (
+            <div className="mt-3 max-h-52 overflow-y-auto space-y-0.5 border rounded-lg">
+              {restaurantsWithoutMenu.map(r => (
+                <button
+                  key={r.id}
+                  className="w-full text-left px-4 py-2 hover:bg-accent text-sm border-b last:border-0"
+                  onClick={() => {
+                    setSelectedRestaurant(r);
+                    setRestaurantSearch(r.name);
+                    setShowRestaurantDropdown(false);
+                  }}
+                >
+                  <span className="font-medium">{r.name}</span>
+                  {r.city && <span className="text-muted-foreground ml-2">— {r.city}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Image upload */}
       <div className="bg-background rounded-xl border p-6 space-y-4">

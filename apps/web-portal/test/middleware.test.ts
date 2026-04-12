@@ -20,13 +20,13 @@ vi.mock('@/lib/supabase-server', () => ({
 }));
 
 // Import after mocking
-const { proxy } = await import('@/proxy');
+const { middleware } = await import('@/middleware');
 
 function makeRequest(pathname: string): NextRequest {
   return new NextRequest(new URL(`http://localhost:3000${pathname}`));
 }
 
-describe('proxy (auth redirects)', () => {
+describe('middleware (auth redirects)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -38,48 +38,48 @@ describe('proxy (auth redirects)', () => {
 
     it('redirects /admin to /auth/login', async () => {
       const req = makeRequest('/admin');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toContain('/auth/login');
     });
 
     it('redirects /admin/restaurants to /auth/login', async () => {
       const req = makeRequest('/admin/restaurants');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toContain('/auth/login');
     });
 
     it('redirects /menu/123 to /auth/login', async () => {
       const req = makeRequest('/menu/123');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toContain('/auth/login');
     });
 
     it('redirects /restaurant/abc to /auth/login', async () => {
       const req = makeRequest('/restaurant/abc');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toContain('/auth/login');
     });
 
     it('redirects /onboard/basic-info to /auth/login', async () => {
       const req = makeRequest('/onboard/basic-info');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toContain('/auth/login');
     });
 
     it('allows unauthenticated access to /auth/login', async () => {
       const req = makeRequest('/auth/login');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).not.toBe(307);
     });
 
     it('allows unauthenticated access to /auth/signup', async () => {
       const req = makeRequest('/auth/signup');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).not.toBe(307);
     });
   });
@@ -87,33 +87,35 @@ describe('proxy (auth redirects)', () => {
   describe('authenticated user', () => {
     beforeEach(() => {
       mockGetUser.mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'test@example.com', user_metadata: { role: 'admin' } } },
+        data: {
+          user: { id: 'user-1', email: 'test@example.com', app_metadata: { role: 'admin' } },
+        },
       });
     });
 
     it('redirects /auth/login to /', async () => {
       const req = makeRequest('/auth/login');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toMatch(/\/$/);
     });
 
     it('redirects /auth/signup to /', async () => {
       const req = makeRequest('/auth/signup');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toMatch(/\/$/);
     });
 
     it('allows authenticated admin access to /admin', async () => {
       const req = makeRequest('/admin');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).not.toBe(307);
     });
 
     it('allows authenticated access to /admin/restaurants', async () => {
       const req = makeRequest('/admin/restaurants');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).not.toBe(307);
     });
   });
@@ -121,13 +123,15 @@ describe('proxy (auth redirects)', () => {
   describe('authenticated non-admin user', () => {
     beforeEach(() => {
       mockGetUser.mockResolvedValue({
-        data: { user: { id: 'user-1', email: 'owner@example.com', user_metadata: { role: 'owner' } } },
+        data: {
+          user: { id: 'user-1', email: 'owner@example.com', app_metadata: { role: 'owner' } },
+        },
       });
     });
 
     it('redirects non-admin from /admin to /', async () => {
       const req = makeRequest('/admin');
-      const res = await proxy(req);
+      const res = await middleware(req);
       expect(res.status).toBe(307);
       expect(res.headers.get('location')).toContain('admin_only');
     });

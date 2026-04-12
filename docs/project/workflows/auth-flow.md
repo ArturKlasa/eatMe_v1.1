@@ -20,6 +20,8 @@ Authentication gates access to both the consumer mobile app and the restaurant-o
 - Web portal has `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` set.
 - Mobile app has `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and Google OAuth client IDs configured per platform.
 - The web Route Handler at `/auth/callback` is deployed to exchange PKCE codes.
+- `eatme://auth/callback` is registered in Supabase's Redirect URL allowlist (required for mobile email verification and any future mobile OAuth flows).
+- DB triggers `on_auth_user_created_preferences`, `on_auth_user_created_profile`, and `on_auth_user_created_behavior` are applied via migrations 081–083.
 
 ## 4. Flow Steps
 
@@ -27,17 +29,19 @@ Authentication gates access to both the consumer mobile app and the restaurant-o
 
 1. User fills in email, password, and restaurant name on `/auth/signup`.
 2. `signUp()` calls `supabase.auth.signUp()` with `restaurant_name` in `user_metadata` and `emailRedirectTo` set to `/auth/callback`.
-3. Supabase sends a confirmation email with a verification link.
-4. User clicks the link, which redirects to `/auth/callback?code=<pkce_code>`.
-5. The Route Handler exchanges the code for a session cookie via `exchangeCodeForSession()`.
-6. User is redirected to `/` (or `/admin` if `role === 'admin'`).
+3. If email confirmation is required (`needsEmailVerification: true`), Supabase sends a confirmation email and the user is redirected to `/auth/login` with a "check your email" message.
+4. If email confirmation is off (`needsEmailVerification: false`), the user is auto-logged in and redirected to `/`.
+5. When the user clicks the verification link, they are redirected to `/auth/callback?code=<pkce_code>`.
+6. The Route Handler exchanges the code for a session cookie via `exchangeCodeForSession()`.
+7. User is redirected to `/` (or `/admin` if `app_metadata.role === 'admin'`).
 
 ### Email/Password Signup (Mobile)
 
 1. User enters email, password, and optional `profile_name`.
-2. `authStore.signUp()` calls `supabase.auth.signUp()` with metadata.
+2. `authStore.signUp()` calls `supabase.auth.signUp()` with metadata and `emailRedirectTo: 'eatme://auth/callback'`.
 3. If `data.session` is null but `data.user` exists, `needsEmailVerification` is true.
-4. User verifies email, then signs in normally.
+4. User taps the verification email link → app opens via deep link (`eatme://auth/callback`).
+5. User signs in normally after verification.
 
 ### OAuth Login (Web)
 
@@ -47,6 +51,8 @@ Authentication gates access to both the consumer mobile app and the restaurant-o
 4. Provider redirects to Supabase, which redirects to `/auth/callback?code=<pkce_code>`.
 5. The Route Handler exchanges the code for a cookie-based session.
 6. User is redirected to the appropriate page based on role.
+
+Note: Facebook OAuth requires separate App ID + Secret setup in the Supabase dashboard (Auth → Providers → Facebook).
 
 ### OAuth Login (Mobile - Google)
 
@@ -67,11 +73,19 @@ Authentication gates access to both the consumer mobile app and the restaurant-o
 
 ### Session Lifecycle
 
-1. On app mount (web `AuthProvider` or mobile `authStore.initialize()`), `supabase.auth.getSession()` hydrates the initial state.
-2. `onAuthStateChange` is registered once to keep state in sync with Supabase's internal token refresh and callback events.
-3. Supabase automatically refreshes the JWT before expiry (default 1 hour).
-4. On web, stale drafts older than 7 days are cleared via `clearIfStale()` after session confirmation.
-5. Sign-out clears local state; mobile also calls `signOutFromGoogle()` to clear the native Google session.
+1. On app mount (web `AuthProvider`), `supabase.auth.onAuthStateChange` fires with `INITIAL_SESSION`, hydrating the initial state from cookies. This replaces the previous dual `getSession()` + `onAuthStateChange` pattern.
+2. On mobile (`authStore.initialize()`), `supabase.auth.getSession()` hydrates the initial state.
+3. `onAuthStateChange` is registered once to keep state in sync with Supabase's internal token refresh and callback events.
+4. Supabase automatically refreshes the JWT before expiry (default 1 hour).
+5. On web, stale drafts older than 7 days are cleared via `clearIfStale()` on the `INITIAL_SESSION` event.
+6. Sign-out clears local state; mobile also calls `signOutFromGoogle()` to clear the native Google session.
+
+### Post-Login Redirect (Web)
+
+1. The middleware sets `?redirect=<path>` on the login URL when redirecting unauthenticated users.
+2. After successful email/password sign-in, the login page reads the `?redirect` param via `useSearchParams()` and navigates there.
+3. Only relative redirects (starting with `/`) are followed to prevent open redirect attacks.
+4. OAuth login leaves the page via browser redirect so `?redirect` is not consumed — the callback Route Handler accepts a `?next=` param for OAuth round-trips (future enhancement).
 
 ## 5. Sequence Diagrams
 
@@ -131,11 +145,10 @@ sequenceDiagram
     participant SA as Supabase Auth
     participant Store as AuthContext / authStore
 
-    App->>SA: getSession()
-    SA-->>Store: { session } or null
-    Store->>Store: Set user, loading=false
-
     App->>SA: onAuthStateChange(callback)
+    SA-->>Store: INITIAL_SESSION event + { session } or null
+    Store->>Store: Set user, loading=false, clearIfStale()
+
     Note over SA,Store: Fires on login, logout, token refresh
 
     loop Token Refresh (automatic)
@@ -154,17 +167,21 @@ sequenceDiagram
 
 | File | Purpose |
 |------|---------|
+| `apps/web-portal/middleware.ts` | Edge middleware: session refresh, route protection, admin role enforcement |
 | `apps/web-portal/contexts/AuthContext.tsx` | Web auth context (session, signIn, signUp, signInWithOAuth, signOut) |
 | `apps/web-portal/app/auth/callback/route.ts` | PKCE code exchange Route Handler |
-| `apps/web-portal/app/auth/login/page.tsx` | Web login page |
+| `apps/web-portal/app/auth/login/page.tsx` | Web login page (honours `?redirect` param after sign-in) |
 | `apps/web-portal/app/auth/signup/page.tsx` | Web signup page |
 | `apps/web-portal/components/ProtectedRoute.tsx` | Redirects unauthenticated users to `/auth/login` |
+| `apps/web-portal/components/AdminRoute.tsx` | Client-side admin role guard (checks `app_metadata.role`) |
 | `apps/web-portal/lib/supabase.ts` | Browser-side Supabase client |
 | `apps/web-portal/lib/supabase-server.ts` | Server-side Supabase client (cookie session) |
 | `apps/web-portal/lib/storage.ts` | Draft persistence and `clearIfStale()` |
 | `apps/mobile/src/stores/authStore.ts` | Zustand auth store (initialize, signIn, signUp, signInWithOAuth, signOut) |
 | `apps/mobile/src/lib/supabase.ts` | Mobile Supabase client with `getOAuthRedirectUrl()` |
 | `apps/mobile/src/lib/googleAuth.ts` | Native Google Sign-In (`signInWithGoogle`, `signOutFromGoogle`) |
+| `infra/supabase/migrations/082_wire_signup_triggers.sql` | Binds user_preferences trigger |
+| `infra/supabase/migrations/083_signup_user_profile_trigger.sql` | Auto-creates public.users and user_behavior_profiles on signup |
 
 ## 7. Error Handling
 
@@ -177,10 +194,13 @@ sequenceDiagram
 | Token refresh failure | `onAuthStateChange` fires with null session; user is effectively signed out |
 | Network error during auth | Caught in try/catch; error message set on store/context |
 | Missing Google OAuth client ID | Native sign-in throws; caught and surfaced to user |
+| Signup trigger failure | Trigger swallows error (`RAISE WARNING`); user can log in but may have missing preferences — monitor Supabase logs |
+| Admin self-promotion via updateUser | Blocked — admin checks use `app_metadata`, not `user_metadata` |
 
 ## 8. Notes
 
-- **Role-based access**: The web portal supports three roles: `consumer`, `restaurant_owner`, and `admin`. The callback route checks `user_metadata.role` to redirect admins to `/admin`. `ProtectedRoute` only checks for authentication, not role.
+- **Role-based access**: Admin checks use `app_metadata.role` (writable only by the service role). `user_metadata.role` is user-editable and must not be used for access control. The DB `is_admin()` function and `public.users.roles[]` are a separate system not currently used by the application layer — these should be reconciled or removed.
+- **New user creation**: Three DB triggers fire on `AFTER INSERT ON auth.users`: `public.users` profile row (`on_auth_user_created_profile`), `user_preferences` defaults row (`on_auth_user_created_preferences`), and `user_behavior_profiles` row (`on_auth_user_created_behavior`). All use `ON CONFLICT DO NOTHING` for idempotency.
 - **Duplicate listener prevention**: Mobile `authStore` tracks `authListenerSubscription` globally to avoid registering multiple `onAuthStateChange` listeners.
 - **PKCE vs Implicit**: The web portal uses PKCE flow exclusively. The old implicit flow (hash-based tokens) has been replaced.
 - **Draft cleanup**: On web login, `clearIfStale()` removes onboarding drafts older than 7 days. On sign-out, the user-specific draft key is explicitly removed from localStorage.

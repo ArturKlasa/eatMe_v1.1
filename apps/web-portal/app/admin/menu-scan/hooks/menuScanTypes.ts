@@ -24,6 +24,26 @@ export interface AddIngredientTarget {
   rawText: string;
 }
 
+export interface ScanJob {
+  /** Client-side tracking ID (assigned before API responds) */
+  tempId: string;
+  /** Database job ID (null until the API responds) */
+  jobId: string | null;
+  restaurantId: string;
+  restaurantName: string;
+  status: 'processing' | 'needs_review' | 'failed';
+  result?: {
+    currency: string;
+    result: import('@/lib/menu-scan').EnrichedResult;
+    flaggedDuplicates: import('@/lib/menu-scan').FlaggedDuplicate[];
+    extractionNotes: import('@/lib/menu-scan').ExtractionNote[];
+    dishCount: number;
+  };
+  imageStoragePaths?: string[];
+  error?: string;
+  startedAt: Date;
+}
+
 export interface RestaurantDetailsForm {
   address: string;
   city: string;

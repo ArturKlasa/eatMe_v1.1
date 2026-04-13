@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
 
   let totalDishesInserted = 0;
   let totalDishesFailed = 0;
+  let dishesWithMissingIngredients = 0;
   const errors: string[] = [];
 
   try {
@@ -169,7 +170,8 @@ export async function POST(request: NextRequest) {
           }
 
           totalDishesInserted++;
-          await insertIngredientsAndOptions(supabase, parentId, parentDish, restaurant_id);
+          const parentIngFailed = await insertIngredientsAndOptions(supabase, parentId, parentDish, restaurant_id);
+          if (parentIngFailed) dishesWithMissingIngredients++;
 
           // ---- Pass 2: Insert child variant dishes ----
           if (parentDish.variant_dishes && parentDish.variant_dishes.length > 0) {
@@ -199,7 +201,8 @@ export async function POST(request: NextRequest) {
               totalDishesInserted += childRows.length;
               // Insert ingredients/options for each child
               for (const child of childRows) {
-                await insertIngredientsAndOptions(supabase, child.id, child.dish, restaurant_id);
+                const childIngFailed = await insertIngredientsAndOptions(supabase, child.id, child.dish, restaurant_id);
+                if (childIngFailed) dishesWithMissingIngredients++;
               }
             }
           }
@@ -234,7 +237,8 @@ export async function POST(request: NextRequest) {
             totalDishesInserted += standaloneRows.length;
             // Insert ingredients/options for each standalone dish
             for (const s of standaloneRows) {
-              await insertIngredientsAndOptions(supabase, s.id, s.dish, restaurant_id);
+              const standaloneIngFailed = await insertIngredientsAndOptions(supabase, s.id, s.dish, restaurant_id);
+              if (standaloneIngFailed) dishesWithMissingIngredients++;
             }
           }
         }
@@ -266,9 +270,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      status: errors.length > 0 ? 'completed_with_warnings' : 'completed',
+      status: errors.length > 0 || dishesWithMissingIngredients > 0 ? 'completed_with_warnings' : 'completed',
       dishes_saved: totalDishesInserted,
       dishes_failed: totalDishesFailed,
+      dishes_with_missing_ingredients: dishesWithMissingIngredients > 0 ? dishesWithMissingIngredients : undefined,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error: unknown) {
@@ -332,12 +337,15 @@ function buildDishRow(
   };
 }
 
+/** Returns true if any ingredient or option insert failed for this dish. */
 async function insertIngredientsAndOptions(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   dishId: string,
   dish: ConfirmDish,
   restaurantId: string
-): Promise<void> {
+): Promise<boolean> {
+  let hadFailure = false;
+
   // Insert ingredients
   const seen = new Set<string>();
   const ingredientRows: { dish_id: string; ingredient_id: string }[] = [];
@@ -352,6 +360,7 @@ async function insertIngredientsAndOptions(
     const { error: ingError } = await supabase.from('dish_ingredients').insert(ingredientRows);
 
     if (ingError) {
+      hadFailure = true;
       console.warn(
         `[MenuScan/confirm] Ingredient batch insert failed for dish "${dish.name}":`,
         ingError
@@ -361,7 +370,7 @@ async function insertIngredientsAndOptions(
 
   // Insert option groups and options
   const groups = dish.option_groups;
-  if (!groups?.length) return;
+  if (!groups?.length) return hadFailure;
 
   for (let gIdx = 0; gIdx < groups.length; gIdx++) {
     const group = groups[gIdx];
@@ -372,8 +381,8 @@ async function insertIngredientsAndOptions(
         dish_id: dishId,
         name: group.name,
         selection_type: group.selection_type,
-        min_selections: 1,
-        max_selections: 1,
+        min_selections: group.min_selections ?? (group.selection_type === 'single' ? 1 : 0),
+        max_selections: group.max_selections ?? (group.selection_type === 'single' ? 1 : null),
         display_order: gIdx,
         is_active: true,
       })
@@ -381,6 +390,7 @@ async function insertIngredientsAndOptions(
       .single();
 
     if (groupError || !newGroup) {
+      hadFailure = true;
       console.warn(
         `[MenuScan/confirm] Option group insert failed for dish "${dish.name}":`,
         groupError?.message
@@ -400,6 +410,7 @@ async function insertIngredientsAndOptions(
     if (optionRows.length > 0) {
       const { error: optError } = await supabase.from('options').insert(optionRows);
       if (optError) {
+        hadFailure = true;
         console.warn(
           `[MenuScan/confirm] Options insert failed for group "${group.name}":`,
           optError.message
@@ -407,4 +418,6 @@ async function insertIngredientsAndOptions(
       }
     }
   }
+
+  return hadFailure;
 }

@@ -1,70 +1,81 @@
-# EatMe — Auth Flow Fixes
+# Research: AI Improvements for Restaurant Data Ingestion
 
-## Objective
+## Goal
 
-Implement the auth flow fixes documented in the implementation plan at:
-`.agents/planning/2026-04-12-auth-flow-review/implementation/plan.md`
+Produce a prioritised improvement roadmap for the AI-powered restaurant data
+ingestion pipeline at EatMe. This is a **read-only research task** — no code
+changes. The output is a set of markdown files under
+`.agents/research/ai-ingestion-2026-04-12/`, culminating in a synthesized
+roadmap at `00-roadmap.md`.
 
-Work through the checklist in order. Every step must pass `turbo check-types` and
-`npx vitest run` (web-portal) before being marked complete.
+## Focus areas
 
----
+1. **Data reliability** — silent correctness bugs, format drift, hallucination
+   risk, truncation, retries, error handling
+2. **Dish information richness** — fields in the `dishes` schema (or new fields)
+   that AI could populate but doesn't; downstream impact on feed/ranker
+3. **Ingredient/dietary accuracy** — matching quality, controlled vocabularies,
+   cross-validation (e.g. ingredient ↔ allergen ↔ dietary-tag consistency)
+4. **Prompt engineering** — few-shot examples, temperature calibration,
+   Structured Outputs coverage, system prompt structure
+5. **Architecture** — caching, queuing, re-enrichment, observability, provenance
 
-## Context
+## Scope
 
-All research, findings, and fix specifications live in:
-```
-.agents/planning/2026-04-12-auth-flow-review/
-├── research/auth-flow-findings.md   — 13 issues with file:line citations
-├── research/new-user-creation.md    — DB trigger gaps + new-user flow
-├── design/detailed-design.md        — exact code snippets for every fix
-└── implementation/plan.md           — the checklist you are working through
-```
+**In scope:**
+- All four OpenAI call sites in the monorepo:
+  - `apps/web-portal/app/api/menu-scan/route.ts` — GPT-4o Vision + translation
+  - `apps/web-portal/app/api/menu-scan/suggest-ingredients/route.ts` — dish suggestion
+  - `apps/web-portal/app/api/menu-scan/confirm/route.ts` — persistence
+  - `infra/supabase/functions/enrich-dish/index.ts` — background enrichment + embeddings
+- Prompts, models, parameters, response schemas
+- DB fields that AI populates or could populate (`dishes`, `dish_ingredients`,
+  `option_groups`, `ingredient_aliases`, `menu_scan_jobs`, `canonical_ingredients`)
+- Cross-validation opportunities between AI output and deterministic rules
+- Architecture around AI calls (queuing, caching, retries, observability, provenance)
 
-Read `design/detailed-design.md` for the exact code changes for each step before
-implementing. Do not invent solutions — the design is already specified.
+**Out of scope:**
+- Code changes — research only
+- Non-AI features (auth, onboarding, restaurant management)
+- Mobile app (no OpenAI calls there; all AI is server-routed)
+- Replacing OpenAI with a different provider (decided: stay on OpenAI)
 
----
+## Prior research (baseline — do not duplicate)
 
-## Steps (in order)
+- `.agents/research/menu-scan-improvements.md` — 15 opportunities from a prior
+  review. Items #1 (allergens to DB), #3 (enrichment_status=pending),
+  #4 (GPT truncation warning), #7 (currency-aware thresholds),
+  #9 (language fix), #10 (parallel PDF render), #14 (2000px resize) are
+  already implemented. Items #2, #6, #8, #11, #12, #13, #15 are still open
+  and should be cross-referenced rather than rewritten.
 
-- [ ] Step 1: Rename `proxy.ts` → `middleware.ts`, rename export `proxy` → `middleware`
-- [ ] Step 2: Change admin role checks from `user_metadata?.role` to `app_metadata?.role` in `callback/route.ts` and `middleware.ts`
-- [ ] Step 3: Create `infra/supabase/migrations/082_wire_signup_triggers.sql` — bind the existing `create_user_preferences_on_signup()` function to a trigger
-- [ ] Step 4: Create `infra/supabase/migrations/083_signup_user_profile_trigger.sql` — auto-create `public.users` and `user_behavior_profiles` on signup, with backfill
-- [ ] Step 5: Consume `?redirect` query param in `login/page.tsx` after successful sign-in
-- [ ] Step 6: Replace dual `getSession()` + `onAuthStateChange` in `AuthContext.tsx` with a single `onAuthStateChange` listener using the `INITIAL_SESSION` event
-- [ ] Step 7: Update `AuthContext` `signUp` to return `needsEmailVerification`; update `signup/page.tsx` to use it
-- [ ] Step 8: Create `components/AdminRoute.tsx`; replace `ProtectedRoute` with `AdminRoute` in all `/admin` pages
-- [ ] Step 9: Add `emailRedirectTo: 'eatme://auth/callback'` to `authStore.ts` mobile `signUp`
-- [ ] Step 10: Add `DraftData` interface extending `FormProgress` in `storage.ts`; fix `lastSaved` cast
-- [ ] Step 11: Update `docs/project/workflows/auth-flow.md` per the spec in Step 11 of the plan
+When a research topic overlaps with an existing baseline item, cite the baseline
+and extend it with new angles (implementation detail, dependencies, alternatives)
+rather than re-deriving the same finding.
 
----
+## Acceptance criteria
 
-## Acceptance Criteria
+- [ ] `.agent/scratchpad.md` contains a clear agenda with 6-10 topics,
+      each marked [ ] or [x]
+- [ ] Each agenda topic has a corresponding detail file under
+      `.agents/research/ai-ingestion-2026-04-12/<slug>.md`
+- [ ] `.agents/research/ai-ingestion-2026-04-12/00-roadmap.md` exists and contains:
+      - Executive summary
+      - Priority matrix (impact × effort × dependencies)
+      - Quick-win bundle (XS effort)
+      - Second wave (S/M effort)
+      - Strategic bets (L effort, decisions needed)
+      - Sequencing / dependency graph
+      - Explicit "Not recommended" section
+- [ ] Every "current behaviour" claim in every file cites `file:line`
+- [ ] Every improvement opportunity has: title, current state, proposed change,
+      impact (H/M/L), effort (XS/S/M/L), dependencies
+- [ ] Every opportunity in the roadmap links back to its detail file
+- [ ] No application code has been modified (verify with `git status` showing
+      only files under `.agents/research/ai-ingestion-2026-04-12/` and
+      `.agent/scratchpad.md` as changed)
 
-Each step is done when:
-1. The change matches the specification in `design/detailed-design.md`
-2. `cd apps/web-portal && npx turbo check-types` exits 0
-3. `cd apps/web-portal && npx vitest run` exits 0
-4. The checkbox in `implementation/plan.md` is marked `[x]`
+## Output signal
 
-SQL migration steps (3, 4) are done when the `.sql` file is written correctly.
-There is no automated DB test — verify the SQL is syntactically correct and matches
-the specification before marking done.
-
-The final step (11) is done when the doc is updated. Emit `LOOP_COMPLETE` after Step 11.
-
----
-
-## Guardrails
-
-- Read `design/detailed-design.md` before implementing each step — don't guess.
-- Run `turbo check-types` and `vitest run` after every TypeScript change.
-- Do not modify any files outside the scope of the current step.
-- Do not rename or move files other than `proxy.ts` → `middleware.ts`.
-- DB migration filenames must follow the pattern: `NNN_description.sql`.
-- Do not implement Facebook OAuth — it is explicitly deferred.
-- Mark each step `[x]` in `implementation/plan.md` only after verification passes.
-- If `check-types` or `vitest` fails, fix the failure before moving to the next step.
+When the synthesizer has completed the roadmap and all acceptance criteria pass,
+emit `LOOP_COMPLETE`.

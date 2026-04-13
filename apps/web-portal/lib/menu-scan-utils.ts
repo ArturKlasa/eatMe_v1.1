@@ -11,12 +11,12 @@
  * then return it as a base64-encoded JPEG suitable for sending to the API.
  *
  * @param file      - The image File to resize
- * @param maxDim    - Maximum width or height in pixels (default 1500)
+ * @param maxDim    - Maximum width or height in pixels (default 2000)
  * @returns         An object with the output filename, MIME type, and base64 data
  */
 export async function resizeImageToBase64(
   file: File,
-  maxDim = 1500
+  maxDim = 2000
 ): Promise<{ name: string; mime_type: string; data: string }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -72,26 +72,26 @@ export async function pdfToImages(file: File, maxPagesPerFile = 20): Promise<Fil
   const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
   const numPages = Math.min(pdf.numPages, maxPagesPerFile);
   const baseName = file.name.replace(/\.pdf$/i, '');
-  const results: File[] = [];
 
-  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 2.0 }); // ~1680 px for an A4 page
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context unavailable');
-    await page.render({
-      canvasContext: ctx,
-      canvas,
-      viewport,
-    }).promise;
-    const blob = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/jpeg', 0.85)
-    );
-    results.push(new File([blob], `${baseName}_p${pageNum}.jpg`, { type: 'image/jpeg' }));
-  }
-
-  return results;
+  return Promise.all(
+    Array.from({ length: numPages }, async (_, i) => {
+      const pageNum = i + 1;
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 2.0 }); // ~1680 px for an A4 page
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas 2D context unavailable');
+      await page.render({ canvasContext: ctx, canvas, viewport }).promise;
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          b => (b ? resolve(b) : reject(new Error('toBlob failed'))),
+          'image/jpeg',
+          0.85
+        )
+      );
+      return new File([blob], `${baseName}_p${pageNum}.jpg`, { type: 'image/jpeg' });
+    })
+  );
 }

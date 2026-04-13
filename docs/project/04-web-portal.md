@@ -104,9 +104,26 @@ The browser client (`lib/supabase.ts`) uses `@supabase/ssr`'s `createBrowserClie
 | `restaurant_owner` | Assigned on signup | Restaurant dashboard access |
 | `admin` | `app_metadata.role` (service-role-only) | Admin panel access, verified via `verifyAdminRequest()` |
 
-### ProtectedRoute
+`app_metadata` is writable only by the service role, making it safe for access control decisions. `user_metadata` is user-editable and is never used for role checks.
 
-The `ProtectedRoute` component (`components/ProtectedRoute.tsx`) wraps auth-required pages. It checks `useAuth()` and redirects unauthenticated users to `/auth/login`. Shows a loading spinner while the session check is in flight.
+### Middleware (`middleware.ts`)
+
+Next.js edge middleware runs on every request (excluding static assets). Responsibilities:
+
+1. **Session refresh** — calls `client.auth.getUser()` via `createMiddlewareClient()` on every request to refresh the Supabase access token cookie before it expires.
+2. **Route protection** — unauthenticated requests to `/onboard/*`, `/menu/*`, and `/restaurant/*` are redirected to `/auth/login?redirect=<path>`.
+3. **Admin protection** — unauthenticated or non-admin requests to `/admin/*` redirect to `/auth/login` or `/` respectively.
+4. **Auth page redirect** — authenticated users hitting `/auth/login` or `/auth/signup` are redirected to `/`.
+5. **Security headers** — applied globally: `X-Frame-Options: DENY`, `X-Content-Type-Options`, CSP (no `unsafe-eval`), `Referrer-Policy`, `Permissions-Policy`.
+
+### ProtectedRoute and AdminRoute
+
+| Component | File | Behaviour |
+|-----------|------|-----------|
+| `ProtectedRoute` | `components/ProtectedRoute.tsx` | Checks `useAuth()`. Redirects to `/auth/login` if no session. Shows spinner during load. |
+| `AdminRoute` | `components/AdminRoute.tsx` | Checks `user.app_metadata.role === 'admin'`. Redirects to `/auth/login` if unauthenticated, to `/` if authenticated but not admin. |
+
+Both components are client-side guards complementing the edge middleware (defence in depth).
 
 ---
 
@@ -115,6 +132,8 @@ The `ProtectedRoute` component (`components/ProtectedRoute.tsx`) wraps auth-requ
 | Component | File Path | Purpose |
 |-----------|-----------|---------|
 | `ProtectedRoute` | `components/ProtectedRoute.tsx` | Auth wrapper; redirects unauthenticated users to login |
+| `AdminRoute` | `components/AdminRoute.tsx` | Admin auth wrapper; redirects to `/auth/login` if unauthenticated, to `/` if not admin |
+| `DataTable` | `components/DataTable.tsx` | Generic sortable/filterable data table used across admin pages |
 | `DishFormDialog` | `components/forms/DishFormDialog.tsx` | Full dish editor (wizard mode for onboarding, DB mode for live editing) |
 | `DishCard` | `components/forms/DishCard.tsx` | Dish display card with edit, delete, and duplicate actions |
 | `IngredientAutocomplete` | `components/IngredientAutocomplete.tsx` | Searchable ingredient dropdown with automatic allergen/dietary tag calculation |
@@ -127,6 +146,11 @@ The `ProtectedRoute` component (`components/ProtectedRoute.tsx`) wraps auth-requ
 | `RestaurantTable` | `components/admin/RestaurantTable.tsx` | Restaurant listing table with search/filter |
 | `AddIngredientPanel` | `components/admin/AddIngredientPanel.tsx` | Admin ingredient creation panel (used in menu scan review) |
 | `InlineIngredientSearch` | `components/admin/InlineIngredientSearch.tsx` | Inline search for matching ingredients during menu scan review |
+| `MenuScanUpload` | `app/admin/menu-scan/components/MenuScanUpload.tsx` | Upload phase UI: restaurant picker, file drop zone, PDF conversion progress |
+| `MenuScanReview` | `app/admin/menu-scan/components/MenuScanReview.tsx` | Review phase UI: split-panel menu editor with image lightbox and warnings panel |
+| `MenuScanDone` | `app/admin/menu-scan/components/MenuScanDone.tsx` | Post-confirm confirmation screen with dish count and next-action links |
+| `ReviewHeader` | `app/admin/menu-scan/components/ReviewHeader.tsx` | Sticky header for the review phase; shows warning count and Save button |
+| `ScanJobQueue` | `app/admin/menu-scan/components/ScanJobQueue.tsx` | Background job list shown during upload phase; one card per in-flight or ready scan |
 | `components/ui/*` | `components/ui/` | Full shadcn/ui component library (button, card, dialog, form, input, select, tabs, badge, checkbox, radio-group, alert, alert-dialog, dropdown-menu, label, progress, separator, sonner, textarea) |
 
 ---
@@ -137,12 +161,14 @@ The `ProtectedRoute` component (`components/ProtectedRoute.tsx`) wraps auth-requ
 |--------|------|------------------------|
 | `restaurantService` | `lib/restaurantService.ts` | Restaurant, menu, and dish CRUD operations. Page components import from here rather than calling Supabase directly. |
 | `ingredients` | `lib/ingredients.ts` | Ingredient search (`searchIngredients`), allergen/dietary tag management, `addDishIngredients()`. Defines `Ingredient`, `CanonicalIngredient`, `IngredientAlias`, `Allergen`, `DietaryTag` types. |
-| `menu-scan` | `lib/menu-scan.ts` | Menu scan shared types and pure helpers: `RawExtractedDish`, `EnrichedDish`, `mergeExtractionResults()` for multi-page merge, `mapDietaryHints()` for dietary hint-to-tag mapping. |
+| `menu-scan` | `lib/menu-scan.ts` | Menu scan types and pure helpers. Key types: `RawExtractedDish`, `EnrichedDish`, `EditableDish`, `EditableMenu`, `ConfirmDish`, `ConfirmPayload`. Key functions: `mergeExtractionResults()` (multi-page merge with fuzzy category matching and duplicate detection), `toEditableMenus()` (converts `EnrichedResult` to editable React state), `buildConfirmPayload()` (serialises review state for the confirm API), `mapDietaryHints()`, `newEmptyDish()`, `countDishes()`. |
+| `menu-scan-utils` | `lib/menu-scan-utils.ts` | Browser-side image utilities. `resizeImageToBase64(file, maxDim=2000)` — resizes to max 2000px longest side, returns JPEG 0.82 as base64. `pdfToImages(file)` — converts PDF pages to JPEG `File[]` using pdfjs-dist (2× scale, parallel rendering). |
+| `menu-scan-warnings` | `lib/menu-scan-warnings.ts` | Client-side deterministic validation. `computeMenuWarnings(menus, currency)` — emits `MenuWarning[]` covering: missing name, zero price, confidence thresholds, per-currency price outliers (currency-aware thresholds), unmatched ingredients, duplicates. `extractionNotesToWarnings(notes)` — converts AI extraction notes to the same shape. |
 | `validation` | `lib/validation.ts` | Zod schemas: `basicInfoSchema`, `operationsSchema`, `dishSchema`, `menuSchema`, `restaurantDataSchema`. Inferred TypeScript types exported for React Hook Form. |
 | `storage` | `lib/storage.ts` | localStorage draft persistence with user-scoped keys (`eatme_draft_{userId}`). Auto-save with 500ms debounce (`autoSave()`), stale draft cleanup (`clearIfStale()`, 7-day threshold). |
 | `constants` | `lib/constants.ts` | Static UI and business constants (cuisine lists, dietary tag codes, allergen codes). |
-| `supabase` | `lib/supabase.ts` | Browser Supabase client using `@supabase/ssr` `createBrowserClient` -- PKCE flow, cookie-based session. Also exports DB type aliases and helper functions (`formatLocationForSupabase`, `formatOperatingHours`). |
-| `supabase-server` | `lib/supabase-server.ts` | Server-side clients: `createSupabaseSessionClient()` (cookie-based, for Server Components/Route Handlers), `createMiddlewareClient()` (for proxy.ts), `createServerSupabaseClient()` (service-role admin client), `verifyAdminRequest()` (Bearer token + admin role check). |
+| `supabase` | `lib/supabase.ts` | Browser Supabase client using `@supabase/ssr` `createBrowserClient` — PKCE flow, cookie-based session. Also exports DB type aliases and helper functions (`formatLocationForSupabase`, `formatOperatingHours`). |
+| `supabase-server` | `lib/supabase-server.ts` | Server-side clients: `createSupabaseSessionClient()` (cookie-based, for Server Components/Route Handlers), `createMiddlewareClient()` (used by `middleware.ts` for edge session refresh), `createServerSupabaseClient()` (service-role admin client), `verifyAdminRequest()` (Bearer token + admin role check). |
 | `cuisine-categories` | `lib/cuisine-categories.ts` | Cuisine category definitions and groupings. |
 | `dish-categories` | `lib/dish-categories.ts` | Dish category definitions. |
 | `parseAddress` | `lib/parseAddress.ts` | Address parsing utilities. |
@@ -164,34 +190,38 @@ Creates a new canonical ingredient with optional aliases. Used by `AddIngredient
 
 ### POST `/api/menu-scan`
 
-Uploads menu images and runs GPT-4o Vision extraction with ingredient matching.
+Fires GPT-4o Vision extraction for one or more menu images. Non-blocking by design: the route creates a `menu_scan_jobs` record, runs extraction and enrichment, writes the result to `result_json`, and returns the full result plus a `jobId` so the client can track it in the background queue.
 
 | Field | Detail |
 |-------|--------|
 | Auth | Admin only (`verifyAdminRequest`) |
-| AI Model | GPT-4o Vision |
-| Pipeline | Image upload -> GPT-4o extraction -> multi-page merge -> ingredient matching against DB -> enriched result |
-| Response | `EnrichedResult` with matched ingredients, dietary tags, allergens per dish |
+| Body | `{ restaurant_id, images: [{ name, mime_type, data: base64 }] }` — max 20 images |
+| AI | GPT-4o Vision per image (parallel), Structured Outputs via `zodResponseFormat`, `detail: 'high'`, `max_tokens: 16384` |
+| Pipeline | Validate → load restaurant → create job (`processing`) → upload images to Storage + GPT-4o in parallel → merge multi-page results → batch ingredient matching → update job (`needs_review`) |
+| Response | `{ jobId, currency, result: EnrichedResult, dishCount, processingMs, flaggedDuplicates?, extractionNotes? }` |
+| Notes | Images are archived to Supabase Storage bucket `menu-scans` for audit. GPT truncation is surfaced as an `ExtractionNote` (not silently swallowed). Same-name/different-price pairs returned as `FlaggedDuplicate[]`. |
 
 ### POST `/api/menu-scan/suggest-ingredients`
 
-AI ingredient suggestion for a single dish using GPT-4o-mini.
+AI ingredient suggestion for a single dish using GPT-4o-mini. Called on demand from the review UI, not during the main scan pipeline.
 
 | Field | Detail |
 |-------|--------|
 | Auth | Admin only (`verifyAdminRequest`) |
-| Body | `{ dish_name: string, description?: string }` |
-| Response | `{ ingredients: MatchedIngredient[], dietary_tags: string[], allergens: string[], spice_level: 0\|1\|3\|null }` |
+| Body | `{ dish_name: string, description?: string, dish_category_names?: string[] }` |
+| Response | `{ ingredients: MatchedIngredient[], dietary_tags: string[], allergens: string[], spice_level: 0\|1\|3\|null, dish_category_id?: string }` |
 
 ### POST `/api/menu-scan/confirm`
 
-Commits admin-reviewed extraction results to the database.
+Persists admin-reviewed extraction results to the database. Uses a three-pass sequential insertion strategy (parents → children → standalone) with partial failure tolerance — returns `completed_with_warnings` rather than rolling back on individual insert errors.
 
 | Field | Detail |
 |-------|--------|
 | Auth | Admin only (`verifyAdminRequest`) |
-| Body | `ConfirmPayload { job_id, restaurant_id, menus: [...] }` |
-| Operation | Inserts: menus -> menu_categories -> dishes (batched) -> dish_ingredients (batched). `maxDuration = 60` for large menus (300+ dishes). |
+| Body | `ConfirmPayload { job_id, restaurant_id, menus: ConfirmMenu[] }` |
+| Operation | INSERT menus → menu_categories → dishes (parents, then variant children with `parent_dish_id`, then standalone) → dish_ingredients → option_groups → options |
+| Fields written | `allergens` (AI-inferred), `enrichment_status: 'pending'`, `enrichment_source: 'ai'`, `enrichment_confidence` (derived from GPT-4o confidence score) |
+| Notes | `maxDuration = 60` for Vercel (large menus can exceed 300 dishes). No DB transaction — partial failures return `completed_with_warnings` with an error list. |
 
 ---
 
@@ -244,14 +274,18 @@ Progress is auto-saved to localStorage with 500ms debounce. Stale drafts are cle
 
 ### Menu Scanning (GPT-4o Vision Pipeline)
 
-Admin-only feature for digitizing physical restaurant menus:
+Admin-only feature for digitising physical restaurant menus. The pipeline is **non-blocking**: the upload form resets immediately after firing the request, and multiple restaurants can be queued simultaneously.
 
-1. Upload menu images (supports multi-page)
-2. GPT-4o Vision extracts structured data (dishes, categories, prices, ingredients, dietary hints, spice levels)
-3. Multi-page results are merged via `mergeExtractionResults()`
-4. Extracted ingredients are matched against the canonical ingredients database
-5. Admin reviews and edits results, can use AI ingredient suggestion per dish
-6. Confirmed results are persisted atomically (menus -> categories -> dishes -> ingredients)
+1. **Upload** — Admin selects images or PDFs. PDFs are converted to JPEG pages in the browser (pdfjs-dist, parallel page rendering). All images are resized to max 2000px JPEG before upload.
+2. **Fire & reset** — `fireProcess()` sends the request and immediately returns a `Promise<Response>` without awaiting it. The upload form resets so the admin can start the next restaurant.
+3. **Background tracking** — `useJobQueue` attaches to the pending promise. A job card appears in `ScanJobQueue` showing `processing → needs_review`. Jobs survive page refresh (recovered from `menu_scan_jobs WHERE status = 'needs_review'`).
+4. **Server extraction** — GPT-4o Vision runs per image in parallel. Structured Outputs (`zodResponseFormat`) guarantee schema conformance. GPT truncation is surfaced as a visible extraction note.
+5. **Merge** — `mergeExtractionResults()` folds per-page results into one structure (3-layer category matching; same-name/different-price pairs flagged as potential size variants).
+6. **Ingredient matching** — Bulk OR-ilike queries (≤4 DB round-trips total per scan). Unmatched terms are batch-translated via GPT-4o-mini and re-queried. New aliases are saved for future scans.
+7. **Review** — Admin edits the menu tree, resolves flagged duplicates (promote to parent-child or dismiss), uses per-dish or bulk AI ingredient suggestion, and inspects currency-aware warnings.
+8. **Confirm** — `POST /api/menu-scan/confirm` does a three-pass sequential insert (parents → variant children → standalone dishes). Dishes are written with `enrichment_status: 'pending'` and `allergens` populated from AI inference.
+
+See [workflows/menu-ingestion.md](./workflows/menu-ingestion.md) for the full end-to-end technical specification.
 
 ### Ingredient Autocomplete with Allergen Calculation
 
@@ -302,35 +336,55 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Admin
-    participant Portal as Web Portal
+    participant Browser as Browser (useJobQueue)
     participant API as /api/menu-scan
+    participant Storage as Supabase Storage
     participant GPT as GPT-4o Vision
-    participant DB as Supabase
+    participant DB as Supabase DB
 
-    Admin->>Portal: Upload menu images
-    Portal->>API: POST /api/menu-scan (images)
-    API->>GPT: Send images with extraction prompt
-    GPT-->>API: RawExtractionResult (menus, categories, dishes)
-    API->>API: mergeExtractionResults() (multi-page)
-    API->>DB: Match raw_ingredients against ingredient_aliases
-    DB-->>API: MatchedIngredient[] per dish
-    API->>API: mapDietaryHints() + enrich with allergens
-    API-->>Portal: EnrichedResult
+    Admin->>Browser: Select images / PDFs
+    Browser->>Browser: pdfToImages() — parallel JPEG render
+    Browser->>Browser: resizeImageToBase64() — max 2000px JPEG
+    Browser->>API: POST /api/menu-scan (fire-and-forget)
+    Browser->>Browser: Reset upload form immediately
 
-    Admin->>Portal: Review & edit extracted data
-    opt Per-dish AI suggestion
-        Admin->>Portal: Request ingredient suggestion
-        Portal->>API: POST /api/menu-scan/suggest-ingredients
-        API->>GPT: GPT-4o-mini inference
-        GPT-->>API: Suggested ingredients + tags
-        API-->>Portal: Suggestions
+    par Storage upload + GPT extraction
+        API->>Storage: Upload raw images (menu-scans bucket)
+        API->>GPT: extractMenuFromImage() × N images (parallel)
     end
 
-    Admin->>Portal: Confirm results
-    Portal->>API: POST /api/menu-scan/confirm
-    API->>DB: Insert menus -> categories -> dishes -> ingredients (batched)
-    DB-->>API: Success
-    API-->>Portal: Confirmation
+    GPT-->>API: RawExtractionResult per image
+    API->>API: mergeExtractionResults() — fuzzy category merge, flag duplicates
+    API->>DB: bulkLookupAliases() — ≤2 queries (exact + partial OR-ilike)
+    DB-->>API: MatchedIngredient[] (matched)
+    API->>GPT: translateIngredients() — batch GPT-4o-mini (unmatched only)
+    API->>DB: bulkLookupAliases() — ≤2 queries for translated terms
+    API->>DB: UPDATE menu_scan_jobs (status: needs_review, result_json)
+    API-->>Browser: { jobId, result: EnrichedResult, flaggedDuplicates?, extractionNotes? }
+
+    Browser->>Browser: job card → needs_review in ScanJobQueue
+    Admin->>Browser: Click "Review"
+    Browser->>Storage: createSignedUrl() for image previews
+    Browser->>Browser: toEditableMenus() → editable React state
+
+    Admin->>Browser: Edit menu tree, resolve flagged duplicates
+    opt Per-dish AI suggestion
+        Admin->>Browser: Click "Suggest"
+        Browser->>API: POST /api/menu-scan/suggest-ingredients
+        API->>GPT: GPT-4o-mini inference
+        API->>DB: Batch ingredient lookup
+        API-->>Browser: Suggested ingredients + tags
+    end
+
+    Admin->>Browser: Click "Save"
+    Browser->>API: POST /api/menu-scan/confirm
+    API->>DB: INSERT menus → menu_categories
+    API->>DB: INSERT parent dishes (enrichment_status: pending, allergens)
+    API->>DB: INSERT variant children (parent_dish_id)
+    API->>DB: INSERT standalone dishes
+    API->>DB: INSERT dish_ingredients, option_groups, options
+    API->>DB: UPDATE menu_scan_jobs (status: completed)
+    API-->>Browser: { status, dishes_saved }
 ```
 
 ---
@@ -342,3 +396,4 @@ sequenceDiagram
 - [Auth Flow](./workflows/auth-flow.md)
 - [Restaurant Onboarding](./workflows/restaurant-onboarding.md)
 - [Menu Management](./workflows/menu-management.md)
+- [Menu Ingestion (AI Scan)](./workflows/menu-ingestion.md)

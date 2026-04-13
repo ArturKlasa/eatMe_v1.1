@@ -137,7 +137,7 @@ CRITICAL: Allergen inference is for SUGGESTION only (admin review required). Be 
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 256,
+        max_tokens: 512,
         temperature: 0.2,
       }),
     });
@@ -149,8 +149,13 @@ CRITICAL: Allergen inference is for SUGGESTION only (admin review required). Be 
     }
 
     const json = await res.json();
-    const content = json.choices?.[0]?.message?.content;
+    const choice = json.choices?.[0];
+    const content = choice?.message?.content;
     if (!content) return null;
+
+    if (choice?.finish_reason === 'length') {
+      console.warn('[enrich-dish] GPT response truncated (finish_reason=length) — enrichment may be incomplete for dish:', name);
+    }
 
     const parsed = JSON.parse(content);
     console.log('[enrich-dish] Enrichment tokens:', json.usage);
@@ -452,6 +457,18 @@ serve(async (req: Request) => {
           enrichmentPayload.inferred_allergens?.length ?? 0,
           'allergens'
         );
+      } else {
+        // AI call failed — mark as failed so the dish is visible for retry,
+        // rather than silently completing with low-confidence/empty data.
+        console.warn('[enrich-dish] AI enrichment returned null — marking dish as failed:', dishId);
+        await supabase
+          .from('dishes')
+          .update({ enrichment_status: 'failed' })
+          .eq('id', dishId);
+        return new Response(JSON.stringify({ error: 'AI enrichment failed', dish_id: dishId }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     }
 
@@ -508,12 +525,19 @@ serve(async (req: Request) => {
     }
 
     // ── Update restaurant vector ──────────────────────────────────────────────
+    // Only recompute when the embedding carries new AI-enriched signal.
+    // Skipping for non-AI enrichments avoids redundant RPC calls when bulk
+    // confirming menus (one call per dish would otherwise flood the endpoint).
 
-    const { error: rpcError } = await supabase.rpc('update_restaurant_vector', {
-      p_restaurant_id: dish.restaurant_id,
-    });
-    if (rpcError) {
-      console.error('[enrich-dish] update_restaurant_vector failed (non-fatal):', rpcError);
+    if (enrichmentSource !== 'none') {
+      const { error: rpcError } = await supabase.rpc('update_restaurant_vector', {
+        p_restaurant_id: dish.restaurant_id,
+      });
+      if (rpcError) {
+        console.error('[enrich-dish] update_restaurant_vector failed (non-fatal):', rpcError);
+      }
+    } else {
+      console.log('[enrich-dish] Skipping update_restaurant_vector — no AI enrichment this run');
     }
 
     console.log('[enrich-dish] Completed:', dishId, `(${confidence} confidence)`);

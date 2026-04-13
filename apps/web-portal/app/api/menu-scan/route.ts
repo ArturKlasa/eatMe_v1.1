@@ -162,11 +162,24 @@ function getOpenAIClient(): OpenAI {
 // Call GPT-4o Vision for a single base64-encoded image (Structured Outputs)
 // ---------------------------------------------------------------------------
 
+interface ExtractionResult {
+  result: RawExtractionResult;
+  promptTokens: number;
+  completionTokens: number;
+}
+
 async function extractMenuFromImage(
   openai: OpenAI,
   base64Data: string,
-  mimeType: string
-): Promise<RawExtractionResult> {
+  mimeType: string,
+  pageNumber: number = 1,
+  totalPages: number = 1
+): Promise<ExtractionResult> {
+  const pageContext =
+    totalPages > 1
+      ? `Extract all dishes from this menu image (page ${pageNumber} of ${totalPages}).`
+      : 'Extract all dishes from this menu image.';
+
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
     messages: [
@@ -180,7 +193,7 @@ async function extractMenuFromImage(
           },
           {
             type: 'text',
-            text: 'Extract all dishes from this menu image.',
+            text: pageContext,
           },
         ],
       },
@@ -226,7 +239,11 @@ async function extractMenuFromImage(
     }
   }
 
-  return parsed;
+  return {
+    result: parsed,
+    promptTokens: completion.usage?.prompt_tokens ?? 0,
+    completionTokens: completion.usage?.completion_tokens ?? 0,
+  };
 }
 
 /** Apply sensible defaults for optional fields. */
@@ -279,7 +296,7 @@ function getMenuLanguage(countryCode: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// Query helper — exact then partial ilike against ingredient_aliases
+// Bulk lookup helper — exact then partial ilike, all names in one OR query each
 // ---------------------------------------------------------------------------
 
 type AliasRow = {
@@ -288,33 +305,60 @@ type AliasRow = {
   canonical_ingredient: { canonical_name: string } | null;
 };
 
-async function queryAlias(
-  term: string,
+const ALIAS_SELECT =
+  'display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
+
+/**
+ * Look up a list of ingredient names against ingredient_aliases using at most
+ * 2 DB round-trips (one bulk exact OR-ilike, one bulk partial OR-ilike for
+ * whatever remains unmatched). Returns a map keyed by lowercased input name.
+ */
+async function bulkLookupAliases(
+  names: string[],
   supabase: ReturnType<typeof createServerSupabaseClient>
-): Promise<AliasRow | null> {
-  const SELECT =
-    'id, display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
+): Promise<Map<string, AliasRow>> {
+  const resultMap = new Map<string, AliasRow>();
+  if (names.length === 0) return resultMap;
 
-  // Escape ILIKE metacharacters to prevent wildcard injection
-  const escapedTerm = term.replace(/[%_\\]/g, c => `\\${c}`);
+  // Strip characters that break PostgREST OR-filter parsing: commas (value delimiter),
+  // percent signs (unintended wildcards), and dots/parens (field.op.value syntax).
+  const sanitize = (n: string) => n.replace(/[,%.()\[\]]/g, '');
 
-  // Exact match
-  const { data: exact } = await supabase
+  // Pass A: exact ilike for all names in one OR query
+  const exactOr = names.map(n => `display_name.ilike.${sanitize(n)}`).join(',');
+  const { data: exactRows } = await supabase
     .from('ingredient_aliases')
-    .select(SELECT)
-    .ilike('display_name', escapedTerm)
-    .limit(1);
+    .select(ALIAS_SELECT)
+    .or(exactOr);
 
-  if (exact && exact.length > 0) return exact[0] as unknown as AliasRow;
+  for (const row of exactRows ?? []) {
+    const r = row as unknown as AliasRow;
+    const key = r.display_name.toLowerCase().trim();
+    if (!resultMap.has(key)) resultMap.set(key, r);
+  }
 
-  // Partial match
-  const { data: partial } = await supabase
-    .from('ingredient_aliases')
-    .select(SELECT)
-    .ilike('display_name', `%${escapedTerm}%`)
-    .limit(1);
+  // Pass B: partial ilike for names that got no exact hit
+  const unmatched = names.filter(n => !resultMap.has(n.toLowerCase().trim()));
+  if (unmatched.length > 0) {
+    const partialOr = unmatched.map(n => `display_name.ilike.%${sanitize(n)}%`).join(',');
+    const { data: partialRows } = await supabase
+      .from('ingredient_aliases')
+      .select(ALIAS_SELECT)
+      .or(partialOr);
 
-  return partial && partial.length > 0 ? (partial[0] as unknown as AliasRow) : null;
+    for (const row of partialRows ?? []) {
+      const r = row as unknown as AliasRow;
+      const displayLower = r.display_name.toLowerCase();
+      for (const name of unmatched) {
+        const key = name.toLowerCase().trim();
+        if (!resultMap.has(key) && (displayLower.includes(key) || key.includes(displayLower))) {
+          resultMap.set(key, r);
+        }
+      }
+    }
+  }
+
+  return resultMap;
 }
 
 // ---------------------------------------------------------------------------
@@ -323,9 +367,14 @@ async function queryAlias(
 
 async function translateIngredients(
   terms: string[],
-  openai: OpenAI
-): Promise<Record<string, string>> {
-  if (terms.length === 0) return {};
+  openai: OpenAI,
+  menuLanguage: string = 'und'
+): Promise<{ translations: Record<string, string>; error?: boolean }> {
+  if (terms.length === 0) return { translations: {} };
+  const langHint =
+    menuLanguage !== 'und' && menuLanguage !== 'en'
+      ? ` The ingredient names are in ${menuLanguage}.`
+      : ' The ingredient names may be in any language.';
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -333,7 +382,7 @@ async function translateIngredients(
         {
           role: 'system',
           content:
-            'You are a culinary ingredient translator. Given a JSON array of food ingredient names (which may be in any language, primarily Spanish), return a JSON object mapping each original name to its standard English culinary name. Keep the output minimal: only ingredient names, no explanations. If a name is already English or has no translation, return it unchanged.',
+            `You are a culinary ingredient translator.${langHint} Given a JSON array of food ingredient names, return a JSON object mapping each original name to its standard English culinary name. Keep the output minimal: only ingredient names, no explanations. If a name is already a well-known culinary term in English (e.g. "pierogi", "tofu", "naan"), return it unchanged.`,
         },
         {
           role: 'user',
@@ -342,23 +391,26 @@ async function translateIngredients(
       ],
       response_format: { type: 'json_object' },
       max_tokens: 512,
+      temperature: 0.1,
     });
 
     const content = response.choices[0]?.message?.content;
-    if (!content) return {};
+    if (!content) return { translations: {}, error: true };
 
     const parsed = JSON.parse(content) as Record<string, unknown>;
-    const translations =
+    const raw =
       typeof parsed.translations === 'object' && parsed.translations !== null
         ? (parsed.translations as Record<string, string>)
         : (parsed as Record<string, string>);
 
-    return Object.fromEntries(
-      Object.entries(translations).map(([k, v]) => [k, typeof v === 'string' ? v : k])
-    );
+    return {
+      translations: Object.fromEntries(
+        Object.entries(raw).map(([k, v]) => [k, typeof v === 'string' ? v : k])
+      ),
+    };
   } catch (err) {
     console.error('[MenuScan] Translation fallback failed:', err);
-    return {};
+    return { translations: {}, error: true };
   }
 }
 
@@ -389,6 +441,8 @@ async function saveNewAlias(
 
 // ---------------------------------------------------------------------------
 // Match raw ingredient strings against ingredient_aliases in the DB.
+// Uses bulk OR queries (≤4 DB round-trips total) instead of one query per
+// ingredient, eliminating the N×2 sequential round-trip bottleneck.
 // ---------------------------------------------------------------------------
 
 async function matchIngredients(
@@ -399,53 +453,67 @@ async function matchIngredients(
 ): Promise<MatchedIngredient[]> {
   if (!rawIngredients || rawIngredients.length === 0) return [];
 
-  const results: MatchedIngredient[] = [];
-  const needsTranslation: string[] = [];
+  const trimmedInputs = rawIngredients.map(r => r.trim());
 
-  // ---- Pass 1: DB lookup ----
-  for (const raw of rawIngredients) {
-    const trimmed = raw.trim();
-    if (!trimmed) continue;
+  function rowToMatch(raw: string, row: AliasRow): MatchedIngredient {
+    return {
+      raw_text: raw,
+      status: 'matched',
+      canonical_ingredient_id: row.canonical_ingredient_id,
+      canonical_name: row.canonical_ingredient?.canonical_name,
+      display_name: row.display_name,
+    };
+  }
 
-    const alias = await queryAlias(trimmed, supabase);
-    if (alias) {
-      results.push({
-        raw_text: raw,
-        status: 'matched',
-        canonical_ingredient_id: alias.canonical_ingredient_id,
-        canonical_name: alias.canonical_ingredient?.canonical_name,
-        display_name: alias.display_name,
-      });
-    } else {
-      results.push({ raw_text: raw, status: 'unmatched' });
-      needsTranslation.push(trimmed);
+  // ---- Pass 1: bulk DB lookup for all ingredients (≤2 queries) ----
+  const lookupMap = await bulkLookupAliases(trimmedInputs.filter(Boolean), supabase);
+
+  const results: MatchedIngredient[] = trimmedInputs.map((t, i) => {
+    const raw = rawIngredients[i];
+    if (!t) return { raw_text: raw, status: 'unmatched' };
+    const row = lookupMap.get(t.toLowerCase().trim()) ?? null;
+    return row ? rowToMatch(raw, row) : { raw_text: raw, status: 'unmatched' };
+  });
+
+  // ---- Pass 2: batch-translate unmatched terms (1 LLM call + ≤2 DB queries) ----
+  const needsTranslation = trimmedInputs.filter((t, i) => t && results[i].status === 'unmatched');
+  if (needsTranslation.length === 0) return results;
+
+  const { translations, error: translationError } = await translateIngredients(
+    needsTranslation,
+    openai,
+    menuLanguage
+  );
+
+  if (translationError) {
+    console.warn('[MenuScan] Ingredient translation failed — some ingredients may be unmatched');
+  }
+
+  // Collect unique translated names that differ from the originals
+  const translatedTerms: string[] = [];
+  const seenTranslations = new Set<string>();
+  for (const t of needsTranslation) {
+    const eng = translations[t];
+    if (eng && eng.toLowerCase() !== t.toLowerCase() && !seenTranslations.has(eng.toLowerCase())) {
+      seenTranslations.add(eng.toLowerCase());
+      translatedTerms.push(eng);
     }
   }
 
-  if (needsTranslation.length === 0) return results;
+  if (translatedTerms.length === 0) return results;
 
-  // ---- Pass 2: translate unmatched terms in one batch AI call ----
-  const translations = await translateIngredients(needsTranslation, openai);
+  const translatedMap = await bulkLookupAliases(translatedTerms, supabase);
 
   for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (r.status !== 'unmatched') continue;
-
-    const trimmed = r.raw_text.trim();
-    const englishName = translations[trimmed];
-    if (!englishName || englishName === trimmed) continue;
-
-    const alias = await queryAlias(englishName, supabase);
-    if (alias) {
-      results[i] = {
-        raw_text: r.raw_text,
-        status: 'matched',
-        canonical_ingredient_id: alias.canonical_ingredient_id,
-        canonical_name: alias.canonical_ingredient?.canonical_name,
-        display_name: alias.display_name,
-      };
-
-      void saveNewAlias(trimmed, menuLanguage, alias.canonical_ingredient_id, supabase);
+    if (results[i].status !== 'unmatched') continue;
+    const t = trimmedInputs[i];
+    if (!t) continue;
+    const englishName = translations[t];
+    if (!englishName || englishName.toLowerCase() === t.toLowerCase()) continue;
+    const row = translatedMap.get(englishName.toLowerCase().trim()) ?? null;
+    if (row) {
+      results[i] = rowToMatch(rawIngredients[i], row);
+      void saveNewAlias(t, menuLanguage, row.canonical_ingredient_id, supabase);
     }
   }
 
@@ -462,7 +530,12 @@ async function enrichDish(
   openai: OpenAI,
   menuLanguage: string
 ): Promise<EnrichedDish> {
-  const matched = await matchIngredients(dish.raw_ingredients ?? [], supabase, openai, menuLanguage);
+  const matched = await matchIngredients(
+    dish.raw_ingredients ?? [],
+    supabase,
+    openai,
+    menuLanguage
+  );
 
   // Normalise LLM-returned spice_level to the allowed set {0, 1, 3}.
   const rawSpice: number | null = dish.spice_level ?? null;
@@ -600,19 +673,42 @@ export async function POST(request: NextRequest) {
       return storagePath;
     });
 
-    const gptExtractionPromises = images.map(img =>
-      extractMenuFromImage(openai, img.data, img.mime_type)
+    const gptExtractionPromises = images.map((img, i) =>
+      extractMenuFromImage(openai, img.data, img.mime_type, i + 1, images.length)
     );
 
-    // Run storage uploads and GPT-4o extractions in parallel
-    const [storagePathsSettled, rawResults] = await Promise.all([
+    // Run storage uploads and GPT-4o extractions in parallel.
+    // allSettled for both: one page failure must not discard successfully extracted pages.
+    const [storagePathsSettled, gptSettled] = await Promise.all([
       Promise.allSettled(storageUploadPromises),
-      Promise.all(gptExtractionPromises),
+      Promise.allSettled(gptExtractionPromises),
     ]);
 
-    const imagePaths = storagePathsSettled.map((r, i) =>
-      r.status === 'fulfilled' ? r.value : `${restaurant_id}/${job.id}/${i + 1}_${images[i].name}`
-    );
+    // Only include paths for uploads that actually succeeded — no phantom paths.
+    const imagePaths = storagePathsSettled
+      .map(r => (r.status === 'fulfilled' ? r.value : null))
+      .filter((p): p is string => p !== null);
+
+    // Collect successful GPT extractions; warn about failed pages.
+    let totalPromptTokens = 0;
+    let totalCompletionTokens = 0;
+    const rawResults = gptSettled
+      .map((r, i) => {
+        if (r.status === 'fulfilled') {
+          totalPromptTokens += r.value.promptTokens;
+          totalCompletionTokens += r.value.completionTokens;
+          return r.value.result;
+        }
+        console.warn(`[MenuScan] GPT extraction failed for page ${i + 1}:`, r.reason);
+        return null;
+      })
+      .filter((r): r is RawExtractionResult => r !== null);
+
+    if (rawResults.length === 0) {
+      throw new Error('All page extractions failed — no results to process.');
+    }
+
+    const failedPageCount = gptSettled.filter(r => r.status === 'rejected').length;
 
     // 6. Merge multi-page results (with 3-layer fuzzy matching)
     const { merged, flaggedDuplicates, extractionNotes } = mergeExtractionResults(rawResults);
@@ -623,6 +719,16 @@ export async function POST(request: NextRequest) {
 
     // 7. Enrich with ingredient matches + dietary tag codes
     const { menus: enrichedMenus } = await enrichResult(merged, supabase, openai, menuLanguage);
+
+    // Inject a visible warning for any pages that failed GPT extraction.
+    if (failedPageCount > 0) {
+      extractionNotes.push({
+        type: 'unreadable_section',
+        path: `(${failedPageCount} of ${images.length} pages)`,
+        message: `${failedPageCount} page(s) could not be extracted due to an AI processing error. Results shown are from the remaining ${rawResults.length} page(s).`,
+        suggestion: 'Re-scan the failed pages individually.',
+      });
+    }
 
     const fullResult: EnrichedResult = {
       menus: enrichedMenus,
@@ -637,20 +743,41 @@ export async function POST(request: NextRequest) {
 
     const processingMs = Date.now() - startTime;
 
-    // 8. Save enriched result to DB
-    await supabase
+    // 8. Save enriched result to DB — retry once on failure (DR-11)
+    const updatePayload = {
+      status: 'needs_review' as const,
+      result_json: {
+        ...fullResult,
+        flaggedDuplicates: flaggedDuplicates.length > 0 ? flaggedDuplicates : undefined,
+      },
+      image_storage_paths: imagePaths,
+      dishes_found: dishCount,
+      processing_ms: processingMs,
+      extraction_model: 'gpt-4o',
+      extraction_prompt_tokens: totalPromptTokens,
+      extraction_completion_tokens: totalCompletionTokens,
+    };
+
+    let { error: updateError } = await supabase
       .from('menu_scan_jobs')
-      .update({
-        status: 'needs_review',
-        result_json: {
-          ...fullResult,
-          flaggedDuplicates: flaggedDuplicates.length > 0 ? flaggedDuplicates : undefined,
-        },
-        image_storage_paths: imagePaths,
-        dishes_found: dishCount,
-        processing_ms: processingMs,
-      })
+      .update(updatePayload)
       .eq('id', job.id);
+
+    if (updateError) {
+      console.warn('[MenuScan] Final status update failed — retrying once:', updateError);
+      ({ error: updateError } = await supabase
+        .from('menu_scan_jobs')
+        .update(updatePayload)
+        .eq('id', job.id));
+    }
+
+    if (updateError) {
+      console.error('[MenuScan] Final status update failed after retry — job stuck in processing:', updateError);
+      return NextResponse.json(
+        { error: 'Processing succeeded but failed to save result — check job status', jobId: job.id },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       jobId: job.id,

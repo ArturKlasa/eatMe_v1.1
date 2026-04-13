@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { zodResponseFormat } from 'openai/helpers/zod';
+import { z } from 'zod';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
 import type { MatchedIngredient } from '@/lib/menu-scan';
 
@@ -59,12 +61,24 @@ const VALID_ALLERGENS = new Set([
   'celery',
 ]);
 
+// Zod schema for Structured Outputs — guarantees arrays are arrays and spice is numeric.
+// We keep allergen/dietary_tag filtering below for defence-in-depth.
+const DishAnalysisSchema = z.object({
+  ingredients: z.array(z.string()),
+  dietary_tags: z.array(z.string()),
+  allergens: z.array(z.string()),
+  spice_level: z.union([z.literal(0), z.literal(1), z.literal(3), z.null()]),
+  dish_category: z.string().nullable(),
+});
+
 interface DishAnalysis {
   ingredients: string[];
   dietary_tags: string[];
   allergens: string[];
   spice_level: 'none' | 'mild' | 'hot' | null;
   dish_category: string | null;
+  /** True when the AI call failed — caller should surface "unavailable" rather than showing empty data */
+  aiError?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -76,13 +90,17 @@ async function analyseDish(
   openai: OpenAI,
   categoryNames: string[] = []
 ): Promise<DishAnalysis> {
+  const defaults: DishAnalysis = {
+    ingredients: [], dietary_tags: [], allergens: [], spice_level: null, dish_category: null, aiError: true,
+  };
+  try {
   const descPart = description?.trim() ? `\nDescription: "${description.trim()}"` : '';
   const categoryHint =
     categoryNames.length > 0
       ? `\n  "dish_category": string|null — pick the single best match from this list: ${JSON.stringify(categoryNames)}. If none fit, return a short new category name (English, title-case, max 3 words). Return null only if truly uncategorisable.`
       : '';
 
-  const response = await openai.chat.completions.create({
+  const response = await openai.chat.completions.parse({
     model: 'gpt-4o-mini',
     messages: [
       {
@@ -96,59 +114,76 @@ async function analyseDish(
           categoryHint +
           '\nUse only the exact code values listed above. Return empty arrays when nothing applies.',
       },
+      // Few-shot examples — cover standard, spicy, dietary edge case, and ambiguous dishes.
+      {
+        role: 'user',
+        content: 'Dish: "Margherita Pizza"',
+      },
+      {
+        role: 'assistant',
+        content: JSON.stringify({
+          ingredients: ['pizza dough', 'tomato sauce', 'mozzarella', 'fresh basil', 'olive oil'],
+          dietary_tags: ['vegetarian'],
+          allergens: ['wheat', 'milk'],
+          spice_level: 0,
+          dish_category: 'Pizza',
+        }),
+      },
+      {
+        role: 'user',
+        content: 'Dish: "Pad Kra Pao"\nDescription: "Stir-fried minced pork with Thai basil, chili, garlic, oyster sauce"',
+      },
+      {
+        role: 'assistant',
+        content: JSON.stringify({
+          ingredients: ['minced pork', 'thai basil', 'red chili', 'garlic', 'oyster sauce', 'fish sauce', 'jasmine rice'],
+          dietary_tags: [],
+          allergens: ['fish', 'wheat', 'soybeans'],
+          spice_level: 3,
+          dish_category: 'Stir Fry',
+        }),
+      },
+      {
+        role: 'user',
+        content: 'Dish: "Beyond Burger"\nDescription: "Plant-based patty, lettuce, tomato, pickles, vegan mayo on brioche bun"',
+      },
+      {
+        role: 'assistant',
+        content: JSON.stringify({
+          ingredients: ['plant-based patty', 'brioche bun', 'lettuce', 'tomato', 'pickle', 'vegan mayonnaise'],
+          dietary_tags: ['vegan', 'vegetarian'],
+          allergens: ['wheat', 'soybeans'],
+          spice_level: 0,
+          dish_category: 'Burger',
+        }),
+      },
       {
         role: 'user',
         content: `Dish: "${dishName}"${descPart}`,
       },
     ],
-    response_format: { type: 'json_object' },
+    response_format: zodResponseFormat(DishAnalysisSchema, 'dish_analysis'),
     max_tokens: 500,
+    temperature: 0.1,
   });
 
-  try {
-    const parsed = JSON.parse(response.choices[0]?.message?.content ?? '{}') as Record<
-      string,
-      unknown
-    >;
+  // Structured Outputs guarantees schema conformance — no need to defensively reshape arrays.
+  // Still filter allergens/dietary_tags against valid sets as defence-in-depth.
+  const raw = response.choices[0]?.message?.parsed;
+  if (!raw) return defaults;
 
-    const ingredients = (Array.isArray(parsed.ingredients) ? parsed.ingredients : []).filter(
-      (s): s is string => typeof s === 'string'
-    );
+  const dietary_tags = raw.dietary_tags.filter((s: string) => VALID_DIETARY_TAGS.has(s));
+  const allergens = raw.allergens.filter((s: string) => VALID_ALLERGENS.has(s));
 
-    const dietary_tags = (Array.isArray(parsed.dietary_tags) ? parsed.dietary_tags : []).filter(
-      (s): s is string => typeof s === 'string' && VALID_DIETARY_TAGS.has(s)
-    );
+  const spice_level: 'none' | 'mild' | 'hot' | null =
+    raw.spice_level == null ? null : raw.spice_level === 0 ? 'none' : raw.spice_level === 1 ? 'mild' : 'hot';
 
-    const allergens = (Array.isArray(parsed.allergens) ? parsed.allergens : []).filter(
-      (s): s is string => typeof s === 'string' && VALID_ALLERGENS.has(s)
-    );
+  const dish_category = raw.dish_category?.trim() || null;
 
-    const rawSpice = parsed.spice_level;
-    const numericSpice: number | null =
-      rawSpice === 0 ? 0 : rawSpice === 1 ? 1 : rawSpice === 3 ? 3 : null;
-    const spice_level: 'none' | 'mild' | 'hot' | null =
-      numericSpice == null
-        ? null
-        : numericSpice === 0
-          ? 'none'
-          : numericSpice === 1
-            ? 'mild'
-            : 'hot';
-
-    const dish_category =
-      typeof parsed.dish_category === 'string' && parsed.dish_category.trim()
-        ? parsed.dish_category.trim()
-        : null;
-
-    return { ingredients, dietary_tags, allergens, spice_level, dish_category };
-  } catch {
-    return {
-      ingredients: [],
-      dietary_tags: [],
-      allergens: [],
-      spice_level: null,
-      dish_category: null,
-    };
+  return { ingredients: raw.ingredients, dietary_tags, allergens, spice_level, dish_category };
+  } catch (err) {
+    console.error('[suggest-ingredients] AI call failed:', err);
+    return defaults;
   }
 }
 
@@ -177,7 +212,8 @@ async function matchNames(names: string[], supabase: SupabaseClient): Promise<Ma
     'display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
 
   // ---- Pass 1: exact ilike match for all names in one OR query ----
-  const exactOr = names.map(n => `display_name.ilike.${n.replace(/[,%]/g, '')}`).join(',');
+  const sanitize = (n: string) => n.replace(/[,%.()\[\]]/g, '');
+  const exactOr = names.map(n => `display_name.ilike.${sanitize(n)}`).join(',');
   const { data: exactRows } = await supabase.from('ingredient_aliases').select(SELECT).or(exactOr);
 
   const exactMap = new Map<string, AliasRow>();
@@ -193,7 +229,7 @@ async function matchNames(names: string[], supabase: SupabaseClient): Promise<Ma
 
   if (unmatched.length > 0) {
     const partialOr = unmatched
-      .map(n => `display_name.ilike.%${n.replace(/[,%]/g, '')}%`)
+      .map(n => `display_name.ilike.%${sanitize(n)}%`)
       .join(',');
     const { data: partialRows } = await supabase
       .from('ingredient_aliases')
@@ -205,7 +241,7 @@ async function matchNames(names: string[], supabase: SupabaseClient): Promise<Ma
       const displayLower = r.display_name.toLowerCase();
       for (const name of unmatched) {
         const key = name.toLowerCase().trim();
-        if (!partialMap.has(key) && displayLower.includes(key)) {
+        if (!partialMap.has(key) && (displayLower.includes(key) || key.includes(displayLower))) {
           partialMap.set(key, r);
         }
       }
@@ -298,5 +334,6 @@ export async function POST(request: NextRequest) {
     spice_level: analysis.spice_level,
     dish_category_id,
     dish_category_name,
+    ...(analysis.aiError ? { ai_error: true } : {}),
   });
 }

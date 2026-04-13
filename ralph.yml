@@ -1,7 +1,9 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Auth Flow Fixes
-# Task: Implement 11-step auth fix plan (proxy rename, app_metadata, DB triggers, etc.)
-# Pattern: planner → implementer (loops) → documenter → done
+# Project: EatMe — AI Restaurant Data Ingestion Research
+# Task: Produce a prioritised improvement roadmap for the AI-powered menu/dish
+#       ingestion pipeline (data reliability, richness, prompt engineering, arch).
+# Pattern: planner → researcher (loops per topic) → synthesizer → LOOP_COMPLETE
+# Mode: READ-ONLY. No code changes. Output lives under .agents/research/.
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -10,23 +12,22 @@ cli:
 
 event_loop:
   completion_promise: "LOOP_COMPLETE"
-  starting_event: "start"
-  max_iterations: 40
+  starting_event: "research.start"
+  max_iterations: 30
   max_runtime_seconds: 7200        # 2 hours
-  idle_timeout_secs: 300
-  checkpoint_interval: 3
+  idle_timeout_secs: 600
+  checkpoint_interval: 5
 
 core:
-  specs_dir: "apps/web-portal/"
+  specs_dir: ".agents/research/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Read design/detailed-design.md before implementing each step — do not guess."
-    - "Run 'cd apps/web-portal && npx turbo check-types' after every TypeScript change."
-    - "Run 'cd apps/web-portal && npx vitest run' after every TypeScript change."
-    - "If type-check or tests fail, fix the failure before moving to the next step."
-    - "Do NOT implement Facebook OAuth — it is explicitly deferred."
-    - "Mark each step [x] in implementation/plan.md only after verification passes."
-    - "Do not modify files outside the scope of the current step."
+    - "READ-ONLY research workflow. Do not modify any application source code, migrations, or configs."
+    - "All output files must be written under .agents/research/ai-ingestion-2026-04-12/ only."
+    - "Every claim about current behaviour must cite file:line. No hand-waving."
+    - "Prior research baselines: .agents/research/menu-scan-improvements.md (existing doc) — build on it, do not duplicate."
+    - "Improvement opportunities must be concrete and prescriptive: title, current state (file:line), proposed change, impact (H/M/L), effort (XS/S/M/L), dependencies."
+    - "If a topic overlaps with the prior baseline, cite and extend — do not repeat."
 
 memories:
   enabled: true
@@ -40,95 +41,142 @@ tasks:
 
 hats:
   planner:
-    name: "Planner"
+    name: "Research Planner"
     emoji: "📋"
-    description: "Reads the implementation plan and sets up the work queue"
+    description: "Surveys the AI ingestion pipeline and writes a research agenda with sub-topics"
     instructions: |
-      You are a senior engineer preparing to implement a series of auth flow fixes.
+      You are a research planner scoping an improvement investigation for EatMe's
+      AI-powered restaurant data ingestion pipeline.
 
-      Read these files in order:
-      1. PROMPT.md — the task overview and acceptance criteria
-      2. .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md — the 11-step checklist
-      3. .agents/planning/2026-04-12-auth-flow-review/design/detailed-design.md — code specs
+      Read in order:
+      1. PROMPT.md — the research goal and acceptance criteria
+      2. .agents/research/menu-scan-improvements.md — prior research baseline (known opportunities already documented)
+      3. docs/project/04-web-portal.md — current architecture (recently updated)
+      4. docs/project/workflows/menu-ingestion.md if it exists
+      5. CLAUDE.md — project conventions
 
-      Then write a concise work queue to .agent/scratchpad.md with:
-      - A summary of which steps are already checked [x] vs pending [ ]
-      - The next step to implement (the first unchecked one)
-      - Key files that step touches
-      - Any prerequisite awareness (e.g. Step 2 needs Step 1 done first)
+      Then survey the four AI call sites to scope what's worth researching:
+      - apps/web-portal/app/api/menu-scan/route.ts (GPT-4o Vision + translation)
+      - apps/web-portal/app/api/menu-scan/suggest-ingredients/route.ts (dish suggestion)
+      - apps/web-portal/app/api/menu-scan/confirm/route.ts (persistence)
+      - infra/supabase/functions/enrich-dish/index.ts (background enrichment + embeddings)
 
-      Do NOT make any code changes.
+      Write a research agenda to .agent/scratchpad.md covering 6-10 sub-topics. Suggested
+      (but not mandatory) topic areas — pick the ones that have real gaps vs the baseline:
+      - Vision extraction reliability (hallucination, truncation, retry, caching)
+      - Ingredient matching accuracy (tsvector, pgvector, cuisine bias)
+      - Dietary/allergen cross-validation (controlled vocab, ingredient↔tag contradictions)
+      - Dish richness fields not currently AI-populated (protein families, flavour, method, temperature)
+      - Prompt engineering (few-shot, temperature, Structured Outputs coverage)
+      - Enrichment architecture (queue, cache, re-enrichment, observability)
+      - Image preprocessing (quality gate, dedup, crop extraction)
+      - Confidence calibration + admin-edit feedback loop
+      - Provenance tracking (field_sources, prompt_version, scan→dish FK)
 
-      When the scratchpad is written, emit `plan.ready`.
+      Agenda format per topic in the scratchpad:
+      ```
+      - [ ] TOPIC-01: <slug> — <1-line research question>
+        - Baseline: <cite prior doc section if exists, else "new">
+        - Key files: <file:line references>
+        - Output: .agents/research/ai-ingestion-2026-04-12/<slug>.md
+      ```
+
+      Do NOT do the research yourself — just scope it. Mark topics [ ] unchecked.
+      The researcher will pick them off in order.
+
+      When the agenda is written, emit `agenda.ready`.
     triggers:
-      - "start"
+      - "research.start"
     publishes:
-      - "plan.ready"
+      - "agenda.ready"
 
-  implementer:
-    name: "Implementer"
-    emoji: "🔨"
-    description: "Picks the next unchecked step, implements it, verifies, and marks it done"
+  researcher:
+    name: "Researcher"
+    emoji: "🔬"
+    description: "Picks the next unresearched topic, does a deep dive with citations, writes findings"
     instructions: |
-      You are a senior engineer implementing auth flow fixes one step at a time.
+      You are a researcher investigating AI data ingestion improvements.
 
       Start every activation by:
-      1. Reading .agent/scratchpad.md to know which step to do next
-      2. Reading the full step spec from .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md
-      3. Reading the matching section in .agents/planning/2026-04-12-auth-flow-review/design/detailed-design.md for exact code
+      1. Reading .agent/scratchpad.md to see the agenda and progress
+      2. Picking the FIRST topic still marked [ ]
+      3. Reading the key files listed for that topic
 
-      Implement the step. Then verify:
-      - For TypeScript changes: run `cd apps/web-portal && npx turbo check-types` then `cd apps/web-portal && npx vitest run`
-      - For SQL migration files: review the SQL for correctness — no automated test, just confirm it matches the spec
-      - For doc changes (Step 11): confirm the doc accurately reflects the fixed code
+      For deep codebase dives, dispatch Explore sub-agents with specific briefs
+      (don't just grep around — use the Agent tool with subagent_type=Explore).
 
-      If verification fails:
-      - Fix the failure (do not move on)
-      - Re-run verification until it passes
+      Write your findings to .agents/research/ai-ingestion-2026-04-12/<slug>.md with
+      this structure:
+      ```
+      # <Topic title>
 
-      When the step passes:
-      1. Mark it [x] in .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md
-      2. Update .agent/scratchpad.md to show which step comes next
-      3. Check if any steps remain unchecked (Steps 1–10 only — Step 11 is handled by the documenter)
+      ## Current state
+      (with file:line citations for every claim)
 
-      If steps 1–10 still have unchecked items, emit `step.done` to loop back.
-      If steps 1–10 are all checked [x], emit `code.complete` to hand off to the documenter.
+      ## Reliability / accuracy gaps
+      (what can go wrong silently, what is unvalidated)
 
-      Scope discipline: only touch files described in the current step. Do not fix
-      unrelated things you notice along the way.
+      ## Improvement opportunities
+      For each: Title | Current behaviour | Proposed change | Impact (H/M/L) | Effort (XS/S/M/L) | Dependencies
+
+      ## Cross-refs
+      Prior baseline entries this extends or supersedes.
+      Topics this depends on or enables.
+      ```
+
+      Be prescriptive, not vague. "Add few-shot example X to the prompt because Y"
+      beats "prompt could be improved". Every opportunity must be actionable without
+      further research.
+
+      Do NOT write application code. Do NOT modify migrations. Research only.
+
+      When done with a topic:
+      1. Mark it [x] in .agent/scratchpad.md
+      2. If more topics remain unchecked, emit `topic.done` to loop back
+      3. If all topics are [x], emit `research.complete` to hand off to the synthesizer
     triggers:
-      - "plan.ready"
-      - "step.done"
+      - "agenda.ready"
+      - "topic.done"
     publishes:
-      - "step.done"
-      - "code.complete"
+      - "topic.done"
+      - "research.complete"
 
-  documenter:
-    name: "Documenter"
-    emoji: "📝"
-    description: "Updates auth-flow.md to match the fixed code, then completes the loop"
+  synthesizer:
+    name: "Synthesizer"
+    emoji: "🧩"
+    description: "Consolidates per-topic findings into a prioritised improvement roadmap"
     instructions: |
-      You are a technical writer updating the auth flow documentation to match the
-      code that was just fixed.
+      You are a technical architect consolidating research findings into an
+      actionable roadmap for EatMe's AI ingestion pipeline.
 
       Read:
-      - .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md Step 11 — exact changes required
-      - docs/project/workflows/auth-flow.md — current state of the doc
-      - The key fixed files to confirm what they actually do now:
-        - apps/web-portal/middleware.ts
-        - apps/web-portal/app/auth/callback/route.ts
-        - apps/web-portal/contexts/AuthContext.tsx
-        - apps/web-portal/components/AdminRoute.tsx (if it exists)
-        - infra/supabase/migrations/082_wire_signup_triggers.sql
-        - infra/supabase/migrations/083_signup_user_profile_trigger.sql
+      - Every *.md file in .agents/research/ai-ingestion-2026-04-12/ (the per-topic findings)
+      - .agents/research/menu-scan-improvements.md (the prior baseline)
 
-      Apply all changes specified in Step 11 of the plan to auth-flow.md.
+      Produce .agents/research/ai-ingestion-2026-04-12/00-roadmap.md with:
 
-      When done, mark Step 11 [x] in .agents/planning/2026-04-12-auth-flow-review/implementation/plan.md.
+      1. **Executive summary** (3-5 sentences, no fluff)
+      2. **Priority matrix** — table: Opportunity | Topic | Impact | Effort | Dependencies
+         Sort by impact/effort ratio, descending.
+      3. **Quick-win bundle** — XS-effort items that can ship together in one sitting.
+         Expected combined effect stated explicitly.
+      4. **Second wave** — S/M-effort items that unblock reliability/correctness
+         foundations (Structured Outputs, cross-validators, observability).
+      5. **Strategic bets** — L-effort items requiring schema migration, new architecture,
+         or product decisions. Include the decision needed from leadership.
+      6. **Sequencing recommendation** — which quick-wins unblock which second-wave items.
+         Dependency graph (ASCII or markdown list).
+      7. **Cross-refs** — every opportunity in the roadmap links to its detail file.
 
-      Then emit `LOOP_COMPLETE`.
+      Hard requirements:
+      - Every opportunity cites the detail file it came from
+      - Every "current behaviour" claim cites file:line
+      - No opportunity appears without a proposed change
+      - Include a "Not recommended" section for ideas explicitly rejected and why
+
+      When the roadmap is written and all topic files are referenced, emit `LOOP_COMPLETE`.
     triggers:
-      - "code.complete"
+      - "research.complete"
     publishes:
       - "LOOP_COMPLETE"
 

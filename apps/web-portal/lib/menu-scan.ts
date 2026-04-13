@@ -156,6 +156,8 @@ export interface EditableMenu {
 export interface ConfirmOptionGroup {
   name: string;
   selection_type: 'single' | 'multiple';
+  min_selections?: number;
+  max_selections?: number | null;
   options: {
     name: string;
     canonical_ingredient_id?: string;

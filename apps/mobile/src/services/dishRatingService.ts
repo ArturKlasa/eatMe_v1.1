@@ -26,6 +26,8 @@ export interface DishRating {
 
 /**
  * Fetch ratings for multiple dishes in a single query
+ * @param dishIds - Array of dish UUIDs to fetch ratings for
+ * @returns Map of dish ID to DishRating; missing dishes are absent from the map
  */
 export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string, DishRating>> {
   const ratingsMap = new Map<string, DishRating>();
@@ -37,7 +39,9 @@ export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string
   try {
     const { data, error } = await supabase
       .from('dish_ratings_summary')
-      .select('dish_id, like_percentage, okay_percentage, dislike_percentage, total_ratings, top_tags, recent_notes')
+      .select(
+        'dish_id, like_percentage, okay_percentage, dislike_percentage, total_ratings, top_tags, recent_notes'
+      )
       .in('dish_id', dishIds);
 
     if (error) {
@@ -68,12 +72,16 @@ export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string
 
 /**
  * Fetch rating for a single dish
+ * @param dishId - UUID of the dish to fetch
+ * @returns DishRating if found, null otherwise
  */
 export async function getDishRating(dishId: string): Promise<DishRating | null> {
   try {
     const { data, error } = await supabase
       .from('dish_ratings_summary')
-      .select('dish_id, like_percentage, okay_percentage, dislike_percentage, total_ratings, top_tags, recent_notes')
+      .select(
+        'dish_id, like_percentage, okay_percentage, dislike_percentage, total_ratings, top_tags, recent_notes'
+      )
       .eq('dish_id', dishId)
       .single();
 
@@ -98,6 +106,9 @@ export async function getDishRating(dishId: string): Promise<DishRating | null> 
 
 /**
  * Get rating tier based on like percentage and total ratings
+ * @param likePercentage - Percentage of likes (0–100), or null if insufficient data
+ * @param totalRatings - Total number of ratings received
+ * @returns Rating tier label
  */
 export function getRatingTier(
   likePercentage: number | null,
@@ -112,6 +123,8 @@ export function getRatingTier(
 
 /**
  * Get color for rating percentage
+ * @param percentage - Like percentage (0–100), or null if no data
+ * @returns Hex color string representing the rating quality
  */
 export function getRatingColor(percentage: number | null): string {
   if (percentage === null) return colors.darkTextMuted;
@@ -122,6 +135,9 @@ export function getRatingColor(percentage: number | null): string {
 
 /**
  * Fetch the most recent opinion per dish for a given user
+ * @param userId - UUID of the user
+ * @param dishIds - Array of dish UUIDs to check opinions for
+ * @returns Map of dish ID to the user's most recent DishOpinion
  */
 export async function getUserDishOpinions(
   userId: string,
@@ -159,6 +175,9 @@ export async function getUserDishOpinions(
 
 /**
  * Format rating display text
+ * @param likePercentage - Percentage of likes (0–100), or null if insufficient data
+ * @param totalRatings - Total number of ratings received
+ * @returns Formatted string like "85% 👍 (42)", or null if no data
  */
 export function formatRatingText(
   likePercentage: number | null,

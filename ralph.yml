@@ -1,9 +1,9 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — AI Restaurant Data Ingestion Research
-# Task: Produce a prioritised improvement roadmap for the AI-powered menu/dish
-#       ingestion pipeline (data reliability, richness, prompt engineering, arch).
-# Pattern: planner → researcher (loops per topic) → synthesizer → LOOP_COMPLETE
-# Mode: READ-ONLY. No code changes. Output lives under .agents/research/.
+# Project: EatMe — Lines-of-Code Reduction (research + execute)
+# Task: Investigate whether the codebase can be shrunk without removing
+#       functionality, then apply the reductions topic-by-topic.
+# Pattern: planner → researcher (loop) → implementer (loop) → verifier → LOOP_COMPLETE
+# Mode: WRITE. Source edits allowed. One commit per applied topic.
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -12,22 +12,26 @@ cli:
 
 event_loop:
   completion_promise: "LOOP_COMPLETE"
-  starting_event: "research.start"
-  max_iterations: 30
-  max_runtime_seconds: 7200        # 2 hours
-  idle_timeout_secs: 600
-  checkpoint_interval: 5
+  starting_event: "loc.start"
+  max_iterations: 60
+  max_runtime_seconds: 14400       # 4 hours
+  idle_timeout_secs: 900
+  checkpoint_interval: 3
 
 core:
   specs_dir: ".agents/research/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "READ-ONLY research workflow. Do not modify any application source code, migrations, or configs."
-    - "All output files must be written under .agents/research/ai-ingestion-2026-04-12/ only."
-    - "Every claim about current behaviour must cite file:line. No hand-waving."
-    - "Prior research baselines: .agents/research/menu-scan-improvements.md (existing doc) — build on it, do not duplicate."
-    - "Improvement opportunities must be concrete and prescriptive: title, current state (file:line), proposed change, impact (H/M/L), effort (XS/S/M/L), dependencies."
-    - "If a topic overlaps with the prior baseline, cite and extend — do not repeat."
+    - "Functionality preservation is non-negotiable. No observable behaviour change is allowed."
+    - "All research output lives under .agents/research/loc-reduction-2026-04-13/ only."
+    - "Source edits must pass `turbo check-types` and `turbo lint` before committing. Run `turbo test` if the web-portal Vitest suite covers the touched area."
+    - "One topic = one git commit with message `refactor(loc): <topic> — removes N lines`. Never bundle unrelated topics."
+    - "Migrations under infra/supabase/migrations/ are append-only — never edit or delete."
+    - "Generated files (*.generated.ts, Supabase types) are off-limits."
+    - "Every claim about current code must cite file:line."
+    - "If a reduction turns out not to be safe, mark the topic [~] (skipped) in the scratchpad and move on. Do not force it."
+    - "No minification. We count human-readable lines."
+    - "Never skip git hooks (--no-verify) or bypass signing."
 
 memories:
   enabled: true
@@ -41,144 +45,185 @@ tasks:
 
 hats:
   planner:
-    name: "Research Planner"
+    name: "Reduction Planner"
     emoji: "📋"
-    description: "Surveys the AI ingestion pipeline and writes a research agenda with sub-topics"
+    description: "Surveys the codebase and produces a prioritised agenda of LOC-reduction topics"
     instructions: |
-      You are a research planner scoping an improvement investigation for EatMe's
-      AI-powered restaurant data ingestion pipeline.
+      You are a code auditor scoping a lines-of-code reduction pass for the
+      EatMe monorepo.
 
       Read in order:
-      1. PROMPT.md — the research goal and acceptance criteria
-      2. .agents/research/menu-scan-improvements.md — prior research baseline (known opportunities already documented)
-      3. docs/project/04-web-portal.md — current architecture (recently updated)
-      4. docs/project/workflows/menu-ingestion.md if it exists
-      5. CLAUDE.md — project conventions
+      1. PROMPT.md — task goal, valid/invalid reductions, acceptance criteria
+      2. CLAUDE.md — project conventions
+      3. agent_docs/architecture.md — package relationships
+      4. Top-level `apps/` and `packages/` structure
 
-      Then survey the four AI call sites to scope what's worth researching:
-      - apps/web-portal/app/api/menu-scan/route.ts (GPT-4o Vision + translation)
-      - apps/web-portal/app/api/menu-scan/suggest-ingredients/route.ts (dish suggestion)
-      - apps/web-portal/app/api/menu-scan/confirm/route.ts (persistence)
-      - infra/supabase/functions/enrich-dish/index.ts (background enrichment + embeddings)
+      Then produce an agenda of 6-12 reduction topics. Good sources of candidates:
+      - `tsc --noEmit` + unused-exports scan (e.g. `knip`, `ts-prune`) if
+        available; otherwise grep for exported symbols with zero references
+      - Duplicate Zod/TS schemas between `packages/shared` and consumers
+      - One-call-site wrappers (single-use components, single-use helpers)
+      - Commented-out code, stale TODOs referencing shipped work
+      - Verbose JSDoc banners that describe obvious code
+      - Redundant `as Type` casts, `React.FC<{}>` generics with no props
+      - Dead branches (`if (false)`, flag-gated code for shipped flags)
+      - Over-long style objects that could fold into existing atomic styles
 
-      Write a research agenda to .agent/scratchpad.md covering 6-10 sub-topics. Suggested
-      (but not mandatory) topic areas — pick the ones that have real gaps vs the baseline:
-      - Vision extraction reliability (hallucination, truncation, retry, caching)
-      - Ingredient matching accuracy (tsvector, pgvector, cuisine bias)
-      - Dietary/allergen cross-validation (controlled vocab, ingredient↔tag contradictions)
-      - Dish richness fields not currently AI-populated (protein families, flavour, method, temperature)
-      - Prompt engineering (few-shot, temperature, Structured Outputs coverage)
-      - Enrichment architecture (queue, cache, re-enrichment, observability)
-      - Image preprocessing (quality gate, dedup, crop extraction)
-      - Confidence calibration + admin-edit feedback loop
-      - Provenance tracking (field_sources, prompt_version, scan→dish FK)
-
-      Agenda format per topic in the scratchpad:
+      Write the agenda to `.agent/scratchpad.md` in this format per topic:
       ```
-      - [ ] TOPIC-01: <slug> — <1-line research question>
-        - Baseline: <cite prior doc section if exists, else "new">
+      - [ ] LOC-01: <slug> — <1-line description>
+        - Hypothesis: <what looks reducible and why>
         - Key files: <file:line references>
-        - Output: .agents/research/ai-ingestion-2026-04-12/<slug>.md
+        - Est. LOC savings: <number or range>
+        - Detail file: .agents/research/loc-reduction-2026-04-13/<slug>.md
       ```
 
-      Do NOT do the research yourself — just scope it. Mark topics [ ] unchecked.
-      The researcher will pick them off in order.
+      Sort by expected savings × safety (deletions > dedup > style tweaks).
 
+      Do NOT do the reductions yourself and do NOT edit source. Only scope.
       When the agenda is written, emit `agenda.ready`.
     triggers:
-      - "research.start"
+      - "loc.start"
     publishes:
       - "agenda.ready"
 
   researcher:
-    name: "Researcher"
+    name: "Reduction Researcher"
     emoji: "🔬"
-    description: "Picks the next unresearched topic, does a deep dive with citations, writes findings"
+    description: "For each topic, verifies the reduction is safe and writes a concrete changeset spec"
     instructions: |
-      You are a researcher investigating AI data ingestion improvements.
+      You are verifying that a proposed LOC reduction is safe before it gets
+      applied. Source edits are NOT allowed in this hat — research only.
 
       Start every activation by:
-      1. Reading .agent/scratchpad.md to see the agenda and progress
-      2. Picking the FIRST topic still marked [ ]
-      3. Reading the key files listed for that topic
+      1. Reading `.agent/scratchpad.md`
+      2. Picking the FIRST topic still marked `[ ]`
+      3. Reading the referenced files and every call site of the affected symbols
 
-      For deep codebase dives, dispatch Explore sub-agents with specific briefs
-      (don't just grep around — use the Agent tool with subagent_type=Explore).
+      For deep call-site traces dispatch Explore sub-agents with specific briefs.
+      Use `grep -rn` for quick reference counts.
 
-      Write your findings to .agents/research/ai-ingestion-2026-04-12/<slug>.md with
-      this structure:
+      Write findings to `.agents/research/loc-reduction-2026-04-13/<slug>.md`:
       ```
       # <Topic title>
 
       ## Current state
-      (with file:line citations for every claim)
+      (file:line citations for every claim)
 
-      ## Reliability / accuracy gaps
-      (what can go wrong silently, what is unvalidated)
+      ## Proposed reduction
+      Exact before/after — paste the lines to remove and any replacements.
 
-      ## Improvement opportunities
-      For each: Title | Current behaviour | Proposed change | Impact (H/M/L) | Effort (XS/S/M/L) | Dependencies
+      ## Estimated LOC savings
+      <number>
 
-      ## Cross-refs
-      Prior baseline entries this extends or supersedes.
-      Topics this depends on or enables.
+      ## Risk assessment
+      Why removing this preserves behaviour. List every call site checked.
+
+      ## Decision: apply | skip | defer
+      - apply: safe to implement, no side effects
+      - skip: turned out not reducible; explain why (will be marked [~])
+      - defer: requires larger refactor or human judgement; explain
       ```
 
-      Be prescriptive, not vague. "Add few-shot example X to the prompt because Y"
-      beats "prompt could be improved". Every opportunity must be actionable without
-      further research.
-
-      Do NOT write application code. Do NOT modify migrations. Research only.
-
-      When done with a topic:
-      1. Mark it [x] in .agent/scratchpad.md
-      2. If more topics remain unchecked, emit `topic.done` to loop back
-      3. If all topics are [x], emit `research.complete` to hand off to the synthesizer
+      When the topic is decided:
+      1. If decision is `apply` — leave the agenda item as `[ ]` and emit
+         `topic.ready-to-apply` so the implementer picks it up next.
+      2. If decision is `skip` or `defer` — mark the agenda item `[~]` in
+         the scratchpad and emit `topic.skipped` to loop back to yourself for
+         the next topic.
+      3. If no `[ ]` items remain — emit `research.complete` to hand off to
+         the verifier.
     triggers:
       - "agenda.ready"
-      - "topic.done"
+      - "topic.applied"
+      - "topic.skipped"
     publishes:
-      - "topic.done"
+      - "topic.ready-to-apply"
+      - "topic.skipped"
       - "research.complete"
 
-  synthesizer:
-    name: "Synthesizer"
-    emoji: "🧩"
-    description: "Consolidates per-topic findings into a prioritised improvement roadmap"
+  implementer:
+    name: "Implementer"
+    emoji: "🛠️"
+    description: "Applies a single approved reduction, runs gates, commits on green"
     instructions: |
-      You are a technical architect consolidating research findings into an
-      actionable roadmap for EatMe's AI ingestion pipeline.
+      You apply ONE reduction topic at a time. Before touching any file:
+      1. Read `.agent/scratchpad.md` to identify the topic currently being
+         applied (the most recent `[ ]` topic whose detail file exists with
+         decision `apply`).
+      2. Read the detail file at
+         `.agents/research/loc-reduction-2026-04-13/<slug>.md` to get the
+         exact before/after.
 
-      Read:
-      - Every *.md file in .agents/research/ai-ingestion-2026-04-12/ (the per-topic findings)
-      - .agents/research/menu-scan-improvements.md (the prior baseline)
+      Apply the edits precisely as specified in the detail file. Do not
+      improvise additional changes — if something extra looks reducible, note
+      it as a new topic in the scratchpad instead.
 
-      Produce .agents/research/ai-ingestion-2026-04-12/00-roadmap.md with:
+      After editing, run the gates IN ORDER. Stop at the first failure:
+      1. `turbo check-types`
+      2. `turbo lint`
+      3. `turbo test` — only if the touched code is under `apps/web-portal`
+         or covered by its Vitest suite.
 
-      1. **Executive summary** (3-5 sentences, no fluff)
-      2. **Priority matrix** — table: Opportunity | Topic | Impact | Effort | Dependencies
-         Sort by impact/effort ratio, descending.
-      3. **Quick-win bundle** — XS-effort items that can ship together in one sitting.
-         Expected combined effect stated explicitly.
-      4. **Second wave** — S/M-effort items that unblock reliability/correctness
-         foundations (Structured Outputs, cross-validators, observability).
-      5. **Strategic bets** — L-effort items requiring schema migration, new architecture,
-         or product decisions. Include the decision needed from leadership.
-      6. **Sequencing recommendation** — which quick-wins unblock which second-wave items.
-         Dependency graph (ASCII or markdown list).
-      7. **Cross-refs** — every opportunity in the roadmap links to its detail file.
+      If any gate fails:
+      - Try to fix the failure if it's an obvious fallout of the reduction
+        (e.g. an import left behind). If you can't fix it cleanly, REVERT
+        the edits (`git checkout -- <files>`), mark the topic `[~]` in the
+        scratchpad with a note "skipped: gate failure — <reason>", and emit
+        `topic.skipped`.
 
-      Hard requirements:
-      - Every opportunity cites the detail file it came from
-      - Every "current behaviour" claim cites file:line
-      - No opportunity appears without a proposed change
-      - Include a "Not recommended" section for ideas explicitly rejected and why
+      If all gates pass:
+      1. Stage only the reduction's files: `git add <files>`
+      2. Commit with message:
+         `refactor(loc): <slug> — removes N lines`
+         Append the usual trailer (`Co-Authored-By: Claude ...`).
+      3. Mark the topic `[x]` in the scratchpad with the actual LOC delta
+         from `git diff HEAD~1 --shortstat`.
+      4. Emit `topic.applied` to hand back to the researcher for the next one.
 
-      When the roadmap is written and all topic files are referenced, emit `LOOP_COMPLETE`.
+      Never use `--no-verify`. Never force-push. Never touch migrations or
+      generated files.
+    triggers:
+      - "topic.ready-to-apply"
+    publishes:
+      - "topic.applied"
+      - "topic.skipped"
+
+  verifier:
+    name: "Verifier"
+    emoji: "✅"
+    description: "Runs final gates, writes the summary report, emits LOOP_COMPLETE"
+    instructions: |
+      You finalise the reduction pass.
+
+      1. Run `turbo check-types && turbo lint && turbo test` one more time
+         against HEAD. If anything fails, DO NOT emit LOOP_COMPLETE — instead
+         write the failure into the scratchpad and emit `topic.skipped` to
+         hand back to the researcher for a repair pass.
+
+      2. Compute the net LOC delta across all commits made in this session:
+         `git log --format=%H --reverse <base>..HEAD` to list session commits,
+         then `git diff --shortstat <base>..HEAD` for the net delta.
+         (Use the first commit of the session as `<base>` — identify it by
+         the first `refactor(loc):` commit in `git log`.)
+
+      3. Write `.agents/research/loc-reduction-2026-04-13/00-summary.md`:
+         - **Executive summary** (3-5 sentences)
+         - **Status table** — columns: Topic | Status ([x]/[~]) | LOC removed |
+           Files touched | Commit SHA | Detail file (markdown link)
+         - **Totals** — lines added / removed / net delta
+         - **Not recommended** — one subsection per `[~]` topic explaining
+           why it was skipped (so future passes don't re-investigate)
+         - **Follow-ups** — any new topics spawned during implementation
+
+      4. Sanity check acceptance criteria from PROMPT.md. If every box can
+         be ticked, emit `LOOP_COMPLETE`. Otherwise list the unmet criteria
+         at the top of the summary and emit `topic.skipped` to continue.
     triggers:
       - "research.complete"
     publishes:
       - "LOOP_COMPLETE"
+      - "topic.skipped"
 
 features:
   parallel: false

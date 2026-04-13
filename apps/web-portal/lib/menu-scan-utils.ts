@@ -1,19 +1,4 @@
-// ============================================================================
-// Menu Scan — Browser Utility Functions
-// ============================================================================
-// Pure browser utility functions for image and PDF processing.
-// These are extracted from app/admin/menu-scan/page.tsx and imported by the
-// useMenuScanState hook.
-// ============================================================================
-
-/**
- * Resize an image File to at most `maxDim` pixels on the longest side,
- * then return it as a base64-encoded JPEG suitable for sending to the API.
- *
- * @param file      - The image File to resize
- * @param maxDim    - Maximum width or height in pixels (default 2000)
- * @returns         An object with the output filename, MIME type, and base64 data
- */
+/** Resize an image to at most `maxDim` px on longest side, return as base64 JPEG. */
 export async function resizeImageToBase64(
   file: File,
   maxDim = 2000
@@ -54,15 +39,7 @@ export async function resizeImageToBase64(
   });
 }
 
-/**
- * Convert each page of a PDF file to a JPEG image File using pdfjs-dist.
- * Renders at 2× scale for high-quality output (~1680px for A4).
- * Pages are rendered client-side — no server involved.
- *
- * @param file            - The PDF File to convert
- * @param maxPagesPerFile - Maximum pages to extract (default 20)
- * @returns               An array of JPEG image Files, one per PDF page
- */
+/** Convert each page of a PDF to a JPEG image File using pdfjs-dist (2× scale). */
 export async function pdfToImages(file: File, maxPagesPerFile = 20): Promise<File[]> {
   const pdfjsLib = await import('pdfjs-dist');
   // Worker is committed to /public — re-copy from node_modules if pdfjs-dist is upgraded

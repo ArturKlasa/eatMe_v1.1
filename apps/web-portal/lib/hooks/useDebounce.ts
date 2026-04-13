@@ -1,12 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-/**
- * Debounces a value by the specified delay.
- *
- * @param value - The value to debounce.
- * @param delay - Debounce delay in milliseconds (default 300).
- * @returns The debounced value.
- */
+/** @returns The debounced value after `delay` ms of inactivity. */
 export function useDebounce<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
 

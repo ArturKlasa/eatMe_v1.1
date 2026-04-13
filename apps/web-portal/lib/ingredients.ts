@@ -1,11 +1,3 @@
-/**
- * Ingredients Service
- *
- * Supabase data operations for the canonical ingredient library.
- * Canonical ingredients are the source-of-truth records (e.g., "Chicken Breast");
- * aliases map user-entered or import names back to a canonical record.
- */
-
 import { supabase } from './supabase';
 
 export interface CanonicalIngredient {
@@ -42,29 +34,23 @@ export interface DishIngredient {
   quantity?: string;
 }
 
-/**
- * Flat ingredient shape returned by searchIngredients and used in the UI.
- * Combines alias display data with canonical ingredient properties.
- */
 export interface Ingredient {
-  id: string; // ingredient_alias.id
-  display_name: string; // ingredient_alias.display_name
+  id: string;
+  display_name: string;
   canonical_ingredient_id: string;
-  canonical_name?: string; // flattened from canonical_ingredient.canonical_name
-  ingredient_family_name?: string; // flattened from canonical_ingredient.ingredient_family_name
-  is_vegetarian?: boolean; // flattened from canonical_ingredient.is_vegetarian
-  is_vegan?: boolean; // flattened from canonical_ingredient.is_vegan
-  quantity?: string; // optional quantity when added to a dish
+  canonical_name?: string;
+  ingredient_family_name?: string;
+  is_vegetarian?: boolean;
+  is_vegan?: boolean;
+  quantity?: string;
 }
 
 /**
- * Searches ingredient aliases by display name (case-insensitive LIKE).
- * Returns flattened {@link Ingredient} objects with canonical info included.
- *
- * @param query - Partial ingredient name typed by the user.
- * @param limit - Maximum number of results to return (default 10).
- * @returns Matched ingredients or an empty array when the query is blank.
- */
+ * Search ingredient aliases by display name.
+ * @param query
+ * @param limit
+ 
+ * @returns*/
 export async function searchIngredients(
   query: string,
   limit = 10
@@ -105,7 +91,6 @@ export async function searchIngredients(
     } | null;
   };
 
-  // Flatten nested canonical_ingredient into the Ingredient shape
   const flat: Ingredient[] = (data ?? []).map((row: AliasRow) => ({
     id: row.id,
     display_name: row.display_name,
@@ -120,11 +105,10 @@ export async function searchIngredients(
 }
 
 /**
- * Fetches a canonical ingredient with its linked allergens and dietary tags.
- *
- * @param canonicalIngredientId - UUID of the `canonical_ingredients` row.
- * @returns The ingredient row with nested `allergens` and `dietary_tags` arrays.
- */
+ * Fetch a canonical ingredient with its allergens and dietary tags.
+ * @param canonicalIngredientId
+ 
+ * @returns*/
 export async function getIngredientDetails(canonicalIngredientId: string) {
   const { data, error } = await supabase
     .from('canonical_ingredients')
@@ -145,18 +129,16 @@ export async function getIngredientDetails(canonicalIngredientId: string) {
   return { data, error };
 }
 
-/**
- * Get all allergens
- */
+/** Fetch all allergens.
+ * @returns*/
 export async function getAllergens() {
   const { data, error } = await supabase.from('allergens').select('id, code, name').order('name');
 
   return { data: data as Allergen[] | null, error };
 }
 
-/**
- * Get all dietary tags
- */
+/** Fetch all dietary tags.
+ * @returns*/
 export async function getDietaryTags() {
   const { data, error } = await supabase
     .from('dietary_tags')
@@ -167,12 +149,11 @@ export async function getDietaryTags() {
 }
 
 /**
- * Links canonical ingredients to a dish via the `dish_ingredients` junction table.
- *
- * @param dishId - UUID of the dish to add ingredients to.
- * @param ingredients - Ingredients to link, each with a canonical ingredient ID and optional quantity.
- * @returns The inserted `dish_ingredients` rows or an error.
- */
+ * Link canonical ingredients to a dish.
+ * @param dishId
+ * @param ingredients
+ 
+ * @returns*/
 export async function addDishIngredients(
   dishId: string,
   ingredients: Array<{ ingredient_id: string; quantity?: string | null }>
@@ -189,11 +170,10 @@ export async function addDishIngredients(
 }
 
 /**
- * Fetches all ingredients linked to a dish with their canonical details.
- *
- * @param dishId - UUID of the dish to query.
- * @returns Rows from `dish_ingredients` with nested canonical ingredient info.
- */
+ * Fetch all ingredients linked to a dish.
+ * @param dishId
+ 
+ * @returns*/
 export async function getDishIngredients(dishId: string) {
   const { data, error } = await supabase
     .from('dish_ingredients')
@@ -214,11 +194,11 @@ export async function getDishIngredients(dishId: string) {
 }
 
 /**
- * Removes a single ingredient link from a dish.
- *
- * @param dishId - UUID of the dish.
- * @param canonicalIngredientId - UUID of the canonical ingredient to unlink.
- */
+ * Remove an ingredient link from a dish.
+ * @param dishId
+ * @param canonicalIngredientId
+ 
+ * @returns*/
 export async function removeDishIngredient(dishId: string, canonicalIngredientId: string) {
   const { error } = await supabase
     .from('dish_ingredients')
@@ -230,12 +210,12 @@ export async function removeDishIngredient(dishId: string, canonicalIngredientId
 }
 
 /**
- * Updates the serving quantity for an ingredient already linked to a dish.
- *
- * @param dishId - UUID of the dish.
- * @param canonicalIngredientId - UUID of the canonical ingredient to update.
- * @param quantity - Human-readable quantity string (e.g. "2 tbsp", "100g").
- */
+ * Update the serving quantity for a dish ingredient.
+ * @param dishId
+ * @param canonicalIngredientId
+ * @param quantity
+ 
+ * @returns*/
 export async function updateDishIngredientQuantity(
   dishId: string,
   canonicalIngredientId: string,
@@ -251,12 +231,10 @@ export async function updateDishIngredientQuantity(
 }
 
 /**
- * Fetches allergen details for a dish using the pre-calculated `allergens` column.
- * The column is populated by a Postgres trigger when `dish_ingredients` changes.
- *
- * @param dishId - UUID of the dish.
- * @returns Full allergen rows for the codes stored on the dish, or an empty array.
- */
+ * Fetch allergen details for a dish.
+ * @param dishId
+ 
+ * @returns*/
 export async function getDishAllergens(dishId: string) {
   const { data, error } = await supabase
     .from('dishes')
@@ -266,7 +244,6 @@ export async function getDishAllergens(dishId: string) {
 
   if (error || !data) return { data: null, error };
 
-  // Fetch allergen details
   if (data.allergens && data.allergens.length > 0) {
     const { data: allergenData, error: allergenError } = await supabase
       .from('allergens')
@@ -280,12 +257,10 @@ export async function getDishAllergens(dishId: string) {
 }
 
 /**
- * Fetches dietary tag details for a dish using the pre-calculated `dietary_tags` column.
- * The column is populated by a Postgres trigger when `dish_ingredients` changes.
- *
- * @param dishId - UUID of the dish.
- * @returns Full dietary tag rows for the codes stored on the dish, or an empty array.
- */
+ * Fetch dietary tag details for a dish.
+ * @param dishId
+ 
+ * @returns*/
 export async function getDishDietaryTags(dishId: string) {
   const { data, error } = await supabase
     .from('dishes')
@@ -295,7 +270,6 @@ export async function getDishDietaryTags(dishId: string) {
 
   if (error || !data) return { data: null, error };
 
-  // Fetch dietary tag details
   if (data.dietary_tags && data.dietary_tags.length > 0) {
     const { data: tagData, error: tagError } = await supabase
       .from('dietary_tags')

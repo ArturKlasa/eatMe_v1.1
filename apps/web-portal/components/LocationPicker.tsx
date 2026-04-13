@@ -1,24 +1,5 @@
 'use client';
 
-/**
- * Interactive map component for picking a restaurant's physical location.
- *
- * Uses Leaflet (dynamically imported to avoid SSR crashes) with OpenStreetMap
- * tiles. When the user clicks the map:
- *   1. A draggable marker is placed at the clicked coordinates.
- *   2. `onLocationSelect(lat, lng)` fires so the parent form can update its
- *      hidden lat/lng fields.
- *   3. Nominatim reverse-geocoding is called to derive a human-readable
- *      street address and structured location details (city, postal code, etc.).
- *
- * The Leaflet instance is created only once (when `userLocation` is first
- * resolved) and never re-created on subsequent clicks — marker position is
- * updated in place via `setLatLng()` to avoid flickering and map resets.
- *
- * Geolocation falls back to New York (40.71, -74.00) when the browser
- * doesn't support the API or the user denies the permission prompt.
- */
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type L from 'leaflet';
 import { parseNominatimAddress, type ParsedLocationDetails } from '@/lib/parseAddress';
@@ -29,11 +10,7 @@ interface LocationPickerProps {
   initialLng?: number;
   onLocationSelect: (lat: number, lng: number) => void;
   onAddressSelect?: (address: string) => void;
-  /**
-   * Called after a successful reverse-geocoding lookup with structured address
-   * fields (city, postalCode, countryCode, etc.) so parent forms can auto-fill
-   * their inputs without needing to parse the raw display_name themselves.
-   */
+  /** Structured address fields from reverse-geocoding for parent auto-fill. */
   onLocationDetails?: (details: ParsedLocationDetails) => void;
 }
 
@@ -54,7 +31,6 @@ export default function LocationPicker({
   const markerRef = useRef<L.Marker | null>(null);
   const lastGeocodeRef = useRef<number>(0);
 
-  // Get user's current location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -66,26 +42,26 @@ export default function LocationPicker({
         },
         error => {
           if (error.code === error.PERMISSION_DENIED) {
-            toast.warning('Location access denied. Showing default location — click the map to set your restaurant\'s position.');
+            toast.warning(
+              "Location access denied. Showing default location — click the map to set your restaurant's position."
+            );
           }
           // Default to a central location if geolocation fails
           setUserLocation({ lat: 40.7128, lng: -74.006 }); // New York
         }
       );
     } else {
-      toast.warning('Geolocation is not supported by your browser. Click the map to set your restaurant\'s position.');
+      toast.warning(
+        "Geolocation is not supported by your browser. Click the map to set your restaurant's position."
+      );
       setUserLocation({ lat: 40.7128, lng: -74.006 }); // New York
     }
   }, []);
 
-  // ── Initialise Leaflet map once we know the user's starting location ──────
-  // Leaflet is imported dynamically here because it accesses `window` and
-  // `document` directly — importing it at the top level crashes Next.js SSR.
+  // Leaflet accesses window/document — dynamic import avoids SSR crash.
   useEffect(() => {
-    // Only initialize map when we have a location and the container is ready
     if (!userLocation || !mapContainerRef.current) return;
 
-    // Dynamically import Leaflet to avoid SSR issues
     const initializeMap = async () => {
       const L = (await import('leaflet')).default;
       await import('leaflet/dist/leaflet.css');
@@ -100,7 +76,6 @@ export default function LocationPicker({
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
       });
 
-      // Don't reinitialize if map already exists
       if (mapRef.current) return;
 
       const center = selectedLocation || userLocation;
@@ -114,12 +89,10 @@ export default function LocationPicker({
         maxZoom: 19,
       }).addTo(map);
 
-      // Add marker if there's a selected location
       if (selectedLocation) {
         markerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng]).addTo(map);
       }
 
-      // Handle map clicks
       map.on('click', async (e: L.LeafletMouseEvent) => {
         // Prevent any default/propagation that could submit the parent form
         if (e.originalEvent) {
@@ -129,7 +102,6 @@ export default function LocationPicker({
 
         const { lat, lng } = e.latlng;
 
-        // Update or create marker
         if (markerRef.current) {
           markerRef.current.setLatLng([lat, lng]);
         } else {
@@ -139,8 +111,7 @@ export default function LocationPicker({
         setSelectedLocation({ lat, lng });
         onLocationSelect(lat, lng);
 
-        // Perform reverse geocoding when at least one detail callback is provided
-        // Throttle to max 1 request per second
+        // Throttle reverse-geocoding to 1 req/sec
         if (onAddressSelect || onLocationDetails) {
           const now = Date.now();
           const timeSinceLast = now - lastGeocodeRef.current;
@@ -171,8 +142,6 @@ export default function LocationPicker({
                 onAddressSelect(streetAddress);
               }
 
-              // Emit structured details so parent forms can auto-fill country,
-              // city and postal code fields.
               if (onLocationDetails && parsed) {
                 onLocationDetails(parsed);
               }
@@ -189,7 +158,6 @@ export default function LocationPicker({
 
     initializeMap();
 
-    // Cleanup
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();

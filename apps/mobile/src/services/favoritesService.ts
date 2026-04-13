@@ -1,8 +1,3 @@
-/**
- * Favorites Service
- * Handles adding/removing restaurants and dishes to/from user favorites
- */
-
 import { supabase as _supabase } from '../lib/supabase';
 import type { FavoriteRow } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
@@ -22,9 +17,7 @@ export interface Favorite {
   created_at: string;
 }
 
-/**
- * Add item to favorites
- */
+/** Add item to favorites. */
 export async function addToFavorites(
   userId: string,
   subjectType: FavoriteSubjectType,
@@ -55,9 +48,7 @@ export async function addToFavorites(
   }
 }
 
-/**
- * Remove item from favorites
- */
+/** Remove item from favorites. */
 export async function removeFromFavorites(
   userId: string,
   subjectType: FavoriteSubjectType,
@@ -80,10 +71,7 @@ export async function removeFromFavorites(
   }
 }
 
-/**
- * Check if item is favorited.
- * Returns ok(true) if favorited, ok(false) if not, err(...) on DB failure.
- */
+/** Check if item is favorited. */
 export async function isFavorited(
   userId: string,
   subjectType: FavoriteSubjectType,
@@ -113,9 +101,7 @@ export async function isFavorited(
   }
 }
 
-/**
- * Get all user favorites
- */
+/** Get all user favorites. */
 export async function getUserFavorites(
   userId: string,
   subjectType?: FavoriteSubjectType
@@ -142,10 +128,7 @@ export async function getUserFavorites(
   }
 }
 
-/**
- * Toggle favorite (add if not favorited, remove if already favorited).
- * Returns ok(true) if now favorited, ok(false) if now unfavorited.
- */
+/** Toggle favorite status. */
 export async function toggleFavorite(
   userId: string,
   subjectType: FavoriteSubjectType,

@@ -1,15 +1,3 @@
-/**
- * Restaurant classification and operations constants.
- *
- * Keep in sync with the corresponding Postgres enum/check constraints
- * in infra/supabase/migrations/ whenever values are added or renamed.
- */
-
-/**
- * RestaurantType is defined here (rather than in types/) because it's only
- * consumed by the RESTAURANT_TYPES constant below and will be re-exported
- * via the types barrel in Step 3.
- */
 type RestaurantType =
   | 'restaurant'
   | 'cafe'

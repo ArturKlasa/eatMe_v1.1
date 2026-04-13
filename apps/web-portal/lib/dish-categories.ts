@@ -1,17 +1,5 @@
-/**
- * Dish Categories Service
- *
- * Supabase data operations for the global dish category taxonomy.
- * Categories form a two-level tree (parent → child) used to organise menu items
- * and drive the food-discovery filter UI.
- */
-
 import { supabase } from './supabase';
 import type { PostgrestError } from '@supabase/supabase-js';
-
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface DishCategory {
   id: string;
@@ -30,11 +18,7 @@ export interface DishCategoryInsert {
   is_active?: boolean;
 }
 
-// ============================================================================
-// Read helpers
-// ============================================================================
-
-/** Fetch all active dish categories ordered by display_order. */
+/** @returns */
 export async function fetchDishCategories(): Promise<{
   data: DishCategory[];
   error: PostgrestError | null;
@@ -48,7 +32,7 @@ export async function fetchDishCategories(): Promise<{
   return { data: data ?? [], error };
 }
 
-/** Fetch food-only (is_drink = false) categories. */
+/** @returns */
 export async function fetchFoodCategories(): Promise<{
   data: DishCategory[];
   error: PostgrestError | null;
@@ -63,7 +47,7 @@ export async function fetchFoodCategories(): Promise<{
   return { data: data ?? [], error };
 }
 
-/** Fetch drink-only (is_drink = true) categories. */
+/** @returns */
 export async function fetchDrinkCategories(): Promise<{
   data: DishCategory[];
   error: PostgrestError | null;
@@ -78,11 +62,7 @@ export async function fetchDrinkCategories(): Promise<{
   return { data: data ?? [], error };
 }
 
-// ============================================================================
-// Admin write helpers
-// ============================================================================
-
-/** Create a new dish category. Requires admin role (enforced by RLS). */
+/** @param category @returns */
 export async function createDishCategory(
   category: DishCategoryInsert
 ): Promise<{ data: DishCategory | null; error: PostgrestError | null }> {
@@ -91,7 +71,7 @@ export async function createDishCategory(
   return { data, error };
 }
 
-/** Update an existing dish category. Requires admin role (enforced by RLS). */
+/** @param id @param updates @returns */
 export async function updateDishCategory(
   id: string,
   updates: Partial<DishCategoryInsert>
@@ -106,7 +86,7 @@ export async function updateDishCategory(
   return { data, error };
 }
 
-/** Soft-delete a dish category by marking it inactive. Requires admin role. */
+/** Soft-delete by marking inactive. @param id @returns */
 export async function deactivateDishCategory(
   id: string
 ): Promise<{ error: PostgrestError | null }> {
@@ -118,7 +98,7 @@ export async function deactivateDishCategory(
   return { error };
 }
 
-/** Permanently delete a dish category. Use with caution. */
+/** Permanently delete. @param id @returns */
 export async function deleteDishCategory(id: string): Promise<{ error: PostgrestError | null }> {
   const { error } = await supabase.from('dish_categories').delete().eq('id', id);
   return { error };

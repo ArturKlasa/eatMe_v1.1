@@ -1,9 +1,3 @@
-/**
- * Dish Photo Service
- *
- * Handles uploading and managing dish photos
- */
-
 import { supabase } from '../lib/supabase';
 import { uploadPhoto } from './ratingService';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,17 +12,13 @@ export interface DishPhoto {
   updated_at: string | null;
 }
 
-/**
- * Request camera/photo library permissions
- */
+/** Request camera/photo library permissions. */
 export async function requestPhotoPermissions(): Promise<boolean> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   return status === 'granted';
 }
 
-/**
- * Pick an image from the library
- */
+/** Pick an image from the library. */
 export async function pickImage(): Promise<string | null> {
   try {
     const hasPermission = await requestPhotoPermissions();
@@ -55,9 +45,7 @@ export async function pickImage(): Promise<string | null> {
   }
 }
 
-/**
- * Take a photo with camera
- */
+/** Take a photo with camera. */
 export async function takePhoto(): Promise<string | null> {
   try {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -83,9 +71,7 @@ export async function takePhoto(): Promise<string | null> {
   }
 }
 
-/**
- * Upload dish photo and save to database
- */
+/** Upload dish photo and save to database. */
 export async function uploadDishPhoto(
   userId: string,
   dishId: string,
@@ -94,7 +80,6 @@ export async function uploadDishPhoto(
   try {
     debugLog('[DishPhoto] Uploading photo for dish:', dishId);
 
-    // Upload to Supabase Storage
     const photoUrl = await uploadPhoto(photoUri, 'dish', userId);
     if (!photoUrl) {
       return { success: false };
@@ -102,7 +87,6 @@ export async function uploadDishPhoto(
 
     debugLog('[DishPhoto] Photo uploaded to storage:', photoUrl);
 
-    // Save to database
     const { data, error } = await supabase
       .from('dish_photos')
       .insert({
@@ -126,9 +110,7 @@ export async function uploadDishPhoto(
   }
 }
 
-/**
- * Get photos for a dish
- */
+/** Get photos for a dish. */
 export async function getDishPhotos(dishId: string): Promise<DishPhoto[]> {
   try {
     const { data, error } = await supabase

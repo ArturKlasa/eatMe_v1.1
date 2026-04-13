@@ -1,18 +1,5 @@
 'use client';
 
-/**
- * Ingredient autocomplete component for the dish editor.
- *
- * Searches `ingredient_aliases` via `searchIngredients()` as the user types,
- * debouncing requests by 300 ms to avoid hammering the DB on every keystroke.
- * Already-selected ingredients are filtered out of the suggestion list.
- *
- * When an ingredient is added or removed the full updated array is passed to
- * `onIngredientsChange` — the parent form stores the array and sends it with
- * the dish payload; a Postgres trigger then auto-calculates allergens and
- * dietary tags from the linked canonical ingredients.
- */
-
 import { useState, useEffect, useRef } from 'react';
 import { Check, X, Plus, Sprout, Leaf } from 'lucide-react';
 import { searchIngredients, type Ingredient } from '@/lib/ingredients';
@@ -137,9 +124,7 @@ export function IngredientAutocomplete({
         )}
 
         {/* Error message */}
-        {error && (
-          <p className="text-sm text-destructive mt-1">{error}</p>
-        )}
+        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
 
         {/* Suggestions Dropdown */}
         {isOpen && suggestions.length > 0 && (

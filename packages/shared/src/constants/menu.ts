@@ -1,10 +1,3 @@
-/**
- * Menu structure constants — categories, dish kinds, selection types, and presets.
- *
- * Keep in sync with the corresponding Postgres enum/check constraints
- * in infra/supabase/migrations/ whenever values are added or renamed.
- */
-
 /** Menu time-slot categories (maps to the `category` column on the `menus` table). */
 export const MENU_CATEGORIES = [
   { value: 'all_day', label: 'All-Day', description: 'Available all day' },
@@ -18,12 +11,6 @@ export const MENU_CATEGORIES = [
 /** Union of valid menu category string values. */
 export type MenuCategory = (typeof MENU_CATEGORIES)[number]['value'];
 
-/**
- * Dish kind options controlling how a dish is presented and customised.
- *  - standard:   Single fixed item (most dishes).
- *  - template:   Customer builds from components (e.g. "build-your-own bowl").
- *  - experience: Multi-course or group format (e.g. hot pot, tasting menu).
- */
 export const DISH_KINDS = [
   {
     value: 'standard' as const,
@@ -61,10 +48,6 @@ export const SELECTION_TYPES = [
   { value: 'quantity' as const, label: 'Quantity', description: 'Set amount per option' },
 ] as const;
 
-/**
- * Dish-type presets — skeleton option groups pre-populated when a partner
- * picks a template or experience dish kind.
- */
 export const OPTION_PRESETS: Record<
   string,
   {

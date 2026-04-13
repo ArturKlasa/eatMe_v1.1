@@ -1,8 +1,3 @@
-/**
- * Eat Together Service
- * Handles all Eat Together session operations
- */
-
 import { supabase } from '../lib/supabase';
 import type { Restaurant } from '../lib/supabase';
 import type { Tables } from '@eatme/database';
@@ -66,15 +61,12 @@ export interface Vote {
   created_at: string;
 }
 
-/**
- * Create a new Eat Together session
- */
+/** Create a new Eat Together session. */
 export async function createSession(
   userId: string,
   locationMode: 'host_location' | 'midpoint' | 'max_radius' = 'host_location'
 ): Promise<{ data: EatTogetherSession | null; error: Error | null }> {
   try {
-    // Generate unique session code
     const { data: codeData, error: codeError } = await supabase.rpc('generate_session_code');
 
     if (codeError) {
@@ -83,7 +75,6 @@ export async function createSession(
 
     const sessionCode = codeData as string;
 
-    // Create session
     const { data, error } = await supabase
       .from('eat_together_sessions')
       .insert({
@@ -99,7 +90,6 @@ export async function createSession(
       return { data: null, error: new Error(error.message) };
     }
 
-    // Add host as first member
     await supabase.from('eat_together_members').insert({
       session_id: data.id,
       user_id: userId,
@@ -112,35 +102,42 @@ export async function createSession(
   }
 }
 
-/**
- * Join an existing session by code
- */
+/** Join an existing session by code. */
 export async function joinSession(
   userId: string,
   sessionCode: string,
   location?: { lat: number; lng: number }
 ): Promise<{ data: EatTogetherSession | null; error: Error | null }> {
   try {
-    // Find session by code (without status filter to give specific error messages)
     const { data: session, error: sessionError } = await supabase
       .from('eat_together_sessions')
-      .select('id, host_id, session_code, status, location_mode, selected_restaurant_id, created_at, expires_at, closed_at')
+      .select(
+        'id, host_id, session_code, status, location_mode, selected_restaurant_id, created_at, expires_at, closed_at'
+      )
       .eq('session_code', sessionCode.toUpperCase())
       .single();
 
     if (sessionError || !session) {
-      return { data: null, error: Object.assign(new Error('session_not_found'), { code: 'session_not_found' }) };
+      return {
+        data: null,
+        error: Object.assign(new Error('session_not_found'), { code: 'session_not_found' }),
+      };
     }
 
     if (session.status === 'expired') {
-      return { data: null, error: Object.assign(new Error('session_expired'), { code: 'session_expired' }) };
+      return {
+        data: null,
+        error: Object.assign(new Error('session_expired'), { code: 'session_expired' }),
+      };
     }
 
     if (session.status !== 'waiting') {
-      return { data: null, error: Object.assign(new Error('session_started'), { code: 'session_started' }) };
+      return {
+        data: null,
+        error: Object.assign(new Error('session_started'), { code: 'session_started' }),
+      };
     }
 
-    // Check if user already in session
     const { data: existing } = await supabase
       .from('eat_together_members')
       .select('id')
@@ -150,10 +147,9 @@ export async function joinSession(
       .single();
 
     if (existing) {
-      return { data: session, error: null }; // Already joined
+      return { data: session, error: null };
     }
 
-    // Add member to session
     const locationPoint = location ? `POINT(${location.lng} ${location.lat})` : null;
 
     const { error: memberError } = await supabase.from('eat_together_members').insert({
@@ -173,16 +169,16 @@ export async function joinSession(
   }
 }
 
-/**
- * Get session by ID with members
- */
+/** Get session by ID. */
 export async function getSession(
   sessionId: string
 ): Promise<{ data: EatTogetherSession | null; error: Error | null }> {
   try {
     const { data, error } = await supabase
       .from('eat_together_sessions')
-      .select('id, host_id, session_code, status, location_mode, selected_restaurant_id, created_at, expires_at, closed_at')
+      .select(
+        'id, host_id, session_code, status, location_mode, selected_restaurant_id, created_at, expires_at, closed_at'
+      )
       .eq('id', sessionId)
       .single();
 
@@ -196,9 +192,7 @@ export async function getSession(
   }
 }
 
-/**
- * Get session members
- */
+/** Get session members. */
 export async function getSessionMembers(
   sessionId: string
 ): Promise<{ data: SessionMember[] | null; error: Error | null }> {
@@ -219,7 +213,6 @@ export async function getSessionMembers(
       return { data: null, error: new Error(error.message) };
     }
 
-    // Parse the data to include profile_name
     type MemberRow = Tables<'eat_together_members'> & { users: { profile_name: string } | null };
     const members = (data as unknown as MemberRow[]).map((m: MemberRow) => ({
       ...m,
@@ -234,9 +227,7 @@ export async function getSessionMembers(
   }
 }
 
-/**
- * Update member location
- */
+/** Update member location. */
 export async function updateMemberLocation(
   sessionId: string,
   userId: string,
@@ -261,9 +252,7 @@ export async function updateMemberLocation(
   }
 }
 
-/**
- * Leave session
- */
+/** Leave session. */
 export async function leaveSession(
   sessionId: string,
   userId: string
@@ -285,9 +274,7 @@ export async function leaveSession(
   }
 }
 
-/**
- * Close session (host only)
- */
+/** Close session (host only). */
 export async function closeSession(sessionId: string): Promise<{ error: Error | null }> {
   try {
     const { error } = await supabase
@@ -308,9 +295,7 @@ export async function closeSession(sessionId: string): Promise<{ error: Error | 
   }
 }
 
-/**
- * Get recommendations for voting
- */
+/** Get recommendations for voting. */
 export async function getRecommendations(
   sessionId: string
 ): Promise<{ data: RestaurantRecommendation[] | null; error: Error | null }> {
@@ -336,9 +321,7 @@ export async function getRecommendations(
   }
 }
 
-/**
- * Submit vote
- */
+/** Submit vote. */
 export async function submitVote(
   sessionId: string,
   userId: string,
@@ -366,9 +349,7 @@ export async function submitVote(
   }
 }
 
-/**
- * Get vote results
- */
+/** Get vote results. */
 export async function getVoteResults(
   sessionId: string
 ): Promise<{ data: VoteResult[] | null; error: Error | null }> {
@@ -387,9 +368,7 @@ export async function getVoteResults(
   }
 }
 
-/**
- * Get all votes for a session
- */
+/** Get all votes for a session. */
 export async function getVotes(
   sessionId: string
 ): Promise<{ data: Vote[] | null; error: Error | null }> {
@@ -409,9 +388,7 @@ export async function getVotes(
   }
 }
 
-/**
- * Finalize restaurant selection (host only)
- */
+/** Finalize restaurant selection (host only). */
 export async function finalizeSelection(
   sessionId: string,
   restaurantId: string
@@ -436,15 +413,13 @@ export async function finalizeSelection(
   }
 }
 
-/**
- * Invoke group recommendations edge function (host only)
- */
 export interface GroupRecommendationsResult {
   recommendations: RestaurantRecommendation[];
   metadata: Record<string, unknown>;
   conflicts?: string[];
 }
 
+/** Invoke group recommendations edge function (host only). */
 export async function invokeGroupRecommendations(
   sessionId: string,
   locationMode: string = 'midpoint',
@@ -465,11 +440,9 @@ export async function invokeGroupRecommendations(
   }
 }
 
-/**
- * Update session status
- */
 type SessionStatus = NonNullable<EatTogetherSession['status']>;
 
+/** Update session status. */
 export async function updateSessionStatus(
   sessionId: string,
   status: SessionStatus
@@ -490,11 +463,9 @@ export async function updateSessionStatus(
   }
 }
 
-/**
- * Search users by profile name
- */
 type UserSearchResult = { id: string; profile_name: string | null; email: string | null };
 
+/** Search users by profile name. */
 export async function searchUsersByProfileName(
   searchQuery: string
 ): Promise<{ data: UserSearchResult[] | null; error: Error | null }> {
@@ -516,15 +487,12 @@ export async function searchUsersByProfileName(
   }
 }
 
-/**
- * Invite user to session (host only)
- */
+/** Invite user to session (host only). */
 export async function inviteUserToSession(
   sessionId: string,
   userId: string
 ): Promise<{ error: Error | null }> {
   try {
-    // Check if user already in session
     const { data: existing } = await supabase
       .from('eat_together_members')
       .select('id')
@@ -553,9 +521,7 @@ export async function inviteUserToSession(
   }
 }
 
-/**
- * Subscribe to session changes (Realtime)
- */
+/** Subscribe to session changes (Realtime). */
 export function subscribeToSession(
   sessionId: string,
   onSessionChange: (session: EatTogetherSession) => void,
@@ -584,7 +550,6 @@ export function subscribeToSession(
         filter: `session_id=eq.${sessionId}`,
       },
       async () => {
-        // Refetch members when changes occur
         const { data } = await getSessionMembers(sessionId);
         if (data) {
           onMembersChange(data);

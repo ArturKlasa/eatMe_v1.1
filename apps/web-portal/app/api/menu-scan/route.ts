@@ -1,11 +1,3 @@
-/**
- * POST /api/menu-scan
- *
- * AI-powered menu extraction endpoint. Accepts a base64-encoded menu image,
- * sends it to the OpenAI Vision API, and returns structured dish data enriched
- * with matched ingredients and dietary hints for admin review.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
@@ -24,10 +16,6 @@ import {
   type EnrichedDish,
   type FlaggedDuplicate,
 } from '@/lib/menu-scan';
-
-// ---------------------------------------------------------------------------
-// Zod schema for Structured Outputs (GPT-4o Vision)
-// ---------------------------------------------------------------------------
 
 const DishSchema: z.ZodType<unknown> = z.lazy(() =>
   z.object({
@@ -75,10 +63,6 @@ const MenuExtractionSchema = z.object({
   ),
   extraction_notes: z.array(ExtractionNoteSchema),
 });
-
-// ---------------------------------------------------------------------------
-// GPT-4o Vision system prompt — decision tree + few-shot examples
-// ---------------------------------------------------------------------------
 
 const SYSTEM_PROMPT = `You are a menu data extraction specialist. Analyze the restaurant menu image and extract all dishes into structured JSON matching the provided schema.
 
@@ -147,20 +131,12 @@ Format: { type, path ("Menu Name > Category > Dish Name" or "page_X"), message, 
 Report ONLY high-confidence issues. Do not flag stylistic choices, minor spelling quirks, or anything you're uncertain about.
 Return an empty array if the menu looks clean.`;
 
-// ---------------------------------------------------------------------------
-// OpenAI client (lazy init to avoid crashing at import time if key missing)
-// ---------------------------------------------------------------------------
-
 function getOpenAIClient(): OpenAI {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY environment variable is not set');
   }
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
-
-// ---------------------------------------------------------------------------
-// Call GPT-4o Vision for a single base64-encoded image (Structured Outputs)
-// ---------------------------------------------------------------------------
 
 interface ExtractionResult {
   result: RawExtractionResult;
@@ -263,12 +239,6 @@ function applyDishDefaults(dish: RawExtractedDish): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Country code → BCP-47 language tag for ingredient alias persistence.
-// Used to tag newly-discovered aliases with the correct source language
-// instead of hardcoding 'es'.
-// ---------------------------------------------------------------------------
-
 const COUNTRY_LANGUAGE_MAP: Record<string, string> = {
   MX: 'es',
   ES: 'es',
@@ -295,10 +265,6 @@ function getMenuLanguage(countryCode: string | null | undefined): string {
   return COUNTRY_LANGUAGE_MAP[countryCode.toUpperCase()] ?? 'und';
 }
 
-// ---------------------------------------------------------------------------
-// Bulk lookup helper — exact then partial ilike, all names in one OR query each
-// ---------------------------------------------------------------------------
-
 type AliasRow = {
   canonical_ingredient_id: string;
   display_name: string;
@@ -308,11 +274,7 @@ type AliasRow = {
 const ALIAS_SELECT =
   'display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
 
-/**
- * Look up a list of ingredient names against ingredient_aliases using at most
- * 2 DB round-trips (one bulk exact OR-ilike, one bulk partial OR-ilike for
- * whatever remains unmatched). Returns a map keyed by lowercased input name.
- */
+/** Bulk-lookup ingredient names against ingredient_aliases (exact then partial ilike). */
 async function bulkLookupAliases(
   names: string[],
   supabase: ReturnType<typeof createServerSupabaseClient>
@@ -361,10 +323,6 @@ async function bulkLookupAliases(
   return resultMap;
 }
 
-// ---------------------------------------------------------------------------
-// Batch-translate non-English ingredient names using GPT-4o-mini.
-// ---------------------------------------------------------------------------
-
 async function translateIngredients(
   terms: string[],
   openai: OpenAI,
@@ -381,8 +339,7 @@ async function translateIngredients(
       messages: [
         {
           role: 'system',
-          content:
-            `You are a culinary ingredient translator.${langHint} Given a JSON array of food ingredient names, return a JSON object mapping each original name to its standard English culinary name. Keep the output minimal: only ingredient names, no explanations. If a name is already a well-known culinary term in English (e.g. "pierogi", "tofu", "naan"), return it unchanged.`,
+          content: `You are a culinary ingredient translator.${langHint} Given a JSON array of food ingredient names, return a JSON object mapping each original name to its standard English culinary name. Keep the output minimal: only ingredient names, no explanations. If a name is already a well-known culinary term in English (e.g. "pierogi", "tofu", "naan"), return it unchanged.`,
         },
         {
           role: 'user',
@@ -414,10 +371,6 @@ async function translateIngredients(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Persist newly discovered (translated) aliases
-// ---------------------------------------------------------------------------
-
 async function saveNewAlias(
   displayName: string,
   language: string,
@@ -438,12 +391,6 @@ async function saveNewAlias(
     // ON CONFLICT — alias already exists; not an error
   }
 }
-
-// ---------------------------------------------------------------------------
-// Match raw ingredient strings against ingredient_aliases in the DB.
-// Uses bulk OR queries (≤4 DB round-trips total) instead of one query per
-// ingredient, eliminating the N×2 sequential round-trip bottleneck.
-// ---------------------------------------------------------------------------
 
 async function matchIngredients(
   rawIngredients: string[],
@@ -520,10 +467,6 @@ async function matchIngredients(
   return results;
 }
 
-// ---------------------------------------------------------------------------
-// Enrich a raw extraction result with ingredient matches + dietary tag codes
-// ---------------------------------------------------------------------------
-
 async function enrichDish(
   dish: RawExtractedDish,
   supabase: ReturnType<typeof createServerSupabaseClient>,
@@ -590,11 +533,6 @@ async function enrichResult(
 
   return { menus: enrichedMenus };
 }
-
-// ---------------------------------------------------------------------------
-// POST /api/menu-scan
-// Body: { restaurant_id: string, images: Array<{ name: string, mime_type: string, data: string }> }
-// ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
   // 1. Verify admin
@@ -772,9 +710,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (updateError) {
-      console.error('[MenuScan] Final status update failed after retry — job stuck in processing:', updateError);
+      console.error(
+        '[MenuScan] Final status update failed after retry — job stuck in processing:',
+        updateError
+      );
       return NextResponse.json(
-        { error: 'Processing succeeded but failed to save result — check job status', jobId: job.id },
+        {
+          error: 'Processing succeeded but failed to save result — check job status',
+          jobId: job.id,
+        },
         { status: 500 }
       );
     }

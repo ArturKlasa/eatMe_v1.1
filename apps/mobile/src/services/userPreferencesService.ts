@@ -1,13 +1,6 @@
-/**
- * User Preferences Service
- * Handles saving/loading user preferences to/from Supabase
- */
-
 import { supabase } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
 import type { PermanentFilters } from '../stores/filterStore';
-
-// ─── Code mappings (filterStore key → DB allergens.code / dietary_tags.code) ────
 
 const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
   lactose: 'lactose',
@@ -66,8 +59,6 @@ const DB_TO_DIET_TYPE: Record<string, keyof PermanentFilters['dietTypes']> = {
 // religiousRestrictions keys match dietary_tags.code directly (halal, kosher, hindu, jain, buddhist)
 const RELIGIOUS_KEYS = ['halal', 'hindu', 'kosher', 'jain', 'buddhist'] as const;
 
-// ─── Default values ────────────────────────────────────────────────────────────
-
 const DEFAULT_ALLERGIES: PermanentFilters['allergies'] = {
   lactose: false,
   gluten: false,
@@ -103,35 +94,22 @@ const DEFAULT_RELIGIOUS: PermanentFilters['religiousRestrictions'] = {
   buddhist: false,
 };
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Convert a TEXT[] from the DB to a set of code strings for fast lookup. */
 function toCodeSet(arr: string[] | null | undefined): Set<string> {
   return new Set(Array.isArray(arr) ? arr : []);
 }
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
 export interface UserPreferencesDB {
   user_id: string;
   diet_preference: 'all' | 'vegetarian' | 'vegan';
-  /** TEXT[] of allergen codes matching allergens.code (e.g. 'soybeans', 'tree_nuts'). */
   allergies: string[] | null;
-  /** TEXT[] of exclusion intent codes (e.g. 'vegetarian', 'dairy_free', 'no_eggs'). */
   exclude: string[] | null;
-  /** TEXT[] of diet type codes (e.g. 'keto', 'low_carb'). */
   diet_types: string[] | null;
-  /** TEXT[] of religious restriction codes matching dietary_tags.code. */
   religious_restrictions: string[] | null;
   default_max_distance: number;
-  /** Array of {canonicalIngredientId, displayName} — added by migration 046. */
   ingredients_to_avoid: PermanentFilters['ingredientsToAvoid'] | null;
 }
 
-/**
- * Load user preferences from database.
- * Returns ok(null) when the user has no preferences yet (first-time user) — not an error.
- */
+/** Load user preferences from database. Returns ok(null) for first-time users. */
 export async function loadUserPreferences(
   userId: string
 ): Promise<Result<UserPreferencesDB | null>> {
@@ -156,9 +134,7 @@ export async function loadUserPreferences(
   }
 }
 
-/**
- * Save user preferences to database
- */
+/** Save user preferences to database. */
 export async function saveUserPreferences(
   userId: string,
   preferences: Partial<UserPreferencesDB>
@@ -185,18 +161,10 @@ export async function saveUserPreferences(
   }
 }
 
-/**
- * Convert filterStore permanent filters to database format.
- * Translates the boolean-map UI state to TEXT[] arrays with correct DB codes.
- *
- * Note: price range is intentionally excluded — it is session-only state
- * managed by filterStore as a daily filter and should never be persisted
- * to the DB (it is currency-dependent and has no safe canonical form).
- */
+/** Convert filterStore permanent filters to database format. Price range intentionally excluded (session-only, currency-dependent). */
 export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPreferencesDB> {
   return {
     diet_preference: filters.dietPreference,
-    // Convert boolean maps → TEXT[] with proper DB code mapping
     allergies: (
       Object.entries(filters.allergies) as [keyof PermanentFilters['allergies'], boolean][]
     )
@@ -218,10 +186,7 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
   };
 }
 
-/**
- * Convert database preferences to filterStore format.
- * Translates TEXT[] DB values back to the boolean-map PermanentFilters shape.
- */
+/** Convert database preferences to filterStore format. */
 export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<PermanentFilters> {
   const allergySet = toCodeSet(dbPrefs.allergies);
   const excludeSet = toCodeSet(dbPrefs.exclude);
@@ -267,9 +232,7 @@ export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<Perman
   };
 }
 
-/**
- * Track dish interaction (for recommendations)
- */
+/** Track dish interaction (for recommendations). */
 export async function trackDishInteraction(
   userId: string,
   dishId: string,
@@ -296,9 +259,7 @@ export async function trackDishInteraction(
   }
 }
 
-/**
- * Update user profile name
- */
+/** Update user profile name. */
 export async function updateProfileName(
   userId: string,
   profileName: string

@@ -1,9 +1,3 @@
-/**
- * View History Service
- *
- * Fetches user's viewed restaurant history from session_views table
- */
-
 import { supabase } from '../lib/supabase';
 
 export interface ViewedRestaurant {
@@ -14,26 +8,27 @@ export interface ViewedRestaurant {
   viewedAt: Date;
 }
 
-/**
- * Get user's recently viewed restaurants (deduplicated)
- * Returns last 15 unique restaurants ordered by most recent view.
- * Uses the recent_viewed_restaurants DB view for a single-query approach.
- */
+/** Get user's recently viewed restaurants (deduplicated, last 15). */
 export async function getViewedRestaurants(
   userId: string,
   limit: number = 15
 ): Promise<ViewedRestaurant[]> {
   try {
-    // Single query via the recent_viewed_restaurants view (joins session_views + restaurants)
-    type RecentViewRow = { id: string; name: string; cuisine_types: string[] | null; image_url: string | null; viewed_at: string };
+    type RecentViewRow = {
+      id: string;
+      name: string;
+      cuisine_types: string[] | null;
+      image_url: string | null;
+      viewed_at: string;
+    };
     // recent_viewed_restaurants is a DB view not in the generated Supabase types.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    const { data, error } = (await (supabase as any)
       .from('recent_viewed_restaurants')
       .select('id, name, cuisine_types, image_url, viewed_at')
       .eq('user_id', userId)
       .order('viewed_at', { ascending: false })
-      .limit(limit * 3) as { data: RecentViewRow[] | null; error: { message: string } | null };
+      .limit(limit * 3)) as { data: RecentViewRow[] | null; error: { message: string } | null };
 
     if (error) {
       console.error('[ViewHistory] Error fetching viewed restaurants:', error);
@@ -44,7 +39,6 @@ export async function getViewedRestaurants(
       return [];
     }
 
-    // Deduplicate: keep only the most recent view per restaurant (already ordered)
     const seen = new Set<string>();
     const result: ViewedRestaurant[] = [];
     for (const row of data) {
@@ -67,9 +61,7 @@ export async function getViewedRestaurants(
   }
 }
 
-/**
- * Format date as "Today" or "X days ago"
- */
+/** Format date as "Today" or "X days ago". */
 export function formatViewDate(date: Date): string {
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();

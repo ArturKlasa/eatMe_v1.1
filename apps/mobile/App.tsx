@@ -68,34 +68,12 @@ export default function App(): React.JSX.Element {
     }
   }, [detectedCurrency, detectionSource, updateCurrency, setCurrencyPriceRange]);
 
-  // Session management - disabled to prevent excessive re-renders
-  // TODO: Re-enable with proper debouncing
   useEffect(() => {
     const loadFromStorage = useSessionStore.getState().loadFromStorage;
     const startSession = useSessionStore.getState().startSession;
 
-    // Load previous session data
     loadFromStorage();
-
-    // Start initial session
     startSession();
-
-    // Disabled: AppState listener causes too many re-renders
-    // TODO: Add debouncing or rate limiting before re-enabling
-    /*
-    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
-        endSession();
-      } else if (nextAppState === 'active') {
-        startSession();
-      }
-    });
-
-    return () => {
-      subscription.remove();
-      endSession();
-    };
-    */
   }, []);
 
   return (

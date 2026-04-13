@@ -1,20 +1,9 @@
-/**
- * Supabase Edge Functions API Client
- *
- * This service handles all communication with Supabase Edge Functions
- * for server-side filtering and recommendation.
- */
-
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
 
-// Get from environment variables
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 const EDGE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
-/**
- * Dish from server (matches Edge Function response)
- */
 export interface ServerDish {
   id: string;
   restaurant_id: string;
@@ -26,11 +15,9 @@ export interface ServerDish {
   spice_level?: 'none' | 'mild' | 'hot';
   is_available: boolean;
 
-  // Arrays from database
   allergens: string[];
   dietary_tags: string[];
 
-  // Restaurant info (joined)
   restaurant?: {
     id: string;
     name: string;
@@ -38,10 +25,7 @@ export interface ServerDish {
     rating: number;
   };
 
-  // Distance from user
   distance_km?: number;
-
-  // Score from recommendation engine
   score?: number;
 
   /**
@@ -58,9 +42,6 @@ const ALLERGY_CODE_MAP: Partial<Record<keyof PermanentFilters['allergies'], stri
   nuts: 'tree_nuts',
 };
 
-/**
- * Feed request parameters
- */
 export interface FeedRequest {
   location: { lat: number; lng: number };
   radius?: number; // km, default 10
@@ -119,9 +100,6 @@ export interface FeedRequest {
   limit?: number; // default 20
 }
 
-/**
- * Restaurant returned in mode:'restaurants' response
- */
 export interface ServerRestaurant {
   id: string;
   name: string;
@@ -133,9 +111,6 @@ export interface ServerRestaurant {
   location?: { lat: number; lng: number } | null;
 }
 
-/**
- * Feed response from Edge Function (dishes mode)
- */
 export interface FeedResponse {
   dishes: ServerDish[];
   metadata: {
@@ -148,9 +123,6 @@ export interface FeedResponse {
   };
 }
 
-/**
- * Feed response from Edge Function (restaurants mode)
- */
 export interface RestaurantFeedResponse {
   restaurants: ServerRestaurant[];
   metadata: {
@@ -162,9 +134,6 @@ export interface RestaurantFeedResponse {
   };
 }
 
-/**
- * Combined feed response (dishes + restaurants in a single call)
- */
 export interface CombinedFeedResponse {
   dishes: ServerDish[];
   restaurants: ServerRestaurant[];
@@ -179,7 +148,6 @@ export interface CombinedFeedResponse {
   };
 }
 
-/** Shared fetch helper to avoid repeating headers. */
 async function callFeedFunction(request: FeedRequest): Promise<Response> {
   const response = await fetch(`${EDGE_FUNCTIONS_URL}/feed`, {
     method: 'POST',
@@ -196,7 +164,6 @@ async function callFeedFunction(request: FeedRequest): Promise<Response> {
   return response;
 }
 
-/** Build the shared filter payload from store filter state. */
 function buildFilters(
   dailyFilters: DailyFilters,
   permanentFilters: PermanentFilters
@@ -207,9 +174,7 @@ function buildFilters(
     .filter(([_, active]) => active)
     .map(([key]) => key);
 
-  // preferredDiet carries the daily toggle as a strong soft signal (+0.50 boost
-  // in the ranker). This is intentionally NOT a hard block: if no vegetarian
-  // dishes are available nearby, non-veg dishes will still fill the feed.
+  // preferredDiet is a soft signal (+0.50 boost), NOT a hard block — non-matching dishes still fill the feed.
   const dailyDietKey =
     Object.entries(dailyFilters.dietPreference)
       .filter(([_, active]) => active)
@@ -217,7 +182,6 @@ function buildFilters(
 
   return {
     priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as [number, number],
-    // dietPreference is the permanent, hard-block level (profile setting only).
     dietPreference: permanentFilters.dietPreference,
     preferredDiet: dailyDietKey,
     calorieRange: dailyFilters.calorieRange.enabled
@@ -268,7 +232,6 @@ function buildFilters(
     // The isOpen flag is still computed and returned per-restaurant for display.
     groupMeals: dailyFilters.groupMeals || undefined,
     scheduleType: dailyFilters.scheduleType ?? undefined,
-    // Auto-compute current time/day so the backend can filter time-restricted & day-of-week menus
     currentTime: new Date().toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
@@ -280,9 +243,7 @@ function buildFilters(
   };
 }
 
-/**
- * Get personalized dish feed from server (mode: 'dishes')
- */
+/** Get personalized dish feed (mode: 'dishes'). */
 export async function getFeed(
   location: { lat: number; lng: number },
   dailyFilters: DailyFilters,
@@ -302,10 +263,7 @@ export async function getFeed(
   return response.json();
 }
 
-/**
- * Get filtered and scored restaurant list from the Edge Function (mode: 'restaurants').
- * Replaces the client-side filterService.applyFilters() call in BasicMapScreen.
- */
+/** Get filtered/scored restaurant list (mode: 'restaurants'). */
 export async function getFilteredRestaurants(
   location: { lat: number; lng: number },
   dailyFilters: DailyFilters,
@@ -328,11 +286,7 @@ export async function getFilteredRestaurants(
   return response.json();
 }
 
-/**
- * Get dishes + restaurants in a single call (mode: 'combined').
- * Replaces separate getFeed() + getFilteredRestaurants() calls to halve
- * database load (one pipeline pass instead of two).
- */
+/** Get dishes + restaurants in a single call (mode: 'combined'). */
 export async function getCombinedFeed(
   location: { lat: number; lng: number },
   dailyFilters: DailyFilters,

@@ -1,21 +1,4 @@
-// ============================================================================
-// Menu Scan — Shared Types & Pure Helper Functions
-// ============================================================================
-// This module contains:
-//  1. Types for the AI extraction pipeline (server + client shared)
-//  2. Pure functions for merging multi-page extraction results
-//  3. Dietary hint → dietary_tag code mapping
-//  4. Category synonym map + fuzzy matching helpers
-//
-// DB-dependent logic (ingredient matching, category lookup) lives in the
-// API route to keep this file importable without Supabase.
-// ============================================================================
-
 import { compareTwoStrings } from 'string-similarity';
-
-// ---------------------------------------------------------------------------
-// Raw AI extraction types (as returned by GPT-4o)
-// ---------------------------------------------------------------------------
 
 export interface RawExtractedDish {
   name: string;
@@ -66,10 +49,6 @@ export interface RawExtractionResult {
   extraction_notes?: ExtractionNote[];
 }
 
-// ---------------------------------------------------------------------------
-// Post-processed / enriched types (after server-side ingredient matching)
-// ---------------------------------------------------------------------------
-
 export interface MatchedIngredient {
   raw_text: string;
   status: 'matched' | 'unmatched';
@@ -100,10 +79,6 @@ export interface EnrichedResult {
   /** AI-reported quality issues from extraction (merged across pages) */
   extractionNotes?: ExtractionNote[];
 }
-
-// ---------------------------------------------------------------------------
-// Editable UI state types (used in the review page)
-// ---------------------------------------------------------------------------
 
 export interface EditableIngredient {
   raw_text: string;
@@ -148,10 +123,6 @@ export interface EditableMenu {
   menu_type: 'food' | 'drink';
   categories: EditableCategory[];
 }
-
-// ---------------------------------------------------------------------------
-// Confirm payload types (sent to POST /api/menu-scan/confirm)
-// ---------------------------------------------------------------------------
 
 export interface ConfirmOptionGroup {
   name: string;
@@ -202,10 +173,6 @@ export interface ConfirmPayload {
   menus: ConfirmMenu[];
 }
 
-// ---------------------------------------------------------------------------
-// DB Job record type
-// ---------------------------------------------------------------------------
-
 export interface MenuScanJob {
   id: string;
   restaurant_id: string;
@@ -223,19 +190,11 @@ export interface MenuScanJob {
   updated_at: string;
 }
 
-// ---------------------------------------------------------------------------
-// Flagged duplicate (merge-detected potential variant)
-// ---------------------------------------------------------------------------
-
 export interface FlaggedDuplicate {
   existingDish: RawExtractedDish;
   incomingDish: RawExtractedDish;
   categoryName: string | null;
 }
-
-// ---------------------------------------------------------------------------
-// Country code → currency mapping
-// ---------------------------------------------------------------------------
 
 const COUNTRY_CURRENCY_MAP: Record<string, string> = {
   MX: 'MXN',
@@ -250,14 +209,6 @@ const COUNTRY_CURRENCY_MAP: Record<string, string> = {
   IT: 'EUR',
 };
 
-/**
- * Resolves the display currency for a restaurant.
- * Uses `primaryCurrency` if set, falls back to the country→currency map, then defaults to USD.
- *
- * @param primaryCurrency - Explicit currency override stored on the restaurant row.
- * @param countryCode - ISO 3166-1 alpha-2 country code (e.g. "MX", "GB").
- * @returns ISO 4217 currency code (e.g. "MXN", "USD").
- */
 export function getCurrencyForRestaurant(
   primaryCurrency: string | null | undefined,
   countryCode: string | null | undefined
@@ -268,10 +219,6 @@ export function getCurrencyForRestaurant(
   }
   return 'USD';
 }
-
-// ---------------------------------------------------------------------------
-// Dietary hint → dietary_tag code mapping
-// ---------------------------------------------------------------------------
 
 const DIETARY_HINT_MAP: Record<string, string> = {
   // --- Existing ---
@@ -340,14 +287,7 @@ export function normalizeDietaryHint(hint: string): string {
     .toLowerCase();
 }
 
-/**
- * Converts raw AI dietary hint strings into canonical `dietary_tags.code` values.
- * Handles multi-language variants, emoji, and common abbreviations.
- * Automatically adds 'vegetarian' when 'vegan' is present.
- *
- * @param hints - Raw strings as returned by GPT-4o (e.g. ["V", "GF", "🌱"]).
- * @returns Deduplicated array of `dietary_tags.code` values (e.g. ["vegan", "vegetarian", "gluten_free"]).
- */
+/** Maps raw AI dietary hints to canonical dietary_tags.code values. */
 export function mapDietaryHints(hints: string[]): string[] {
   const codes = new Set<string>();
   for (const hint of hints) {
@@ -361,10 +301,6 @@ export function mapDietaryHints(hints: string[]): string[] {
   }
   return Array.from(codes);
 }
-
-// ---------------------------------------------------------------------------
-// Category synonym map for multi-page merge
-// ---------------------------------------------------------------------------
 
 const CATEGORY_SYNONYMS: Record<string, string> = {
   appetizers: 'appetizers',
@@ -452,10 +388,6 @@ const CATEGORY_SYNONYMS: Record<string, string> = {
   cafe: 'coffee',
 };
 
-// ---------------------------------------------------------------------------
-// Category normalization helpers
-// ---------------------------------------------------------------------------
-
 /** Normalize a category name: lowercase, strip accents, replace & / + with "and". */
 function normalizeCategory(name: string | null): string {
   if (!name) return '';
@@ -524,16 +456,7 @@ function matchCategory(
   return { matched: incoming, isNew: true };
 }
 
-// ---------------------------------------------------------------------------
-// Multi-page merge logic
-// ---------------------------------------------------------------------------
-
-/**
- * Merges extraction results from multiple pages of the same menu.
- * Uses 3-layer category matching (normalize → synonym → string similarity).
- * Duplicate dishes with different prices are flagged as potential variants.
- * Null categories get page-indexed placeholders.
- */
+/** Merges extraction results from multiple pages using 3-layer category matching. */
 export function mergeExtractionResults(results: RawExtractionResult[]): {
   merged: RawExtractionResult;
   flaggedDuplicates: FlaggedDuplicate[];
@@ -634,21 +557,7 @@ export function mergeExtractionResults(results: RawExtractionResult[]): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Convert enriched server result → editable client state
-// ---------------------------------------------------------------------------
-
-/**
- * Converts the enriched server-side extraction result into the flat editable
- * client state used by the menu scan review page.
- *
- * Parent dishes and their variant children are flattened into a single array
- * with `parent_id`/`variant_ids` cross-references. Spice level integers are
- * mapped to string literals ('none' | 'mild' | 'hot').
- *
- * @param enriched - Server result from the `/api/menu-scan` endpoint.
- * @returns Array of editable menus ready to bind to the review UI.
- */
+/** Converts enriched server result to editable client state for the review page. */
 export function toEditableMenus(enriched: EnrichedResult): EditableMenu[] {
   return enriched.menus.map(menu => ({
     name: menu.name || 'Menu',
@@ -718,21 +627,7 @@ function enrichedToEditable(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Build confirm payload from editable state
-// ---------------------------------------------------------------------------
-
-/**
- * Builds the {@link ConfirmPayload} to POST to `/api/menu-scan/confirm`.
- *
- * Rejected variant groups are excluded. Parent dishes carry their children
- * in `variant_dishes`; child entries are not emitted at the top level.
- *
- * @param menus - Current editable menu state from the review UI.
- * @param jobId - ID of the `menu_scan_jobs` record to mark as completed.
- * @param restaurantId - Restaurant the dishes will be inserted under.
- * @returns Payload ready to send to the confirm endpoint.
- */
+/** Builds the ConfirmPayload from editable state, excluding rejected variant groups. */
 export function buildConfirmPayload(
   menus: EditableMenu[],
   jobId: string,
@@ -805,17 +700,6 @@ function editableToConfirm(dish: EditableDish): ConfirmDish {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Count total dishes across all menus
-// ---------------------------------------------------------------------------
-
-/**
- * Counts non-rejected dishes across all menus and categories.
- * Used to show the total dish count in the review UI header.
- *
- * @param menus - Current editable menu state.
- * @returns Total number of non-rejected dishes.
- */
 export function countDishes(menus: EditableMenu[]): number {
   return menus.reduce(
     (total, menu) =>
@@ -828,16 +712,6 @@ export function countDishes(menus: EditableMenu[]): number {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Build an empty new dish for manual addition in the review UI
-// ---------------------------------------------------------------------------
-
-/**
- * Creates a blank {@link EditableDish} with sensible defaults.
- * Used when the admin manually adds a dish in the review UI.
- *
- * @returns A new dish with a fresh UUID `_id` and `group_status: 'manual'`.
- */
 export function newEmptyDish(): EditableDish {
   return {
     _id: crypto.randomUUID(),

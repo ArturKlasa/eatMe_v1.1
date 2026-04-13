@@ -1,15 +1,7 @@
-/**
- * Geospatial Service - Supabase Edge Function Integration
- *
- * Handles communication with the nearby-restaurants Edge Function
- * for efficient server-side geospatial queries and filtering.
- */
-
 import { supabase } from '../lib/supabase';
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
 import { debugLog } from '../config/environment';
 
-/** Request payload sent to the nearby-restaurants Edge Function. */
 export interface NearbyRestaurantsRequest {
   latitude: number;
   longitude: number;
@@ -26,10 +18,6 @@ export interface NearbyRestaurantsRequest {
   };
 }
 
-/**
- * Restaurant row returned by the nearby-restaurants Edge Function,
- * extended with a `distance` field (kilometres from the user's coordinates).
- */
 export interface RestaurantWithDistance {
   id: string;
   name: string;
@@ -46,14 +34,9 @@ export interface RestaurantWithDistance {
   takeout_available: boolean;
   dine_in_available: boolean;
   service_speed?: string;
-  /**
-   * Operating hours keyed by lowercase day name (e.g. "monday").
-   * Absent days are treated as closed.
-   * Returned by the nearby-restaurants Edge Function via select('*').
-   */
+  /** Keyed by lowercase day name. Absent days are treated as closed. */
   open_hours?: Record<string, { open: string; close: string }> | null;
   payment_methods?: 'cash_only' | 'card_only' | 'cash_and_card' | null;
-  /** Dietary certifications held by the restaurant (e.g. 'halal', 'kosher', 'vegan', 'vegetarian'). */
   dietary_certifications?: string[] | null;
   distance: number;
   menus?: Array<{
@@ -85,7 +68,6 @@ type EdgeFunctionFilters = {
   proteinFamilies?: string[];
 };
 
-/** Response envelope returned by the nearby-restaurants Edge Function. */
 export interface NearbyRestaurantsResponse {
   restaurants: RestaurantWithDistance[];
   totalCount: number;
@@ -94,24 +76,18 @@ export interface NearbyRestaurantsResponse {
   appliedFilters: EdgeFunctionFilters;
 }
 
-/**
- * Convert app filters to Edge Function filter format
- */
 function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilters) {
   const filters: EdgeFunctionFilters = {};
 
-  // Cuisines filter
   if (daily.cuisineTypes && daily.cuisineTypes.length > 0) {
     filters.cuisines = daily.cuisineTypes;
   }
 
-  // Price range filter
   if (daily.priceRange) {
     filters.priceMin = daily.priceRange.min;
     filters.priceMax = daily.priceRange.max;
   }
 
-  // Dietary tags (from permanent filters)
   const dietaryTags: string[] = [];
   if (permanent.dietPreference === 'vegan') {
     dietaryTags.push('vegan');
@@ -123,7 +99,6 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
     filters.dietaryTags = dietaryTags;
   }
 
-  // Allergens to exclude (from permanent filters)
   if (permanent.allergies) {
     const activeAllergens = Object.entries(permanent.allergies)
       .filter(([_, active]) => active)
@@ -133,21 +108,14 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
     }
   }
 
-  // Ingredients to avoid — send canonical UUIDs so the Edge Function can
-  // annotate dishes that contain them with flagged_ingredients.
   if (permanent.ingredientsToAvoid && permanent.ingredientsToAvoid.length > 0) {
     filters.flagIngredients = permanent.ingredientsToAvoid.map(i => i.canonicalIngredientId);
   }
 
-  // Note: serviceTypes filter could be added to DailyFilters if needed
-  // For now, we don't filter by delivery/takeout/dine-in
-
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
 
-/**
- * Fetch nearby restaurants using Supabase Edge Function
- */
+/** Fetch nearby restaurants using Supabase Edge Function. */
 export async function fetchNearbyRestaurants(
   latitude: number,
   longitude: number,
@@ -157,13 +125,11 @@ export async function fetchNearbyRestaurants(
   limit: number = 50
 ): Promise<NearbyRestaurantsResponse> {
   try {
-    // Build filters from app state
     const filters = buildEdgeFunctionFilters(
       dailyFilters || ({} as DailyFilters),
       permanentFilters || ({} as PermanentFilters)
     );
 
-    // Call Edge Function
     const { data, error } = await supabase.functions.invoke('nearby-restaurants', {
       body: {
         latitude,
@@ -192,10 +158,7 @@ export async function fetchNearbyRestaurants(
   }
 }
 
-/**
- * Fetch nearby restaurants with automatic current location
- * Uses device geolocation
- */
+/** Fetch nearby restaurants using device geolocation. */
 export async function fetchNearbyRestaurantsFromCurrentLocation(
   getCurrentLocation: () => Promise<{ latitude: number; longitude: number }>,
   radiusKm: number = 5,
@@ -204,10 +167,8 @@ export async function fetchNearbyRestaurantsFromCurrentLocation(
   limit: number = 50
 ): Promise<NearbyRestaurantsResponse> {
   try {
-    // Get current location
     const location = await getCurrentLocation();
 
-    // Fetch restaurants
     return await fetchNearbyRestaurants(
       location.latitude,
       location.longitude,
@@ -222,9 +183,7 @@ export async function fetchNearbyRestaurantsFromCurrentLocation(
   }
 }
 
-/**
- * Convert distance in kilometers to human-readable string
- */
+/** Convert distance in kilometers to human-readable string. */
 export function formatDistance(distanceKm: number): string {
   if (distanceKm < 1) {
     return `${Math.round(distanceKm * 1000)}m`;

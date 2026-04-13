@@ -329,12 +329,6 @@ export const DietToggleFilter: React.FC = () => {
 };
 
 /**
- * Spice Level Selector Component (Currently disabled - not in daily filters)
- */
-// Temporarily disabled - spice level not part of daily filters
-// export const SpiceLevelFilter: React.FC = () => { return null; };
-
-/**
  * Calorie Range Filter Component (Optional)
  */
 export const CalorieRangeFilter: React.FC = () => {

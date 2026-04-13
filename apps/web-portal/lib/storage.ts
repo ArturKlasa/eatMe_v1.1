@@ -1,11 +1,3 @@
-/**
- * Restaurant Draft Storage
- *
- * LocalStorage persistence layer for the restaurant onboarding wizard.
- * Drafts are keyed per-user so multi-account browsers don't share state.
- * Auto-save uses a 500 ms debounce to avoid thrashing storage on rapid field edits.
- */
-
 import type { FormProgress } from '@eatme/shared';
 
 // User-scoped storage key to isolate data per user
@@ -16,9 +8,6 @@ interface DraftData extends FormProgress {
   lastSaved: string;
 }
 
-/**
- * Save restaurant form data to LocalStorage (user-scoped)
- */
 export const saveRestaurantData = (userId: string, data: FormProgress): void => {
   try {
     const dataToSave: DraftData = {
@@ -32,9 +21,6 @@ export const saveRestaurantData = (userId: string, data: FormProgress): void => 
   }
 };
 
-/**
- * Load restaurant form data from LocalStorage (user-scoped)
- */
 export const loadRestaurantData = (userId: string): FormProgress | null => {
   try {
     const data = localStorage.getItem(getStorageKey(userId));
@@ -48,9 +34,6 @@ export const loadRestaurantData = (userId: string): FormProgress | null => {
   }
 };
 
-/**
- * Clear restaurant data from LocalStorage for specific user
- */
 export const clearRestaurantData = (userId: string): void => {
   try {
     localStorage.removeItem(getStorageKey(userId));
@@ -59,27 +42,7 @@ export const clearRestaurantData = (userId: string): void => {
   }
 };
 
-/**
- * Check if there's saved data in LocalStorage for specific user
- */
-export const hasSavedData = (userId: string): boolean => {
-  try {
-    return localStorage.getItem(getStorageKey(userId)) !== null;
-  } catch (error) {
-    console.error('Failed to check for saved data:', error);
-    return false;
-  }
-};
-
-/**
- * Clear the draft for a user if it is older than `maxAgeDays` days.
- *
- * Called on login so stale drafts from abandoned onboarding sessions are
- * cleaned up automatically. Uses the `lastSaved` timestamp that
- * `saveRestaurantData` writes on every save.
- *
- * @returns true if the draft was cleared, false if it was kept or absent.
- */
+// Called on login to clean up stale drafts from abandoned onboarding sessions.
 export const clearIfStale = (userId: string, maxAgeDays = 7): boolean => {
   try {
     const raw = localStorage.getItem(getStorageKey(userId));
@@ -103,11 +66,7 @@ export const clearIfStale = (userId: string, maxAgeDays = 7): boolean => {
   }
 };
 
-/**
- * Debounced auto-save function.
- * Use this inside watch() subscriptions or other high-frequency change handlers.
- * Call cancelAutoSave() in the effect cleanup to avoid writes after unmount.
- */
+// Call cancelAutoSave() in effect cleanup to avoid writes after unmount.
 let saveTimeout: NodeJS.Timeout | null = null;
 
 export const autoSave = (userId: string, data: FormProgress): void => {
@@ -121,10 +80,6 @@ export const autoSave = (userId: string, data: FormProgress): void => {
   }, AUTO_SAVE_DEBOUNCE);
 };
 
-/**
- * Cancel any pending debounced auto-save.
- * Call this in the cleanup of the effect that calls autoSave.
- */
 export const cancelAutoSave = (): void => {
   if (saveTimeout) {
     clearTimeout(saveTimeout);

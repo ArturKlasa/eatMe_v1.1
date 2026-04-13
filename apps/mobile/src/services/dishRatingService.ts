@@ -1,19 +1,7 @@
-/**
- * Dish Rating Service
- *
- * Fetches and manages dish ratings from the database
- */
-
 import { supabase } from '../lib/supabase';
 import { colors } from '@eatme/tokens';
 
-/**
- * Aggregated rating data for a single dish, derived from the
- * `dish_ratings_summary` materialized view.
- *
- * Percentages are stored as 0–100 values and may be `null` when the dish has
- * received fewer than 3 ratings (not enough data to display meaningfully).
- */
+/** From `dish_ratings_summary` materialized view. Percentages are 0–100 or null when < 3 ratings. */
 export interface DishRating {
   dishId: string;
   likePercentage: number | null;
@@ -24,11 +12,7 @@ export interface DishRating {
   recentNotes: string[];
 }
 
-/**
- * Fetch ratings for multiple dishes in a single query
- * @param dishIds - Array of dish UUIDs to fetch ratings for
- * @returns Map of dish ID to DishRating; missing dishes are absent from the map
- */
+/** Fetch ratings for multiple dishes in a single query. */
 export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string, DishRating>> {
   const ratingsMap = new Map<string, DishRating>();
 
@@ -49,7 +33,6 @@ export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string
       return ratingsMap;
     }
 
-    // Build map
     data?.forEach(rating => {
       if (!rating.dish_id) return;
       ratingsMap.set(rating.dish_id, {
@@ -70,11 +53,7 @@ export async function getDishRatingsBatch(dishIds: string[]): Promise<Map<string
   }
 }
 
-/**
- * Fetch rating for a single dish
- * @param dishId - UUID of the dish to fetch
- * @returns DishRating if found, null otherwise
- */
+/** Fetch rating for a single dish. */
 export async function getDishRating(dishId: string): Promise<DishRating | null> {
   try {
     const { data, error } = await supabase
@@ -104,12 +83,7 @@ export async function getDishRating(dishId: string): Promise<DishRating | null> 
   }
 }
 
-/**
- * Get rating tier based on like percentage and total ratings
- * @param likePercentage - Percentage of likes (0–100), or null if insufficient data
- * @param totalRatings - Total number of ratings received
- * @returns Rating tier label
- */
+/** Get rating tier based on like percentage and total ratings. */
 export function getRatingTier(
   likePercentage: number | null,
   totalRatings: number
@@ -121,11 +95,7 @@ export function getRatingTier(
   return 'none';
 }
 
-/**
- * Get color for rating percentage
- * @param percentage - Like percentage (0–100), or null if no data
- * @returns Hex color string representing the rating quality
- */
+/** Get color for rating percentage. */
 export function getRatingColor(percentage: number | null): string {
   if (percentage === null) return colors.darkTextMuted;
   if (percentage >= 80) return colors.success;
@@ -133,12 +103,7 @@ export function getRatingColor(percentage: number | null): string {
   return colors.error;
 }
 
-/**
- * Fetch the most recent opinion per dish for a given user
- * @param userId - UUID of the user
- * @param dishIds - Array of dish UUIDs to check opinions for
- * @returns Map of dish ID to the user's most recent DishOpinion
- */
+/** Fetch the most recent opinion per dish for a given user. */
 export async function getUserDishOpinions(
   userId: string,
   dishIds: string[]
@@ -160,7 +125,6 @@ export async function getUserDishOpinions(
       return map;
     }
 
-    // Keep only the most recent opinion per dish
     data?.forEach(row => {
       if (row.dish_id && !map.has(row.dish_id)) {
         map.set(row.dish_id, row.opinion as import('../types/rating').DishOpinion);
@@ -173,12 +137,7 @@ export async function getUserDishOpinions(
   return map;
 }
 
-/**
- * Format rating display text
- * @param likePercentage - Percentage of likes (0–100), or null if insufficient data
- * @param totalRatings - Total number of ratings received
- * @returns Formatted string like "85% 👍 (42)", or null if no data
- */
+/** Format rating display text. */
 export function formatRatingText(
   likePercentage: number | null,
   totalRatings: number

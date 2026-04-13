@@ -1,11 +1,3 @@
-/**
- * useDishFormData Hook
- *
- * Loads and manages the supporting data (ingredients, allergens, dietary tags,
- * option groups) required by the dish form dialog. Handles both new-dish creation
- * and edit mode, resetting state when the dialog opens or the target dish changes.
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import { type UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
@@ -15,28 +7,19 @@ import type { DishFormData } from '@eatme/shared';
 import type { RawOptionGroup } from '@/lib/restaurantService';
 import { toast } from 'sonner';
 
-/** Options for {@link useDishFormData}. */
 interface UseDishFormDataOptions {
-  /** Existing dish to edit, or null/undefined for a new dish. */
   dish?: (Partial<Dish> & { id?: string }) | null;
-  /** Whether the parent dialog is currently open — controls reset timing. */
+  /** Controls reset timing. */
   isOpen: boolean;
-  /** Pre-fills dishType from the parent menu's type. */
   menuType?: 'food' | 'drink';
-  /** Required in DB mode to set `restaurant_id` on new dishes. */
   restaurantId?: string;
-  /** Required in DB mode to set `menu_category_id` on new dishes. */
   menuCategoryId?: string;
-  /** react-hook-form methods (passed in so the caller keeps control of the form instance). */
+  /** Passed in so the caller keeps control of the form instance. */
   methods: UseFormReturn<DishFormData>;
-  /**
-   * Called instead of a DB write when the form is inside a wizard.
-   * Receives the assembled local Dish object so the caller can stage it.
-   */
+  /** Called instead of a DB write when the form is inside a wizard. */
   onWizardSubmit?: (dish: Dish) => void;
-  /** Called after a successful DB save so the caller can refresh its data. */
+  /** Called after a successful DB save. */
   onSuccess?: () => void;
-  /** Called to close the parent dialog after submit or cancel. */
   onClose: () => void;
 }
 
@@ -59,20 +42,7 @@ const DEFAULT_VALUES: DishFormData = {
   option_groups: [],
 };
 
-/**
- * Manages dish form state, ingredient/option-group loading, and form submission.
- *
- * Handles two submission modes:
- * - **Wizard mode** (`onWizardSubmit` provided): assembles a local Dish object and
- *   hands it to the caller without touching Supabase — used in the onboarding wizard.
- * - **DB mode** (no `onWizardSubmit`): writes directly to Supabase then calls `onSuccess`.
- *
- * Automatically loads existing ingredients and option groups when `dish.id` is set
- * and the dialog is opened.
- *
- * @param options - See {@link UseDishFormDataOptions}.
- * @returns Form state and event handlers to wire into the dish form UI.
- */
+/** @returns Form state and event handlers for the dish form UI. */
 export function useDishFormData({
   dish,
   isOpen,
@@ -92,12 +62,10 @@ export function useDishFormData({
 
   const { reset } = methods;
 
-  // Initialize dishType from menuType prop
   useEffect(() => {
     if (menuType) setDishType(menuType);
   }, [menuType, isOpen]);
 
-  // Reset form when dish or open state changes
   useEffect(() => {
     if (dish && isOpen) {
       reset({
@@ -113,9 +81,17 @@ export function useDishFormData({
         dish_category_id: dish.dish_category_id ?? null,
         description_visibility: dish.description_visibility ?? 'menu',
         ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-        dish_kind: (dish.dish_kind ?? 'standard') as 'standard' | 'template' | 'experience' | 'combo',
+        dish_kind: (dish.dish_kind ?? 'standard') as
+          | 'standard'
+          | 'template'
+          | 'experience'
+          | 'combo',
         display_price_prefix: (dish.display_price_prefix ?? 'exact') as
-          | 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server',
+          | 'exact'
+          | 'from'
+          | 'per_person'
+          | 'market_price'
+          | 'ask_server',
         serves: dish.serves ?? 1,
         option_groups: [],
       });
@@ -170,7 +146,8 @@ export function useDishFormData({
 
     const { data } = await supabase
       .from('dish_ingredients')
-      .select(`
+      .select(
+        `
         ingredient_id,
         quantity,
         canonical_ingredient:canonical_ingredients(
@@ -181,7 +158,8 @@ export function useDishFormData({
           is_vegan,
           ingredient_aliases(id, display_name)
         )
-      `)
+      `
+      )
       .eq('dish_id', dishId);
 
     if (data && data.length > 0) {

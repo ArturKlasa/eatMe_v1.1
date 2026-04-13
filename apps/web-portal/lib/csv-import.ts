@@ -1,7 +1,3 @@
-/**
- * CSV import utilities for the restaurant data ingestion system.
- */
-
 import Papa from 'papaparse';
 import type { MappedRestaurant, ImportError } from '@/lib/import-types';
 
@@ -24,13 +20,7 @@ const DAY_MAP: Record<string, string> = {
   sun_hours: 'sunday',
 };
 
-/**
- * Parses "HH:MM-HH:MM" or "closed" into { open, close } or null.
- * Returns null for empty or unrecognised strings.
- */
-function parseHoursString(
-  raw: string | undefined
-): { open: string; close: string } | null {
+function parseHoursString(raw: string | undefined): { open: string; close: string } | null {
   if (!raw || raw.trim() === '') return null;
   const trimmed = raw.trim().toLowerCase();
   if (trimmed === 'closed') return null;
@@ -40,19 +30,14 @@ function parseHoursString(
 }
 
 /**
- * Parses CSV text to an array of MappedRestaurant objects.
- *
- * - Requires name, latitude, longitude columns.
- * - cuisine_types: semicolon-separated string → string[]
- * - mon_hours … sun_hours: "HH:MM-HH:MM" or "closed" → open_hours JSONB
- * - Handles UTF-8 BOM automatically.
- * - Skips blank rows.
- */
+ * Parse CSV text to MappedRestaurant objects.
+ * @param csvText
+ 
+ * @returns*/
 export function parseCsvToRestaurants(csvText: string): ParseResult {
   const restaurants: MappedRestaurant[] = [];
   const parseErrors: ImportError[] = [];
 
-  // Strip UTF-8 BOM if present
   const text = csvText.startsWith('\uFEFF') ? csvText.slice(1) : csvText;
 
   const result = Papa.parse<Record<string, string>>(text, {
@@ -68,13 +53,11 @@ export function parseCsvToRestaurants(csvText: string): ParseResult {
         message: `CSV parse error: ${e.message}`,
       });
     });
-    // If Papa couldn't even parse the file, bail early
     if (result.data.length === 0) {
       return { restaurants, parseErrors };
     }
   }
 
-  // Validate required columns exist
   const headers = result.meta.fields ?? [];
   for (const col of REQUIRED_COLUMNS) {
     if (!headers.includes(col)) {
@@ -85,7 +68,11 @@ export function parseCsvToRestaurants(csvText: string): ParseResult {
       });
     }
   }
-  if (parseErrors.some((e) => e.field && REQUIRED_COLUMNS.includes(e.field as typeof REQUIRED_COLUMNS[number]))) {
+  if (
+    parseErrors.some(
+      e => e.field && REQUIRED_COLUMNS.includes(e.field as (typeof REQUIRED_COLUMNS)[number])
+    )
+  ) {
     return { restaurants, parseErrors };
   }
 
@@ -109,14 +96,12 @@ export function parseCsvToRestaurants(csvText: string): ParseResult {
       continue;
     }
 
-    // Build open_hours from day columns
     const open_hours: Record<string, { open: string; close: string }> = {};
     for (const [csvCol, dayKey] of Object.entries(DAY_MAP)) {
       const parsed = parseHoursString(row[csvCol]);
       if (parsed) {
         open_hours[dayKey] = parsed;
       } else if (row[csvCol]?.trim() && row[csvCol].trim().toLowerCase() !== 'closed') {
-        // Non-empty, non-"closed" string that didn't match the format
         parseErrors.push({
           index: i,
           field: csvCol,
@@ -125,10 +110,12 @@ export function parseCsvToRestaurants(csvText: string): ParseResult {
       }
     }
 
-    // Parse semicolon-separated cuisine types
     const cuisineRaw = row['cuisine_types']?.trim() ?? '';
     const cuisine_types = cuisineRaw
-      ? cuisineRaw.split(';').map((c) => c.trim()).filter(Boolean)
+      ? cuisineRaw
+          .split(';')
+          .map(c => c.trim())
+          .filter(Boolean)
       : [];
 
     const restaurant: MappedRestaurant = {
@@ -153,9 +140,8 @@ export function parseCsvToRestaurants(csvText: string): ParseResult {
   return { restaurants, parseErrors };
 }
 
-/**
- * Returns the CSV template header + one example row.
- */
+/** Return CSV template header + one example row.
+ * @returns*/
 export function generateCsvTemplate(): string {
   const header =
     'name,address,latitude,longitude,phone,website,restaurant_type,cuisine_types,country_code,city,state,postal_code,mon_hours,tue_hours,wed_hours,thu_hours,fri_hours,sat_hours,sun_hours';

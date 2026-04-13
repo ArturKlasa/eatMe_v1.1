@@ -1,11 +1,3 @@
-/**
- * Cuisine constants — canonical merged list from web-portal and mobile.
- *
- * The mobile app originally carried 4 extra entries (Asian, Comfort Food,
- * Fine Dining, International) that the web portal lacked. This merged list
- * is the single source of truth for both apps.
- */
-
 /** Shorter curated list surfaced in the onboarding "quick-pick" cuisine chips. */
 export const POPULAR_CUISINES = [
   'American',
@@ -22,12 +14,6 @@ export const POPULAR_CUISINES = [
   'Sushi',
 ] as const;
 
-/**
- * Full alphabetical list of cuisine types shown in the expanded cuisine selector.
- *
- * Merged from web-portal CUISINES (67 items) and mobile ALL_CUISINES
- * (67 + 4 extras: Asian, Comfort Food, Fine Dining, International).
- */
 export const ALL_CUISINES = [
   'Afghan',
   'African',

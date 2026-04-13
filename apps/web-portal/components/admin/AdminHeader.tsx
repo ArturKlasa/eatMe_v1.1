@@ -14,15 +14,6 @@ interface AdminHeaderProps {
   user: User;
 }
 
-/**
- * SECURITY: Admin Header Component
- *
- * Displays:
- * - Admin user info
- * - Security indicator
- * - Logout button
- */
-
 export function AdminHeader({ user }: AdminHeaderProps) {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -32,7 +23,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
       const { error } = await supabase.auth.signOut();
 
       if (error) throw error;
-
 
       toast.success('Logged out successfully');
       router.push('/auth/login');
@@ -47,7 +37,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
     <>
       <header className="bg-background border-b border sticky top-0 z-50">
         <div className="flex items-center justify-between px-6 py-3">
-          {/* Left: Hamburger (mobile) + Logo and Title */}
           <div className="flex items-center gap-3">
             <button
               data-testid="mobile-menu-button"
@@ -57,14 +46,18 @@ export function AdminHeader({ user }: AdminHeaderProps) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            {/* Admin security badge */}
-            <InfoBox variant="error" icon={<Shield className="h-4 w-4" />} className="rounded-full py-1 px-3 inline-flex items-center">
+            <InfoBox
+              variant="error"
+              icon={<Shield className="h-4 w-4" />}
+              className="rounded-full py-1 px-3 inline-flex items-center"
+            >
               <span className="font-semibold">ADMIN</span>
             </InfoBox>
-            <h1 className="text-xl font-bold text-foreground hidden sm:block">EatMe Admin Dashboard</h1>
+            <h1 className="text-xl font-bold text-foreground hidden sm:block">
+              EatMe Admin Dashboard
+            </h1>
           </div>
 
-          {/* Right: User Info, Theme Toggle and Logout */}
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground">{user.email}</p>
@@ -84,7 +77,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         </div>
       </header>
 
-      {/* Mobile sidebar drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex">
           <div

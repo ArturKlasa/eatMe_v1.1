@@ -1,19 +1,6 @@
-/**
- * Restaurant Rating Service
- *
- * Fetches aggregated restaurant ratings from materialized view
- */
-
 import { supabase } from '../lib/supabase';
 
-/**
- * Aggregated restaurant-level rating data, derived from the
- * `restaurant_ratings_summary` materialized view.
- *
- * `foodScore` is a 0–100 composite of dish like/dislike ratios.
- * All `*Percentage` fields represent the share of positive responses
- * for that experience dimension (0–100).
- */
+/** From `restaurant_ratings_summary`. foodScore is 0–100 composite; *Percentage fields are 0–100 positive shares. */
 export interface RestaurantRating {
   restaurantId: string;
   foodScore: number;
@@ -27,9 +14,7 @@ export interface RestaurantRating {
   totalExperienceResponses: number;
 }
 
-/**
- * Get rating for a single restaurant
- */
+/** Get rating for a single restaurant. */
 export async function getRestaurantRating(restaurantId: string): Promise<RestaurantRating | null> {
   try {
     const { data, error } = await supabase
@@ -60,9 +45,7 @@ export async function getRestaurantRating(restaurantId: string): Promise<Restaur
   }
 }
 
-/**
- * Get ratings for multiple restaurants (batch)
- */
+/** Get ratings for multiple restaurants (batch). */
 export async function getRestaurantRatingsBatch(
   restaurantIds: string[]
 ): Promise<Map<string, RestaurantRating>> {

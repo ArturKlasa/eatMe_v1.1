@@ -3,14 +3,7 @@ import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-s
 import { parseCsvToRestaurants } from '@/lib/csv-import';
 import { importRestaurants } from '@/lib/import-service';
 
-// ---------------------------------------------------------------------------
-// POST /api/admin/import/csv
-//
-// Accepts a multipart/form-data request with a `file` field containing the
-// CSV file content.  Parses, validates, deduplicates and inserts restaurants
-// using the shared importRestaurants() function.
-// ---------------------------------------------------------------------------
-
+/** @param request */
 export async function POST(request: NextRequest) {
   const auth = await verifyAdminRequest(request);
   if (auth.error || !auth.user) {
@@ -29,7 +22,10 @@ export async function POST(request: NextRequest) {
 
   const file = formData.get('file');
   if (!file || typeof file === 'string') {
-    return NextResponse.json({ error: 'No CSV file provided (field name: "file")' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'No CSV file provided (field name: "file")' },
+      { status: 400 }
+    );
   }
 
   // Read file bytes and decode as text (try UTF-8, fall back to Latin-1)
@@ -46,14 +42,14 @@ export async function POST(request: NextRequest) {
 
   // If there are structural errors (missing required columns) that prevented
   // any rows from being parsed, return 400 immediately.
-  const structuralErrors = parseErrors.filter((e) => e.field !== undefined && restaurants.length === 0);
+  const structuralErrors = parseErrors.filter(
+    e => e.field !== undefined && restaurants.length === 0
+  );
   if (structuralErrors.length > 0 || (parseErrors.length > 0 && restaurants.length === 0)) {
     return NextResponse.json(
       {
         error: 'CSV parse failed',
-        details: parseErrors.map((e) =>
-          e.field ? `Column "${e.field}": ${e.message}` : e.message
-        ),
+        details: parseErrors.map(e => (e.field ? `Column "${e.field}": ${e.message}` : e.message)),
       },
       { status: 400 }
     );

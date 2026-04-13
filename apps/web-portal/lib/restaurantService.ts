@@ -1,11 +1,3 @@
-/**
- * Restaurant Service
- *
- * All Supabase data operations for the restaurant partner portal.
- * Page components should import from here rather than calling supabase directly,
- * keeping pages thin (UI only) and DB logic testable in isolation.
- */
-
 import {
   supabase,
   formatLocationForSupabase,
@@ -21,9 +13,6 @@ import type {
   SelectedIngredient,
 } from '@eatme/shared';
 
-// ─── Raw Supabase select result shapes (exported for reuse in DishFormDialog) ──
-
-/** Raw option row as returned by nested select. */
 export type RawOption = {
   id: string;
   name: string;
@@ -35,7 +24,6 @@ export type RawOption = {
   display_order?: number | null;
 };
 
-/** Raw option_group row with nested options as returned by nested select. */
 export type RawOptionGroup = {
   id: string;
   name: string;
@@ -48,7 +36,6 @@ export type RawOptionGroup = {
   options?: RawOption[];
 };
 
-/** Raw dish row with nested option_groups as returned by nested select. */
 type RawDish = {
   id: string;
   name: string;
@@ -68,13 +55,11 @@ type RawDish = {
   option_groups?: RawOptionGroup[];
 };
 
-/** Raw menu_category row with nested dishes as returned by nested select. */
 type RawMenuCategory = {
   id: string;
   dishes?: RawDish[];
 };
 
-/** Raw menu row with nested menu_categories as returned by nested select. */
 type RawMenu = {
   id: string;
   name: string;
@@ -85,9 +70,6 @@ type RawMenu = {
   menu_categories?: RawMenuCategory[];
 };
 
-// ─── Shared types ──────────────────────────────────────────────────────────────
-
-/** Minimal restaurant shape used by the dashboard stats panel. */
 export type DashboardRestaurant = {
   id: string;
   name: string;
@@ -100,7 +82,6 @@ export type DashboardRestaurant = {
   }>;
 };
 
-/** Flat restaurant row used by the Edit Restaurant form. */
 export type EditableRestaurant = {
   id: string;
   name: string;
@@ -125,12 +106,11 @@ export type EditableRestaurant = {
   location: { lat?: number; lng?: number } | null;
 };
 
-// ─── Read operations ───────────────────────────────────────────────────────────
-
 /**
  * Dashboard: minimal restaurant row with menu/dish counts.
- * Throws on unexpected DB error; returns null if the user has no restaurant yet.
- */
+ * @param ownerId
+ 
+ * @returns*/
 export async function getRestaurantSummary(ownerId: string): Promise<DashboardRestaurant | null> {
   const { data, error } = await supabase
     .from('restaurants')
@@ -146,10 +126,10 @@ export async function getRestaurantSummary(ownerId: string): Promise<DashboardRe
 }
 
 /**
- * Review page: full restaurant + menus + categories + dishes, mapped to
- * the FormProgress shape the review UI expects.
- * Throws on unexpected DB error; returns null if no restaurant exists yet.
- */
+ * Full restaurant + menus + categories + dishes, mapped to FormProgress.
+ * @param ownerId
+ 
+ * @returns*/
 export async function getRestaurantFull(ownerId: string): Promise<FormProgress | null> {
   const { data: restaurant, error } = await supabase
     .from('restaurants')
@@ -187,7 +167,7 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
       payment_methods:
         (restaurant.payment_methods as 'cash_only' | 'card_only' | 'cash_and_card') ?? undefined,
     },
-    menus: (((restaurant.menus ?? []) as RawMenu[]).map(menu => ({
+    menus: ((restaurant.menus ?? []) as RawMenu[]).map(menu => ({
       id: menu.id,
       name: menu.name,
       description: menu.description ?? undefined,
@@ -211,19 +191,19 @@ export async function getRestaurantFull(ownerId: string): Promise<FormProgress |
             })),
         }))
       ),
-    })) as import('@eatme/shared').Menu[]),
-    dishes: (((restaurant.menus ?? []) as RawMenu[]).flatMap(m =>
+    })) as import('@eatme/shared').Menu[],
+    dishes: ((restaurant.menus ?? []) as RawMenu[]).flatMap(m =>
       ((m.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])
-    ) as import('@eatme/shared').Dish[]),
+    ) as import('@eatme/shared').Dish[],
     currentStep: 3,
   };
 }
 
 /**
- * Menu page: restaurant ID + menus with categories + dishes, mapped to the
- * AppMenu shape the menu editor expects.
- * Throws on unexpected DB error; returns null if no restaurant exists yet.
- */
+ * Restaurant ID + menus with categories + dishes, mapped to AppMenu[].
+ * @param ownerId
+ 
+ * @returns*/
 export async function getRestaurantWithMenus(
   ownerId: string
 ): Promise<{ id: string; menus: AppMenu[] } | null> {
@@ -246,16 +226,19 @@ export async function getRestaurantWithMenus(
     menu_type: (menu.menu_type ?? 'food') as 'food' | 'drink',
     is_active: menu.is_active ?? true,
     display_order: menu.display_order ?? 0,
-    dishes: (((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(cat => cat.dishes ?? [])) as import('@eatme/shared').Dish[],
+    dishes: ((menu.menu_categories ?? []) as RawMenuCategory[]).flatMap(
+      cat => cat.dishes ?? []
+    ) as import('@eatme/shared').Dish[],
   }));
 
   return { id: restaurant.id, menus };
 }
 
 /**
- * Edit page: flat restaurant row for the basic-info edit form.
- * Throws if the user has no restaurant (single() errors on no row).
- */
+ * Flat restaurant row for the basic-info edit form.
+ * @param ownerId
+ 
+ * @returns*/
 export async function getRestaurantForEdit(ownerId: string): Promise<EditableRestaurant> {
   const { data, error } = await supabase
     .from('restaurants')
@@ -269,21 +252,12 @@ export async function getRestaurantForEdit(ownerId: string): Promise<EditableRes
   return data as EditableRestaurant;
 }
 
-// ─── Write operations ──────────────────────────────────────────────────────────
-
 /**
- * Review page submit: upsert the restaurant record then replace all menus/dishes.
- *
- * Insert order is intentionally non-atomic on the delete step — new data is
- * created first, old data removed after. If the delete step fails the restaurant
- * temporarily shows duplicate menus, but all correct data is intact;
- * resubmitting will clean it up.
- *
- * Callers should validate `formData.basicInfo` with basicInfoSchema BEFORE
- * calling this (validation is a UI concern; this function is pure DB logic).
- *
- * Throws a descriptive Error on any DB failure.
- */
+ * Upsert restaurant then replace all menus/dishes. Non-atomic: new data first, old data deleted after.
+ * @param formData
+ * @param ownerId
+ 
+ * @returns*/
 export async function submitRestaurantProfile(
   formData: FormProgress,
   ownerId: string
@@ -367,31 +341,34 @@ export async function submitRestaurantProfile(
 }
 
 /**
- * Menu page save: atomically replace all menus/dishes for a restaurant.
- *
- * Fixes a pre-existing bug where the menu page inserted dishes with `menu_id`
- * instead of `menu_category_id` (the actual FK on the dishes table). The
- * canonical path now always goes through a default menu_category per menu.
- *
- * Throws a descriptive Error on any DB failure.
- */
+ * Replace all menus/dishes. Dishes FK to menu_categories, not menus — uses default category per menu.
+ * @param restaurantId
+ * @param menus
+ 
+ * @returns*/
 export async function saveMenus(restaurantId: string, menus: AppMenu[]): Promise<void> {
   // Delete all current menus. Dishes/categories cascade or are handled by
   // _deleteOldMenuData within _insertMenusAndDishes context.
-  const { error: deleteMenusError } = await supabase.from('menus').delete().eq('restaurant_id', restaurantId);
+  const { error: deleteMenusError } = await supabase
+    .from('menus')
+    .delete()
+    .eq('restaurant_id', restaurantId);
   if (deleteMenusError) throw new Error(`Failed to clear menus: ${deleteMenusError.message}`);
   await _insertMenusAndDishes(restaurantId, menus);
 }
 
 /**
- * Edit page save: update flat restaurant fields and operating hours.
- *
- * Uses `open_hours` (the correct DB column). Note: the previous direct
- * implementation was inadvertently using `operating_hours` which is not a DB
- * column, so operating hours were silently never saved.
- *
- * Throws a descriptive Error on DB failure.
- */
+ * Update flat restaurant fields. Column is `open_hours`, not `operating_hours` (not a real DB column).
+ * @param restaurantId
+ * @param fields
+ * @param fields.name
+ * @param fields.description
+ * @param fields.address
+ * @param fields.phone
+ * @param fields.website
+ * @param operatingHours
+ 
+ * @returns*/
 export async function updateRestaurantInfo(
   restaurantId: string,
   fields: { name: string; description: string; address: string; phone: string; website: string },
@@ -420,20 +397,10 @@ export async function updateRestaurantInfo(
   if (error) throw new Error(`Failed to update restaurant: ${error.message}`);
 }
 
-// ─── Private helpers ───────────────────────────────────────────────────────────
-
-/**
- * Insert menus → one default category per menu → dishes (with ingredient links).
- * This is the single canonical write path shared by the create and update flows.
- *
- * Dishes FK to `menu_categories.id` (not to `menus.id` directly), so we always
- * create an intermediate default category even though the portal UI has no
- * category-level concept.
- */
+// Dishes FK to `menu_categories.id` (not `menus.id`), so we create a default category per menu.
 async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Promise<void> {
   if (!menus.length) return;
 
-  // ── Step 1: Batch insert all menus in a single round-trip ─────────────────
   const { data: insertedMenus, error: menuError } = await supabase
     .from('menus')
     .insert(
@@ -449,8 +416,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     .select('id');
   if (menuError) throw new Error(`Failed to insert menus: ${menuError.message}`);
 
-  // ── Step 2: Batch insert one default category per menu ─────────────────────
-  // Supabase batch INSERT preserves insertion order, so insertedMenus[i] ↔ menus[i].
   const { data: insertedCategories, error: categoryError } = await supabase
     .from('menu_categories')
     .insert(
@@ -464,11 +429,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     )
     .select('id');
   if (categoryError) throw new Error(`Failed to insert menu categories: ${categoryError.message}`);
-
-  // ── Step 3: Insert dishes — parents first, then variants ──────────────────
-  // Dishes with is_parent=true are inserted first to obtain their IDs.
-  // Their variants (dish.variants[]) are then inserted with parent_dish_id set.
-  // Standalone dishes (no parent, no variants) are batch-inserted together with parents.
 
   type DishWithCategoryId = { dish: AppMenu['dishes'][number]; categoryId: string };
 
@@ -497,8 +457,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     parent_dish_id: overrides.parent_dish_id ?? dish.parent_dish_id ?? null,
   });
 
-  // Build the first-pass list: parents + standalones (not explicit variants)
-  // Result: a list of { dish, categoryId } pairs in insertion order.
   const firstPassDishes: DishWithCategoryId[] = [];
   for (let i = 0; i < menus.length; i++) {
     const categoryId = insertedCategories[i].id;
@@ -525,14 +483,12 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     .select('id');
   if (dishesError) throw new Error(`Failed to insert dishes: ${dishesError.message}`);
 
-  // Build mapping: inserted dish ID → source dish (for steps 4+5)
   type InsertedWithDish = { id: string; dish: AppMenu['dishes'][number] };
   const insertedWithDish: InsertedWithDish[] = firstInserted.map((row, i) => ({
     id: row.id,
     dish: firstPassDishes[i].dish,
   }));
 
-  // Insert inline variants (dish.variants[]) using the now-known parent IDs
   for (let i = 0; i < firstPassDishes.length; i++) {
     const { dish, categoryId } = firstPassDishes[i];
     const parentId = firstInserted[i].id;
@@ -548,13 +504,11 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
       .select('id');
     if (variantError) throw new Error(`Failed to insert variant dishes: ${variantError.message}`);
 
-    // Track variants for ingredient/option-group linking
     for (let j = 0; j < variantInserted.length; j++) {
       insertedWithDish.push({ id: variantInserted[j].id, dish: dish.variants[j] });
     }
   }
 
-  // Insert explicit variants (dishes with parent_dish_id already set in source data)
   const explicitVariants: DishWithCategoryId[] = [];
   for (let i = 0; i < menus.length; i++) {
     const categoryId = insertedCategories[i].id;
@@ -569,17 +523,15 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
       .from('dishes')
       .insert(explicitVariants.map(({ dish, categoryId }) => buildDishPayload(dish, categoryId)))
       .select('id');
-    if (explicitError) throw new Error(`Failed to insert explicit variant dishes: ${explicitError.message}`);
+    if (explicitError)
+      throw new Error(`Failed to insert explicit variant dishes: ${explicitError.message}`);
     for (let j = 0; j < explicitInserted.length; j++) {
       insertedWithDish.push({ id: explicitInserted[j].id, dish: explicitVariants[j].dish });
     }
   }
 
-  // Alias for steps 4+5 — flat list of all inserted dishes with source dish reference
   const insertedDishes = insertedWithDish;
-  // (allDishes is no longer needed — insertedWithDish carries both id and dish)
 
-  // ── Step 4: Link canonical ingredients in parallel (non-fatal) ────────────
   await Promise.all(
     insertedDishes.map(async ({ id: insertedId, dish }) => {
       if (!dish.selectedIngredients?.length) return;
@@ -599,7 +551,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     })
   );
 
-  // ── Step 5: Save option groups for template/experience dishes (non-fatal) ───
   await Promise.all(
     insertedDishes.map(async ({ id: insertedId, dish }) => {
       if (!dish.option_groups?.length) return;
@@ -608,19 +559,18 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
   );
 }
 
-/**
- * Save option groups + their options for a dish.
- * Replaces any existing groups (delete-then-insert). Non-fatal per group.
- */
 async function saveOptionGroupsForDish(
   dishId: string,
   restaurantId: string,
   optionGroups: AppMenu['dishes'][number]['option_groups']
 ): Promise<void> {
   if (!optionGroups?.length) return;
-  // Delete existing groups (cascades to options)
-  const { error: deleteGroupsError } = await supabase.from('option_groups').delete().eq('dish_id', dishId);
-  if (deleteGroupsError) throw new Error(`Failed to clear option groups: ${deleteGroupsError.message}`);
+  const { error: deleteGroupsError } = await supabase
+    .from('option_groups')
+    .delete()
+    .eq('dish_id', dishId);
+  if (deleteGroupsError)
+    throw new Error(`Failed to clear option groups: ${deleteGroupsError.message}`);
   for (const [gi, group] of optionGroups.entries()) {
     const { data: inserted, error } = await supabase
       .from('option_groups')
@@ -664,11 +614,6 @@ async function saveOptionGroupsForDish(
   }
 }
 
-/**
- * Delete old menu data in dependency order: dishes → categories → menus.
- * Non-fatal — logs a warning if the final menu delete fails but doesn't throw
- * (the restaurant has correct new data; resubmitting will clean up duplicates).
- */
 async function _deleteOldMenuData(restaurantId: string, oldMenuIds: string[]): Promise<void> {
   const { data: oldCategoryRows } = await supabase
     .from('menu_categories')
@@ -680,7 +625,6 @@ async function _deleteOldMenuData(restaurantId: string, oldMenuIds: string[]): P
     await supabase.from('dishes').delete().in('menu_category_id', oldCategoryIds);
   }
 
-  // Clean up legacy dishes with no category (pre-schema-fix data)
   await supabase
     .from('dishes')
     .delete()

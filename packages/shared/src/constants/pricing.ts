@@ -1,10 +1,3 @@
-/**
- * Pricing and spice-level constants.
- *
- * Keep in sync with the corresponding Postgres enum/check constraints
- * in infra/supabase/migrations/ whenever values are added or renamed.
- */
-
 /** Dollar-sign price-tier indicators used in filter and display UI. */
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
 
@@ -17,11 +10,6 @@ export const SPICE_LEVELS = [
 
 /** Union of valid spice level string values. */
 export type SpiceLevel = (typeof SPICE_LEVELS)[number]['value'];
-
-/** Map a spice_level text value to its chilli-icon string. */
-export function spiceIcon(level: string | null | undefined): string {
-  return SPICE_LEVELS.find(l => l.value === level)?.icon ?? '';
-}
 
 /** How the dish price is labelled on the menu (exact, from, per-person, etc.). */
 export const DISPLAY_PRICE_PREFIXES = [

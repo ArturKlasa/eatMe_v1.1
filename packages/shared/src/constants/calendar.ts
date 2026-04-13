@@ -1,7 +1,3 @@
-/**
- * Calendar constants for operating-hours forms.
- */
-
 /** Ordered list of weekdays used for operating-hours form rendering. */
 export const DAYS_OF_WEEK = [
   { key: 'monday', label: 'Monday' },

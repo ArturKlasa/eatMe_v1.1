@@ -1,11 +1,3 @@
-/**
- * POST /api/menu-scan/confirm
- *
- * Persists the reviewed menu-scan results to the database. Writes menus,
- * categories, dishes, and option groups in a single transaction-like sequence.
- * Called after the admin has reviewed and approved the AI extraction output.
- */
-
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
@@ -18,19 +10,6 @@ function normalizeDietaryTags(tags: string[]): string[] {
   }
   return tags;
 }
-
-// ---------------------------------------------------------------------------
-// POST /api/menu-scan/confirm
-// Commits the admin-reviewed extraction results to the database.
-//
-// Body: ConfirmPayload {
-//   job_id, restaurant_id,
-//   menus: [{ name, menu_type, categories: [{ name, dishes: [{ ... }] }] }]
-// }
-//
-// Three-pass insertion: parents → children (with parent_dish_id) → standalone.
-// Returns completed_with_warnings for partial failures.
-// ---------------------------------------------------------------------------
 
 // Allow up to 60 s on Vercel — needed for large menus (300+ dishes).
 export const maxDuration = 60;
@@ -170,7 +149,12 @@ export async function POST(request: NextRequest) {
           }
 
           totalDishesInserted++;
-          const parentIngFailed = await insertIngredientsAndOptions(supabase, parentId, parentDish, restaurant_id);
+          const parentIngFailed = await insertIngredientsAndOptions(
+            supabase,
+            parentId,
+            parentDish,
+            restaurant_id
+          );
           if (parentIngFailed) dishesWithMissingIngredients++;
 
           // ---- Pass 2: Insert child variant dishes ----
@@ -201,7 +185,12 @@ export async function POST(request: NextRequest) {
               totalDishesInserted += childRows.length;
               // Insert ingredients/options for each child
               for (const child of childRows) {
-                const childIngFailed = await insertIngredientsAndOptions(supabase, child.id, child.dish, restaurant_id);
+                const childIngFailed = await insertIngredientsAndOptions(
+                  supabase,
+                  child.id,
+                  child.dish,
+                  restaurant_id
+                );
                 if (childIngFailed) dishesWithMissingIngredients++;
               }
             }
@@ -237,7 +226,12 @@ export async function POST(request: NextRequest) {
             totalDishesInserted += standaloneRows.length;
             // Insert ingredients/options for each standalone dish
             for (const s of standaloneRows) {
-              const standaloneIngFailed = await insertIngredientsAndOptions(supabase, s.id, s.dish, restaurant_id);
+              const standaloneIngFailed = await insertIngredientsAndOptions(
+                supabase,
+                s.id,
+                s.dish,
+                restaurant_id
+              );
               if (standaloneIngFailed) dishesWithMissingIngredients++;
             }
           }
@@ -270,10 +264,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      status: errors.length > 0 || dishesWithMissingIngredients > 0 ? 'completed_with_warnings' : 'completed',
+      status:
+        errors.length > 0 || dishesWithMissingIngredients > 0
+          ? 'completed_with_warnings'
+          : 'completed',
       dishes_saved: totalDishesInserted,
       dishes_failed: totalDishesFailed,
-      dishes_with_missing_ingredients: dishesWithMissingIngredients > 0 ? dishesWithMissingIngredients : undefined,
+      dishes_with_missing_ingredients:
+        dishesWithMissingIngredients > 0 ? dishesWithMissingIngredients : undefined,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error: unknown) {
@@ -284,10 +282,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function countPayloadDishes(menus: ConfirmPayload['menus']): number {
   let count = 0;

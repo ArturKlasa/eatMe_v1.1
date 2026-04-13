@@ -1,11 +1,3 @@
-/**
- * Gamification Service
- *
- * Handles streak tracking and badge awarding:
- * - updateStreak: tracks consecutive weeks with at least one rating
- * - checkAndAwardTrustedTasterBadge: awards badge after 20+ tagged ratings over 3+ months
- */
-
 import { supabase } from '../lib/supabase';
 
 const STREAK_MILESTONES = [
@@ -24,9 +16,6 @@ export interface BadgeResult {
   earned: boolean;
 }
 
-/**
- * Get the ISO week start date (Monday) for a given date, in YYYY-MM-DD format.
- */
 function getWeekStart(date: Date): string {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const day = d.getUTCDay(); // 0 = Sunday
@@ -41,13 +30,7 @@ function getLastWeekStart(date: Date): string {
   return getWeekStart(d);
 }
 
-/**
- * Update the user's rating streak. Call after any successful rating submission.
- * - If already rated this week: no-op, returns current state.
- * - If rated last week: increments streak.
- * - Otherwise: resets streak to 1.
- * Awards bonus points when a streak milestone (3, 7, 14 weeks) is hit exactly.
- */
+/** Update the user's rating streak. Awards bonus points at milestones (3, 7, 14 weeks). */
 export async function updateStreak(userId: string): Promise<StreakResult> {
   const now = new Date();
   const thisWeek = getWeekStart(now);
@@ -63,16 +46,13 @@ export async function updateStreak(userId: string): Promise<StreakResult> {
   let longestStreak: number = existing?.longest_streak ?? 0;
   const lastRatingWeek: string | null = existing?.last_rating_week ?? null;
 
-  // Already rated this week — no change
   if (lastRatingWeek === thisWeek) {
     return { currentStreak, longestStreak, milestoneHit: null };
   }
 
   if (lastRatingWeek === lastWeek) {
-    // Consecutive week
     currentStreak += 1;
   } else {
-    // Missed a week (or first rating ever)
     currentStreak = 1;
   }
 
@@ -82,7 +62,6 @@ export async function updateStreak(userId: string): Promise<StreakResult> {
 
   const milestoneHit = STREAK_MILESTONES.find(m => m.weeks === currentStreak) ?? null;
 
-  // Award milestone points asynchronously (non-fatal)
   if (milestoneHit) {
     supabase
       .from('user_points')
@@ -99,7 +78,6 @@ export async function updateStreak(userId: string): Promise<StreakResult> {
       });
   }
 
-  // Upsert the streak row
   await supabase.from('user_streaks').upsert(
     {
       user_id: userId,
@@ -114,13 +92,8 @@ export async function updateStreak(userId: string): Promise<StreakResult> {
   return { currentStreak, longestStreak, milestoneHit };
 }
 
-/**
- * Check if the user qualifies for the Trusted Taster badge and award it if so.
- * Eligibility: 20+ tagged ratings over at least 3 months.
- * Idempotent: returns { earned: false } if badge already exists.
- */
+/** Award Trusted Taster badge if eligible (20+ tagged ratings over 3+ months). Idempotent. */
 export async function checkAndAwardTrustedTasterBadge(userId: string): Promise<BadgeResult> {
-  // Check if badge already awarded
   const { data: existingBadge } = await supabase
     .from('user_badges')
     .select('id')
@@ -132,7 +105,6 @@ export async function checkAndAwardTrustedTasterBadge(userId: string): Promise<B
     return { earned: false };
   }
 
-  // Check total tagged ratings (tags not null and not empty)
   const { count: taggedCount } = await supabase
     .from('dish_opinions')
     .select('*', { count: 'exact', head: true })
@@ -144,7 +116,6 @@ export async function checkAndAwardTrustedTasterBadge(userId: string): Promise<B
     return { earned: false };
   }
 
-  // Check tenure: earliest tagged rating must be at least 3 months ago
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
@@ -162,7 +133,6 @@ export async function checkAndAwardTrustedTasterBadge(userId: string): Promise<B
     return { earned: false };
   }
 
-  // Award badge
   const { error } = await supabase.from('user_badges').insert({
     user_id: userId,
     badge_type: 'trusted_taster',

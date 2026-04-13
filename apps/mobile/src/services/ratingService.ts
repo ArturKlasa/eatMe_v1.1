@@ -1,14 +1,3 @@
-/**
- * Rating Service
- *
- * Handles all backend operations for the rating system:
- * - Saving dish opinions
- * - Saving restaurant feedback
- * - Uploading photos
- * - Awarding points
- * - Creating user visits
- */
-
 import { supabase } from '../lib/supabase';
 import {
   DishRatingInput,
@@ -26,25 +15,20 @@ import {
   BadgeResult,
 } from './gamificationService';
 
-/**
- * Upload a photo to Supabase Storage
- */
+/** Upload a photo to Supabase Storage. */
 export async function uploadPhoto(
   uri: string,
   type: 'dish' | 'restaurant',
   userId: string
 ): Promise<string | null> {
   try {
-    // Generate unique filename
     const fileExt = uri.split('.').pop() || 'jpeg';
     const fileName = `${type}_${userId}_${Date.now()}.${fileExt}`;
     const filePath = `${type}_photos/${fileName}`;
 
-    // Read file as ArrayBuffer for React Native
     const response = await fetch(uri);
     const arrayBuffer = await response.arrayBuffer();
 
-    // Upload to Supabase Storage
     const { data, error } = await supabase.storage.from('photos').upload(filePath, arrayBuffer, {
       contentType: 'image/jpeg',
       upsert: false,
@@ -55,7 +39,6 @@ export async function uploadPhoto(
       return null;
     }
 
-    // Get public URL
     const {
       data: { publicUrl },
     } = supabase.storage.from('photos').getPublicUrl(filePath);
@@ -67,9 +50,7 @@ export async function uploadPhoto(
   }
 }
 
-/**
- * Create a user visit record
- */
+/** Create a user visit record. */
 export async function createUserVisit(
   userId: string,
   restaurantId: string,
@@ -100,9 +81,7 @@ export async function createUserVisit(
   }
 }
 
-/**
- * Save dish opinions (ratings)
- */
+/** Save dish opinions (ratings). */
 export async function saveDishOpinions(
   userId: string,
   dishRatings: DishRatingInput[],
@@ -112,12 +91,10 @@ export async function saveDishOpinions(
 
   try {
     for (const rating of dishRatings) {
-      // Upload photo if exists
       let photoId: string | null = null;
       if (rating.photoUri) {
         const photoUrl = await uploadPhoto(rating.photoUri, 'dish', userId);
         if (photoUrl) {
-          // Save photo record
           const { data: photoData, error: photoError } = await supabase
             .from('dish_photos')
             .insert({
@@ -135,7 +112,6 @@ export async function saveDishOpinions(
         }
       }
 
-      // Save dish opinion
       const { error: opinionError } = await supabase.from('dish_opinions').upsert(
         {
           user_id: userId,
@@ -155,12 +131,9 @@ export async function saveDishOpinions(
       if (opinionError) {
         console.error('[RatingService] Error saving dish opinion:', opinionError);
       } else {
-        // Record interaction for preference vector computation.
-        // 'liked' and 'okay' contribute positive signal.
-        // 'disliked' is intentionally NOT recorded here — disliking a dish at
-        // one restaurant doesn't mean the user dislikes that dish category.
-        // Feed exclusion of disliked dishes is handled separately via
-        // user_dish_interactions rows written by the swipe/feed layer.
+        // 'disliked' intentionally NOT recorded — disliking at one restaurant
+        // doesn't mean the user dislikes that category. Feed exclusion handled
+        // separately via user_dish_interactions from the swipe/feed layer.
         if (rating.opinion === 'liked' || rating.opinion === 'okay') {
           recordInteraction(userId, rating.dishId, 'liked');
         }
@@ -174,9 +147,7 @@ export async function saveDishOpinions(
   }
 }
 
-/**
- * Save restaurant feedback
- */
+/** Save restaurant feedback. */
 export async function saveRestaurantFeedback(
   userId: string,
   restaurantId: string,
@@ -184,14 +155,10 @@ export async function saveRestaurantFeedback(
   visitId: string | null
 ): Promise<boolean> {
   try {
-    // Upload photo if exists
     if (feedback.photoUri) {
-      const photoUrl = await uploadPhoto(feedback.photoUri, 'restaurant', userId);
-      // For now, we don't have a restaurant_photos table, so we'll skip this
-      // In the future, we can add a restaurant_photos table similar to dish_photos
+      await uploadPhoto(feedback.photoUri, 'restaurant', userId);
     }
 
-    // Save restaurant experience response
     debugLog(
       '[RatingService] Saving restaurant feedback with questionType:',
       feedback.questionType
@@ -217,9 +184,7 @@ export async function saveRestaurantFeedback(
   }
 }
 
-/**
- * Award points to user
- */
+/** Award points to user. */
 export async function awardPoints(
   userId: string,
   points: PointsEarned,
@@ -235,7 +200,6 @@ export async function awardPoints(
       description: string;
     }> = [];
 
-    // Dish rating points
     if (points.dishRatings > 0) {
       dishRatings.forEach(rating => {
         pointsToAward.push({
@@ -248,7 +212,6 @@ export async function awardPoints(
       });
     }
 
-    // Dish tag points
     if (points.dishTags > 0) {
       dishRatings
         .filter(r => r.tags.length > 0)
@@ -263,7 +226,6 @@ export async function awardPoints(
         });
     }
 
-    // Dish photo points
     if (points.dishPhotos > 0) {
       dishRatings
         .filter(r => r.photoUri)
@@ -278,7 +240,6 @@ export async function awardPoints(
         });
     }
 
-    // Restaurant feedback points
     if (points.restaurantFeedback > 0 && restaurantFeedback) {
       pointsToAward.push({
         user_id: userId,
@@ -288,7 +249,6 @@ export async function awardPoints(
       });
     }
 
-    // First visit bonus
     if (points.firstVisitBonus > 0) {
       pointsToAward.push({
         user_id: userId,
@@ -298,7 +258,6 @@ export async function awardPoints(
       });
     }
 
-    // Insert all points
     const { error } = await supabase.from('user_points').insert(pointsToAward);
 
     if (error) {
@@ -313,9 +272,7 @@ export async function awardPoints(
   }
 }
 
-/**
- * Check if user has rated any dishes at this restaurant before
- */
+/** Check if user has rated any dishes at this restaurant before. */
 export async function isFirstVisitToRestaurant(
   userId: string,
   restaurantId: string
@@ -340,9 +297,7 @@ export async function isFirstVisitToRestaurant(
   }
 }
 
-/**
- * Get user's total points
- */
+/** Get user's total points. */
 export async function getUserTotalPoints(userId: string): Promise<number> {
   try {
     const { data, error } = await supabase.rpc('get_user_total_points', {
@@ -361,9 +316,7 @@ export async function getUserTotalPoints(userId: string): Promise<number> {
   }
 }
 
-/**
- * Submit an in-context dish rating (quick rating from RestaurantDetailScreen)
- */
+/** Submit an in-context dish rating (quick rating from RestaurantDetailScreen). */
 export async function submitInContextRating(
   userId: string,
   restaurantId: string,
@@ -379,7 +332,6 @@ export async function submitInContextRating(
   badgeResult?: BadgeResult | null;
 }> {
   try {
-    // 1. Find or create an in-context visit within the last 24 hours
     const { data: existingVisit } = await supabase
       .from('user_visits')
       .select('id')
@@ -416,7 +368,6 @@ export async function submitInContextRating(
       visitId = newVisit.id;
     }
 
-    // 2. Upsert the dish opinion with source='in_context'
     const { error: opinionError } = await supabase.from('dish_opinions').upsert(
       {
         user_id: userId,
@@ -434,15 +385,13 @@ export async function submitInContextRating(
       return { success: false, error: 'Failed to save dish rating' };
     }
 
-    // 3. Record interaction for positive signals
     if (opinion === 'liked') {
       recordInteraction(userId, dishId, 'liked', sessionId ?? undefined);
     } else if (opinion === 'disliked') {
       recordInteraction(userId, dishId, 'disliked', sessionId ?? undefined);
     }
-    // 'okay' is neutral — deliberately not recorded so it doesn't affect the preference vector
+    // 'okay' is neutral — not recorded so it doesn't affect the preference vector
 
-    // 4. Award points asynchronously (non-blocking)
     const pointsToAward: Array<{
       user_id: string;
       points: number;
@@ -478,7 +427,6 @@ export async function submitInContextRating(
         }
       });
 
-    // 5. Update streak and check badge (non-fatal)
     const [streakResult, badgeResult] = await Promise.all([
       updateStreak(userId).catch(() => null),
       checkAndAwardTrustedTasterBadge(userId).catch(() => null),
@@ -491,9 +439,7 @@ export async function submitInContextRating(
   }
 }
 
-/**
- * Complete rating submission (main function)
- */
+/** Complete rating submission (main function). */
 export async function submitRating(
   userId: string,
   restaurantId: string,
@@ -510,21 +456,18 @@ export async function submitRating(
   try {
     debugLog('[RatingService] Starting rating submission...');
 
-    // 1. Create visit record
     const visitId = await createUserVisit(userId, restaurantId, sessionId);
     if (!visitId) {
       return { success: false, error: 'Failed to create visit record' };
     }
     debugLog('[RatingService] Created visit:', visitId);
 
-    // 2. Save dish opinions
     const { success: dishSuccess } = await saveDishOpinions(userId, dishRatings, visitId);
     if (!dishSuccess) {
       return { success: false, error: 'Failed to save dish ratings' };
     }
     debugLog('[RatingService] Saved dish opinions');
 
-    // 3. Save restaurant feedback if provided
     if (restaurantFeedback) {
       const feedbackSuccess = await saveRestaurantFeedback(
         userId,
@@ -537,13 +480,11 @@ export async function submitRating(
       }
     }
 
-    // 4. Award points
     const pointsSuccess = await awardPoints(userId, pointsEarned, dishRatings, restaurantFeedback);
     if (!pointsSuccess) {
       console.warn('[RatingService] Failed to award points (non-fatal)');
     }
 
-    // 5. Update streak and check badge (non-fatal)
     const [streakResult, badgeResult] = await Promise.all([
       updateStreak(userId).catch(() => null),
       checkAndAwardTrustedTasterBadge(userId).catch(() => null),

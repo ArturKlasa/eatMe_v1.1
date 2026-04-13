@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
-import Slider from 'react-native-slider';
+import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
 import { useFilterStore, DAILY_FILTER_PRESETS, type DailyFilters } from '../stores/filterStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -157,7 +157,7 @@ export const PriceRangeFilter: React.FC = () => {
             step={step}
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor={theme.colors.gray200}
-            thumbStyle={filterComponentsStyles.sliderThumb}
+            thumbTintColor={theme.colors.primary}
           />
           <Slider
             style={filterComponentsStyles.slider}
@@ -173,7 +173,7 @@ export const PriceRangeFilter: React.FC = () => {
             step={step}
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor={theme.colors.gray200}
-            thumbStyle={filterComponentsStyles.sliderThumb}
+            thumbTintColor={theme.colors.primary}
           />
         </View>
       </View>
@@ -373,7 +373,7 @@ export const CalorieRangeFilter: React.FC = () => {
               step={50}
               minimumTrackTintColor={theme.colors.primary}
               maximumTrackTintColor={theme.colors.gray200}
-              thumbStyle={filterComponentsStyles.sliderThumb}
+              thumbTintColor={theme.colors.primary}
             />
             <Slider
               style={filterComponentsStyles.slider}
@@ -386,7 +386,7 @@ export const CalorieRangeFilter: React.FC = () => {
               step={50}
               minimumTrackTintColor={theme.colors.primary}
               maximumTrackTintColor={theme.colors.gray200}
-              thumbStyle={filterComponentsStyles.sliderThumb}
+              thumbTintColor={theme.colors.primary}
             />
           </View>
         </View>

@@ -47,6 +47,9 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: ^2.2.0
         version: 2.2.0(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))
+      '@react-native-community/slider':
+        specifier: 5.0.1
+        version: 5.0.1
       '@react-native-google-signin/google-signin':
         specifier: ^16.1.2
         version: 16.1.2(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -128,9 +131,6 @@ importers:
       react-native-screens:
         specifier: ^4.16.0
         version: 4.20.0(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react-native-slider:
-        specifier: ^0.11.0
-        version: 0.11.0
       react-native-svg:
         specifier: ^15.9.0
         version: 15.15.1(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -2522,6 +2522,9 @@ packages:
     resolution: {integrity: sha512-441WsVtRe4nGJ9OzA+QMU1+22lA6Q2hRWqqIMKD0wjEMLqcSfOZyu2UL9a/yRpL/dRpyUsU4n7AxqKfTKO/Csg==}
     engines: {node: '>=20.19.4'}
     hasBin: true
+
+  '@react-native-community/slider@5.0.1':
+    resolution: {integrity: sha512-K3JRWkIW4wQ79YJ6+BPZzp1SamoikxfPRw7Yw4B4PElEQmqZFrmH9M5LxvIo460/3QSrZF/wCgi3qizJt7g/iw==}
 
   '@react-native-google-signin/google-signin@16.1.2':
     resolution: {integrity: sha512-1hf4pRmpnS5t0dHtqU72Q1FmWzsCZR2Sm3uVQbbfMKeNPl5TKjpAsP6F8QTZ9L+Q6Cnn9tL9BXpDCb1nyutdCQ==}
@@ -6183,9 +6186,6 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-slider@0.11.0:
-    resolution: {integrity: sha512-jV9K87eu9uWr0uJIyrSpBLnCKvVlOySC2wynq9TFCdV9oGgjt7Niq8Q1A8R8v+5GHsuBw/s8vEj1AAkkUi+u+w==}
-
   react-native-svg@15.15.1:
     resolution: {integrity: sha512-ZUD1xwc3Hwo4cOmOLumjJVoc7lEf9oQFlHnLmgccLC19fNm6LVEdtB+Cnip6gEi0PG3wfvVzskViEtrySQP8Fw==}
     peerDependencies:
@@ -9821,6 +9821,8 @@ snapshots:
       - supports-color
       - typescript
       - utf-8-validate
+
+  '@react-native-community/slider@5.0.1': {}
 
   '@react-native-google-signin/google-signin@16.1.2(expo@54.0.32(@babel/core@7.28.6)(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
     dependencies:
@@ -13962,10 +13964,6 @@ snapshots:
       react-freeze: 1.0.4(react@19.1.0)
       react-native: 0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0)
       warn-once: 0.1.1
-
-  react-native-slider@0.11.0:
-    dependencies:
-      prop-types: 15.8.1
 
   react-native-svg@15.15.1(react-native@0.81.4(@babel/core@7.28.6)(@react-native-community/cli@20.1.0(typescript@5.9.2))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:

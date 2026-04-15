@@ -5,7 +5,7 @@
  * their categories, and lazy-loaded dish rows (with parent/variant grouping).
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { type DishRating } from '../../services/dishRatingService';
 import { groupDishesByParent, type DishWithGroups } from './DishGrouping';
 import { classifyDish, sortDishesByFilter } from '../../utils/menuFilterUtils';
 import { DishMenuItem } from './DishMenuItem';
+import { VariantPickerSheet } from './VariantPickerSheet';
 
 interface FoodTabProps {
   restaurant: RestaurantWithMenus;
@@ -53,6 +54,11 @@ export function FoodTab({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
+  const [pickerGroup, setPickerGroup] = useState<{
+    parent: DishWithGroups;
+    variants: DishWithGroups[];
+  } | null>(null);
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -72,10 +78,7 @@ export function FoodTab({
             );
             return (
               <View key={category.id} style={styles.menuCategory}>
-                <TouchableOpacity
-                  onPress={() => loadCategoryDishes(category.id)}
-                  activeOpacity={1}
-                >
+                <TouchableOpacity onPress={() => loadCategoryDishes(category.id)} activeOpacity={1}>
                   <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
                 {categoryState === 'loading' && (
@@ -114,32 +117,41 @@ export function FoodTab({
                         />
                       );
                     }
+                    const minPrice = item.variants.reduce(
+                      (acc, v) => (v.price != null && v.price < acc ? v.price : acc),
+                      Infinity
+                    );
                     return (
                       <View key={item.parent.id}>
-                        <Text
-                          style={[
-                            styles.menuItemName,
-                            {
-                              marginTop: 8,
-                              marginBottom: 2,
-                              opacity: 0.6,
-                              fontStyle: 'italic',
-                            },
-                          ]}
+                        <TouchableOpacity
+                          onPress={() =>
+                            setPickerGroup({ parent: item.parent, variants: item.variants })
+                          }
+                          activeOpacity={0.7}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingVertical: 8,
+                          }}
                         >
-                          {item.parent.name}
-                          {item.parent.description ? ` — ${item.parent.description}` : ''}
-                        </Text>
-                        {item.variants.map(variant => (
-                          <DishMenuItem
-                            key={variant.id}
-                            item={variant}
-                            permanentFilters={permanentFilters}
-                            ingredientsToAvoid={ingredientsToAvoid}
-                            dishRatings={dishRatings}
-                            onPress={onDishPress}
-                          />
-                        ))}
+                          <Text
+                            style={[styles.menuItemName, { fontStyle: 'italic', flex: 1 }]}
+                            numberOfLines={2}
+                          >
+                            {item.parent.name}
+                            {item.parent.description ? ` — ${item.parent.description}` : ''}
+                          </Text>
+                          {Number.isFinite(minPrice) && (
+                            <Text
+                              style={[styles.menuItemName, { color: colors.accent, marginLeft: 8 }]}
+                            >
+                              {t('restaurant.fromPrice', 'from ${{price}}', {
+                                price: minPrice.toFixed(2),
+                              })}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
                       </View>
                     );
                   })}
@@ -153,6 +165,17 @@ export function FoodTab({
           <Text style={{ color: colors.textSecondary }}>{t('restaurant.noMenuItems')}</Text>
         </View>
       )}
+
+      <VariantPickerSheet
+        visible={pickerGroup !== null}
+        parent={pickerGroup?.parent ?? null}
+        variants={pickerGroup?.variants ?? []}
+        onSelect={variant => {
+          setPickerGroup(null);
+          onDishPress(variant);
+        }}
+        onClose={() => setPickerGroup(null)}
+      />
     </ScrollView>
   );
 }

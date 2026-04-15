@@ -39,6 +39,8 @@ const DEFAULT_VALUES: DishFormData = {
   dish_kind: 'standard' as const,
   display_price_prefix: 'exact' as const,
   serves: 1,
+  is_parent: false,
+  variants: [],
   option_groups: [],
 };
 
@@ -93,12 +95,15 @@ export function useDishFormData({
           | 'market_price'
           | 'ask_server',
         serves: dish.serves ?? 1,
+        is_parent: dish.is_parent ?? false,
+        variants: [],
         option_groups: [],
       });
 
       if (dish.id) {
         loadOptionGroups(dish.id);
         loadIngredients(dish.id);
+        if (dish.is_parent) loadVariants(dish.id);
       } else {
         setSelectedIngredients([]);
       }
@@ -182,6 +187,32 @@ export function useDishFormData({
     }
   };
 
+  const loadVariants = async (parentId: string) => {
+    const { data } = await supabase
+      .from('dishes')
+      .select('id, name, price, description, serves, display_price_prefix')
+      .eq('parent_dish_id', parentId)
+      .order('created_at');
+    if (data && data.length > 0) {
+      methods.setValue(
+        'variants',
+        data.map(v => ({
+          id: v.id,
+          name: v.name,
+          price: Number(v.price) || 0,
+          description: v.description ?? '',
+          serves: v.serves ?? 1,
+          display_price_prefix: (v.display_price_prefix ?? 'exact') as
+            | 'exact'
+            | 'from'
+            | 'per_person'
+            | 'market_price'
+            | 'ask_server',
+        }))
+      );
+    }
+  };
+
   const resetAll = useCallback(() => {
     reset();
     setSelectedIngredients([]);
@@ -210,6 +241,8 @@ export function useDishFormData({
         dish_kind: data.dish_kind ?? 'standard',
         display_price_prefix: data.display_price_prefix ?? 'exact',
         serves: data.serves ?? 1,
+        is_parent: data.is_parent === true,
+        variants: (data.variants ?? []) as Dish['variants'],
         option_groups: optionGroups,
         ...(selectedIngredients.length > 0 ? { selectedIngredients } : {}),
       } as Dish & { selectedIngredients?: typeof selectedIngredients };
@@ -221,23 +254,29 @@ export function useDishFormData({
 
     // DB mode (direct Supabase write)
     try {
+      const isParent = data.is_parent === true;
       const dishData = {
         restaurant_id: restaurantId,
         menu_category_id: menuCategoryId,
         dish_category_id: data.dish_category_id ?? null,
         name: data.name,
         description: data.description || null,
-        price: data.price,
+        // Parent dishes are display-only containers; variants hold the real prices.
+        price: isParent ? 0 : data.price,
+        is_parent: isParent,
         is_available: data.is_available !== false,
         image_url: data.photo_url,
-        dietary_tags: data.dietary_tags || [],
-        allergens: data.allergens || [],
+        // Empty array → null override (let the ingredient-cascade trigger compute).
+        // Non-empty → explicit admin override (migration 092).
+        dietary_tags_override:
+          data.dietary_tags && data.dietary_tags.length > 0 ? data.dietary_tags : null,
+        allergens_override: data.allergens && data.allergens.length > 0 ? data.allergens : null,
         calories: !isNaN(data.calories as number) && data.calories != null ? data.calories : null,
         spice_level: data.spice_level && data.spice_level !== 'none' ? data.spice_level : null,
         description_visibility: data.description_visibility ?? 'menu',
         ingredients_visibility: data.ingredients_visibility ?? 'detail',
         dish_kind: data.dish_kind ?? 'standard',
-        display_price_prefix: data.display_price_prefix ?? 'exact',
+        display_price_prefix: isParent ? 'from' : (data.display_price_prefix ?? 'exact'),
         serves: data.serves ?? 1,
       };
 
@@ -324,6 +363,45 @@ export function useDishFormData({
               console.error('[DishForm] Failed to save options for group:', optError);
             }
           }
+        }
+      }
+
+      // Sync child variants when this dish is a parent. Each variant is a dish row.
+      const incomingVariants = isParent ? (data.variants ?? []) : [];
+      const keepIds = new Set(incomingVariants.map(v => v.id).filter(Boolean) as string[]);
+
+      // Delete any existing children that are no longer in the form.
+      // Also covers the case where the admin un-toggled is_parent (keepIds empty).
+      const { data: existingChildren } = await supabase
+        .from('dishes')
+        .select('id')
+        .eq('parent_dish_id', dishId);
+      const toDelete = (existingChildren ?? []).map(c => c.id).filter(id => !keepIds.has(id));
+      if (toDelete.length > 0) {
+        await supabase.from('dishes').delete().in('id', toDelete);
+      }
+
+      // Upsert each remaining variant.
+      for (const v of incomingVariants) {
+        const variantRow = {
+          restaurant_id: restaurantId,
+          menu_category_id: menuCategoryId,
+          parent_dish_id: dishId,
+          is_parent: false,
+          dish_kind: 'standard' as const,
+          name: v.name.trim(),
+          description: v.description || null,
+          price: v.price,
+          serves: v.serves ?? 1,
+          display_price_prefix: v.display_price_prefix ?? 'exact',
+          is_available: true,
+        };
+        if (v.id) {
+          const { error } = await supabase.from('dishes').update(variantRow).eq('id', v.id);
+          if (error) console.error('[DishForm] Failed to update variant:', error);
+        } else {
+          const { error } = await supabase.from('dishes').insert(variantRow);
+          if (error) console.error('[DishForm] Failed to insert variant:', error);
         }
       }
 

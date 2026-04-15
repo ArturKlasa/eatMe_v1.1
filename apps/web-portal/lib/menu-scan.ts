@@ -220,7 +220,9 @@ export function getCurrencyForRestaurant(
   return 'USD';
 }
 
-const DIETARY_HINT_MAP: Record<string, string> = {
+import type { DietaryTagCode } from '@eatme/shared';
+
+const DIETARY_HINT_MAP: Record<string, DietaryTagCode> = {
   // --- Existing ---
   vegetarian: 'vegetarian',
   vegetariano: 'vegetarian',
@@ -287,19 +289,26 @@ export function normalizeDietaryHint(hint: string): string {
     .toLowerCase();
 }
 
-/** Maps raw AI dietary hints to canonical dietary_tags.code values. */
-export function mapDietaryHints(hints: string[]): string[] {
+/** Maps raw AI dietary hints to canonical dietary_tags.code values.
+ *  Returns matched canonical codes plus any hints that had no mapping entry
+ *  so callers can surface them (e.g. as extraction_notes) instead of dropping silently. */
+export function mapDietaryHints(hints: string[]): { codes: string[]; unmapped: string[] } {
   const codes = new Set<string>();
+  const unmapped: string[] = [];
   for (const hint of hints) {
     const normalized = normalizeDietaryHint(hint);
+    if (!normalized) continue;
     const code = DIETARY_HINT_MAP[normalized];
-    if (code) codes.add(code);
+    if (code) {
+      codes.add(code);
+    } else {
+      unmapped.push(hint);
+    }
   }
-  // Vegan always implies vegetarian
   if (codes.has('vegan') && !codes.has('vegetarian')) {
     codes.add('vegetarian');
   }
-  return Array.from(codes);
+  return { codes: Array.from(codes), unmapped };
 }
 
 const CATEGORY_SYNONYMS: Record<string, string> = {

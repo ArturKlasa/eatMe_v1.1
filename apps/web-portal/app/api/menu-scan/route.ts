@@ -75,7 +75,12 @@ STRICT RULES:
    - Only create a second food menu when the physical document is explicitly a separate titled menu (e.g. "Menú de Degustación", "Kids Menu") with its own branding/cover.
 4. All section and sub-section headers inside a food menu go as category "name" under that single food menu.
 5. If no section headers exist, set name to null for menus and/or categories.
-6. Detect dietary symbols: V/vegetariano/a → ["vegetarian"], VG/vegano/a → ["vegan"], GF/sin gluten → ["gluten_free"], H/halal → ["halal"], K/kosher → ["kosher"].
+6. Detect dietary symbols and map to canonical codes in dietary_hints[]:
+   - V/vegetariano/a → "vegetarian"; VG/vegano/a → "vegan"; pescatarian → "pescatarian"
+   - GF/sin gluten → "gluten_free"; DF/sin lácteos → "dairy_free"; nut-free → "nut_free"; egg-free → "egg_free"; soy-free → "soy_free"
+   - H/halal → "halal"; K/kosher → "kosher"; hindu → "hindu"; jain → "jain"
+   - keto → "keto"; paleo → "paleo"; low-carb → "low_carb"; low-sodium → "low_sodium"; diabetic-friendly → "diabetic_friendly"; organic → "organic"
+   Only use these exact canonical codes. If a hint doesn't fit, omit it.
 7. Detect spice indicators (🌶, "picante", "spicy") → spice_level: 1 (mild) or 3 (very spicy). null = no indicator, 0 = explicitly non-spicy.
 8. Extract ingredients ONLY when explicitly listed on the menu. If not listed, set raw_ingredients to null.
 9. confidence: 1.0 = perfectly legible, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
@@ -467,11 +472,14 @@ async function matchIngredients(
   return results;
 }
 
+type UnmappedHintEntry = { dishName: string; hints: string[] };
+
 async function enrichDish(
   dish: RawExtractedDish,
   supabase: ReturnType<typeof createServerSupabaseClient>,
   openai: OpenAI,
-  menuLanguage: string
+  menuLanguage: string,
+  unmappedCollector?: UnmappedHintEntry[]
 ): Promise<EnrichedDish> {
   const matched = await matchIngredients(
     dish.raw_ingredients ?? [],
@@ -490,15 +498,22 @@ async function enrichDish(
   if (dish.variants && dish.variants.length > 0) {
     enrichedVariants = [];
     for (const variant of dish.variants) {
-      enrichedVariants.push(await enrichDish(variant, supabase, openai, menuLanguage));
+      enrichedVariants.push(
+        await enrichDish(variant, supabase, openai, menuLanguage, unmappedCollector)
+      );
     }
+  }
+
+  const { codes, unmapped } = mapDietaryHints(dish.dietary_hints ?? []);
+  if (unmapped.length > 0 && unmappedCollector) {
+    unmappedCollector.push({ dishName: dish.name, hints: unmapped });
   }
 
   return {
     ...dish,
     spice_level: normalisedSpice,
     matched_ingredients: matched,
-    mapped_dietary_tags: mapDietaryHints(dish.dietary_hints ?? []),
+    mapped_dietary_tags: codes,
     variants: enrichedVariants as RawExtractedDish[] | null,
   };
 }
@@ -508,8 +523,9 @@ async function enrichResult(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   openai: OpenAI,
   menuLanguage: string
-): Promise<Pick<EnrichedResult, 'menus'>> {
+): Promise<{ menus: EnrichedMenu[]; unmappedHints: UnmappedHintEntry[] }> {
   const enrichedMenus: EnrichedMenu[] = [];
+  const unmappedHints: UnmappedHintEntry[] = [];
 
   for (const menu of raw.menus) {
     const enrichedCategories: EnrichedCategory[] = [];
@@ -518,7 +534,7 @@ async function enrichResult(
       const enrichedDishes: EnrichedDish[] = [];
 
       for (const dish of cat.dishes) {
-        enrichedDishes.push(await enrichDish(dish, supabase, openai, menuLanguage));
+        enrichedDishes.push(await enrichDish(dish, supabase, openai, menuLanguage, unmappedHints));
       }
 
       enrichedCategories.push({ name: cat.name, dishes: enrichedDishes });
@@ -531,7 +547,7 @@ async function enrichResult(
     });
   }
 
-  return { menus: enrichedMenus };
+  return { menus: enrichedMenus, unmappedHints };
 }
 
 export async function POST(request: NextRequest) {
@@ -656,7 +672,22 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Enrich with ingredient matches + dietary tag codes
-    const { menus: enrichedMenus } = await enrichResult(merged, supabase, openai, menuLanguage);
+    const { menus: enrichedMenus, unmappedHints } = await enrichResult(
+      merged,
+      supabase,
+      openai,
+      menuLanguage
+    );
+
+    // Surface unmapped dietary hints so admins can review rather than silently dropping.
+    for (const entry of unmappedHints) {
+      extractionNotes.push({
+        type: 'ingredient_mismatch',
+        path: entry.dishName,
+        message: `Unrecognised dietary hint(s): ${entry.hints.join(', ')}. These were not mapped to any canonical dietary tag.`,
+        suggestion: null,
+      });
+    }
 
     // Inject a visible warning for any pages that failed GPT extraction.
     if (failedPageCount > 0) {

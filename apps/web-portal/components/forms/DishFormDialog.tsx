@@ -16,6 +16,7 @@ import { DishSpiceLevel } from './dish/DishSpiceLevel';
 import { DishDietarySection } from './dish/DishDietarySection';
 import { DishIngredientSection } from './dish/DishIngredientSection';
 import { DishKindSelector } from './dish/DishKindSelector';
+import { DishVariantsSection } from './dish/DishVariantsSection';
 import { DishOptionsSection } from './dish/DishOptionsSection';
 import { DishVisibilityFields } from './dish/DishVisibilityFields';
 import { DishPhotoField } from './dish/DishPhotoField';
@@ -64,6 +65,8 @@ export function DishFormDialog({
       dish_kind: 'standard' as const,
       display_price_prefix: 'exact' as const,
       serves: 1,
+      is_parent: false,
+      variants: [],
       option_groups: [],
     },
   });
@@ -111,7 +114,8 @@ export function DishFormDialog({
                 onClick={() => setDishType('food')}
                 className="flex-1"
               >
-                <UtensilsCrossed className="h-4 w-4 mr-1 inline-block" />Food
+                <UtensilsCrossed className="h-4 w-4 mr-1 inline-block" />
+                Food
               </Button>
               <Button
                 type="button"
@@ -120,7 +124,8 @@ export function DishFormDialog({
                 onClick={() => setDishType('drink')}
                 className="flex-1"
               >
-                <GlassWater className="h-4 w-4 mr-1 inline-block" />Drink
+                <GlassWater className="h-4 w-4 mr-1 inline-block" />
+                Drink
               </Button>
             </div>
 
@@ -156,6 +161,8 @@ export function DishFormDialog({
             <Separator />
 
             <DishKindSelector />
+
+            <DishVariantsSection />
 
             <DishOptionsSection
               optionGroups={optionGroups}

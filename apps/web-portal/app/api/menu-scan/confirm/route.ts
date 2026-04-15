@@ -315,7 +315,14 @@ function buildDishRow(
     name: dish.name.trim(),
     description: dish.description?.trim() || null,
     price: overrides?.price ?? dish.price ?? 0,
-    dietary_tags: normalizeDietaryTags(dish.dietary_tags ?? []),
+    // Populate *_override so AI-suggested values survive the trigger that
+    // recomputes dishes.allergens/dietary_tags from dish_ingredients cascades
+    // (migration 092). If dish_ingredients cover everything, admins can clear
+    // the override and let the cascade take over.
+    dietary_tags_override:
+      dish.dietary_tags && dish.dietary_tags.length > 0
+        ? normalizeDietaryTags(dish.dietary_tags)
+        : null,
     spice_level: dish.spice_level ?? null,
     calories: dish.calories ?? null,
     is_available: true,
@@ -324,7 +331,7 @@ function buildDishRow(
     serves: dish.serves ?? 1,
     display_price_prefix: dish.display_price_prefix ?? 'exact',
     parent_dish_id: (overrides?.parent_dish_id as string) ?? null,
-    allergens: dish.allergens ?? [],
+    allergens_override: dish.allergens && dish.allergens.length > 0 ? dish.allergens : null,
     enrichment_status: 'pending',
     enrichment_source: 'ai',
     enrichment_confidence: enrichmentConfidence,

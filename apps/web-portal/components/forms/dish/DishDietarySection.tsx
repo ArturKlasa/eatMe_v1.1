@@ -77,7 +77,8 @@ export function DishDietarySection() {
               onCheckedChange={() => toggleDietaryTag('vegetarian')}
             />
             <Label htmlFor="vegetarian" className="text-sm font-normal cursor-pointer">
-              <Sprout className="h-3.5 w-3.5 inline-block mr-0.5" />Vegetarian
+              <Sprout className="h-3.5 w-3.5 inline-block mr-0.5" />
+              Vegetarian
             </Label>
           </div>
 
@@ -88,7 +89,8 @@ export function DishDietarySection() {
               onCheckedChange={() => toggleDietaryTag('vegan')}
             />
             <Label htmlFor="vegan" className="text-sm font-normal cursor-pointer">
-              <Leaf className="h-3.5 w-3.5 inline-block mr-0.5" />Vegan
+              <Leaf className="h-3.5 w-3.5 inline-block mr-0.5" />
+              Vegan
             </Label>
           </div>
         </div>
@@ -99,7 +101,9 @@ export function DishDietarySection() {
         <h3 className="text-sm font-semibold text-foreground">Allergens</h3>
 
         <div>
-          <p className="text-xs text-muted-foreground mb-2">Mark allergens present in this dish</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Leave empty to auto-compute from ingredients. Check boxes to override the computed set.
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {ALLERGENS.map(allergen => (
               <div key={allergen.value} className="flex items-center space-x-2">
@@ -124,7 +128,9 @@ export function DishDietarySection() {
       <div className="space-y-4">
         <div>
           <Label className="mb-2 block">Dietary Tags</Label>
-          <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Leave empty to auto-compute from ingredients. Select tags to override.
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {DIETARY_TAGS.filter(
               tag =>

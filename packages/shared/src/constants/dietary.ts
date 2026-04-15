@@ -18,12 +18,13 @@ export const DIETARY_TAGS = [
   { value: 'hindu', label: 'Hindu', icon: '🕉️' },
   { value: 'kosher', label: 'Kosher', icon: '✡️' },
   { value: 'jain', label: 'Jain', icon: '☸️' },
+  { value: 'buddhist', label: 'Buddhist', icon: '☸️' },
 ] as const;
 
 export type DietaryTagCode = (typeof DIETARY_TAGS)[number]['value'];
 
 /** Subset of dietary tag codes that represent religious dietary laws. */
-export const RELIGIOUS_REQUIREMENTS = ['halal', 'hindu', 'kosher', 'jain'] as const;
+export const RELIGIOUS_REQUIREMENTS = ['halal', 'hindu', 'kosher', 'jain', 'buddhist'] as const;
 
 /** Values must match allergens.code in the DB. */
 export const ALLERGENS = [

@@ -107,7 +107,7 @@ Given a dish name and optional description, infer the most likely:
 1. Main ingredients (max 8 canonical names, common English)
 2. Dish type (e.g. "grilled meat", "pasta", "salad", "soup", "dessert", "drink")
 3. Any notes about cuisine or preparation
-4. Likely allergens (from: dairy, eggs, fish, shellfish, tree_nuts, peanuts, wheat, soy, sesame)
+4. Likely allergens (canonical codes only: lactose, gluten, peanuts, soy, sesame, shellfish, nuts)
 5. A dish category (e.g. "Pizza", "Burger", "Salad", "Soup", "Taco", "Bowl", "Sandwich", "Pasta", "Dessert")
 
 Respond ONLY with valid JSON in this exact schema:
@@ -154,7 +154,10 @@ CRITICAL: Allergen inference is for SUGGESTION only (admin review required). Be 
     if (!content) return null;
 
     if (choice?.finish_reason === 'length') {
-      console.warn('[enrich-dish] GPT response truncated (finish_reason=length) — enrichment may be incomplete for dish:', name);
+      console.warn(
+        '[enrich-dish] GPT response truncated (finish_reason=length) — enrichment may be incomplete for dish:',
+        name
+      );
     }
 
     const parsed = JSON.parse(content);
@@ -379,11 +382,7 @@ serve(async (req: Request) => {
         .select('name, options(name)')
         .eq('dish_id', dishId)
         .eq('is_active', true),
-      supabase
-        .from('restaurants')
-        .select('cuisine_types')
-        .eq('id', dish.restaurant_id)
-        .single(),
+      supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
       dish.parent_dish_id
         ? supabase.from('dishes').select('name').eq('id', dish.parent_dish_id).single()
         : Promise.resolve({ data: null, error: null }),
@@ -461,10 +460,7 @@ serve(async (req: Request) => {
         // AI call failed — mark as failed so the dish is visible for retry,
         // rather than silently completing with low-confidence/empty data.
         console.warn('[enrich-dish] AI enrichment returned null — marking dish as failed:', dishId);
-        await supabase
-          .from('dishes')
-          .update({ enrichment_status: 'failed' })
-          .eq('id', dishId);
+        await supabase.from('dishes').update({ enrichment_status: 'failed' }).eq('id', dishId);
         return new Response(JSON.stringify({ error: 'AI enrichment failed', dish_id: dishId }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

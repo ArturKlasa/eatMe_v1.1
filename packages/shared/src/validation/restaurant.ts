@@ -68,6 +68,25 @@ export const dishSchema = z.object({
   display_price_prefix: z
     .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
     .default('exact'),
+  /** True when this dish is a parent container whose real choices live in variants[]. */
+  is_parent: z.boolean().default(false).optional(),
+  /** Child variants. Each variant is persisted as its own dish row with parent_dish_id set. */
+  variants: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string().min(1, 'Variant name is required'),
+        price: z.number().min(0).max(10000),
+        description: z.string().optional().or(z.literal('')),
+        serves: z.number().int().min(1).default(1).optional(),
+        display_price_prefix: z
+          .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
+          .default('exact')
+          .optional(),
+      })
+    )
+    .optional()
+    .default([]),
   option_groups: z // customisation groups for template/experience dish kinds
     .array(
       z.object({

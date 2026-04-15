@@ -37,7 +37,6 @@ export interface RestaurantWithDistance {
   /** Keyed by lowercase day name. Absent days are treated as closed. */
   open_hours?: Record<string, { open: string; close: string }> | null;
   payment_methods?: 'cash_only' | 'card_only' | 'cash_and_card' | null;
-  dietary_certifications?: string[] | null;
   distance: number;
   menus?: Array<{
     id: string;

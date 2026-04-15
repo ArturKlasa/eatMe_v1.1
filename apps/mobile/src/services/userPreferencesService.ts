@@ -2,25 +2,8 @@ import { supabase } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
 import type { PermanentFilters } from '../stores/filterStore';
 
-const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
-  lactose: 'lactose',
-  gluten: 'gluten',
-  peanuts: 'peanuts',
-  soy: 'soybeans', // JSONB key 'soy' → DB code 'soybeans'
-  sesame: 'sesame',
-  shellfish: 'shellfish',
-  nuts: 'tree_nuts', // JSONB key 'nuts' → DB code 'tree_nuts'
-};
-
-const DB_TO_ALLERGY: Record<string, keyof PermanentFilters['allergies']> = {
-  lactose: 'lactose',
-  gluten: 'gluten',
-  peanuts: 'peanuts',
-  soybeans: 'soy',
-  sesame: 'sesame',
-  shellfish: 'shellfish',
-  tree_nuts: 'nuts',
-};
+// Migration 093 unified allergen codes to canonical shorts (soy, nuts) so the
+// filterStore key equals the DB code — no remap needed for allergies.
 
 const EXCLUDE_TO_DB: Record<keyof PermanentFilters['exclude'], string> = {
   noMeat: 'vegetarian',
@@ -29,15 +12,6 @@ const EXCLUDE_TO_DB: Record<keyof PermanentFilters['exclude'], string> = {
   noEggs: 'no_eggs',
   noDairy: 'dairy_free',
   noSpicy: 'no_spicy',
-};
-
-const DB_TO_EXCLUDE: Record<string, keyof PermanentFilters['exclude']> = {
-  vegetarian: 'noMeat',
-  no_fish: 'noFish',
-  no_seafood: 'noSeafood',
-  no_eggs: 'noEggs',
-  dairy_free: 'noDairy',
-  no_spicy: 'noSpicy',
 };
 
 const DIET_TYPE_TO_DB: Record<keyof PermanentFilters['dietTypes'], string> = {
@@ -169,7 +143,7 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
       Object.entries(filters.allergies) as [keyof PermanentFilters['allergies'], boolean][]
     )
       .filter(([_, active]) => active)
-      .map(([key]) => ALLERGY_TO_DB[key]),
+      .map(([key]) => key),
     exclude: (Object.entries(filters.exclude) as [keyof PermanentFilters['exclude'], boolean][])
       .filter(([_, active]) => active)
       .map(([key]) => EXCLUDE_TO_DB[key]),
@@ -199,10 +173,10 @@ export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<Perman
       lactose: allergySet.has('lactose'),
       gluten: allergySet.has('gluten'),
       peanuts: allergySet.has('peanuts'),
-      soy: allergySet.has('soybeans'),
+      soy: allergySet.has('soy'),
       sesame: allergySet.has('sesame'),
       shellfish: allergySet.has('shellfish'),
-      nuts: allergySet.has('tree_nuts'),
+      nuts: allergySet.has('nuts'),
     },
     exclude: {
       noMeat: excludeSet.has('vegetarian'),

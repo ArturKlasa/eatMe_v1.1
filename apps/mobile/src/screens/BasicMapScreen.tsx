@@ -54,8 +54,6 @@ interface MapRestaurant {
   distance?: string;
   /** Raw numeric distance from the Edge Function in km — used for sorting. */
   distanceKm?: number;
-  /** Dietary certifications from the DB `dietary_certifications` column. */
-  dietaryCertifications?: string[];
 }
 
 /** Map-display view model for dishes. Not the same as the DB Dish type — includes pre-computed map fields (coordinates, restaurantName, etc.). */
@@ -151,7 +149,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         openingHours: todayEntry ?? { open: '09:00', close: '22:00' },
         distance: formatDistance(r.distance),
         distanceKm: r.distance,
-        dietaryCertifications: r.dietary_certifications ?? [],
       };
     }) as MapRestaurant[];
   }, [nearbyRestaurants]);
@@ -413,19 +410,15 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           { text: t('common.cancel'), style: 'cancel' },
         ]);
       } else {
-        Alert.alert(
-          t('map.locationUnavailable'),
-          t('map.locationAccessError'),
-          [{ text: t('common.ok') }]
-        );
+        Alert.alert(t('map.locationUnavailable'), t('map.locationAccessError'), [
+          { text: t('common.ok') },
+        ]);
       }
     } catch (error) {
       debugLog('Location button error:', error);
-      Alert.alert(
-        t('map.locationError'),
-        t('map.locationErrorMessage'),
-        [{ text: t('common.ok') }]
-      );
+      Alert.alert(t('map.locationError'), t('map.locationErrorMessage'), [
+        { text: t('common.ok') },
+      ]);
     }
   };
 
@@ -603,11 +596,9 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         }}
         onDidFailLoadingMap={() => {
           debugLog('Map failed to load');
-          Alert.alert(
-            t('map.mapLoadErrorTitle'),
-            t('map.mapLoadError'),
-            [{ text: t('common.ok') }]
-          );
+          Alert.alert(t('map.mapLoadErrorTitle'), t('map.mapLoadError'), [
+            { text: t('common.ok') },
+          ]);
         }}
       >
         <Camera

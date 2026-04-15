@@ -35,11 +35,6 @@ export interface Restaurant {
   isOpen: boolean;
   /** Distance from the user in kilometres — populated from the nearby-restaurants Edge Function. */
   distanceKm?: number;
-  /**
-   * Dietary certifications held by the restaurant (e.g. 'halal', 'kosher', 'vegan', 'vegetarian').
-   * Sourced from the DB `dietary_certifications` column.
-   */
-  dietaryCertifications?: string[];
 }
 
 export interface FilterResult {
@@ -96,17 +91,8 @@ function applyPermanentFilters(
   let filtered = restaurants;
 
   if (permanentFilters.dietPreference !== 'all') {
-    filtered = filtered.filter(restaurant => {
-      const certs = restaurant.dietaryCertifications ?? [];
-      switch (permanentFilters.dietPreference) {
-        case 'vegan':
-          return certs.includes('vegan');
-        case 'vegetarian':
-          return certs.includes('vegetarian') || certs.includes('vegan');
-        default:
-          return true;
-      }
-    });
+    // Diet is enforced at dish level via the feed Edge Function (generate_candidates).
+    // Surface the constraint in the summary only.
     filterSummary.push(`Diet: ${permanentFilters.dietPreference}`);
   }
 
@@ -125,11 +111,7 @@ function applyPermanentFilters(
     .map(([requirement, _]) => requirement);
 
   if (activeReligious.length > 0) {
-    // Filter by dietary certifications stored on the restaurant record.
-    filtered = filtered.filter(restaurant => {
-      const certs = restaurant.dietaryCertifications ?? [];
-      return activeReligious.every(r => certs.includes(r));
-    });
+    // Religious restrictions are enforced at dish level via the feed Edge Function.
     filterSummary.push(`Religious: ${activeReligious.join(', ')}`);
   }
 
@@ -171,12 +153,7 @@ function applyDailyFilters(
 
   const { vegetarian: wantsVegetarian, vegan: wantsVegan } = dailyFilters.dietPreference;
   if (wantsVegetarian || wantsVegan) {
-    filtered = filtered.filter(restaurant => {
-      const certs = restaurant.dietaryCertifications ?? [];
-      if (wantsVegan) return certs.includes('vegan');
-      if (wantsVegetarian) return certs.includes('vegetarian') || certs.includes('vegan');
-      return true;
-    });
+    // Enforced at dish level via the feed Edge Function; summary only here.
     const labels = [wantsVegetarian && 'Vegetarian', wantsVegan && 'Vegan'].filter(Boolean);
     filterSummary.push(`Diet: ${labels.join(', ')}`);
   }

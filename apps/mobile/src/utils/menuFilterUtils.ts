@@ -11,16 +11,17 @@
 
 import type { PermanentFilters, IngredientToAvoid } from '../stores/filterStore';
 
-// Mirrors ALLERGY_TO_DB from userPreferencesService.ts.
-// Kept local so this util has no circular dependency on the service.
+// Migration 093 unified allergen codes to their canonical shorts — filterStore
+// keys are now identical to DB codes. Kept as an identity map so any residual
+// caller (and the RestaurantDetailScreen import below) still works unchanged.
 export const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
   lactose: 'lactose',
   gluten: 'gluten',
   peanuts: 'peanuts',
-  soy: 'soybeans',
+  soy: 'soy',
   sesame: 'sesame',
   shellfish: 'shellfish',
-  nuts: 'tree_nuts',
+  nuts: 'nuts',
 };
 
 // Religious restriction filterStore key → dietary_tag code on dishes

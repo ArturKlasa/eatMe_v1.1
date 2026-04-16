@@ -1,98 +1,136 @@
-# Research + Execute: Lines-of-Code Reduction
+# Codebase Review (read-only)
 
 ## Goal
 
-Investigate whether the EatMe codebase can be made smaller **without removing
-any functionality**, and if so, apply the reductions. This task has a research
-phase followed by an execution phase — both driven by Ralph.
+Review the entire EatMe monorepo and produce a written report of issues
+ranked by severity. This is a **read-only** pass: the loop MUST NOT modify
+any source file, MUST NOT create git commits, and MUST NOT run any tool
+in write mode.
 
-Output lives under `.agents/research/loc-reduction-2026-04-13/` plus the actual
-code edits in the tracked source tree.
+All output lives under
+`.agents/research/codebase-review-2026-04-16/` plus
+`.agent/scratchpad.md` (the agenda). No other files are writable.
 
-## What counts as a valid reduction
+## What the review must cover
 
-All of these are acceptable as long as behaviour is preserved:
+Scan for issues in these categories. Every finding must cite `file:line`.
 
-1. **Dead code** — unused exports, unreferenced functions/components/types,
-   unreachable branches, commented-out blocks.
-2. **Duplication** — identical or near-identical blocks that can collapse to a
-   shared helper already in `packages/shared`, `@eatme/tokens`, or a local util.
-3. **Over-abstraction** — one-call-site wrappers, pass-through components,
-   single-use interfaces that only rename an existing type.
-4. **Verbose syntax** — explicit returns around single expressions, redundant
-   `as` casts, needless `React.FC<{}>` generics, unnecessary intermediate
-   variables, manual loops that are a single `.map`/`.filter`.
-5. **Redundant types** — duplicate Zod/TS definitions that exist in
-   `@eatme/shared` already.
-6. **Comment bloat** — multi-paragraph JSDoc on obvious code, stale TODO
-   comments that reference shipped work, section banners that aren't load-bearing.
+1. **Security** — RLS policies (every new table needs RLS with `owner_id`
+   FK to `auth.users`), auth/session handling, secret exposure, injection
+   vectors (SQL, XSS, command), unsafe deserialisation, open redirects.
+2. **Correctness** — race conditions, nullability holes, PostGIS POINT
+   order (`POINT(lng lat)` not `POINT(lat lng)`), timezone/currency
+   handling, Zod schemas that drift from runtime shape, off-by-one.
+3. **Performance** — N+1 queries, missing indexes, unnecessary
+   re-renders, oversized client bundles, unbatched network calls.
+4. **Maintainability** — duplicate logic, god-components, unclear
+   naming, excessive `as` casts / `any`, dead code, commented-out blocks.
+5. **Accessibility** (web-portal) — missing labels, keyboard traps,
+   focus management, colour contrast from tokens.
+6. **Convention adherence** — departures from `CLAUDE.md` and
+   `agent_docs/` (e.g. transpilePackages for TS-source workspace pkgs,
+   explicit env var passing to the Supabase client factory, localStorage
+   draft-persistence keys).
+7. **Developer experience** — broken scripts, missing type-check coverage,
+   flaky or missing tests on high-risk surfaces.
 
-## What is NOT a valid reduction
+## Severity and confidence taxonomy
 
-- Removing error handling at system boundaries (API routes, external calls)
-- Inlining code that exists for RLS, security, or audit reasons
-- Collapsing Supabase SQL migrations
-- Deleting tests to reduce test LOC
-- Minifying — we count human-readable lines, not compressed ones
-- Anything that changes observable behaviour, even subtly
+- **Severity**: `critical` (data loss / security breach / outage),
+  `high` (user-visible bug or realistic security risk),
+  `medium` (latent bug, maintainability debt likely to bite),
+  `low` (minor polish), `info` (observation, no action needed).
+- **Confidence**: `confirmed` (verified by reading all relevant code),
+  `likely` (strong signal, one reasonable alternative explanation),
+  `needs-verification` (requires runtime trace, DB state, or product
+  context to resolve). Needs-verification items go in a separate queue
+  in the final summary, not mixed with confirmed findings.
 
-If in doubt, leave it and note it in `not-recommended.md`.
+## What is NOT part of this task
 
-## Scope
+- Writing or editing any source file (including tests, configs, styles,
+  types). If a fix seems obvious, document it as a suggestion — do not
+  apply it.
+- Git commits, branch creation, pushes, or stashes of any kind.
+- Editing existing Supabase migrations. You may recommend a NEW migration
+  but you must not create the file.
+- Reviewing generated files (`*.generated.ts`, Supabase types under
+  `packages/database/src/types/`) — not human-authored.
+- Reviewing `node_modules/`, lockfiles, build output, or vendored code.
 
-**In scope (in priority order):**
-- `apps/web-portal/` — Next.js app (largest surface, most TS churn)
-- `apps/mobile/` — Expo app
-- `packages/shared/`, `packages/database/`, `packages/tokens/` — watch for
-  duplication *between* these and consumers
-- Root config files if clearly redundant
+## Scope (in priority order)
 
-**Out of scope:**
-- `infra/supabase/migrations/` — migrations are append-only history
-- Generated files (`*.generated.ts`, Supabase types)
-- `node_modules/`, lockfiles, build output
-- Third-party vendored code
-
-## Hard constraints
-
-- **Functionality preservation is non-negotiable.** After every implementer
-  iteration: `turbo check-types` and `turbo lint` must pass. If a test suite
-  covers the touched area (`turbo test` for web-portal), run it.
-- **Small, reversible commits.** One topic per commit, with a message like
-  `refactor(loc): <topic> — removes N lines`. Never bundle unrelated topics.
-- **Cite file:line for every claim** made about the current code.
-- **Skip, don't force.** If a topic turns out to not be safely reducible,
-  mark it skipped in the scratchpad and move on — do not hack around it.
+- `apps/web-portal/` — Next.js 16 + React 19, admin menu-scan pipeline,
+  form handling (react-hook-form + Zod), server actions, routing.
+- `apps/mobile/` — Expo 54 + RN 0.81, Zustand stores, Mapbox integration,
+  i18next (en/es/pl).
+- `packages/shared/` — Zod schemas, TS types, constants. Watch for
+  duplication with consumers.
+- `packages/database/` — Supabase client factory, env var handling,
+  generated types boundary.
+- `packages/tokens/` — design tokens and their consumer usage.
+- `infra/supabase/migrations/` — review for RLS, FK integrity, indexes.
+  Read-only: do not propose edits, only new-migration suggestions.
+- Root config: `turbo.json`, workspace `package.json` files, `tsconfig.json`.
 
 ## Deliverables
 
-1. `.agent/scratchpad.md` — agenda of 6-12 reduction topics, each marked
-   `[ ]` (pending), `[x]` (applied), or `[~]` (investigated but skipped).
-2. `.agents/research/loc-reduction-2026-04-13/<slug>.md` for each topic:
-   - Current state (file:line)
-   - Proposed reduction
-   - Estimated LOC savings
-   - Risk assessment (why functionality is preserved)
-   - Decision: apply / skip / defer
-3. `.agents/research/loc-reduction-2026-04-13/00-summary.md`:
-   - Executive summary
-   - Table: Topic | Status | LOC removed | Files touched
-   - Grand total LOC delta (measured via `git diff --shortstat` on the
-     accumulated commits)
-   - "Not recommended" section for ideas investigated but rejected
-4. Git history: one commit per applied topic on the current branch.
+1. **`.agent/scratchpad.md`** — agenda of 8-14 review AREAS, each marked
+   `[ ]` (pending) or `[x]` (reviewed). No `[~]` — every area must get
+   reviewed in read-only mode since there is no "too risky to attempt".
+
+2. **`.agents/research/codebase-review-2026-04-16/<slug>.md`** for each
+   area, with:
+   - Scope reviewed (files/dirs actually read, with line ranges).
+   - Findings list, each with severity, category, `file:line`,
+     observation, why-it-matters, suggested direction, confidence,
+     evidence.
+   - "No issues found in" list — sub-areas checked clean.
+   - Follow-up questions list — items needing runtime context.
+
+3. **`.agents/research/codebase-review-2026-04-16/00-summary.md`** with:
+   - Executive summary (4-8 sentences).
+   - Severity rollup (counts across entire review).
+   - Top 5-10 findings across all areas, with links to detail files.
+   - Areas table: Area | Status | Findings count | Highest severity |
+     Detail file.
+   - Category heatmap.
+   - Needs-verification queue.
+   - Out-of-scope list with reasons.
+   - Recommended next steps (ordered, grouped by severity).
+
+## Hard constraints
+
+- **No source edits.** Not to `apps/`, `packages/`, `infra/`, or root.
+- **No git mutations.** `git log`, `git blame`, `git diff`, `git show`
+  are fine. `git add`, `git commit`, `git checkout -- <file>`,
+  `git reset`, `git push` are forbidden.
+- **Cite `file:line` for every claim.** If you cannot point to a line,
+  it is not a finding yet — either verify or demote to
+  "needs-verification".
+- **Write only to the review directory and the scratchpad.** Any other
+  write is a bug in the loop.
+- **No minification or "summary LOC" theatrics.** This is a review task,
+  not a reduction task.
 
 ## Acceptance criteria
 
-- [ ] `.agent/scratchpad.md` contains 6-12 topics, each resolved to `[x]` or `[~]`
-- [ ] Every topic has a detail file under the research directory
-- [ ] `00-summary.md` exists with executive summary, status table, total delta,
-      and a "Not recommended" section
-- [ ] `turbo check-types` passes
-- [ ] `turbo lint` passes
-- [ ] `turbo test` passes (web-portal Vitest suite)
-- [ ] `git log` shows one focused commit per applied topic
-- [ ] Net LOC delta in the summary is negative (i.e. lines actually went down)
+- [ ] `.agent/scratchpad.md` has 8-14 review areas, all marked `[x]`
+- [ ] Every area has a detail file under
+      `.agents/research/codebase-review-2026-04-16/` with at least the
+      "Scope reviewed" and "Findings" (or "No issues found") sections
+- [ ] `00-summary.md` exists with executive summary, severity rollup,
+      top findings, areas table, category heatmap, needs-verification
+      queue, out-of-scope list, and recommended next steps
+- [ ] Every finding in every detail file has severity, category,
+      `file:line`, and confidence
+- [ ] No tracked files outside `.agent/` and
+      `.agents/research/codebase-review-2026-04-16/` have been modified
+      (verify with `git status` — working tree should be clean for
+      everything else)
+- [ ] No git commits were created during the loop
+      (verify with `git log origin/main..HEAD` or equivalent — should
+      show no new commits)
 
 ## Output signal
 

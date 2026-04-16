@@ -26,6 +26,7 @@ interface ReviewDeps {
   selectedRestaurant: RestaurantOption | null;
   previewUrls: string[];
   setStep: (step: Step) => void;
+  onSaveSuccess?: () => void;
 }
 
 /** Manages review-phase state: menu/dish editing, ingredient resolution, save */
@@ -146,8 +147,10 @@ export function useReviewState(deps: ReviewDeps) {
 
       setSavedCount(data.dishes_saved);
       deps.previewUrls.forEach(url => URL.revokeObjectURL(url));
-      deps.setStep('done');
-      toast.success(`${data.dishes_saved} dishes saved!`);
+      toast.success(
+        `${data.dishes_saved} dishes saved to ${deps.selectedRestaurant?.name ?? 'restaurant'}!`
+      );
+      deps.onSaveSuccess?.();
     } catch (err: unknown) {
       console.error('[MenuScan] Save error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save');

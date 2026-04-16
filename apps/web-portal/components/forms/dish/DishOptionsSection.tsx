@@ -12,11 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DISPLAY_PRICE_PREFIXES,
-  SELECTION_TYPES,
-  OPTION_PRESETS,
-} from '@eatme/shared';
+import { DISPLAY_PRICE_PREFIXES, SELECTION_TYPES, OPTION_PRESETS } from '@eatme/shared';
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import type { OptionGroup } from '@eatme/shared';
 import type { DishFormData } from '@eatme/shared';
@@ -129,126 +125,127 @@ export function DishOptionsSection({
         <div className="space-y-4">
           {optionGroups.map((group, gi) => (
             <div key={gi} className="rounded-lg border p-3 space-y-3 bg-muted/30">
-              {/* Group header */}
-              <div className="flex items-center gap-2">
+              {/* Group header: name on its own row; controls wrap beneath. */}
+              <div className="space-y-2">
                 <Input
                   value={group.name}
                   onChange={e =>
                     onOptionGroupsChange(
-                      optionGroups.map((g, i) =>
-                        i === gi ? { ...g, name: e.target.value } : g
-                      )
+                      optionGroups.map((g, i) => (i === gi ? { ...g, name: e.target.value } : g))
                     )
                   }
                   placeholder="Group name (e.g. Protein)"
-                  className="flex-1 text-sm h-8"
+                  className="text-sm h-9"
                 />
-                <Select
-                  value={group.selection_type}
-                  onValueChange={val =>
-                    onOptionGroupsChange(
-                      optionGroups.map((g, i) =>
-                        i === gi
-                          ? {
-                              ...g,
-                              selection_type: val as 'single' | 'multiple' | 'quantity',
-                            }
-                          : g
-                      )
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-36 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SELECTION_TYPES.map(st => (
-                      <SelectItem key={st.value} value={st.value} className="text-xs">
-                        {st.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Min/Max selections */}
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={group.min_selections ?? 0}
-                    onChange={e =>
-                      onOptionGroupsChange(
-                        optionGroups.map((g, i) =>
-                          i === gi ? { ...g, min_selections: Number(e.target.value) } : g
-                        )
-                      )
-                    }
-                    className="w-12 h-8 text-xs text-center"
-                    title="Min selections"
-                  />
-                  <span className="text-xs text-muted-foreground">–</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    placeholder="∞"
-                    value={group.max_selections ?? ''}
-                    onChange={e =>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={group.selection_type}
+                    onValueChange={val =>
                       onOptionGroupsChange(
                         optionGroups.map((g, i) =>
                           i === gi
                             ? {
                                 ...g,
-                                max_selections: e.target.value
-                                  ? Number(e.target.value)
-                                  : null,
+                                selection_type: val as 'single' | 'multiple' | 'quantity',
                               }
                             : g
                         )
                       )
                     }
-                    className="w-12 h-8 text-xs text-center"
-                    title="Max selections (blank = unlimited)"
-                  />
+                  >
+                    <SelectTrigger className="w-36 h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SELECTION_TYPES.map(st => (
+                        <SelectItem key={st.value} value={st.value} className="text-xs">
+                          {st.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Min/Max selections */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">min</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={group.min_selections ?? 0}
+                      onChange={e =>
+                        onOptionGroupsChange(
+                          optionGroups.map((g, i) =>
+                            i === gi ? { ...g, min_selections: Number(e.target.value) } : g
+                          )
+                        )
+                      }
+                      className="w-14 h-8 text-xs text-center"
+                      title="Min selections"
+                    />
+                    <span className="text-xs text-muted-foreground">max</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="∞"
+                      value={group.max_selections ?? ''}
+                      onChange={e =>
+                        onOptionGroupsChange(
+                          optionGroups.map((g, i) =>
+                            i === gi
+                              ? {
+                                  ...g,
+                                  max_selections: e.target.value ? Number(e.target.value) : null,
+                                }
+                              : g
+                          )
+                        )
+                      }
+                      className="w-14 h-8 text-xs text-center"
+                      title="Max selections (blank = unlimited)"
+                    />
+                  </div>
+
+                  {/* Reorder + delete — pushed right on wide screens, wraps on narrow. */}
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={gi === 0}
+                      onClick={() => {
+                        const next = [...optionGroups];
+                        [next[gi - 1], next[gi]] = [next[gi], next[gi - 1]];
+                        onOptionGroupsChange(next);
+                      }}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={gi === optionGroups.length - 1}
+                      onClick={() => {
+                        const next = [...optionGroups];
+                        [next[gi], next[gi + 1]] = [next[gi + 1], next[gi]];
+                        onOptionGroupsChange(next);
+                      }}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => onOptionGroupsChange(optionGroups.filter((_, i) => i !== gi))}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-                {/* Reorder */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={gi === 0}
-                  onClick={() => {
-                    const next = [...optionGroups];
-                    [next[gi - 1], next[gi]] = [next[gi], next[gi - 1]];
-                    onOptionGroupsChange(next);
-                  }}
-                >
-                  <ChevronUp className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={gi === optionGroups.length - 1}
-                  onClick={() => {
-                    const next = [...optionGroups];
-                    [next[gi], next[gi + 1]] = [next[gi + 1], next[gi]];
-                    onOptionGroupsChange(next);
-                  }}
-                >
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() =>
-                    onOptionGroupsChange(optionGroups.filter((_, i) => i !== gi))
-                  }
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
               </div>
 
               {/* Options list */}
@@ -286,9 +283,7 @@ export function DishOptionsSection({
                               ? {
                                   ...g,
                                   options: g.options.map((o, j) =>
-                                    j === oi
-                                      ? { ...o, price_delta: Number(e.target.value) }
-                                      : o
+                                    j === oi ? { ...o, price_delta: Number(e.target.value) } : o
                                   ),
                                 }
                               : g
@@ -306,9 +301,7 @@ export function DishOptionsSection({
                       onClick={() =>
                         onOptionGroupsChange(
                           optionGroups.map((g, i) =>
-                            i === gi
-                              ? { ...g, options: g.options.filter((_, j) => j !== oi) }
-                              : g
+                            i === gi ? { ...g, options: g.options.filter((_, j) => j !== oi) } : g
                           )
                         )
                       }

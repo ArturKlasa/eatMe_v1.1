@@ -1,9 +1,11 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Lines-of-Code Reduction (research + execute)
-# Task: Investigate whether the codebase can be shrunk without removing
-#       functionality, then apply the reductions topic-by-topic.
-# Pattern: planner → researcher (loop) → implementer (loop) → verifier → LOOP_COMPLETE
-# Mode: WRITE. Source edits allowed. One commit per applied topic.
+# Project: EatMe — Codebase Review (read-only)
+# Task: Review the entire EatMe monorepo for correctness, security,
+#       maintainability, and convention-adherence issues. Produce findings
+#       only — NO code changes, NO commits, NO file edits outside the
+#       review output directory.
+# Pattern: scoper → reviewer (loop per area) → synthesizer → LOOP_COMPLETE
+# Mode: READ-ONLY. Source edits are forbidden.
 # Docs: https://mikeyobrien.github.io/ralph-orchestrator/
 
 cli:
@@ -12,26 +14,25 @@ cli:
 
 event_loop:
   completion_promise: "LOOP_COMPLETE"
-  starting_event: "loc.start"
+  starting_event: "review.start"
   max_iterations: 60
   max_runtime_seconds: 14400       # 4 hours
   idle_timeout_secs: 900
-  checkpoint_interval: 3
+  checkpoint_interval: 5
 
 core:
   specs_dir: ".agents/research/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "Functionality preservation is non-negotiable. No observable behaviour change is allowed."
-    - "All research output lives under .agents/research/loc-reduction-2026-04-13/ only."
-    - "Source edits must pass `turbo check-types` and `turbo lint` before committing. Run `turbo test` if the web-portal Vitest suite covers the touched area."
-    - "One topic = one git commit with message `refactor(loc): <topic> — removes N lines`. Never bundle unrelated topics."
-    - "Migrations under infra/supabase/migrations/ are append-only — never edit or delete."
-    - "Generated files (*.generated.ts, Supabase types) are off-limits."
-    - "Every claim about current code must cite file:line."
-    - "If a reduction turns out not to be safe, mark the topic [~] (skipped) in the scratchpad and move on. Do not force it."
-    - "No minification. We count human-readable lines."
-    - "Never skip git hooks (--no-verify) or bypass signing."
+    - "READ-ONLY MODE. Do not edit, create, move, or delete any file under apps/, packages/, infra/, or the repo root. The only writable locations are `.agent/scratchpad.md` and `.agents/research/codebase-review-2026-04-16/`."
+    - "Never run `git add`, `git commit`, `git push`, `git reset`, `git checkout -- <files>`, or any command that mutates tracked files. Read-only git commands (`git log`, `git blame`, `git diff`, `git show`) are fine."
+    - "Do not run code formatters, linters, or codegen in write mode. `turbo check-types`, `turbo lint`, read-only CLI tools are allowed for evidence gathering."
+    - "Every finding must cite file:line. Unverified claims are not findings — verify with a second read before recording."
+    - "Migrations under infra/supabase/migrations/ are read-only history. Review them for issues but never propose edits to existing migrations — only new-migration recommendations."
+    - "Generated files (*.generated.ts, Supabase types in packages/database/src/types/) are off-limits to review — they are not human-authored."
+    - "Classify every finding with severity (critical | high | medium | low | info) and category (security | correctness | performance | maintainability | a11y | conventions | dx)."
+    - "If a suspected issue cannot be confirmed from code inspection alone, mark it `needs-verification` with a concrete repro or question rather than asserting a defect."
+    - "Never skip git hooks. Never bypass signing. Never force-push. These do not apply in read-only mode but the prohibition stands."
 
 memories:
   enabled: true
@@ -44,186 +45,180 @@ tasks:
   enabled: true
 
 hats:
-  planner:
-    name: "Reduction Planner"
-    emoji: "📋"
-    description: "Surveys the codebase and produces a prioritised agenda of LOC-reduction topics"
+  scoper:
+    name: "Review Scoper"
+    emoji: "🗺️"
+    description: "Surveys the repo and produces a prioritised agenda of review areas"
     instructions: |
-      You are a code auditor scoping a lines-of-code reduction pass for the
-      EatMe monorepo.
+      You are scoping a read-only codebase review of the EatMe monorepo.
+      No source edits are permitted in any hat of this loop.
 
       Read in order:
-      1. PROMPT.md — task goal, valid/invalid reductions, acceptance criteria
-      2. CLAUDE.md — project conventions
+      1. PROMPT.md — review goal, scope, deliverables, acceptance criteria
+      2. CLAUDE.md — project conventions and pitfalls
       3. agent_docs/architecture.md — package relationships
-      4. Top-level `apps/` and `packages/` structure
+      4. Top-level `apps/` and `packages/` structure (use `ls`/Glob, not `tree`)
 
-      Then produce an agenda of 6-12 reduction topics. Good sources of candidates:
-      - `tsc --noEmit` + unused-exports scan (e.g. `knip`, `ts-prune`) if
-        available; otherwise grep for exported symbols with zero references
-      - Duplicate Zod/TS schemas between `packages/shared` and consumers
-      - One-call-site wrappers (single-use components, single-use helpers)
-      - Commented-out code, stale TODOs referencing shipped work
-      - Verbose JSDoc banners that describe obvious code
-      - Redundant `as Type` casts, `React.FC<{}>` generics with no props
-      - Dead branches (`if (false)`, flag-gated code for shipped flags)
-      - Over-long style objects that could fold into existing atomic styles
+      Produce an agenda of 8-14 review AREAS (not individual bugs — areas).
+      Good review areas include:
+      - `apps/web-portal` — Next.js routing, server actions, form handling
+      - `apps/web-portal` — admin menu-scan flow (AI pipeline surface)
+      - `apps/mobile` — Expo navigation + Zustand stores
+      - `apps/mobile` — i18n coverage (en/es/pl)
+      - `packages/database` — Supabase client factory, RLS assumptions
+      - `packages/shared` — Zod schemas, shared types, constants
+      - `packages/tokens` — design token usage consistency
+      - Supabase schema — RLS policies, FK integrity, indexes
+      - Auth & session handling — web portal + mobile
+      - PostGIS usage — POINT(lng lat) correctness across call sites
+      - Error handling at system boundaries (API routes, Supabase calls)
+      - Type safety — unsafe `as` casts, `any`, missing Zod parse
+      - Dependency hygiene — unused deps, version drift across workspaces
+      - Test coverage gaps in high-risk surfaces
 
-      Write the agenda to `.agent/scratchpad.md` in this format per topic:
+      Write the agenda to `.agent/scratchpad.md` in this format per area:
       ```
-      - [ ] LOC-01: <slug> — <1-line description>
-        - Hypothesis: <what looks reducible and why>
-        - Key files: <file:line references>
-        - Est. LOC savings: <number or range>
-        - Detail file: .agents/research/loc-reduction-2026-04-13/<slug>.md
+      - [ ] REV-01: <slug> — <1-line area description>
+        - Why it matters: <risk hypothesis>
+        - Key paths: <dirs / representative files>
+        - Focus categories: <security | correctness | perf | maintainability | a11y | conventions | dx>
+        - Detail file: .agents/research/codebase-review-2026-04-16/<slug>.md
       ```
 
-      Sort by expected savings × safety (deletions > dedup > style tweaks).
+      Sort by risk × surface area (security/correctness first, DX last).
 
-      Do NOT do the reductions yourself and do NOT edit source. Only scope.
+      Do NOT review in depth in this hat — only scope. Do NOT edit source.
       When the agenda is written, emit `agenda.ready`.
     triggers:
-      - "loc.start"
+      - "review.start"
     publishes:
       - "agenda.ready"
 
-  researcher:
-    name: "Reduction Researcher"
-    emoji: "🔬"
-    description: "For each topic, verifies the reduction is safe and writes a concrete changeset spec"
+  reviewer:
+    name: "Reviewer"
+    emoji: "🔍"
+    description: "Reviews one area per activation and writes a findings file"
     instructions: |
-      You are verifying that a proposed LOC reduction is safe before it gets
-      applied. Source edits are NOT allowed in this hat — research only.
+      You are reviewing ONE area per activation. READ-ONLY — no source edits.
 
       Start every activation by:
       1. Reading `.agent/scratchpad.md`
-      2. Picking the FIRST topic still marked `[ ]`
-      3. Reading the referenced files and every call site of the affected symbols
+      2. Picking the FIRST area still marked `[ ]`
+      3. Reading the referenced paths in depth (use Explore sub-agents for
+         wide traces, Grep/Read for targeted checks)
 
-      For deep call-site traces dispatch Explore sub-agents with specific briefs.
-      Use `grep -rn` for quick reference counts.
+      For each area, investigate against these categories as applicable:
+      - **security** — RLS bypass, missing auth checks, secret leakage,
+        SQL/XSS/command injection, open redirects, unsafe deserialisation
+      - **correctness** — race conditions, off-by-one, nullability holes,
+        PostGIS POINT order mistakes, floating-point money, timezone bugs,
+        Zod schemas that don't match runtime shape
+      - **performance** — N+1 queries, missing indexes, large client bundles,
+        unnecessary re-renders, unbatched network calls
+      - **maintainability** — duplicate logic, god-components, unclear
+        naming, missing types at boundaries, dead code, excessive casts
+      - **a11y** (web-portal only) — missing labels, color contrast in
+        tokens, keyboard traps, focus management
+      - **conventions** — departures from patterns documented in CLAUDE.md
+        and agent_docs/
+      - **dx** — broken scripts, missing type-check coverage, flaky tests
 
-      Write findings to `.agents/research/loc-reduction-2026-04-13/<slug>.md`:
+      Write findings to
+      `.agents/research/codebase-review-2026-04-16/<slug>.md` in this shape:
       ```
-      # <Topic title>
+      # <Area title>
 
-      ## Current state
-      (file:line citations for every claim)
+      ## Scope reviewed
+      List the files / directories actually read (with line ranges if partial).
 
-      ## Proposed reduction
-      Exact before/after — paste the lines to remove and any replacements.
+      ## Findings
 
-      ## Estimated LOC savings
-      <number>
+      ### REV-01-a: <short title>
+      - Severity: critical | high | medium | low | info
+      - Category: security | correctness | performance | maintainability | a11y | conventions | dx
+      - Location: `path/to/file.ts:42-58`
+      - Observation: What the code does today (cite file:line).
+      - Why it matters: Concrete risk or cost.
+      - Suggested direction: How a future fix might approach this (do NOT
+        implement — this is advisory only).
+      - Confidence: confirmed | likely | needs-verification
+      - Evidence: command output, cross-references, or quoted snippet.
 
-      ## Risk assessment
-      Why removing this preserves behaviour. List every call site checked.
+      ### REV-01-b: ...
 
-      ## Decision: apply | skip | defer
-      - apply: safe to implement, no side effects
-      - skip: turned out not reducible; explain why (will be marked [~])
-      - defer: requires larger refactor or human judgement; explain
+      ## No issues found in
+      Bullet list of sub-areas checked that came back clean — prevents
+      future passes from re-investigating.
+
+      ## Follow-up questions
+      Anything that would need runtime traces, DB inspection, or product
+      context to resolve. Frame as questions, not assertions.
       ```
 
-      When the topic is decided:
-      1. If decision is `apply` — leave the agenda item as `[ ]` and emit
-         `topic.ready-to-apply` so the implementer picks it up next.
-      2. If decision is `skip` or `defer` — mark the agenda item `[~]` in
-         the scratchpad and emit `topic.skipped` to loop back to yourself for
-         the next topic.
-      3. If no `[ ]` items remain — emit `research.complete` to hand off to
-         the verifier.
+      After writing the findings file:
+      1. Mark the agenda item `[x]` in `.agent/scratchpad.md` and append
+         `(N findings: <critical>c/<high>h/<medium>m/<low>l/<info>i)`.
+      2. If at least one `[ ]` area remains — emit `area.reviewed` to loop
+         back to yourself for the next area.
+      3. If no `[ ]` areas remain — emit `review.complete` to hand off to
+         the synthesizer.
+
+      You MUST NOT edit, create, or delete any file outside
+      `.agent/scratchpad.md` and
+      `.agents/research/codebase-review-2026-04-16/`.
     triggers:
       - "agenda.ready"
-      - "topic.applied"
-      - "topic.skipped"
+      - "area.reviewed"
     publishes:
-      - "topic.ready-to-apply"
-      - "topic.skipped"
-      - "research.complete"
+      - "area.reviewed"
+      - "review.complete"
 
-  implementer:
-    name: "Implementer"
-    emoji: "🛠️"
-    description: "Applies a single approved reduction, runs gates, commits on green"
+  synthesizer:
+    name: "Synthesizer"
+    emoji: "📊"
+    description: "Aggregates per-area findings into a single review report, emits LOOP_COMPLETE"
     instructions: |
-      You apply ONE reduction topic at a time. Before touching any file:
-      1. Read `.agent/scratchpad.md` to identify the topic currently being
-         applied (the most recent `[ ]` topic whose detail file exists with
-         decision `apply`).
-      2. Read the detail file at
-         `.agents/research/loc-reduction-2026-04-13/<slug>.md` to get the
-         exact before/after.
+      You finalise the review. READ-ONLY — no source edits.
 
-      Apply the edits precisely as specified in the detail file. Do not
-      improvise additional changes — if something extra looks reducible, note
-      it as a new topic in the scratchpad instead.
+      1. Read every file under
+         `.agents/research/codebase-review-2026-04-16/` (except any file
+         you are about to write).
 
-      After editing, run the gates IN ORDER. Stop at the first failure:
-      1. `turbo check-types`
-      2. `turbo lint`
-      3. `turbo test` — only if the touched code is under `apps/web-portal`
-         or covered by its Vitest suite.
+      2. Write
+         `.agents/research/codebase-review-2026-04-16/00-summary.md` with:
+         - **Executive summary** — 4-8 sentences: what was reviewed, the
+           top 3-5 risks, overall health signal.
+         - **Severity rollup** — counts by severity across the whole
+           review: `critical: N, high: N, medium: N, low: N, info: N`.
+         - **Top findings** — the 5-10 highest-severity items across all
+           areas, each as: title, severity, category, location
+           (`file:line`), one-sentence observation, link to the detail
+           file (markdown link).
+         - **Areas table** — columns: Area | Status | Findings count |
+           Highest severity | Detail file (markdown link).
+         - **Category heatmap** — findings count per category so the team
+           can see where systemic issues cluster.
+         - **Needs-verification queue** — every finding marked
+           `needs-verification` with the question or repro needed.
+         - **Out of scope / not reviewed** — anything intentionally
+           skipped with a brief reason (so future passes know).
+         - **Recommended next steps** — ordered list of concrete
+           follow-ups the team could take, grouped by severity.
 
-      If any gate fails:
-      - Try to fix the failure if it's an obvious fallout of the reduction
-        (e.g. an import left behind). If you can't fix it cleanly, REVERT
-        the edits (`git checkout -- <files>`), mark the topic `[~]` in the
-        scratchpad with a note "skipped: gate failure — <reason>", and emit
-        `topic.skipped`.
+      3. Sanity check acceptance criteria in PROMPT.md. If every box
+         ticks, emit `LOOP_COMPLETE`. If not, list unmet criteria at the
+         top of the summary and emit `area.reviewed` to loop back to the
+         reviewer for another pass (the reviewer will re-pick any `[ ]`
+         item — if none remain, add a new one to the agenda explaining
+         what still needs coverage).
 
-      If all gates pass:
-      1. Stage only the reduction's files: `git add <files>`
-      2. Commit with message:
-         `refactor(loc): <slug> — removes N lines`
-         Append the usual trailer (`Co-Authored-By: Claude ...`).
-      3. Mark the topic `[x]` in the scratchpad with the actual LOC delta
-         from `git diff HEAD~1 --shortstat`.
-      4. Emit `topic.applied` to hand back to the researcher for the next one.
-
-      Never use `--no-verify`. Never force-push. Never touch migrations or
-      generated files.
+      You MUST NOT edit, create, or delete any file outside
+      `.agents/research/codebase-review-2026-04-16/`.
     triggers:
-      - "topic.ready-to-apply"
-    publishes:
-      - "topic.applied"
-      - "topic.skipped"
-
-  verifier:
-    name: "Verifier"
-    emoji: "✅"
-    description: "Runs final gates, writes the summary report, emits LOOP_COMPLETE"
-    instructions: |
-      You finalise the reduction pass.
-
-      1. Run `turbo check-types && turbo lint && turbo test` one more time
-         against HEAD. If anything fails, DO NOT emit LOOP_COMPLETE — instead
-         write the failure into the scratchpad and emit `topic.skipped` to
-         hand back to the researcher for a repair pass.
-
-      2. Compute the net LOC delta across all commits made in this session:
-         `git log --format=%H --reverse <base>..HEAD` to list session commits,
-         then `git diff --shortstat <base>..HEAD` for the net delta.
-         (Use the first commit of the session as `<base>` — identify it by
-         the first `refactor(loc):` commit in `git log`.)
-
-      3. Write `.agents/research/loc-reduction-2026-04-13/00-summary.md`:
-         - **Executive summary** (3-5 sentences)
-         - **Status table** — columns: Topic | Status ([x]/[~]) | LOC removed |
-           Files touched | Commit SHA | Detail file (markdown link)
-         - **Totals** — lines added / removed / net delta
-         - **Not recommended** — one subsection per `[~]` topic explaining
-           why it was skipped (so future passes don't re-investigate)
-         - **Follow-ups** — any new topics spawned during implementation
-
-      4. Sanity check acceptance criteria from PROMPT.md. If every box can
-         be ticked, emit `LOOP_COMPLETE`. Otherwise list the unmet criteria
-         at the top of the summary and emit `topic.skipped` to continue.
-    triggers:
-      - "research.complete"
+      - "review.complete"
     publishes:
       - "LOOP_COMPLETE"
-      - "topic.skipped"
+      - "area.reviewed"
 
 features:
   parallel: false

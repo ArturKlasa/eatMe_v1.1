@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { toEditableMenus } from '@/lib/menu-scan';
@@ -20,10 +20,12 @@ import type { ScanJob } from './menuScanTypes';
 export function useMenuScan() {
   const { step, setStep } = useMenuScanStep();
   const upload = useUploadState();
+  const resetAllRef = useRef<() => void>(() => {});
   const review = useReviewState({
     selectedRestaurant: upload.selectedRestaurant,
     previewUrls: upload.previewUrls,
     setStep,
+    onSaveSuccess: () => resetAllRef.current(),
   });
   const group = useGroupState({
     editableMenus: review.editableMenus,
@@ -160,6 +162,10 @@ export function useMenuScan() {
     group.setFocusedGroupId(null);
     group.setBatchFilters({ confidenceMin: null, dishKind: null, hasGrouping: null });
   };
+
+  useEffect(() => {
+    resetAllRef.current = resetAll;
+  });
 
   return {
     // Step

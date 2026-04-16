@@ -3,7 +3,6 @@
 import { useMenuScan } from './hooks/useMenuScan';
 import { MenuScanUpload } from './components/MenuScanUpload';
 import { MenuScanReview } from './components/MenuScanReview';
-import { MenuScanDone } from './components/MenuScanDone';
 import { ScanJobQueue } from './components/ScanJobQueue';
 
 export default function MenuScanPage() {
@@ -49,16 +48,6 @@ export default function MenuScanPage() {
           />
         </div>
       </div>
-    );
-  }
-
-  if (state.step === 'done') {
-    return (
-      <MenuScanDone
-        savedCount={state.savedCount}
-        selectedRestaurant={state.selectedRestaurant}
-        resetAll={state.resetAll}
-      />
     );
   }
 

@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MenuScanUpload } from '@/app/admin/menu-scan/components/MenuScanUpload';
 import { MenuScanProcessing } from '@/app/admin/menu-scan/components/MenuScanProcessing';
-import { MenuScanDone } from '@/app/admin/menu-scan/components/MenuScanDone';
 import { MenuScanReview } from '@/app/admin/menu-scan/components/MenuScanReview';
 
 // ---------------------------------------------------------------------------
@@ -202,26 +201,6 @@ describe('MenuScanProcessing', () => {
     expect(screen.getByText('Resizing images')).toBeInTheDocument();
     expect(screen.getByText('Sending to AI')).toBeInTheDocument();
     expect(screen.getByText('Analysing menu')).toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// MenuScanDone tests
-// ---------------------------------------------------------------------------
-
-describe('MenuScanDone', () => {
-  it('renders "Saved Successfully!" heading', () => {
-    render(<MenuScanDone savedCount={12} selectedRestaurant={mockRestaurant} resetAll={noOp} />);
-    expect(screen.getByText('Saved Successfully!')).toBeInTheDocument();
-    expect(screen.getByText(/12 dishes/)).toBeInTheDocument();
-  });
-
-  it('calls resetAll when "Scan Another Menu" clicked', async () => {
-    const resetAll = vi.fn();
-    render(<MenuScanDone savedCount={5} selectedRestaurant={mockRestaurant} resetAll={resetAll} />);
-    const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /scan another menu/i }));
-    expect(resetAll).toHaveBeenCalledOnce();
   });
 });
 

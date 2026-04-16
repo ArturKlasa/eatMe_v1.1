@@ -56,76 +56,95 @@ export function DishVariantsSection() {
             ignored; customers see &quot;from $X&quot; based on the cheapest variant.
           </p>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="grid grid-cols-[1fr_6rem_5rem_6rem_auto] gap-2 items-start rounded border bg-muted/20 p-2"
-              >
-                <div>
-                  <Label htmlFor={`variants.${index}.name`} className="text-xs">
-                    Name *
-                  </Label>
-                  <Input
-                    id={`variants.${index}.name`}
-                    {...register(`variants.${index}.name`)}
-                    placeholder="Small / Salmon / 2-person"
-                  />
-                  {errors.variants?.[index]?.name && (
-                    <p className="text-xs text-destructive mt-1">
-                      {errors.variants[index]?.name?.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor={`variants.${index}.price`} className="text-xs">
-                    Price *
-                  </Label>
-                  <Input
-                    id={`variants.${index}.price`}
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    {...register(`variants.${index}.price`, { valueAsNumber: true })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`variants.${index}.serves`} className="text-xs">
-                    Serves
-                  </Label>
-                  <Input
-                    id={`variants.${index}.serves`}
-                    type="number"
-                    min={1}
-                    {...register(`variants.${index}.serves`, { valueAsNumber: true })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`variants.${index}.display_price_prefix`} className="text-xs">
-                    Prefix
-                  </Label>
-                  <select
-                    id={`variants.${index}.display_price_prefix`}
-                    {...register(`variants.${index}.display_price_prefix`)}
-                    className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+              <div key={field.id} className="rounded-lg border bg-muted/20 p-3 space-y-3">
+                {/* Row 1: name takes full width, delete button pinned right */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <Label
+                      htmlFor={`variants.${index}.name`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Name *
+                    </Label>
+                    <Input
+                      id={`variants.${index}.name`}
+                      {...register(`variants.${index}.name`)}
+                      placeholder="Small / Salmon / 2-person"
+                      className="h-9"
+                    />
+                    {errors.variants?.[index]?.name && (
+                      <p className="text-xs text-destructive mt-1">
+                        {errors.variants[index]?.name?.message}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mt-5"
+                    onClick={() => remove(index)}
+                    aria-label="Remove variant"
                   >
-                    {DISPLAY_PRICE_PREFIXES.map(p => (
-                      <option key={p.value} value={p.value}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="mt-5"
-                  onClick={() => remove(index)}
-                  aria-label="Remove variant"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+
+                {/* Row 2: price / serves / prefix, wraps on narrow screens */}
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-[1_1_7rem] min-w-[6rem]">
+                    <Label
+                      htmlFor={`variants.${index}.price`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Price *
+                    </Label>
+                    <Input
+                      id={`variants.${index}.price`}
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      {...register(`variants.${index}.price`, { valueAsNumber: true })}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="flex-[1_1_5rem] min-w-[4rem]">
+                    <Label
+                      htmlFor={`variants.${index}.serves`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Serves
+                    </Label>
+                    <Input
+                      id={`variants.${index}.serves`}
+                      type="number"
+                      min={1}
+                      {...register(`variants.${index}.serves`, { valueAsNumber: true })}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="flex-[2_1_10rem] min-w-[8rem]">
+                    <Label
+                      htmlFor={`variants.${index}.display_price_prefix`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Price prefix
+                    </Label>
+                    <select
+                      id={`variants.${index}.display_price_prefix`}
+                      {...register(`variants.${index}.display_price_prefix`)}
+                      className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                    >
+                      {DISPLAY_PRICE_PREFIXES.map(p => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

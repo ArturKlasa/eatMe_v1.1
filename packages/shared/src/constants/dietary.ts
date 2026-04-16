@@ -26,13 +26,17 @@ export type DietaryTagCode = (typeof DIETARY_TAGS)[number]['value'];
 /** Subset of dietary tag codes that represent religious dietary laws. */
 export const RELIGIOUS_REQUIREMENTS = ['halal', 'hindu', 'kosher', 'jain', 'buddhist'] as const;
 
-/** Values must match allergens.code in the DB. */
+/** Values must match allergens.code in the DB. See migration 097 for seed. */
 export const ALLERGENS = [
   { value: 'lactose', label: 'Lactose', icon: '🥛' },
   { value: 'gluten', label: 'Gluten', icon: '🌾' },
   { value: 'peanuts', label: 'Peanuts', icon: '🥜' },
+  { value: 'nuts', label: 'Tree Nuts', icon: '🌰' },
   { value: 'soy', label: 'Soy', icon: '🫘' },
   { value: 'sesame', label: 'Sesame', icon: '🌰' },
+  { value: 'eggs', label: 'Eggs', icon: '🥚' },
+  { value: 'fish', label: 'Fish', icon: '🐟' },
   { value: 'shellfish', label: 'Shellfish', icon: '🦐' },
-  { value: 'nuts', label: 'Nuts', icon: '🌰' },
 ] as const;
+
+export type AllergenCode = (typeof ALLERGENS)[number]['value'];

@@ -6,6 +6,7 @@ import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-s
 import {
   mergeExtractionResults,
   mapDietaryHints,
+  mapAllergenHints,
   getCurrencyForRestaurant,
   type RawExtractionResult,
   type RawExtractedDish,
@@ -24,6 +25,7 @@ const DishSchema: z.ZodType<unknown> = z.lazy(() =>
     description: z.string().nullable(),
     raw_ingredients: z.array(z.string()).nullable(),
     dietary_hints: z.array(z.string()),
+    allergen_hints: z.array(z.string()),
     spice_level: z.union([z.literal(0), z.literal(1), z.literal(3)]).nullable(),
     calories: z.number().nullable(),
     confidence: z.number(),
@@ -78,9 +80,21 @@ STRICT RULES:
 6. Detect dietary symbols and map to canonical codes in dietary_hints[]:
    - V/vegetariano/a → "vegetarian"; VG/vegano/a → "vegan"; pescatarian → "pescatarian"
    - GF/sin gluten → "gluten_free"; DF/sin lácteos → "dairy_free"; nut-free → "nut_free"; egg-free → "egg_free"; soy-free → "soy_free"
-   - H/halal → "halal"; K/kosher → "kosher"; hindu → "hindu"; jain → "jain"
+   - H/halal → "halal"; K/kosher → "kosher"; hindu → "hindu"; jain → "jain"; buddhist → "buddhist"
    - keto → "keto"; paleo → "paleo"; low-carb → "low_carb"; low-sodium → "low_sodium"; diabetic-friendly → "diabetic_friendly"; organic → "organic"
    Only use these exact canonical codes. If a hint doesn't fit, omit it.
+6a. ALLERGENS — populate allergen_hints[] when a dish's OWN text (name, description, ingredient list, dish-specific badge) names or directly implies an allergen. Canonical codes:
+   - "lactose" — milk, cream, cheese, butter, yoghurt, dairy
+   - "gluten" — wheat, barley, rye, semolina, seitan, most bread/pasta
+   - "peanuts" — peanut, groundnut, satay sauce
+   - "nuts" — almond, walnut, hazelnut, pecan, cashew, pistachio, pine nut (tree nuts)
+   - "soy" — soy, soybean, tofu, edamame, soy sauce, tempeh
+   - "sesame" — sesame seed, tahini, sesame oil
+   - "eggs" — egg, mayo, aioli, meringue, custard, egg wash
+   - "fish" — salmon, tuna, cod, anchovy, sardine, fish sauce (NOT shellfish)
+   - "shellfish" — shrimp, prawn, crab, lobster, scallop, oyster, mussel, clam, squid, octopus
+   IGNORE menu-wide "may contain" / "produced in a facility" / "*all dishes" disclaimers. Those are legal boilerplate, not dish-specific data. Only extract allergens that are specifically claimed or obviously present in a given dish.
+   When unsure, omit the allergen. Under-claiming is safer than over-claiming.
 7. Detect spice indicators (🌶, "picante", "spicy") → spice_level: 1 (mild) or 3 (very spicy). null = no indicator, 0 = explicitly non-spicy.
 8. Extract ingredients ONLY when explicitly listed on the menu. If not listed, set raw_ingredients to null.
 9. confidence: 1.0 = perfectly legible, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
@@ -472,7 +486,7 @@ async function matchIngredients(
   return results;
 }
 
-type UnmappedHintEntry = { dishName: string; hints: string[] };
+type UnmappedHintEntry = { dishName: string; kind: 'dietary' | 'allergen'; hints: string[] };
 
 async function enrichDish(
   dish: RawExtractedDish,
@@ -504,16 +518,28 @@ async function enrichDish(
     }
   }
 
-  const { codes, unmapped } = mapDietaryHints(dish.dietary_hints ?? []);
-  if (unmapped.length > 0 && unmappedCollector) {
-    unmappedCollector.push({ dishName: dish.name, hints: unmapped });
+  const { codes: dietaryCodes, unmapped: unmappedDietary } = mapDietaryHints(
+    dish.dietary_hints ?? []
+  );
+  const { codes: allergenCodes, unmapped: unmappedAllergen } = mapAllergenHints(
+    dish.allergen_hints ?? []
+  );
+
+  if (unmappedCollector) {
+    if (unmappedDietary.length > 0) {
+      unmappedCollector.push({ dishName: dish.name, kind: 'dietary', hints: unmappedDietary });
+    }
+    if (unmappedAllergen.length > 0) {
+      unmappedCollector.push({ dishName: dish.name, kind: 'allergen', hints: unmappedAllergen });
+    }
   }
 
   return {
     ...dish,
     spice_level: normalisedSpice,
     matched_ingredients: matched,
-    mapped_dietary_tags: codes,
+    mapped_dietary_tags: dietaryCodes,
+    mapped_allergens: allergenCodes,
     variants: enrichedVariants as RawExtractedDish[] | null,
   };
 }
@@ -679,12 +705,16 @@ export async function POST(request: NextRequest) {
       menuLanguage
     );
 
-    // Surface unmapped dietary hints so admins can review rather than silently dropping.
+    // Surface unmapped hints (dietary + allergen) so admins can review
+    // instead of silently dropping codes the AI returned.
     for (const entry of unmappedHints) {
       extractionNotes.push({
         type: 'ingredient_mismatch',
         path: entry.dishName,
-        message: `Unrecognised dietary hint(s): ${entry.hints.join(', ')}. These were not mapped to any canonical dietary tag.`,
+        message:
+          entry.kind === 'dietary'
+            ? `Unrecognised dietary hint(s): ${entry.hints.join(', ')}. These were not mapped to any canonical dietary tag.`
+            : `Unrecognised allergen hint(s): ${entry.hints.join(', ')}. These were not mapped to any canonical allergen.`,
         suggestion: null,
       });
     }

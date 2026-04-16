@@ -6,6 +6,9 @@ export interface RawExtractedDish {
   description: string | null;
   raw_ingredients: string[] | null;
   dietary_hints: string[];
+  /** Allergen codes or loose synonyms the AI read from dish-specific text.
+   *  Enrichment maps these through ALLERGEN_HINT_MAP to canonical codes. */
+  allergen_hints: string[];
   // AI prompt asks for 0 (none) | 1 (mild) | 3 (hot) | null.
   // route.ts normalises any out-of-range value before producing EnrichedDish.
   spice_level: 0 | 1 | 3 | null;
@@ -60,6 +63,7 @@ export interface MatchedIngredient {
 export interface EnrichedDish extends RawExtractedDish {
   matched_ingredients: MatchedIngredient[];
   mapped_dietary_tags: string[]; // dietary_tags.code values mapped from dietary_hints
+  mapped_allergens: string[]; // allergens.code values mapped from allergen_hints
 }
 
 export interface EnrichedCategory {
@@ -220,7 +224,7 @@ export function getCurrencyForRestaurant(
   return 'USD';
 }
 
-import type { DietaryTagCode } from '@eatme/shared';
+import type { DietaryTagCode, AllergenCode } from '@eatme/shared';
 
 const DIETARY_HINT_MAP: Record<string, DietaryTagCode> = {
   // --- Existing ---
@@ -287,6 +291,128 @@ export function normalizeDietaryHint(hint: string): string {
     .replace(/[[\]().*]/g, '')
     .trim()
     .toLowerCase();
+}
+
+/** Loose synonyms → canonical allergens.code. Covers common inline phrasings
+ *  the AI might produce from dish text ("contains wheat", "w/ almonds", "mayo").
+ *  The AI is instructed to emit canonical codes directly (see menu-scan/route.ts
+ *  prompt rule 6a), but these fallbacks catch inconsistencies. */
+const ALLERGEN_HINT_MAP: Record<string, AllergenCode> = {
+  // lactose / dairy
+  lactose: 'lactose',
+  dairy: 'lactose',
+  milk: 'lactose',
+  cream: 'lactose',
+  cheese: 'lactose',
+  butter: 'lactose',
+  yoghurt: 'lactose',
+  yogurt: 'lactose',
+
+  // gluten / wheat
+  gluten: 'gluten',
+  wheat: 'gluten',
+  barley: 'gluten',
+  rye: 'gluten',
+
+  // peanuts
+  peanut: 'peanuts',
+  peanuts: 'peanuts',
+  groundnut: 'peanuts',
+
+  // tree nuts
+  nut: 'nuts',
+  nuts: 'nuts',
+  tree_nut: 'nuts',
+  tree_nuts: 'nuts',
+  'tree nuts': 'nuts',
+  almond: 'nuts',
+  almonds: 'nuts',
+  walnut: 'nuts',
+  walnuts: 'nuts',
+  hazelnut: 'nuts',
+  hazelnuts: 'nuts',
+  pecan: 'nuts',
+  pecans: 'nuts',
+  cashew: 'nuts',
+  cashews: 'nuts',
+  pistachio: 'nuts',
+  pistachios: 'nuts',
+
+  // soy
+  soy: 'soy',
+  soya: 'soy',
+  soybean: 'soy',
+  soybeans: 'soy',
+  tofu: 'soy',
+  edamame: 'soy',
+
+  // sesame
+  sesame: 'sesame',
+  tahini: 'sesame',
+
+  // eggs
+  egg: 'eggs',
+  eggs: 'eggs',
+  mayo: 'eggs',
+  mayonnaise: 'eggs',
+  aioli: 'eggs',
+
+  // fish (finfish only)
+  fish: 'fish',
+  salmon: 'fish',
+  tuna: 'fish',
+  anchovy: 'fish',
+  anchovies: 'fish',
+  cod: 'fish',
+  sardine: 'fish',
+  sardines: 'fish',
+
+  // shellfish (crustaceans + molluscs)
+  shellfish: 'shellfish',
+  shrimp: 'shellfish',
+  prawn: 'shellfish',
+  prawns: 'shellfish',
+  crab: 'shellfish',
+  lobster: 'shellfish',
+  scallop: 'shellfish',
+  scallops: 'shellfish',
+  oyster: 'shellfish',
+  oysters: 'shellfish',
+  mussel: 'shellfish',
+  mussels: 'shellfish',
+  clam: 'shellfish',
+  clams: 'shellfish',
+  squid: 'shellfish',
+  octopus: 'shellfish',
+  calamari: 'shellfish',
+};
+
+/** Normalises an allergen hint before lookup. Strips common noise ("contains: ", "* ", "may include ") */
+export function normalizeAllergenHint(hint: string): string {
+  return hint
+    .replace(/[[\]().*,:;]/g, '')
+    .replace(/^\s*(contains|includes?|with|w\/|may\s+contain)\s+/i, '')
+    .trim()
+    .toLowerCase();
+}
+
+/** Maps raw AI allergen hints to canonical allergens.code values.
+ *  Returns matched canonical codes plus any hints that had no mapping entry
+ *  so callers can surface them (e.g. as extraction_notes) instead of dropping silently. */
+export function mapAllergenHints(hints: string[]): { codes: string[]; unmapped: string[] } {
+  const codes = new Set<string>();
+  const unmapped: string[] = [];
+  for (const hint of hints) {
+    const normalized = normalizeAllergenHint(hint);
+    if (!normalized) continue;
+    const code = ALLERGEN_HINT_MAP[normalized];
+    if (code) {
+      codes.add(code);
+    } else {
+      unmapped.push(hint);
+    }
+  }
+  return { codes: Array.from(codes), unmapped };
 }
 
 /** Maps raw AI dietary hints to canonical dietary_tags.code values.
@@ -626,6 +752,9 @@ function enrichedToEditable(
     dish_category_id: null,
     confidence: dish.confidence,
     ingredients: (dish.matched_ingredients ?? []).map(ing => ({ ...ing })),
+    // AI-extracted allergens from dish-specific text (route.ts prompt rule 6a).
+    // Supplementary to ingredient-cascade trigger — written to allergens_override.
+    suggested_allergens: dish.mapped_allergens ?? [],
     dish_kind: dish.dish_kind ?? 'standard',
     is_parent: isParent,
     serves: dish.serves ?? null,

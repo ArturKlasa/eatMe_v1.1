@@ -50,6 +50,7 @@ export function DishGroupCard({
         : 'border-blue-200 bg-info/10';
 
   const dishKindInfo = DISH_KINDS.find(k => k.value === parent.dish_kind);
+  const isCombo = parent.dish_kind === 'combo';
 
   return (
     <div className={cn('rounded-lg border-2 p-3 transition-all duration-200', statusColor)}>
@@ -148,9 +149,13 @@ export function DishGroupCard({
               className="flex items-center gap-2 py-1 px-2 rounded bg-background/60 text-sm"
             >
               <span className="flex-1 truncate">{child.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {currency} {child.price || '—'}
-              </span>
+              {isCombo ? (
+                <span className="text-[10px] italic text-muted-foreground">Included</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {currency} {child.price || '—'}
+                </span>
+              )}
               {child.dietary_tags.length > 0 && (
                 <span className="text-[10px] text-muted-foreground">
                   {child.dietary_tags.join(', ')}
@@ -162,30 +167,30 @@ export function DishGroupCard({
                 type="number"
                 min="1"
                 value={child.serves ?? 1}
-                onChange={e =>
-                  onUpdateDish(child._id, { serves: parseInt(e.target.value) || 1 })
-                }
+                onChange={e => onUpdateDish(child._id, { serves: parseInt(e.target.value) || 1 })}
                 className="w-12 text-xs border rounded px-1 py-0.5 text-center"
                 title="Serves"
               />
 
-              {/* display_price_prefix */}
-              <select
-                value={child.display_price_prefix}
-                onChange={e =>
-                  onUpdateDish(child._id, {
-                    display_price_prefix: e.target.value as EditableDish['display_price_prefix'],
-                  })
-                }
-                className="text-[10px] border rounded px-1 py-0.5"
-                title="Price display"
-              >
-                <option value="exact">Exact</option>
-                <option value="from">From</option>
-                <option value="per_person">Per person</option>
-                <option value="market_price">Market price</option>
-                <option value="ask_server">Ask server</option>
-              </select>
+              {/* display_price_prefix — irrelevant for combo children (no individual price) */}
+              {!isCombo && (
+                <select
+                  value={child.display_price_prefix}
+                  onChange={e =>
+                    onUpdateDish(child._id, {
+                      display_price_prefix: e.target.value as EditableDish['display_price_prefix'],
+                    })
+                  }
+                  className="text-[10px] border rounded px-1 py-0.5"
+                  title="Price display"
+                >
+                  <option value="exact">Exact</option>
+                  <option value="from">From</option>
+                  <option value="per_person">Per person</option>
+                  <option value="market_price">Market price</option>
+                  <option value="ask_server">Ask server</option>
+                </select>
+              )}
 
               <Button
                 size="sm"
@@ -202,18 +207,31 @@ export function DishGroupCard({
         </div>
       )}
 
-      {/* Parent-level serves & display_price_prefix */}
+      {/* Parent-level combo price, serves & display_price_prefix */}
       {isExpanded && (
         <div className="mt-2 ml-4 flex items-center gap-3 text-xs text-muted-foreground">
+          {isCombo && (
+            <label className="flex items-center gap-1">
+              Combo price:
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={parent.price}
+                onChange={e => onUpdateDish(parent._id, { price: e.target.value })}
+                className="w-20 border rounded px-1 py-0.5 text-right"
+                placeholder="0.00"
+              />
+              <span>{currency}</span>
+            </label>
+          )}
           <label className="flex items-center gap-1">
             Serves:
             <input
               type="number"
               min="1"
               value={parent.serves ?? 1}
-              onChange={e =>
-                onUpdateDish(parent._id, { serves: parseInt(e.target.value) || 1 })
-              }
+              onChange={e => onUpdateDish(parent._id, { serves: parseInt(e.target.value) || 1 })}
               className="w-12 border rounded px-1 py-0.5 text-center"
             />
           </label>

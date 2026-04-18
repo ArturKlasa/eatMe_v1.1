@@ -152,6 +152,7 @@ describe('MenuScanUpload', () => {
     handleDrop: noOp,
     handleProcess: asyncNoOp,
     restaurantsWithoutMenu: [],
+    skipRestaurantFromMenuScan: asyncNoOp,
   };
 
   it('renders drop zone', () => {

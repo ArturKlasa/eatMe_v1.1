@@ -1297,6 +1297,7 @@ export type Database = {
           restaurant_type: string | null;
           restaurant_vector: string | null;
           service_speed: string | null;
+          skip_menu_scan: boolean;
           state: string | null;
           suspended_at: string | null;
           suspended_by: string | null;
@@ -1332,6 +1333,7 @@ export type Database = {
           restaurant_type?: string | null;
           restaurant_vector?: string | null;
           service_speed?: string | null;
+          skip_menu_scan?: boolean;
           state?: string | null;
           suspended_at?: string | null;
           suspended_by?: string | null;
@@ -1367,6 +1369,7 @@ export type Database = {
           restaurant_type?: string | null;
           restaurant_vector?: string | null;
           service_speed?: string | null;
+          skip_menu_scan?: boolean;
           state?: string | null;
           suspended_at?: string | null;
           suspended_by?: string | null;

@@ -1,0 +1,671 @@
+{
+  "_comment": "Phase 2b trial sample — 30 ingredient concepts with en/es/pl translations, variants, and aliases. Spanish uses Mexican forms by default (regional alternatives go into aliases). Untranslatable terms (kimchi, chorizo, mole, etc.) preserve the original name across all locales. Ambiguous English words (pepper) are split into distinct concepts. For review only — NOT applied to DB.",
+
+  "categories_tested": [
+    "common produce & staples",
+    "regional-es variants (MX vs SA vs Spain)",
+    "ambiguity split (pepper → bell_pepper vs pepper_black)",
+    "no-direct-translation (name preserved in all locales)",
+    "transliteration (Korean/Japanese)",
+    "protein with variants (fresh/smoked/grilled/etc.)",
+    "fish & shellfish (allergen inheritance)",
+    "Mexican chiles (regional priority)"
+  ],
+
+  "concepts": [
+    {
+      "slug": "tomato",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Tomato", "es": "Jitomate", "pl": "Pomidor" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Tomato", "es": "Jitomate", "pl": "Pomidor" } },
+        { "modifier": "cherry", "is_default": false,
+          "translations": { "en": "Cherry tomato", "es": "Jitomate cherry", "pl": "Pomidor koktajlowy" } },
+        { "modifier": "sun_dried", "is_default": false,
+          "translations": { "en": "Sun-dried tomato", "es": "Jitomate deshidratado", "pl": "Pomidor suszony" } }
+      ],
+      "aliases": {
+        "en": ["tomato", "tomatoes", "roma tomato", "vine tomato"],
+        "es": ["jitomate", "jitomates", "tomate", "tomates", "tomate rojo"],
+        "pl": ["pomidor", "pomidory", "pomidora", "pomidorów"]
+      },
+      "_note": "Mexico uses 'jitomate' for red tomato; 'tomate' in MX means green tomatillo (separate concept). We keep 'tomate' as an alias so non-MX Spanish menus still match."
+    },
+
+    {
+      "slug": "onion",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Onion", "es": "Cebolla", "pl": "Cebula" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Onion", "es": "Cebolla", "pl": "Cebula" } },
+        { "modifier": "red", "is_default": false,
+          "translations": { "en": "Red onion", "es": "Cebolla morada", "pl": "Cebula czerwona" } },
+        { "modifier": "white", "is_default": false,
+          "translations": { "en": "White onion", "es": "Cebolla blanca", "pl": "Cebula biała" } },
+        { "modifier": "caramelized", "is_default": false,
+          "translations": { "en": "Caramelized onion", "es": "Cebolla caramelizada", "pl": "Cebula karmelizowana" } }
+      ],
+      "aliases": {
+        "en": ["onion", "onions"],
+        "es": ["cebolla", "cebollas", "cebolla morada", "cebolla blanca"],
+        "pl": ["cebula", "cebuli", "cebulę", "cebulą"]
+      }
+    },
+
+    {
+      "slug": "garlic",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Garlic", "es": "Ajo", "pl": "Czosnek" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Garlic", "es": "Ajo", "pl": "Czosnek" } },
+        { "modifier": "roasted", "is_default": false,
+          "translations": { "en": "Roasted garlic", "es": "Ajo asado", "pl": "Czosnek pieczony" } }
+      ],
+      "aliases": {
+        "en": ["garlic", "garlic clove", "clove of garlic"],
+        "es": ["ajo", "ajos", "diente de ajo", "dientes de ajo"],
+        "pl": ["czosnek", "czosnku", "czosnkiem", "ząbek czosnku"]
+      }
+    },
+
+    {
+      "slug": "rice",
+      "family": "grain",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Rice", "es": "Arroz", "pl": "Ryż" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Rice", "es": "Arroz", "pl": "Ryż" } },
+        { "modifier": "white", "is_default": false,
+          "translations": { "en": "White rice", "es": "Arroz blanco", "pl": "Ryż biały" } },
+        { "modifier": "brown", "is_default": false,
+          "translations": { "en": "Brown rice", "es": "Arroz integral", "pl": "Ryż brązowy" } }
+      ],
+      "aliases": {
+        "en": ["rice", "steamed rice", "boiled rice"],
+        "es": ["arroz", "arroz cocido"],
+        "pl": ["ryż", "ryżu", "ryżem"]
+      }
+    },
+
+    {
+      "slug": "potato",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Potato", "es": "Papa", "pl": "Ziemniak" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Potato", "es": "Papa", "pl": "Ziemniak" } },
+        { "modifier": "mashed", "is_default": false,
+          "translations": { "en": "Mashed potato", "es": "Puré de papa", "pl": "Puree ziemniaczane" } },
+        { "modifier": "fried", "is_default": false,
+          "translations": { "en": "Fried potato", "es": "Papa frita", "pl": "Ziemniak smażony" } }
+      ],
+      "aliases": {
+        "en": ["potato", "potatoes"],
+        "es": ["papa", "papas", "patata", "patatas"],
+        "pl": ["ziemniak", "ziemniaki", "ziemniaków", "kartofle"]
+      },
+      "_note": "Mexico uses 'papa'; Spain uses 'patata'. We default to 'papa' and keep 'patata' as alias. 'Kartofle' is a colloquial Polish alternative."
+    },
+
+    {
+      "slug": "olive_oil",
+      "family": "oil_fat",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Olive oil", "es": "Aceite de oliva", "pl": "Oliwa z oliwek" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Olive oil", "es": "Aceite de oliva", "pl": "Oliwa z oliwek" } },
+        { "modifier": "extra_virgin", "is_default": false,
+          "translations": { "en": "Extra virgin olive oil", "es": "Aceite de oliva extra virgen", "pl": "Oliwa z oliwek extra virgin" } }
+      ],
+      "aliases": {
+        "en": ["olive oil", "evoo"],
+        "es": ["aceite de oliva", "aceite oliva"],
+        "pl": ["oliwa z oliwek", "oliwa", "oliwy z oliwek"]
+      }
+    },
+
+    {
+      "slug": "butter",
+      "family": "dairy",
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "allergens": ["lactose"],
+      "translations": { "en": "Butter", "es": "Mantequilla", "pl": "Masło" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Butter", "es": "Mantequilla", "pl": "Masło" } },
+        { "modifier": "clarified", "is_default": false,
+          "translations": { "en": "Clarified butter", "es": "Mantequilla clarificada", "pl": "Masło klarowane" } }
+      ],
+      "aliases": {
+        "en": ["butter", "unsalted butter", "salted butter"],
+        "es": ["mantequilla", "manteca"],
+        "pl": ["masło", "masła", "masłem"]
+      },
+      "_note": "'Manteca' in Spain means butter; in Mexico it means lard. Kept as alias but ambiguous — flagged for admin review."
+    },
+
+    {
+      "slug": "egg",
+      "family": "eggs",
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "allergens": ["eggs"],
+      "translations": { "en": "Egg", "es": "Huevo", "pl": "Jajko" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Egg", "es": "Huevo", "pl": "Jajko" } },
+        { "modifier": "scrambled", "is_default": false,
+          "translations": { "en": "Scrambled egg", "es": "Huevo revuelto", "pl": "Jajecznica" } },
+        { "modifier": "fried", "is_default": false,
+          "translations": { "en": "Fried egg", "es": "Huevo frito", "pl": "Jajko sadzone" } },
+        { "modifier": "boiled", "is_default": false,
+          "translations": { "en": "Boiled egg", "es": "Huevo cocido", "pl": "Jajko gotowane" } }
+      ],
+      "aliases": {
+        "en": ["egg", "eggs"],
+        "es": ["huevo", "huevos"],
+        "pl": ["jajko", "jajka", "jajek"]
+      }
+    },
+
+    {
+      "slug": "cilantro",
+      "family": "spice_herb",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Cilantro", "es": "Cilantro", "pl": "Kolendra" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Cilantro", "es": "Cilantro", "pl": "Kolendra" } }
+      ],
+      "aliases": {
+        "en": ["cilantro", "coriander", "fresh coriander", "coriander leaves"],
+        "es": ["cilantro", "culantro", "coriandro"],
+        "pl": ["kolendra", "kolendry", "kolendrą"]
+      },
+      "_note": "Regional-en case: 'cilantro' (US/MX) vs 'coriander' (UK/IN). Both kept as aliases; display is 'Cilantro'."
+    },
+
+    {
+      "slug": "avocado",
+      "family": "fruit",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Avocado", "es": "Aguacate", "pl": "Awokado" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Avocado", "es": "Aguacate", "pl": "Awokado" } },
+        { "modifier": "ripe", "is_default": false,
+          "translations": { "en": "Ripe avocado", "es": "Aguacate maduro", "pl": "Awokado dojrzałe" } }
+      ],
+      "aliases": {
+        "en": ["avocado", "avocados"],
+        "es": ["aguacate", "aguacates", "palta", "paltas"],
+        "pl": ["awokado", "awokada"]
+      },
+      "_note": "Regional-es case: 'aguacate' (MX/Central America) vs 'palta' (Argentina/Chile/Peru). Default 'Aguacate'; 'palta' kept as alias."
+    },
+
+    {
+      "slug": "pepper_black",
+      "family": "spice_herb",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Black pepper", "es": "Pimienta negra", "pl": "Pieprz czarny" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Black pepper", "es": "Pimienta negra", "pl": "Pieprz czarny" } },
+        { "modifier": "ground", "is_default": false,
+          "translations": { "en": "Ground black pepper", "es": "Pimienta negra molida", "pl": "Pieprz czarny mielony" } }
+      ],
+      "aliases": {
+        "en": ["black pepper", "pepper", "peppercorn", "peppercorns"],
+        "es": ["pimienta", "pimienta negra", "pimienta molida"],
+        "pl": ["pieprz", "pieprz czarny", "pieprzu"]
+      },
+      "_note": "Ambiguity split: bare 'pepper' in English is ambiguous (spice vs bell pepper). Alias points to this concept because in culinary context 'pepper' without modifier usually means the spice."
+    },
+
+    {
+      "slug": "bell_pepper",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Bell pepper", "es": "Pimiento morrón", "pl": "Papryka" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Bell pepper", "es": "Pimiento morrón", "pl": "Papryka" } },
+        { "modifier": "red", "is_default": false,
+          "translations": { "en": "Red bell pepper", "es": "Pimiento morrón rojo", "pl": "Papryka czerwona" } },
+        { "modifier": "green", "is_default": false,
+          "translations": { "en": "Green bell pepper", "es": "Pimiento morrón verde", "pl": "Papryka zielona" } },
+        { "modifier": "roasted", "is_default": false,
+          "translations": { "en": "Roasted bell pepper", "es": "Pimiento morrón asado", "pl": "Papryka pieczona" } }
+      ],
+      "aliases": {
+        "en": ["bell pepper", "bell peppers", "capsicum", "sweet pepper"],
+        "es": ["pimiento", "pimientos", "pimiento morrón", "chile morrón", "pimiento dulce"],
+        "pl": ["papryka", "papryki", "paprykę"]
+      },
+      "_note": "Ambiguity split + regional: MX menus often write 'chile morrón' or just 'pimiento'. Spain uses 'pimiento'. All kept as aliases."
+    },
+
+    {
+      "slug": "kimchi",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "allergens": [],
+      "translations": { "en": "Kimchi", "es": "Kimchi", "pl": "Kimchi" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Kimchi", "es": "Kimchi", "pl": "Kimchi" } }
+      ],
+      "aliases": {
+        "en": ["kimchi", "kimchee"],
+        "es": ["kimchi"],
+        "pl": ["kimchi"]
+      },
+      "_note": "No-direct-translation: name preserved in all locales. is_vegan=false because traditional kimchi contains fish sauce / salted shrimp — could be refined with a 'vegan' variant later."
+    },
+
+    {
+      "slug": "chorizo",
+      "family": "meat",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": [],
+      "translations": { "en": "Chorizo", "es": "Chorizo", "pl": "Chorizo" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Chorizo", "es": "Chorizo", "pl": "Chorizo" } },
+        { "modifier": "mexican", "is_default": false,
+          "translations": { "en": "Mexican chorizo", "es": "Chorizo mexicano", "pl": "Chorizo meksykańskie" } },
+        { "modifier": "spanish", "is_default": false,
+          "translations": { "en": "Spanish chorizo", "es": "Chorizo español", "pl": "Chorizo hiszpańskie" } }
+      ],
+      "aliases": {
+        "en": ["chorizo"],
+        "es": ["chorizo", "chorizos"],
+        "pl": ["chorizo"]
+      },
+      "_note": "No-direct-translation. Mexican vs Spanish chorizo are significantly different products — captured as variants rather than separate concepts, to keep avoid-list simple."
+    },
+
+    {
+      "slug": "mole",
+      "family": "condiment",
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "allergens": ["nuts"],
+      "translations": { "en": "Mole", "es": "Mole", "pl": "Mole" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Mole", "es": "Mole", "pl": "Mole" } },
+        { "modifier": "poblano", "is_default": false,
+          "translations": { "en": "Mole poblano", "es": "Mole poblano", "pl": "Mole poblano" } },
+        { "modifier": "negro", "is_default": false,
+          "translations": { "en": "Mole negro", "es": "Mole negro", "pl": "Mole negro" } },
+        { "modifier": "verde", "is_default": false,
+          "translations": { "en": "Mole verde", "es": "Mole verde", "pl": "Mole verde" } }
+      ],
+      "aliases": {
+        "en": ["mole", "mole sauce"],
+        "es": ["mole", "mole poblano", "mole negro", "mole verde", "mole amarillo"],
+        "pl": ["mole"]
+      },
+      "_note": "No-direct-translation. Allergens: most moles contain almonds/peanuts → 'nuts' flagged at concept level. is_vegan=false because most contain chocolate + sometimes chicken broth — conservative."
+    },
+
+    {
+      "slug": "nduja",
+      "family": "meat",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": [],
+      "translations": { "en": "Nduja", "es": "Nduja", "pl": "Nduja" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Nduja", "es": "Nduja", "pl": "Nduja" } }
+      ],
+      "aliases": {
+        "en": ["nduja", "'nduja"],
+        "es": ["nduja"],
+        "pl": ["nduja"]
+      },
+      "_note": "No-direct-translation. Italian fermented pork spread from Calabria."
+    },
+
+    {
+      "slug": "miso",
+      "family": "condiment",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": ["soy"],
+      "translations": { "en": "Miso", "es": "Miso", "pl": "Miso" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Miso", "es": "Miso", "pl": "Miso" } },
+        { "modifier": "white", "is_default": false,
+          "translations": { "en": "White miso", "es": "Miso blanco", "pl": "Miso białe" } },
+        { "modifier": "red", "is_default": false,
+          "translations": { "en": "Red miso", "es": "Miso rojo", "pl": "Miso czerwone" } }
+      ],
+      "aliases": {
+        "en": ["miso", "miso paste", "shiro miso", "aka miso"],
+        "es": ["miso", "pasta miso"],
+        "pl": ["miso", "pasta miso"]
+      },
+      "_note": "No-direct-translation + transliteration. Japanese terms 'shiro' (white) and 'aka' (red) kept as aliases."
+    },
+
+    {
+      "slug": "yuzu",
+      "family": "fruit",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Yuzu", "es": "Yuzu", "pl": "Yuzu" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Yuzu", "es": "Yuzu", "pl": "Yuzu" } }
+      ],
+      "aliases": {
+        "en": ["yuzu", "yuzu juice", "yuzu zest"],
+        "es": ["yuzu"],
+        "pl": ["yuzu"]
+      },
+      "_note": "No-direct-translation. Japanese citrus."
+    },
+
+    {
+      "slug": "gochujang",
+      "family": "condiment",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": ["soy"],
+      "translations": { "en": "Gochujang", "es": "Gochujang", "pl": "Gochujang" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Gochujang", "es": "Gochujang", "pl": "Gochujang" } }
+      ],
+      "aliases": {
+        "en": ["gochujang", "kochujang", "korean chili paste", "korean red pepper paste"],
+        "es": ["gochujang", "pasta coreana de chile"],
+        "pl": ["gochujang", "koreańska pasta chili"]
+      },
+      "_note": "Transliteration. 'Kochujang' is an older romanization — kept as alias. Contains fermented soybeans → 'soy' allergen."
+    },
+
+    {
+      "slug": "dashi",
+      "family": "condiment",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": ["fish"],
+      "translations": { "en": "Dashi", "es": "Dashi", "pl": "Dashi" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Dashi", "es": "Dashi", "pl": "Dashi" } }
+      ],
+      "aliases": {
+        "en": ["dashi", "dashi stock", "japanese stock"],
+        "es": ["dashi", "caldo dashi"],
+        "pl": ["dashi", "bulion dashi"]
+      },
+      "_note": "Transliteration. Japanese stock made from kombu + bonito flakes → 'fish' allergen + non-vegetarian (conservative default; kombu-only vegan dashi could be a variant later)."
+    },
+
+    {
+      "slug": "salmon",
+      "family": "fish",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": ["fish"],
+      "translations": { "en": "Salmon", "es": "Salmón", "pl": "Łosoś" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Salmon", "es": "Salmón", "pl": "Łosoś" } },
+        { "modifier": "fresh", "is_default": false,
+          "translations": { "en": "Fresh salmon", "es": "Salmón fresco", "pl": "Łosoś świeży" } },
+        { "modifier": "smoked", "is_default": false,
+          "translations": { "en": "Smoked salmon", "es": "Salmón ahumado", "pl": "Łosoś wędzony" } },
+        { "modifier": "cured", "is_default": false,
+          "translations": { "en": "Cured salmon", "es": "Salmón curado", "pl": "Łosoś peklowany" } },
+        { "modifier": "grilled", "is_default": false,
+          "translations": { "en": "Grilled salmon", "es": "Salmón a la parrilla", "pl": "Łosoś z grilla" } },
+        { "modifier": "raw", "is_default": false,
+          "translations": { "en": "Raw salmon", "es": "Salmón crudo", "pl": "Łosoś surowy" } }
+      ],
+      "aliases": {
+        "en": ["salmon", "smoked salmon", "lox", "gravlax", "fresh salmon", "cured salmon"],
+        "es": ["salmón", "salmón ahumado", "salmón fresco", "salmón crudo"],
+        "pl": ["łosoś", "łososia", "łososiem", "łosoś wędzony", "łosoś świeży"]
+      },
+      "_note": "Protein with variants. Polish inflected forms (łososia, łososiem) as aliases. 'Lox' (US Jewish) → cured salmon variant, not the bare concept. 'Gravlax' likewise."
+    },
+
+    {
+      "slug": "chicken",
+      "family": "poultry",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": [],
+      "translations": { "en": "Chicken", "es": "Pollo", "pl": "Kurczak" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Chicken", "es": "Pollo", "pl": "Kurczak" } },
+        { "modifier": "grilled", "is_default": false,
+          "translations": { "en": "Grilled chicken", "es": "Pollo a la parrilla", "pl": "Kurczak z grilla" } },
+        { "modifier": "fried", "is_default": false,
+          "translations": { "en": "Fried chicken", "es": "Pollo frito", "pl": "Kurczak smażony" } },
+        { "modifier": "roasted", "is_default": false,
+          "translations": { "en": "Roasted chicken", "es": "Pollo asado", "pl": "Kurczak pieczony" } },
+        { "modifier": "shredded", "is_default": false,
+          "translations": { "en": "Shredded chicken", "es": "Pollo deshebrado", "pl": "Kurczak szarpany" } },
+        { "modifier": "breaded", "is_default": false,
+          "translations": { "en": "Breaded chicken", "es": "Pollo empanizado", "pl": "Kurczak panierowany" } }
+      ],
+      "aliases": {
+        "en": ["chicken", "grilled chicken", "fried chicken", "roast chicken", "chicken breast", "chicken thigh"],
+        "es": ["pollo", "pollo asado", "pollo frito", "pechuga de pollo", "pollo deshebrado", "pollo empanizado"],
+        "pl": ["kurczak", "kurczaka", "kurczakiem", "pierś z kurczaka"]
+      },
+      "_note": "Mexican Spanish: 'deshebrado' for shredded; Spain uses 'desmenuzado'. 'Empanizado' (MX) vs 'empanado' (ES). Mexican forms default; Spain variants as aliases."
+    },
+
+    {
+      "slug": "beef",
+      "family": "meat",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": [],
+      "translations": { "en": "Beef", "es": "Carne de res", "pl": "Wołowina" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Beef", "es": "Carne de res", "pl": "Wołowina" } },
+        { "modifier": "ground", "is_default": false,
+          "translations": { "en": "Ground beef", "es": "Carne de res molida", "pl": "Wołowina mielona" } },
+        { "modifier": "steak", "is_default": false,
+          "translations": { "en": "Beef steak", "es": "Bistec de res", "pl": "Stek wołowy" } },
+        { "modifier": "shredded", "is_default": false,
+          "translations": { "en": "Shredded beef", "es": "Carne de res deshebrada", "pl": "Wołowina szarpana" } }
+      ],
+      "aliases": {
+        "en": ["beef", "ground beef", "steak", "brisket"],
+        "es": ["carne de res", "res", "ternera", "bistec", "carne molida", "carne deshebrada"],
+        "pl": ["wołowina", "wołowiny", "wołowiną", "mięso wołowe"]
+      },
+      "_note": "Regional-es: 'carne de res' (MX) vs 'ternera' (ES, which also means veal — flagged for review). Default MX form; Spain form as alias."
+    },
+
+    {
+      "slug": "tuna",
+      "family": "fish",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": ["fish"],
+      "translations": { "en": "Tuna", "es": "Atún", "pl": "Tuńczyk" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Tuna", "es": "Atún", "pl": "Tuńczyk" } },
+        { "modifier": "canned", "is_default": false,
+          "translations": { "en": "Canned tuna", "es": "Atún en lata", "pl": "Tuńczyk z puszki" } },
+        { "modifier": "raw", "is_default": false,
+          "translations": { "en": "Raw tuna", "es": "Atún crudo", "pl": "Tuńczyk surowy" } },
+        { "modifier": "seared", "is_default": false,
+          "translations": { "en": "Seared tuna", "es": "Atún sellado", "pl": "Tuńczyk obsmażony" } }
+      ],
+      "aliases": {
+        "en": ["tuna", "yellowfin tuna", "ahi tuna", "bluefin tuna"],
+        "es": ["atún", "atún rojo", "atún aleta amarilla"],
+        "pl": ["tuńczyk", "tuńczyka", "tuńczykiem"]
+      }
+    },
+
+    {
+      "slug": "shrimp",
+      "family": "shellfish",
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "allergens": ["shellfish"],
+      "translations": { "en": "Shrimp", "es": "Camarón", "pl": "Krewetka" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Shrimp", "es": "Camarón", "pl": "Krewetka" } },
+        { "modifier": "grilled", "is_default": false,
+          "translations": { "en": "Grilled shrimp", "es": "Camarón a la parrilla", "pl": "Krewetka z grilla" } },
+        { "modifier": "breaded", "is_default": false,
+          "translations": { "en": "Breaded shrimp", "es": "Camarón empanizado", "pl": "Krewetka panierowana" } }
+      ],
+      "aliases": {
+        "en": ["shrimp", "shrimps", "prawn", "prawns"],
+        "es": ["camarón", "camarones", "gamba", "gambas", "langostino"],
+        "pl": ["krewetka", "krewetki", "krewetek", "krewetkami"]
+      },
+      "_note": "Regional-en: 'shrimp' (US) vs 'prawn' (UK). Regional-es: 'camarón' (MX/LatAm) vs 'gamba' (ES). All kept as aliases; default MX."
+    },
+
+    {
+      "slug": "chile_poblano",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Poblano pepper", "es": "Chile poblano", "pl": "Papryka poblano" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Poblano pepper", "es": "Chile poblano", "pl": "Papryka poblano" } },
+        { "modifier": "roasted", "is_default": false,
+          "translations": { "en": "Roasted poblano", "es": "Chile poblano asado", "pl": "Papryka poblano pieczona" } }
+      ],
+      "aliases": {
+        "en": ["poblano", "poblano pepper", "ancho chili", "ancho pepper"],
+        "es": ["chile poblano", "poblano", "chile ancho"],
+        "pl": ["poblano", "papryka poblano"]
+      },
+      "_note": "Dried poblano = 'ancho'. Same plant, different state. Kept as alias rather than separate concept."
+    },
+
+    {
+      "slug": "chile_jalapeno",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Jalapeño", "es": "Jalapeño", "pl": "Jalapeño" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Jalapeño", "es": "Jalapeño", "pl": "Jalapeño" } },
+        { "modifier": "pickled", "is_default": false,
+          "translations": { "en": "Pickled jalapeño", "es": "Jalapeño en escabeche", "pl": "Jalapeño marynowane" } }
+      ],
+      "aliases": {
+        "en": ["jalapeno", "jalapeño", "jalapeno pepper"],
+        "es": ["jalapeño", "jalapeños", "chile jalapeño"],
+        "pl": ["jalapeño", "papryka jalapeño"]
+      }
+    },
+
+    {
+      "slug": "chile_serrano",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Serrano pepper", "es": "Chile serrano", "pl": "Papryka serrano" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Serrano pepper", "es": "Chile serrano", "pl": "Papryka serrano" } }
+      ],
+      "aliases": {
+        "en": ["serrano", "serrano pepper", "serrano chili"],
+        "es": ["chile serrano", "serrano"],
+        "pl": ["serrano", "papryka serrano"]
+      }
+    },
+
+    {
+      "slug": "chile_habanero",
+      "family": "vegetable",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Habanero pepper", "es": "Chile habanero", "pl": "Papryka habanero" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Habanero pepper", "es": "Chile habanero", "pl": "Papryka habanero" } }
+      ],
+      "aliases": {
+        "en": ["habanero", "habanero pepper", "habanero chili"],
+        "es": ["chile habanero", "habanero"],
+        "pl": ["habanero", "papryka habanero"]
+      }
+    },
+
+    {
+      "slug": "epazote",
+      "family": "spice_herb",
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "allergens": [],
+      "translations": { "en": "Epazote", "es": "Epazote", "pl": "Epazote" },
+      "variants": [
+        { "modifier": null, "is_default": true,
+          "translations": { "en": "Epazote", "es": "Epazote", "pl": "Epazote" } }
+      ],
+      "aliases": {
+        "en": ["epazote", "mexican tea", "wormseed"],
+        "es": ["epazote", "paico"],
+        "pl": ["epazote"]
+      },
+      "_note": "No-direct-translation into Polish. English 'Mexican tea' / 'wormseed' are uncommon alternates — aliases only. 'Paico' is a regional-es alias from Andean regions."
+    }
+  ]
+}

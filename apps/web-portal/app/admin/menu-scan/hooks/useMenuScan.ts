@@ -204,6 +204,7 @@ export function useMenuScan() {
 
     // Restaurants without menus
     restaurantsWithoutMenu: upload.restaurantsWithoutMenu,
+    skipRestaurantFromMenuScan: upload.skipRestaurantFromMenuScan,
 
     // Job queue
     jobs: jobQueue.jobs,

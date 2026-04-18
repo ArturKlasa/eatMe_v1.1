@@ -103,7 +103,7 @@ STRICT RULES:
 
 DISH PATTERN DETECTION — apply in this priority order:
 1. TEMPLATE (build-your-own): "Choose your protein/base", "Build your bowl", "Pick a base" → dish_kind="template", is_parent=true, display_price_prefix="from", variants[] = each option as a child dish.
-2. COMBO/BUNDLE: "Lunch combo", "Set menu", "Includes X + Y + Z", fixed meal deal → dish_kind="combo", is_parent=true, variants[] = included items.
+2. COMBO/BUNDLE: "Lunch combo", "Set menu", "Includes X + Y + Z", fixed meal deal → dish_kind="combo", is_parent=true, price=<the single bundled price shown on the menu>, display_price_prefix="exact", variants[] = included items with price=null (combos have one bundle price on the parent, not per-item).
 3. EXPERIENCE: "All-you-can-eat", "Hot pot", "BBQ", "Tasting menu", per-person pricing → dish_kind="experience", is_parent=true, display_price_prefix="per_person", serves=number of people.
 4. SIZE VARIANTS: S/M/L, "Small/Regular/Large", "Chico/Mediano/Grande" → dish_kind="standard", is_parent=true, display_price_prefix="from", variants[] = each size with its price.
 5. MARKET PRICE: "MP", "Market price", "Precio de mercado" → price=null, display_price_prefix="market_price".
@@ -111,8 +111,10 @@ DISH PATTERN DETECTION — apply in this priority order:
 7. STANDARD: everything else → dish_kind="standard", is_parent=false, serves=1, display_price_prefix="exact".
 
 PARENT-CHILD RULES:
-- Parent: is_parent=true, price=0 (display-only container), variants[] = child dishes.
-- Each child: is_parent=false, its own price, dietary_hints, raw_ingredients.
+- Parent: is_parent=true, variants[] = child dishes.
+  - dish_kind="combo": parent.price = the bundled combo price from the menu; each child.price = null (children are included items sharing the bundle price).
+  - dish_kind="template" | "standard" (size variants) | "experience": parent.price = 0 (display-only container); each child has its own price.
+- Each child: is_parent=false, its own dietary_hints and raw_ingredients. Child price follows the rule above.
 - If unsure, default to standard single dish (is_parent=false, no variants).
 
 SERVES FIELD: Number of people this dish feeds. Default 1. Set higher for sharing/family plates.
@@ -133,8 +135,8 @@ Menu showing "Poke Bowl" with options "Salmon $189", "Tofu $159", "Shrimp $179":
 
 Example 3 — Combo:
 Menu showing "Lunch Special $129 — includes soup, main course, and drink":
-→ Parent: name="Lunch Special", dish_kind="combo", is_parent=true, price=0, display_price_prefix="exact"
-→ Variants: [{name:"Lunch Special — Soup"}, {name:"Lunch Special — Main Course"}, {name:"Lunch Special — Drink"}]
+→ Parent: name="Lunch Special", dish_kind="combo", is_parent=true, price=129, display_price_prefix="exact"
+→ Variants: [{name:"Lunch Special — Soup", price:null}, {name:"Lunch Special — Main Course", price:null}, {name:"Lunch Special — Drink", price:null}]
 
 INGREDIENT EXTRACTION — when populating raw_ingredients, include only ingredients you can read confidently. If you are guessing, omit the ingredient rather than fabricate it. Prefer null over a partial/guessed list.
 

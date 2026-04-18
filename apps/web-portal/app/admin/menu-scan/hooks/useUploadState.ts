@@ -47,12 +47,31 @@ export function useUploadState() {
       const all = (data as RestaurantOption[]) ?? [];
       setRestaurants(all);
 
-      // Find restaurants with zero dishes
-      const { data: dishRows } = await supabase.from('dishes').select('restaurant_id');
+      // "Needs menu" list = has zero dishes AND not flagged as skip_menu_scan
+      const [{ data: dishRows }, { data: skipRows }] = await Promise.all([
+        supabase.from('dishes').select('restaurant_id'),
+        supabase.from('restaurants').select('id').eq('skip_menu_scan', true),
+      ]);
       const withDishes = new Set(dishRows?.map(d => d.restaurant_id) ?? []);
-      setRestaurantsWithoutMenu(all.filter(r => !withDishes.has(r.id)));
+      const skipped = new Set(skipRows?.map(r => r.id) ?? []);
+      setRestaurantsWithoutMenu(all.filter(r => !withDishes.has(r.id) && !skipped.has(r.id)));
     };
     load();
+  }, []);
+
+  // ---------- skip a restaurant from the "needs menu" list ----------
+  const skipRestaurantFromMenuScan = useCallback(async (restaurantId: string) => {
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ skip_menu_scan: true })
+      .eq('id', restaurantId);
+    if (error) {
+      toast.error('Failed to skip restaurant');
+      console.error('[MenuScan] skip_menu_scan update failed:', error.message);
+      return;
+    }
+    setRestaurantsWithoutMenu(prev => prev.filter(r => r.id !== restaurantId));
+    toast.success('Removed from list');
   }, []);
 
   // ---------- query-param restaurant pre-selection ----------
@@ -170,6 +189,7 @@ export function useUploadState() {
     quickAddInitialName,
     setQuickAddInitialName,
     restaurantsWithoutMenu,
+    skipRestaurantFromMenuScan,
     filteredRestaurants,
     handleFilesSelected,
     removeImage,

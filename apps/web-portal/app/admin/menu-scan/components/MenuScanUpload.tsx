@@ -66,6 +66,7 @@ export interface MenuScanUploadProps {
 
   // Restaurants without menus
   restaurantsWithoutMenu: RestaurantOption[];
+  skipRestaurantFromMenuScan: (restaurantId: string) => Promise<void>;
 }
 
 export function MenuScanUpload({
@@ -96,8 +97,18 @@ export function MenuScanUpload({
   handleDrop,
   handleProcess,
   restaurantsWithoutMenu,
+  skipRestaurantFromMenuScan,
 }: MenuScanUploadProps) {
   const [showNeedsMenu, setShowNeedsMenu] = useState(false);
+
+  const handleSkipSelected = async () => {
+    if (!selectedRestaurant) return;
+    await skipRestaurantFromMenuScan(selectedRestaurant.id);
+    setIsPreSelected(false);
+    setSelectedRestaurant(null);
+    setRestaurantSearch('');
+    setShowRestaurantDropdown(false);
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -150,6 +161,13 @@ export function MenuScanUpload({
                 <ExternalLink className="h-3 w-3" />
                 Google Maps
               </a>
+              <button
+                onClick={handleSkipSelected}
+                className="text-xs text-muted-foreground hover:text-destructive underline"
+                title="Don't need a menu for this restaurant — remove from list"
+              >
+                Skip
+              </button>
               <button
                 onClick={() => {
                   setIsPreSelected(false);
@@ -268,16 +286,25 @@ export function MenuScanUpload({
               {selectedRestaurant.name}
               {selectedRestaurant.country_code && ` — ${selectedRestaurant.country_code}`}
             </p>
-            <a
-              href={`https://www.google.com/maps/search/${encodeURIComponent([selectedRestaurant.name, selectedRestaurant.city].filter(Boolean).join(' '))}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-              title="View on Google Maps"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Google Maps
-            </a>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSkipSelected}
+                className="text-xs text-muted-foreground hover:text-destructive underline"
+                title="Don't need a menu for this restaurant — remove from list"
+              >
+                Skip
+              </button>
+              <a
+                href={`https://www.google.com/maps/search/${encodeURIComponent([selectedRestaurant.name, selectedRestaurant.city].filter(Boolean).join(' '))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                title="View on Google Maps"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Google Maps
+              </a>
+            </div>
           </div>
         )}
       </div>

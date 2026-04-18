@@ -39,6 +39,7 @@ export default function MenuScanPage() {
           handleDrop={state.handleDrop}
           handleProcess={state.handleProcess}
           restaurantsWithoutMenu={state.restaurantsWithoutMenu}
+          skipRestaurantFromMenuScan={state.skipRestaurantFromMenuScan}
         />
         <div className="max-w-2xl mx-auto">
           <ScanJobQueue

@@ -132,9 +132,13 @@ export async function POST(request: NextRequest) {
         // ---- Pass 1: Insert parent dishes ----
         for (const parentDish of parentDishes) {
           const parentId = randomUUID();
+          // Combos carry the bundled price on the parent. Other parent kinds
+          // (template, experience, size-variants) are display-only containers,
+          // so we force their price to 0 regardless of what the user typed.
+          const isCombo = parentDish.dish_kind === 'combo';
           const parentRow = buildDishRow(parentDish, parentId, restaurant_id, newCat.id, {
             is_parent: true,
-            price: 0, // parents are display-only containers
+            ...(isCombo ? {} : { price: 0 }),
           });
 
           const { error: parentError } = await supabase.from('dishes').insert(parentRow);

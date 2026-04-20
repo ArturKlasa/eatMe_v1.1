@@ -128,6 +128,7 @@ export interface EditableDish {
   is_parent: boolean;
   serves: number | null;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
+  primary_protein: string | null;
   variant_ids: string[]; // _ids of child EditableDish entries
   parent_id: string | null; // _id of parent EditableDish
   group_status: 'ai_proposed' | 'accepted' | 'rejected' | 'manual';
@@ -172,6 +173,7 @@ export interface ConfirmDish {
   serves: number;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
   variant_dishes?: ConfirmDish[];
+  primary_protein?: string | null;
   /** AI-suggested allergen codes. Supplementary until DB trigger computes from ingredients. */
   allergens?: string[];
   /** GPT-4o extraction confidence [0–1]. Used to populate enrichment_confidence at confirm. */
@@ -777,6 +779,7 @@ function enrichedToEditable(
     is_parent: isParent,
     serves: dish.serves ?? null,
     display_price_prefix: dish.display_price_prefix ?? 'exact',
+    primary_protein: (dish as { primary_protein?: string | null }).primary_protein ?? null,
     variant_ids: variantIds,
     parent_id: parentId,
     group_status: isParent ? 'ai_proposed' : parentId ? 'ai_proposed' : 'manual',
@@ -859,6 +862,7 @@ function editableToConfirm(dish: EditableDish): ConfirmDish {
     is_parent: dish.is_parent,
     serves: dish.serves ?? 1,
     display_price_prefix: dish.display_price_prefix,
+    primary_protein: dish.primary_protein ?? null,
     allergens: dish.suggested_allergens ?? [],
     confidence: dish.confidence,
   };
@@ -894,6 +898,7 @@ export function newEmptyDish(): EditableDish {
     serves: null,
     display_price_prefix: 'exact',
     variant_ids: [],
+    primary_protein: null,
     parent_id: null,
     group_status: 'manual',
   };

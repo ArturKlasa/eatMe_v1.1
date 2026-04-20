@@ -32,6 +32,9 @@ const COMPLETE_INGREDIENT_THRESHOLD = 3;
 /** Debounce: skip if dish was updated less than this many seconds ago */
 const DEBOUNCE_SECONDS = 8;
 
+/** When true, skip GPT-4o-mini and embed using primary_protein only */
+const embeddingOnly = Deno.env.get('ENRICHMENT_MODE') === 'embedding_only';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -60,6 +63,7 @@ interface DishRow {
   updated_at: string;
   is_parent: boolean;
   parent_dish_id: string | null;
+  primary_protein: string | null;
 }
 
 interface EnrichmentPayload {
@@ -219,6 +223,7 @@ function buildEmbeddingInput(params: {
   cuisineTypes: string[];
   parentName: string | null;
   parentIngredients: string[];
+  primaryProtein: string | null;
 }): string {
   const {
     name,
@@ -231,6 +236,7 @@ function buildEmbeddingInput(params: {
     cuisineTypes,
     parentName,
     parentIngredients,
+    primaryProtein,
   } = params;
 
   const parts: string[] = [];
@@ -267,7 +273,11 @@ function buildEmbeddingInput(params: {
         )
       : []),
   ];
-  if (allIngredients.length > 0) parts.push(`Ingredients: ${allIngredients.join(', ')}`);
+  if (allIngredients.length > 0) {
+    parts.push(`Ingredients: ${allIngredients.join(', ')}`);
+  } else if (primaryProtein) {
+    parts.push(`Protein: ${primaryProtein}`);
+  }
 
   // Structured options (grouped, not flat)
   if (optionGroups.length > 0) {
@@ -330,7 +340,7 @@ serve(async (req: Request) => {
     const { data: dish, error: dishError } = (await supabase
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id'
+        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id, primary_protein'
       )
       .eq('id', dishId)
       .single()) as { data: DishRow | null; error: unknown };
@@ -445,7 +455,7 @@ serve(async (req: Request) => {
     let enrichmentPayload: EnrichmentPayload | null = null;
     let enrichmentSource: EnrichmentSource = 'none';
 
-    if (completeness !== 'complete') {
+    if (completeness !== 'complete' && !embeddingOnly) {
       enrichmentPayload = await enrichWithAI(dish.name, dish.description);
       if (enrichmentPayload) {
         enrichmentSource = 'ai';
@@ -481,6 +491,7 @@ serve(async (req: Request) => {
       cuisineTypes,
       parentName,
       parentIngredients,
+      primaryProtein: dish.primary_protein,
     });
 
     console.log('[enrich-dish] Embedding input:', embeddingInput.slice(0, 200));

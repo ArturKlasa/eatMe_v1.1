@@ -38,12 +38,7 @@ export interface DishEditPanelProps {
   ) => void;
   setAddIngredientTarget: (v: AddIngredientTarget | null) => void;
   updateDish: (mIdx: number, cIdx: number, dIdx: number, patch: Partial<EditableDish>) => void;
-  addIngredientToDish: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    ing: EditableIngredient
-  ) => void;
+  addIngredientToDish: (mIdx: number, cIdx: number, dIdx: number, ing: EditableIngredient) => void;
   removeIngredientFromDish: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => void;
   addSubIngredient: (
     mIdx: number,
@@ -353,9 +348,7 @@ export function DishEditPanel({
                       key={subIdx}
                       className="text-xs bg-indigo-100 text-indigo-700 rounded-full flex items-center"
                     >
-                      <span className="pl-2 pr-0.5 py-0.5">
-                        {sub.display_name || sub.raw_text}
-                      </span>
+                      <span className="pl-2 pr-0.5 py-0.5">{sub.display_name || sub.raw_text}</span>
                       <button
                         type="button"
                         onClick={() => removeSubIngredient(mIdx, cIdx, dIdx, parentIngIdx, subIdx)}
@@ -425,6 +418,41 @@ export function DishEditPanel({
         )}
       </div>
 
+      {/* Primary Protein */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-1">Primary Protein</p>
+        <select
+          value={dish.primary_protein ?? ''}
+          onChange={e =>
+            updateDish(mIdx, cIdx, dIdx, {
+              primary_protein: e.target.value || null,
+            })
+          }
+          className="w-full text-xs border border-input rounded px-2 py-1.5 bg-background focus:outline-none focus:border-brand-primary/70"
+        >
+          <option value="">— Not specified —</option>
+          <optgroup label="Meat">
+            <option value="chicken">Chicken</option>
+            <option value="beef">Beef</option>
+            <option value="pork">Pork</option>
+            <option value="lamb">Lamb</option>
+            <option value="duck">Duck</option>
+            <option value="other_meat">Other meat</option>
+          </optgroup>
+          <optgroup label="Fish &amp; Seafood">
+            <option value="fish">Fish</option>
+            <option value="shellfish">Seafood</option>
+          </optgroup>
+          <optgroup label="Other Animal">
+            <option value="eggs">Eggs</option>
+          </optgroup>
+          <optgroup label="Plant-Based">
+            <option value="vegetarian">Vegetarian</option>
+            <option value="vegan">Vegan</option>
+          </optgroup>
+        </select>
+      </div>
+
       {/* Dish category + extra fields row */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-40">
@@ -471,9 +499,7 @@ export function DishEditPanel({
             onChange={e =>
               updateDish(mIdx, cIdx, dIdx, {
                 spice_level:
-                  e.target.value === ''
-                    ? null
-                    : (e.target.value as 'none' | 'mild' | 'hot'),
+                  e.target.value === '' ? null : (e.target.value as 'none' | 'mild' | 'hot'),
               })
             }
             className="text-xs border border-input rounded px-2 py-1.5 bg-background focus:outline-none focus:border-brand-primary/70"

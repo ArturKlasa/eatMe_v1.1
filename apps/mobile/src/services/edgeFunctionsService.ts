@@ -95,6 +95,12 @@ export interface FeedRequest {
     currentTime?: string;
     /** Current day of week: 'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun' */
     currentDayOfWeek?: string;
+    /**
+     * User's preferred primary protein (permanent filter).
+     * Dishes matching this value receive a +0.30 score boost in rankCandidates().
+     * Matches dishes.primary_protein enum values.
+     */
+    primaryProtein?: string;
   };
   userId?: string;
   limit?: number; // default 20
@@ -240,6 +246,7 @@ function buildFilters(
     currentDayOfWeek: (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[
       new Date().getDay()
     ],
+    primaryProtein: permanentFilters.primaryProtein ?? undefined,
   };
 }
 

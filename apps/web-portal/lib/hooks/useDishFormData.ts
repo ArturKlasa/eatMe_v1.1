@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { type UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
 import type { Dish, OptionGroup } from '@eatme/shared';
+import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
 import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
 import type { DishFormData } from '@eatme/shared';
 import type { RawOptionGroup } from '@/lib/restaurantService';
+import { ingredientEntryEnabled } from '@/lib/featureFlags';
 import { toast } from 'sonner';
 
 interface UseDishFormDataOptions {
@@ -42,6 +44,7 @@ const DEFAULT_VALUES: DishFormData = {
   is_parent: false,
   variants: [],
   option_groups: [],
+  primary_protein: null,
 };
 
 /** @returns Form state and event handlers for the dish form UI. */
@@ -98,6 +101,7 @@ export function useDishFormData({
         is_parent: dish.is_parent ?? false,
         variants: [],
         option_groups: [],
+        primary_protein: (dish as { primary_protein?: string | null }).primary_protein ?? null,
       });
 
       if (dish.id) {
@@ -255,6 +259,7 @@ export function useDishFormData({
     // DB mode (direct Supabase write)
     try {
       const isParent = data.is_parent === true;
+      const derived = deriveProteinFields(data.primary_protein as PrimaryProtein | null);
       const dishData = {
         restaurant_id: restaurantId,
         menu_category_id: menuCategoryId,
@@ -266,10 +271,13 @@ export function useDishFormData({
         is_parent: isParent,
         is_available: data.is_available !== false,
         image_url: data.photo_url,
-        // Empty array → null override (let the ingredient-cascade trigger compute).
-        // Non-empty → explicit admin override (migration 092).
+        primary_protein: data.primary_protein ?? null,
+        protein_families: derived.protein_families,
+        protein_canonical_names: derived.protein_canonical_names,
+        // primary_protein veg/vegan sets the override; otherwise fall back to form checkboxes.
         dietary_tags_override:
-          data.dietary_tags && data.dietary_tags.length > 0 ? data.dietary_tags : null,
+          derived.dietary_tags_override ??
+          (data.dietary_tags && data.dietary_tags.length > 0 ? data.dietary_tags : null),
         allergens_override: data.allergens && data.allergens.length > 0 ? data.allergens : null,
         calories: !isNaN(data.calories as number) && data.calories != null ? data.calories : null,
         spice_level: data.spice_level && data.spice_level !== 'none' ? data.spice_level : null,
@@ -305,11 +313,8 @@ export function useDishFormData({
         toast.success('Dish added successfully');
       }
 
-      // Sync dish_ingredients junction table. Phase 6A cutover: every row
-      // must carry concept_id. Ingredients picked from the Phase 4C typeahead
-      // already carry it; legacy-loaded ingredients (without concept_id)
-      // need a one-shot canonical → concept lookup here.
-      if (selectedIngredients.length > 0) {
+      // Sync dish_ingredients junction table (gated behind ingredient entry feature flag).
+      if (ingredientEntryEnabled() && selectedIngredients.length > 0) {
         await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
 
         const needLookup = selectedIngredients
@@ -346,7 +351,7 @@ export function useDishFormData({
           console.error('[DishForm] Failed to save ingredients:', ingError);
           toast.warning('Dish saved, but ingredient links could not be updated.');
         }
-      } else if (dish?.id) {
+      } else if (ingredientEntryEnabled() && dish?.id) {
         await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
       }
 

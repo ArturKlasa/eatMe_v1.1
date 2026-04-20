@@ -5,6 +5,8 @@ import {
   type RestaurantInsert,
 } from './supabase';
 import { addDishIngredients } from './ingredients';
+import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
+import { ingredientEntryEnabled } from './featureFlags';
 import type {
   FormProgress,
   Menu as AppMenu,
@@ -436,26 +438,35 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
     dish: AppMenu['dishes'][number],
     categoryId: string,
     overrides: { parent_dish_id?: string | null; is_parent?: boolean } = {}
-  ) => ({
-    restaurant_id: restaurantId,
-    menu_category_id: categoryId,
-    name: dish.name,
-    description: dish.description || null,
-    price: dish.price,
-    dietary_tags: dish.dietary_tags || [],
-    allergens: dish.allergens || [],
-    calories: dish.calories || null,
-    spice_level: dish.spice_level || null,
-    image_url: dish.photo_url || null,
-    is_available: dish.is_available !== undefined ? dish.is_available : true,
-    description_visibility: dish.description_visibility ?? 'menu',
-    ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-    dish_kind: dish.dish_kind ?? 'standard',
-    display_price_prefix: dish.display_price_prefix ?? 'exact',
-    serves: dish.serves ?? 1,
-    is_parent: overrides.is_parent ?? dish.is_parent ?? false,
-    parent_dish_id: overrides.parent_dish_id ?? dish.parent_dish_id ?? null,
-  });
+  ) => {
+    const derived = deriveProteinFields(
+      (dish as { primary_protein?: string | null }).primary_protein as PrimaryProtein | null
+    );
+    return {
+      restaurant_id: restaurantId,
+      menu_category_id: categoryId,
+      name: dish.name,
+      description: dish.description || null,
+      price: dish.price,
+      dietary_tags: dish.dietary_tags || [],
+      allergens: dish.allergens || [],
+      calories: dish.calories || null,
+      spice_level: dish.spice_level || null,
+      image_url: dish.photo_url || null,
+      is_available: dish.is_available !== undefined ? dish.is_available : true,
+      description_visibility: dish.description_visibility ?? 'menu',
+      ingredients_visibility: dish.ingredients_visibility ?? 'detail',
+      dish_kind: dish.dish_kind ?? 'standard',
+      display_price_prefix: dish.display_price_prefix ?? 'exact',
+      serves: dish.serves ?? 1,
+      is_parent: overrides.is_parent ?? dish.is_parent ?? false,
+      parent_dish_id: overrides.parent_dish_id ?? dish.parent_dish_id ?? null,
+      primary_protein: (dish as { primary_protein?: string | null }).primary_protein ?? null,
+      protein_families: derived.protein_families,
+      protein_canonical_names: derived.protein_canonical_names,
+      dietary_tags_override: derived.dietary_tags_override,
+    };
+  };
 
   const firstPassDishes: DishWithCategoryId[] = [];
   for (let i = 0; i < menus.length; i++) {
@@ -532,24 +543,26 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
 
   const insertedDishes = insertedWithDish;
 
-  await Promise.all(
-    insertedDishes.map(async ({ id: insertedId, dish }) => {
-      if (!dish.selectedIngredients?.length) return;
-      const { error: ingError } = await addDishIngredients(
-        insertedId,
-        dish.selectedIngredients.map((ing: SelectedIngredient) => ({
-          ingredient_id: ing.id,
-          quantity: ing.quantity || null,
-        }))
-      );
-      if (ingError) {
-        console.error(
-          `[RestaurantService] Failed to link ingredients for dish "${dish.name}":`,
-          ingError
+  if (ingredientEntryEnabled()) {
+    await Promise.all(
+      insertedDishes.map(async ({ id: insertedId, dish }) => {
+        if (!dish.selectedIngredients?.length) return;
+        const { error: ingError } = await addDishIngredients(
+          insertedId,
+          dish.selectedIngredients.map((ing: SelectedIngredient) => ({
+            ingredient_id: ing.id,
+            quantity: ing.quantity || null,
+          }))
         );
-      }
-    })
-  );
+        if (ingError) {
+          console.error(
+            `[RestaurantService] Failed to link ingredients for dish "${dish.name}":`,
+            ingError
+          );
+        }
+      })
+    );
+  }
 
   await Promise.all(
     insertedDishes.map(async ({ id: insertedId, dish }) => {

@@ -20,6 +20,9 @@ import { DishVariantsSection } from './dish/DishVariantsSection';
 import { DishOptionsSection } from './dish/DishOptionsSection';
 import { DishVisibilityFields } from './dish/DishVisibilityFields';
 import { DishPhotoField } from './dish/DishPhotoField';
+import { DishPrimaryProteinSelect } from './dish/DishPrimaryProteinSelect';
+import { DishPrimaryProteinBanner } from './dish/DishPrimaryProteinBanner';
+import { ingredientEntryEnabled } from '@/lib/featureFlags';
 
 // The component supports two modes:
 //   Wizard mode – onSubmit is provided; data stays in local state, no Supabase write.
@@ -68,6 +71,7 @@ export function DishFormDialog({
       is_parent: false,
       variants: [],
       option_groups: [],
+      primary_protein: null,
     },
   });
 
@@ -143,12 +147,20 @@ export function DishFormDialog({
 
             <Separator />
 
-            <DishIngredientSection
-              ingredients={selectedIngredients}
-              onIngredientsChange={setSelectedIngredients}
-              calculatedAllergens={calculatedAllergens}
-              calculatedDietaryTags={calculatedDietaryTags}
-            />
+            <DishPrimaryProteinSelect />
+            <DishPrimaryProteinBanner />
+
+            {ingredientEntryEnabled() && (
+              <>
+                <Separator />
+                <DishIngredientSection
+                  ingredients={selectedIngredients}
+                  onIngredientsChange={setSelectedIngredients}
+                  calculatedAllergens={calculatedAllergens}
+                  calculatedDietaryTags={calculatedDietaryTags}
+                />
+              </>
+            )}
 
             <Separator />
 

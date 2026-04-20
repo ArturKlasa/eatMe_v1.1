@@ -452,6 +452,7 @@ export type Database = {
           parent_dish_id: string | null;
           price: number;
           price_per_person: number | null;
+          primary_protein: string | null;
           protein_canonical_names: string[] | null;
           protein_families: string[] | null;
           restaurant_id: string | null;
@@ -487,6 +488,7 @@ export type Database = {
           parent_dish_id?: string | null;
           price?: number;
           price_per_person?: number | null;
+          primary_protein?: string | null;
           protein_canonical_names?: string[] | null;
           protein_families?: string[] | null;
           restaurant_id?: string | null;
@@ -522,6 +524,7 @@ export type Database = {
           parent_dish_id?: string | null;
           price?: number;
           price_per_person?: number | null;
+          primary_protein?: string | null;
           protein_canonical_names?: string[] | null;
           protein_families?: string[] | null;
           restaurant_id?: string | null;

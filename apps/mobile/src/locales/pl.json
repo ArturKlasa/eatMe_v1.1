@@ -315,6 +315,21 @@
       "fish": "Ryba",
       "seafood": "Owoce morza"
     },
+    "primaryProteinTitle": "🥩 Preferencja białka",
+    "primaryProteinAny": "Dowolne",
+    "primaryProtein": {
+      "chicken": "🐔 Kurczak",
+      "beef": "🐄 Wołowina",
+      "pork": "🐷 Wieprzowina",
+      "lamb": "🐑 Jagnięcina",
+      "duck": "🦆 Kaczka",
+      "other_meat": "🍖 Inne mięso",
+      "fish": "🐟 Ryba",
+      "shellfish": "🦐 Owoce morza",
+      "eggs": "🥚 Jajka",
+      "vegetarian": "🥗 Wegetariańskie",
+      "vegan": "🌱 Wegańskie"
+    },
     "presets": {
       "nearby": "W pobliżu",
       "cheapEats": "Tanio",

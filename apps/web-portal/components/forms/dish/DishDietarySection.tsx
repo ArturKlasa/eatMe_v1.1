@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Sprout, Leaf } from 'lucide-react';
 import { DIETARY_TAGS, ALLERGENS, RELIGIOUS_REQUIREMENTS } from '@eatme/shared';
 import type { DishFormData } from '@eatme/shared';
+import { ingredientEntryEnabled } from '@/lib/featureFlags';
 
 export function DishDietarySection() {
   const { setValue, control } = useFormContext<DishFormData>();
@@ -156,31 +157,32 @@ export function DishDietarySection() {
         </div>
       </div>
 
-      {/* Religious Requirements Section */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Religious Requirements</h3>
+      {ingredientEntryEnabled() && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-foreground">Religious Requirements</h3>
 
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {RELIGIOUS_REQUIREMENTS.map(tag => (
-              <div key={tag} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`religious-${tag}`}
-                  checked={dietaryTags.includes(tag)}
-                  onCheckedChange={() => toggleDietaryTag(tag)}
-                />
-                <Label
-                  htmlFor={`religious-${tag}`}
-                  className="text-sm font-normal cursor-pointer capitalize"
-                >
-                  {tag}
-                </Label>
-              </div>
-            ))}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {RELIGIOUS_REQUIREMENTS.map(tag => (
+                <div key={tag} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`religious-${tag}`}
+                    checked={dietaryTags.includes(tag)}
+                    onCheckedChange={() => toggleDietaryTag(tag)}
+                  />
+                  <Label
+                    htmlFor={`religious-${tag}`}
+                    className="text-sm font-normal cursor-pointer capitalize"
+                  >
+                    {tag}
+                  </Label>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

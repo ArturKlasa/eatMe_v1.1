@@ -37,6 +37,15 @@ Monorepo with three packages consumed by two apps. Both apps create their own Su
 
 See `agent_docs/architecture.md` for package relationships and data flow.
 
+## Dish Classification — Primary Protein
+
+Dishes are classified by a single `primary_protein` column (enum, not null) on the `dishes` table. The canonical list of 11 values lives in `packages/shared/src/logic/protein.ts` (`PRIMARY_PROTEINS` constant + `deriveProteinFields` helper). Both apps import from `@eatme/shared`.
+
+- **Web portal**: `primary_protein` is set during menu scan (AI extraction) and editable in the dish form. The ingredient concepts/variants/aliases pipeline exists but is hidden behind `NEXT_PUBLIC_INGREDIENT_ENTRY_ENABLED=false`.
+- **Mobile**: consumers filter by `primaryProtein` in the permanent filter drawer (`DrawerFilters`). The "Ingredients to Avoid" section is hidden behind `EXPO_PUBLIC_INGREDIENT_ENTRY_ENABLED=false`.
+
+To expose the ingredient pipeline, flip both flags to `"true"` in the respective `.env.local` / `.env` files.
+
 ## Common Pitfalls
 
 1. **PostGIS POINT format** — `POINT(lng lat)` not `POINT(lat lng)`. Supabase returns `{type: "Point", coordinates: [lng, lat]}`.
@@ -44,6 +53,7 @@ See `agent_docs/architecture.md` for package relationships and data flow.
 3. **localStorage keys** — Web portal uses specific keys for draft persistence (`restaurant-draft`, `onboarding-step`). Changing them breaks in-progress onboarding.
 4. **Native modules need rebuild** — After adding/updating native dependencies in mobile, run `npx expo prebuild --clean`.
 5. **transpilePackages** — Workspace packages using TypeScript source (not compiled) must be listed in `next.config.ts` `transpilePackages`.
+6. **primary_protein is NOT NULL** — Every dish must have a `primary_protein` value. Dishes without it (pre-migration legacy data) should be deleted or backfilled before querying.
 
 ## Further Reading
 

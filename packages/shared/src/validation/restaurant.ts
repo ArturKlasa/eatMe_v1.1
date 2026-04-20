@@ -68,6 +68,7 @@ export const dishSchema = z.object({
   display_price_prefix: z
     .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
     .default('exact'),
+  primary_protein: z.string().nullable().optional(),
   /** True when this dish is a parent container whose real choices live in variants[]. */
   is_parent: z.boolean().default(false).optional(),
   /** Child variants. Each variant is persisted as its own dish row with parent_dish_id set. */

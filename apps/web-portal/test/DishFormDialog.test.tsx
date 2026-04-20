@@ -26,8 +26,12 @@ vi.mock('@/lib/supabase', () => ({
           }),
         }),
       }),
-      insert: () => ({ select: () => ({ single: () => ({ data: { id: 'test-id' }, error: null }) }) }),
-      update: () => ({ eq: () => ({ select: () => ({ data: [{ id: 'test-id' }], error: null }) }) }),
+      insert: () => ({
+        select: () => ({ single: () => ({ data: { id: 'test-id' }, error: null }) }),
+      }),
+      update: () => ({
+        eq: () => ({ select: () => ({ data: [{ id: 'test-id' }], error: null }) }),
+      }),
       delete: () => ({ eq: () => ({ data: null, error: null }) }),
     }),
   },
@@ -65,7 +69,13 @@ vi.mock('@/lib/validation', async () => {
 });
 
 // Wrapper that provides FormProvider context
-function FormWrapper({ children, defaultValues }: { children: React.ReactNode; defaultValues?: Partial<DishFormData> }) {
+function FormWrapper({
+  children,
+  defaultValues,
+}: {
+  children: React.ReactNode;
+  defaultValues?: Partial<DishFormData>;
+}) {
   const Wrapper = () => {
     const methods = useForm<DishFormData>({
       defaultValues: {
@@ -181,7 +191,6 @@ describe('DishDietarySection', () => {
     );
 
     expect(screen.getByText('Allergens')).toBeInTheDocument();
-    expect(screen.getByText('Mark allergens present in this dish')).toBeInTheDocument();
   });
 
   it('renders dietary tags section', () => {
@@ -194,14 +203,15 @@ describe('DishDietarySection', () => {
     expect(screen.getByText('Dietary Tags')).toBeInTheDocument();
   });
 
-  it('renders religious requirements section', () => {
+  it('hides religious requirements section when ingredient entry is disabled', () => {
     render(
       <FormWrapper>
         <DishDietarySection />
       </FormWrapper>
     );
 
-    expect(screen.getByText('Religious Requirements')).toBeInTheDocument();
+    // Section is gated behind NEXT_PUBLIC_INGREDIENT_ENTRY_ENABLED (off by default in tests).
+    expect(screen.queryByText('Religious Requirements')).toBeNull();
   });
 
   it('selecting vegan auto-checks vegetarian', async () => {
@@ -302,12 +312,7 @@ describe('IngredientAutocomplete', () => {
   });
 
   it('has role="combobox" and aria-label on input', () => {
-    render(
-      <IngredientAutocomplete
-        selectedIngredients={[]}
-        onIngredientsChange={() => {}}
-      />
-    );
+    render(<IngredientAutocomplete selectedIngredients={[]} onIngredientsChange={() => {}} />);
 
     const input = screen.getByRole('combobox');
     expect(input).toBeInTheDocument();
@@ -320,12 +325,7 @@ describe('IngredientAutocomplete', () => {
       () => new Promise(resolve => setTimeout(() => resolve({ data: [], error: null }), 500))
     );
 
-    render(
-      <IngredientAutocomplete
-        selectedIngredients={[]}
-        onIngredientsChange={() => {}}
-      />
-    );
+    render(<IngredientAutocomplete selectedIngredients={[]} onIngredientsChange={() => {}} />);
 
     const input = screen.getByRole('combobox');
     await act(async () => {
@@ -333,40 +333,38 @@ describe('IngredientAutocomplete', () => {
     });
 
     // Wait for debounce + loading state
-    await waitFor(() => {
-      // The loading spinner should appear
-      const spinner = document.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        // The loading spinner should appear
+        const spinner = document.querySelector('.animate-spin');
+        expect(spinner).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('shows error message on API failure', async () => {
     mockSearchIngredients.mockResolvedValue({ data: null, error: { message: 'Network error' } });
 
-    render(
-      <IngredientAutocomplete
-        selectedIngredients={[]}
-        onIngredientsChange={() => {}}
-      />
-    );
+    render(<IngredientAutocomplete selectedIngredients={[]} onIngredientsChange={() => {}} />);
 
     const input = screen.getByRole('combobox');
     await act(async () => {
       fireEvent.change(input, { target: { value: 'chicken' } });
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Failed to search ingredients. Please try again.')).toBeInTheDocument();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText('Failed to search ingredients. Please try again.')
+        ).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('renders empty state when no ingredients selected', () => {
-    render(
-      <IngredientAutocomplete
-        selectedIngredients={[]}
-        onIngredientsChange={() => {}}
-      />
-    );
+    render(<IngredientAutocomplete selectedIngredients={[]} onIngredientsChange={() => {}} />);
 
     expect(screen.getByText('No ingredients added yet')).toBeInTheDocument();
   });
@@ -374,12 +372,7 @@ describe('IngredientAutocomplete', () => {
 
 describe('DishFormDialog (integration)', () => {
   it('renders the full form when open', () => {
-    render(
-      <DishFormDialog
-        isOpen={true}
-        onClose={() => {}}
-      />
-    );
+    render(<DishFormDialog isOpen={true} onClose={() => {}} />);
 
     expect(screen.getByText('Add New Dish')).toBeInTheDocument();
     expect(screen.getByText('Basic Information')).toBeInTheDocument();
@@ -402,24 +395,14 @@ describe('DishFormDialog (integration)', () => {
   });
 
   it('renders Add Dish and Cancel buttons', () => {
-    render(
-      <DishFormDialog
-        isOpen={true}
-        onClose={() => {}}
-      />
-    );
+    render(<DishFormDialog isOpen={true} onClose={() => {}} />);
 
     expect(screen.getByRole('button', { name: /add dish/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
-    render(
-      <DishFormDialog
-        isOpen={false}
-        onClose={() => {}}
-      />
-    );
+    render(<DishFormDialog isOpen={false} onClose={() => {}} />);
 
     expect(screen.queryByText('Add New Dish')).not.toBeInTheDocument();
   });

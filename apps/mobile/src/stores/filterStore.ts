@@ -160,6 +160,9 @@ export interface PermanentFilters {
   //    can match against dish_ingredients without string comparisons.
   ingredientsToAvoid: IngredientToAvoid[];
 
+  // 8. Primary protein preference — single-select, null means no preference.
+  primaryProtein: string | null;
+
   defaultPriceRange: {
     min: number;
     max: number;
@@ -216,6 +219,7 @@ interface FilterActions {
   toggleFacility: (facility: keyof PermanentFilters['facilities']) => void;
   addIngredientToAvoid: (ingredient: IngredientToAvoid) => void;
   removeIngredientToAvoid: (canonicalIngredientId: string) => void;
+  setPrimaryProtein: (protein: string | null) => void;
   setPermanentPriceRange: (min: number, max: number) => void;
   setCuisinePreferences: (cuisines: string[]) => void;
   setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => void;
@@ -355,6 +359,7 @@ const defaultPermanentFilters: PermanentFilters = {
     kidsMenu: false,
   },
   ingredientsToAvoid: [],
+  primaryProtein: null,
   defaultPriceRange: {
     min: 10,
     max: 50,
@@ -703,6 +708,16 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         ingredientsToAvoid: state.permanent.ingredientsToAvoid.filter(
           i => i.canonicalIngredientId !== canonicalIngredientId
         ),
+      },
+    }));
+    get().savePermanentFilters();
+  },
+
+  setPrimaryProtein: (protein: string | null) => {
+    set(state => ({
+      permanent: {
+        ...state.permanent,
+        primaryProtein: protein,
       },
     }));
     get().savePermanentFilters();
@@ -1097,6 +1112,11 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
     // Check ingredients to avoid
     if (state.permanent.ingredientsToAvoid.length > 0) {
+      count++;
+    }
+
+    // Check primary protein preference
+    if (state.permanent.primaryProtein !== null) {
       count++;
     }
 

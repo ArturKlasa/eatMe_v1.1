@@ -74,11 +74,11 @@ function getRedis(): Redis | null {
 // Quality is a last-resort tiebreaker for dishes with sparse data.
 
 const W = {
-  similarity: 0.4,   // primary: personalised vector match from user taste profile
-  rating: 0.2,       // dish quality signal from aggregated opinions
-  popularity: 0.15,  // interaction count proxy for crowd-sourced quality
-  distance: 0.15,    // soft proximity boost (hard radius already applied in Stage 1)
-  quality: 0.1,      // content completeness: photos, descriptions, ingredient data
+  similarity: 0.4, // primary: personalised vector match from user taste profile
+  rating: 0.2, // dish quality signal from aggregated opinions
+  popularity: 0.15, // interaction count proxy for crowd-sourced quality
+  distance: 0.15, // soft proximity boost (hard radius already applied in Stage 1)
+  quality: 0.1, // content completeness: photos, descriptions, ingredient data
 } as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -122,6 +122,8 @@ interface FeedRequest {
     currentTime?: string;
     /** Current day of week: 'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun' */
     currentDayOfWeek?: string;
+    /** User's preferred primary protein (permanent filter). Dishes matching receive a +0.30 boost. */
+    primaryProtein?: string;
   };
   userId?: string;
   limit?: number;
@@ -154,6 +156,7 @@ interface Candidate {
   flagged_ingredients?: string[];
   protein_families?: string[];
   protein_canonical_names?: string[];
+  primary_protein?: string | null;
   // Universal dish structure fields
   parent_dish_id?: string | null;
   serves?: number;
@@ -296,6 +299,11 @@ function rankCandidates(
         const range = Math.max(pMax - pMin, 1);
         score += 0.06 * Math.max(0, 1 - Math.abs(d.price - mid) / range);
       }
+    }
+
+    // Permanent primary protein preference boost (+0.30)
+    if (filters.primaryProtein && d.primary_protein === filters.primaryProtein) {
+      score += 0.3;
     }
 
     // Daily dish/meal type boost (+0.25) — explicit craving match

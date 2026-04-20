@@ -31,6 +31,21 @@ const DishSchema: z.ZodType<unknown> = z.lazy(() =>
     raw_ingredients: z.array(RawIngredientSchema).nullable(),
     dietary_hints: z.array(z.string()),
     allergen_hints: z.array(z.string()),
+    primary_protein: z
+      .enum([
+        'chicken',
+        'beef',
+        'pork',
+        'lamb',
+        'duck',
+        'other_meat',
+        'fish',
+        'shellfish',
+        'eggs',
+        'vegetarian',
+        'vegan',
+      ])
+      .nullable(),
     spice_level: z.union([z.literal(0), z.literal(1), z.literal(3)]).nullable(),
     calories: z.number().nullable(),
     confidence: z.number(),
@@ -147,6 +162,11 @@ Example 3 — Combo:
 Menu showing "Lunch Special $129 — includes soup, main course, and drink":
 → Parent: name="Lunch Special", dish_kind="combo", is_parent=true, price=129, display_price_prefix="exact"
 → Variants: [{name:"Lunch Special — Soup", price:null}, {name:"Lunch Special — Main Course", price:null}, {name:"Lunch Special — Drink", price:null}]
+
+PRIMARY PROTEIN — infer the dominant protein for each dish and set primary_protein to one of: chicken, beef, pork, lamb, duck, other_meat, fish, shellfish, eggs, vegetarian, vegan.
+- Use "vegetarian" or "vegan" when the dish has no animal protein (and is not a drink).
+- Use null ONLY when you genuinely cannot determine the protein (e.g. parent containers, drinks, unknown ingredients). Do not guess when confidence is low.
+- For parent dishes (is_parent=true), set primary_protein=null on the parent; infer it on each child variant.
 
 INGREDIENT EXTRACTION — when populating raw_ingredients, include only ingredients you can read confidently. If you are guessing, omit the ingredient rather than fabricate it. Prefer null over a partial/guessed list.
 

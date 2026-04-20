@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
+import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
+import { ingredientEntryEnabled } from '@/lib/featureFlags';
 import type { ConfirmPayload, ConfirmDish } from '@/lib/menu-scan';
 
 /** Vegan always implies vegetarian — ensure both tags are present. */
@@ -319,6 +321,8 @@ function buildDishRow(
   const enrichmentConfidence =
     conf !== undefined ? (conf >= 0.7 ? 'high' : conf >= 0.5 ? 'medium' : 'low') : null;
 
+  const derived = deriveProteinFields(dish.primary_protein as PrimaryProtein | null);
+
   return {
     id,
     restaurant_id: restaurantId,
@@ -332,9 +336,10 @@ function buildDishRow(
     // (migration 092). If dish_ingredients cover everything, admins can clear
     // the override and let the cascade take over.
     dietary_tags_override:
-      dish.dietary_tags && dish.dietary_tags.length > 0
+      derived.dietary_tags_override ??
+      (dish.dietary_tags && dish.dietary_tags.length > 0
         ? normalizeDietaryTags(dish.dietary_tags)
-        : null,
+        : null),
     spice_level: dish.spice_level ?? null,
     calories: dish.calories ?? null,
     is_available: true,
@@ -344,6 +349,9 @@ function buildDishRow(
     display_price_prefix: dish.display_price_prefix ?? 'exact',
     parent_dish_id: (overrides?.parent_dish_id as string) ?? null,
     allergens_override: dish.allergens && dish.allergens.length > 0 ? dish.allergens : null,
+    primary_protein: dish.primary_protein ?? null,
+    protein_families: derived.protein_families,
+    protein_canonical_names: derived.protein_canonical_names,
     enrichment_status: 'pending',
     enrichment_source: 'ai',
     enrichment_confidence: enrichmentConfidence,
@@ -407,7 +415,7 @@ async function insertIngredientsAndOptions(
     return true;
   });
 
-  if (uniqueCanonicalIds.length > 0) {
+  if (ingredientEntryEnabled() && uniqueCanonicalIds.length > 0) {
     const variantOverrides = dish.variant_id_by_canonical ?? {};
 
     const ingredientRows = uniqueCanonicalIds.map(cid => ({

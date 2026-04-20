@@ -31,6 +31,8 @@ import {
   searchIngredientAliases,
   type IngredientSuggestion,
 } from '../services/ingredientService';
+import { ingredientEntryEnabled } from '../config/environment';
+import { PRIMARY_PROTEINS } from '@eatme/shared';
 
 interface DrawerFiltersProps {
   onClose?: () => void;
@@ -95,6 +97,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
     toggleFacility,
     addIngredientToAvoid,
     removeIngredientToAvoid,
+    setPrimaryProtein,
     resetPermanentFilters,
   } = useFilterStore();
 
@@ -241,42 +244,92 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         </View>
       </View>
 
-      {/* 4. Ingredients to Avoid - Expandable List */}
+      {/* 4. Primary Protein Preference - Single Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.ingredientsToAvoidTitle')}</Text>
-        <TouchableOpacity style={drawerFiltersStyles.expandableButton} onPress={handleOpenModal}>
-          <Text style={drawerFiltersStyles.expandableButtonText}>
-            {t('filters.selectIngredients', { count: permanent.ingredientsToAvoid.length })}
-          </Text>
-          <Text style={drawerFiltersStyles.expandableArrow}>→</Text>
-        </TouchableOpacity>
-
-        {permanent.ingredientsToAvoid.length > 0 && (
-          <View style={drawerFiltersStyles.selectedIngredientsContainer}>
-            <Text style={drawerFiltersStyles.selectedIngredientsTitle}>
-              {t('common.selected')}:
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.primaryProteinTitle')}</Text>
+        <View style={drawerFiltersStyles.optionsContainer}>
+          <TouchableOpacity
+            style={[
+              drawerFiltersStyles.option,
+              permanent.primaryProtein === null && drawerFiltersStyles.selectedOption,
+            ]}
+            onPress={() => setPrimaryProtein(null)}
+          >
+            <Text
+              style={[
+                drawerFiltersStyles.optionText,
+                permanent.primaryProtein === null && drawerFiltersStyles.selectedText,
+              ]}
+            >
+              {t('filters.primaryProteinAny')}
             </Text>
-            <View style={drawerFiltersStyles.selectedIngredientsRow}>
-              {permanent.ingredientsToAvoid.map(item => (
-                <View
-                  key={item.canonicalIngredientId}
-                  style={drawerFiltersStyles.selectedIngredientTag}
-                >
-                  <Text style={drawerFiltersStyles.selectedIngredientText}>{item.displayName}</Text>
-                  <TouchableOpacity
-                    onPress={() => removeIngredientToAvoid(item.canonicalIngredientId)}
-                    style={drawerFiltersStyles.removeIngredientButton}
-                  >
-                    <Text style={drawerFiltersStyles.removeIngredientText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+          </TouchableOpacity>
+          {PRIMARY_PROTEINS.map(protein => (
+            <TouchableOpacity
+              key={protein}
+              style={[
+                drawerFiltersStyles.option,
+                permanent.primaryProtein === protein && drawerFiltersStyles.selectedOption,
+              ]}
+              onPress={() =>
+                setPrimaryProtein(permanent.primaryProtein === protein ? null : protein)
+              }
+            >
+              <Text
+                style={[
+                  drawerFiltersStyles.optionText,
+                  permanent.primaryProtein === protein && drawerFiltersStyles.selectedText,
+                ]}
+              >
+                {t(`filters.primaryProtein.${protein}`)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* 5. Diet Preferences - Multiple Selection */}
+      {/* 5. Ingredients to Avoid - Expandable List (requires full ingredient pipeline) */}
+      {ingredientEntryEnabled() && (
+        <View style={drawerFiltersStyles.section}>
+          <Text style={drawerFiltersStyles.sectionTitle}>
+            {t('filters.ingredientsToAvoidTitle')}
+          </Text>
+          <TouchableOpacity style={drawerFiltersStyles.expandableButton} onPress={handleOpenModal}>
+            <Text style={drawerFiltersStyles.expandableButtonText}>
+              {t('filters.selectIngredients', { count: permanent.ingredientsToAvoid.length })}
+            </Text>
+            <Text style={drawerFiltersStyles.expandableArrow}>→</Text>
+          </TouchableOpacity>
+
+          {permanent.ingredientsToAvoid.length > 0 && (
+            <View style={drawerFiltersStyles.selectedIngredientsContainer}>
+              <Text style={drawerFiltersStyles.selectedIngredientsTitle}>
+                {t('common.selected')}:
+              </Text>
+              <View style={drawerFiltersStyles.selectedIngredientsRow}>
+                {permanent.ingredientsToAvoid.map(item => (
+                  <View
+                    key={item.canonicalIngredientId}
+                    style={drawerFiltersStyles.selectedIngredientTag}
+                  >
+                    <Text style={drawerFiltersStyles.selectedIngredientText}>
+                      {item.displayName}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => removeIngredientToAvoid(item.canonicalIngredientId)}
+                      style={drawerFiltersStyles.removeIngredientButton}
+                    >
+                      <Text style={drawerFiltersStyles.removeIngredientText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* 6. Diet Preferences - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
         <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.dietPreferencesTitle')}</Text>
         <View style={drawerFiltersStyles.optionsContainer}>

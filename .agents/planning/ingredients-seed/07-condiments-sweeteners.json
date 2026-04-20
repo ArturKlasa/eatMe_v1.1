@@ -1,0 +1,235 @@
+{
+  "_comment": "Batch 7/10 — Condiments, sauces, vinegars, sweeteners. Skips miso, gochujang, dashi, mole, tahini, peanut_butter, almond_butter (already done).",
+
+  "concepts": [
+    { "slug": "soy_sauce", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["soy", "gluten"],
+      "translations": { "en": "Soy sauce", "es": "Salsa de soya", "pl": "Sos sojowy" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Soy sauce", "es": "Salsa de soya", "pl": "Sos sojowy" } },
+        { "modifier": "light", "translations": { "en": "Light soy sauce", "es": "Salsa de soya ligera", "pl": "Sos sojowy jasny" } },
+        { "modifier": "dark", "translations": { "en": "Dark soy sauce", "es": "Salsa de soya oscura", "pl": "Sos sojowy ciemny" } }
+      ],
+      "aliases": { "en": ["soy sauce", "shoyu", "tamari"], "es": ["salsa de soya", "salsa de soja", "shoyu"], "pl": ["sos sojowy", "sos soja", "shoyu"] } },
+
+    { "slug": "fish_sauce", "family": "condiment", "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Fish sauce", "es": "Salsa de pescado", "pl": "Sos rybny" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Fish sauce", "es": "Salsa de pescado", "pl": "Sos rybny" } }],
+      "aliases": { "en": ["fish sauce", "nam pla", "nuoc mam"], "es": ["salsa de pescado", "nam pla"], "pl": ["sos rybny", "nam pla"] } },
+
+    { "slug": "worcestershire", "family": "condiment", "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Worcestershire sauce", "es": "Salsa inglesa", "pl": "Sos Worcestershire" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Worcestershire sauce", "es": "Salsa inglesa", "pl": "Sos Worcestershire" } }],
+      "aliases": { "en": ["worcestershire", "worcestershire sauce"], "es": ["salsa inglesa", "salsa worcestershire", "salsa perrins"], "pl": ["sos worcestershire", "worcester"] } },
+
+    { "slug": "oyster_sauce", "family": "condiment", "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Oyster sauce", "es": "Salsa de ostión", "pl": "Sos ostrygowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Oyster sauce", "es": "Salsa de ostión", "pl": "Sos ostrygowy" } }],
+      "aliases": { "en": ["oyster sauce"], "es": ["salsa de ostión", "salsa de ostras"], "pl": ["sos ostrygowy"] } },
+
+    { "slug": "hoisin", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["soy", "gluten"],
+      "translations": { "en": "Hoisin sauce", "es": "Salsa hoisin", "pl": "Sos hoisin" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hoisin sauce", "es": "Salsa hoisin", "pl": "Sos hoisin" } }],
+      "aliases": { "en": ["hoisin", "hoisin sauce"], "es": ["hoisin", "salsa hoisin"], "pl": ["hoisin", "sos hoisin"] } },
+
+    { "slug": "teriyaki", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["soy", "gluten"],
+      "translations": { "en": "Teriyaki sauce", "es": "Salsa teriyaki", "pl": "Sos teriyaki" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Teriyaki sauce", "es": "Salsa teriyaki", "pl": "Sos teriyaki" } }],
+      "aliases": { "en": ["teriyaki", "teriyaki sauce"], "es": ["teriyaki", "salsa teriyaki"], "pl": ["teriyaki", "sos teriyaki"] } },
+
+    { "slug": "sriracha", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sriracha", "es": "Sriracha", "pl": "Sriracha" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sriracha", "es": "Sriracha", "pl": "Sriracha" } }],
+      "aliases": { "en": ["sriracha"], "es": ["sriracha"], "pl": ["sriracha"] } },
+
+    { "slug": "sambal", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sambal", "es": "Sambal", "pl": "Sambal" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sambal", "es": "Sambal", "pl": "Sambal" } }],
+      "aliases": { "en": ["sambal", "sambal oelek"], "es": ["sambal"], "pl": ["sambal"] } },
+
+    { "slug": "salsa", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Salsa", "es": "Salsa", "pl": "Salsa" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Salsa", "es": "Salsa", "pl": "Salsa" } },
+        { "modifier": "roja", "translations": { "en": "Salsa roja", "es": "Salsa roja", "pl": "Salsa roja" } },
+        { "modifier": "verde", "translations": { "en": "Salsa verde", "es": "Salsa verde", "pl": "Salsa verde" } }
+      ],
+      "aliases": { "en": ["salsa", "salsa roja", "salsa verde", "mexican salsa"], "es": ["salsa", "salsa roja", "salsa verde", "salsa mexicana"], "pl": ["salsa", "salsa meksykańska"] } },
+
+    { "slug": "guacamole", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Guacamole", "es": "Guacamole", "pl": "Guacamole" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Guacamole", "es": "Guacamole", "pl": "Guacamole" } }],
+      "aliases": { "en": ["guacamole", "guac"], "es": ["guacamole"], "pl": ["guacamole"] } },
+
+    { "slug": "pico_de_gallo", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pico de gallo", "es": "Pico de gallo", "pl": "Pico de gallo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pico de gallo", "es": "Pico de gallo", "pl": "Pico de gallo" } }],
+      "aliases": { "en": ["pico de gallo", "salsa fresca"], "es": ["pico de gallo", "salsa mexicana", "salsa bandera"], "pl": ["pico de gallo"] } },
+
+    { "slug": "chimichurri", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chimichurri", "es": "Chimichurri", "pl": "Chimichurri" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chimichurri", "es": "Chimichurri", "pl": "Chimichurri" } }],
+      "aliases": { "en": ["chimichurri"], "es": ["chimichurri"], "pl": ["chimichurri"] } },
+
+    { "slug": "pesto", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["nuts", "lactose"],
+      "translations": { "en": "Pesto", "es": "Pesto", "pl": "Pesto" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pesto", "es": "Pesto", "pl": "Pesto" } },
+        { "modifier": "genovese", "translations": { "en": "Pesto genovese", "es": "Pesto genovés", "pl": "Pesto genovese" } },
+        { "modifier": "red", "translations": { "en": "Red pesto", "es": "Pesto rojo", "pl": "Pesto czerwone" } }
+      ],
+      "aliases": { "en": ["pesto", "pesto genovese"], "es": ["pesto", "pesto genovés"], "pl": ["pesto"] },
+      "_note": "Classic pesto contains parmesan (lactose) and pine nuts (nuts). Vegan variants exist." },
+
+    { "slug": "aioli", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["eggs"],
+      "translations": { "en": "Aioli", "es": "Alioli", "pl": "Aioli" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Aioli", "es": "Alioli", "pl": "Aioli" } }],
+      "aliases": { "en": ["aioli", "aïoli"], "es": ["alioli", "ajoaceite"], "pl": ["aioli", "aïoli"] } },
+
+    { "slug": "mayonnaise", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["eggs"],
+      "translations": { "en": "Mayonnaise", "es": "Mayonesa", "pl": "Majonez" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mayonnaise", "es": "Mayonesa", "pl": "Majonez" } }],
+      "aliases": { "en": ["mayonnaise", "mayo"], "es": ["mayonesa", "mayo"], "pl": ["majonez", "majonezu"] } },
+
+    { "slug": "ketchup", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Ketchup", "es": "Catsup", "pl": "Ketchup" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ketchup", "es": "Catsup", "pl": "Ketchup" } }],
+      "aliases": { "en": ["ketchup", "catsup", "tomato ketchup"], "es": ["catsup", "ketchup", "cátsup"], "pl": ["ketchup", "keczup"] } },
+
+    { "slug": "mustard", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mustard", "es": "Mostaza", "pl": "Musztarda" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Mustard", "es": "Mostaza", "pl": "Musztarda" } },
+        { "modifier": "dijon", "translations": { "en": "Dijon mustard", "es": "Mostaza Dijon", "pl": "Musztarda dijon" } },
+        { "modifier": "whole_grain", "translations": { "en": "Whole-grain mustard", "es": "Mostaza en grano", "pl": "Musztarda sarepska" } }
+      ],
+      "aliases": { "en": ["mustard", "dijon mustard", "yellow mustard"], "es": ["mostaza", "mostaza dijon", "mostaza amarilla"], "pl": ["musztarda", "musztardy", "musztarda dijon"] } },
+
+    { "slug": "horseradish_sauce", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Horseradish sauce", "es": "Salsa de rábano picante", "pl": "Sos chrzanowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Horseradish sauce", "es": "Salsa de rábano picante", "pl": "Sos chrzanowy" } }],
+      "aliases": { "en": ["horseradish sauce"], "es": ["salsa de rábano picante"], "pl": ["sos chrzanowy"] } },
+
+    { "slug": "hot_sauce", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Hot sauce", "es": "Salsa picante", "pl": "Sos pikantny" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hot sauce", "es": "Salsa picante", "pl": "Sos pikantny" } }],
+      "aliases": { "en": ["hot sauce", "chile sauce", "tabasco"], "es": ["salsa picante", "salsa chile", "tabasco"], "pl": ["sos pikantny", "sos ostry", "tabasco"] } },
+
+    { "slug": "bbq_sauce", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "BBQ sauce", "es": "Salsa BBQ", "pl": "Sos BBQ" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "BBQ sauce", "es": "Salsa BBQ", "pl": "Sos BBQ" } }],
+      "aliases": { "en": ["bbq sauce", "barbecue sauce"], "es": ["salsa bbq", "salsa barbacoa"], "pl": ["sos bbq", "sos barbecue"] } },
+
+    { "slug": "tartar_sauce", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["eggs"],
+      "translations": { "en": "Tartar sauce", "es": "Salsa tártara", "pl": "Sos tatarski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tartar sauce", "es": "Salsa tártara", "pl": "Sos tatarski" } }],
+      "aliases": { "en": ["tartar sauce", "tartare sauce"], "es": ["salsa tártara"], "pl": ["sos tatarski"] } },
+
+    { "slug": "hummus", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["sesame"],
+      "translations": { "en": "Hummus", "es": "Hummus", "pl": "Hummus" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hummus", "es": "Hummus", "pl": "Hummus" } }],
+      "aliases": { "en": ["hummus", "humus"], "es": ["hummus", "humus"], "pl": ["hummus", "humus"] } },
+
+    { "slug": "baba_ganoush", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["sesame"],
+      "translations": { "en": "Baba ganoush", "es": "Baba ganoush", "pl": "Baba ganoush" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Baba ganoush", "es": "Baba ganoush", "pl": "Baba ganoush" } }],
+      "aliases": { "en": ["baba ganoush", "baba ganoosh"], "es": ["baba ganush"], "pl": ["baba ganoush"] } },
+
+    { "slug": "tzatziki", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Tzatziki", "es": "Tzatziki", "pl": "Tzatziki" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tzatziki", "es": "Tzatziki", "pl": "Tzatziki" } }],
+      "aliases": { "en": ["tzatziki"], "es": ["tzatziki"], "pl": ["tzatziki"] } },
+
+    { "slug": "vinegar", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Vinegar", "es": "Vinagre", "pl": "Ocet" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Vinegar", "es": "Vinagre", "pl": "Ocet" } },
+        { "modifier": "white", "translations": { "en": "White vinegar", "es": "Vinagre blanco", "pl": "Ocet biały" } },
+        { "modifier": "apple_cider", "translations": { "en": "Apple cider vinegar", "es": "Vinagre de manzana", "pl": "Ocet jabłkowy" } },
+        { "modifier": "balsamic", "translations": { "en": "Balsamic vinegar", "es": "Vinagre balsámico", "pl": "Ocet balsamiczny" } },
+        { "modifier": "red_wine", "translations": { "en": "Red wine vinegar", "es": "Vinagre de vino tinto", "pl": "Ocet z czerwonego wina" } },
+        { "modifier": "rice", "translations": { "en": "Rice vinegar", "es": "Vinagre de arroz", "pl": "Ocet ryżowy" } }
+      ],
+      "aliases": { "en": ["vinegar", "white vinegar", "balsamic", "apple cider vinegar", "rice vinegar"], "es": ["vinagre", "vinagre blanco", "vinagre balsámico", "vinagre de manzana"], "pl": ["ocet", "octu", "ocet balsamiczny", "ocet jabłkowy"] } },
+
+    { "slug": "sugar", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sugar", "es": "Azúcar", "pl": "Cukier" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sugar", "es": "Azúcar", "pl": "Cukier" } },
+        { "modifier": "brown", "translations": { "en": "Brown sugar", "es": "Azúcar moreno", "pl": "Cukier brązowy" } },
+        { "modifier": "powdered", "translations": { "en": "Powdered sugar", "es": "Azúcar glass", "pl": "Cukier puder" } }
+      ],
+      "aliases": { "en": ["sugar", "white sugar", "brown sugar", "powdered sugar"], "es": ["azúcar", "azúcar blanca", "azúcar moreno", "azúcar glass"], "pl": ["cukier", "cukru", "cukier brązowy", "cukier puder"] } },
+
+    { "slug": "piloncillo", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Piloncillo", "es": "Piloncillo", "pl": "Piloncillo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Piloncillo", "es": "Piloncillo", "pl": "Piloncillo" } }],
+      "aliases": { "en": ["piloncillo", "panela", "mexican brown sugar"], "es": ["piloncillo", "panela"], "pl": ["piloncillo"] },
+      "_note": "Mexican unrefined cane sugar; no Polish translation." },
+
+    { "slug": "honey", "family": "sweetener", "is_vegetarian": true, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Honey", "es": "Miel", "pl": "Miód" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Honey", "es": "Miel", "pl": "Miód" } }],
+      "aliases": { "en": ["honey"], "es": ["miel", "miel de abeja"], "pl": ["miód", "miodu"] },
+      "_note": "is_vegan=false — honey is contested vegan status; erring on side of not-vegan." },
+
+    { "slug": "maple_syrup", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Maple syrup", "es": "Jarabe de maple", "pl": "Syrop klonowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Maple syrup", "es": "Jarabe de maple", "pl": "Syrop klonowy" } }],
+      "aliases": { "en": ["maple syrup"], "es": ["jarabe de maple", "sirope de arce", "jarabe de arce"], "pl": ["syrop klonowy"] } },
+
+    { "slug": "agave", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Agave", "es": "Agave", "pl": "Agawa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Agave", "es": "Agave", "pl": "Agawa" } }],
+      "aliases": { "en": ["agave", "agave nectar", "agave syrup"], "es": ["agave", "jarabe de agave", "miel de agave"], "pl": ["agawa", "syrop z agawy"] } },
+
+    { "slug": "molasses", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Molasses", "es": "Melaza", "pl": "Melasa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Molasses", "es": "Melaza", "pl": "Melasa" } }],
+      "aliases": { "en": ["molasses"], "es": ["melaza"], "pl": ["melasa"] } },
+
+    { "slug": "stevia", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Stevia", "es": "Estevia", "pl": "Stewia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Stevia", "es": "Estevia", "pl": "Stewia" } }],
+      "aliases": { "en": ["stevia"], "es": ["estevia", "stevia"], "pl": ["stewia"] } },
+
+    { "slug": "corn_syrup", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Corn syrup", "es": "Jarabe de maíz", "pl": "Syrop kukurydziany" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Corn syrup", "es": "Jarabe de maíz", "pl": "Syrop kukurydziany" } }],
+      "aliases": { "en": ["corn syrup", "high fructose corn syrup"], "es": ["jarabe de maíz", "sirope de maíz"], "pl": ["syrop kukurydziany"] } },
+
+    { "slug": "chocolate", "family": "baking", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Chocolate", "es": "Chocolate", "pl": "Czekolada" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Chocolate", "es": "Chocolate", "pl": "Czekolada" } },
+        { "modifier": "dark", "translations": { "en": "Dark chocolate", "es": "Chocolate oscuro", "pl": "Czekolada gorzka" } },
+        { "modifier": "milk", "translations": { "en": "Milk chocolate", "es": "Chocolate con leche", "pl": "Czekolada mleczna" } },
+        { "modifier": "white", "translations": { "en": "White chocolate", "es": "Chocolate blanco", "pl": "Czekolada biała" } }
+      ],
+      "aliases": { "en": ["chocolate", "dark chocolate", "milk chocolate"], "es": ["chocolate", "chocolate oscuro", "chocolate con leche"], "pl": ["czekolada", "czekolady", "czekolada gorzka"] } },
+
+    { "slug": "cocoa_powder", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cocoa powder", "es": "Cacao en polvo", "pl": "Kakao w proszku" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cocoa powder", "es": "Cacao en polvo", "pl": "Kakao w proszku" } }],
+      "aliases": { "en": ["cocoa", "cocoa powder"], "es": ["cacao", "cacao en polvo"], "pl": ["kakao", "kakao w proszku"] } },
+
+    { "slug": "yeast", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Yeast", "es": "Levadura", "pl": "Drożdże" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Yeast", "es": "Levadura", "pl": "Drożdże" } }],
+      "aliases": { "en": ["yeast", "active dry yeast", "instant yeast"], "es": ["levadura", "levadura seca"], "pl": ["drożdże", "drożdży"] } },
+
+    { "slug": "baking_powder", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Baking powder", "es": "Polvo para hornear", "pl": "Proszek do pieczenia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Baking powder", "es": "Polvo para hornear", "pl": "Proszek do pieczenia" } }],
+      "aliases": { "en": ["baking powder"], "es": ["polvo para hornear", "polvo de hornear", "royal"], "pl": ["proszek do pieczenia"] } },
+
+    { "slug": "baking_soda", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Baking soda", "es": "Bicarbonato de sodio", "pl": "Soda oczyszczona" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Baking soda", "es": "Bicarbonato de sodio", "pl": "Soda oczyszczona" } }],
+      "aliases": { "en": ["baking soda", "bicarbonate of soda"], "es": ["bicarbonato de sodio", "bicarbonato"], "pl": ["soda oczyszczona", "soda"] } },
+
+    { "slug": "gelatin", "family": "baking", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Gelatin", "es": "Grenetina", "pl": "Żelatyna" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Gelatin", "es": "Grenetina", "pl": "Żelatyna" } }],
+      "aliases": { "en": ["gelatin"], "es": ["grenetina", "gelatina"], "pl": ["żelatyna"] } }
+  ]
+}

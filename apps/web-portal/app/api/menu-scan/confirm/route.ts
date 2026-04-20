@@ -74,6 +74,11 @@ export async function POST(request: NextRequest) {
   let dishesWithMissingIngredients = 0;
   const errors: string[] = [];
 
+  // Preload canonical_ingredient_id → concept_id once up front. Without this,
+  // insertIngredientsAndOptions would issue one SELECT per dish, adding N
+  // round-trips to the save path on a large menu.
+  const conceptByCanonical = await loadConceptMap(supabase, menus);
+
   try {
     for (let menuIdx = 0; menuIdx < menus.length; menuIdx++) {
       const menuData = menus[menuIdx];
@@ -157,7 +162,8 @@ export async function POST(request: NextRequest) {
             supabase,
             parentId,
             parentDish,
-            restaurant_id
+            restaurant_id,
+            conceptByCanonical
           );
           if (parentIngFailed) dishesWithMissingIngredients++;
 
@@ -193,7 +199,8 @@ export async function POST(request: NextRequest) {
                   supabase,
                   child.id,
                   child.dish,
-                  restaurant_id
+                  restaurant_id,
+                  conceptByCanonical
                 );
                 if (childIngFailed) dishesWithMissingIngredients++;
               }
@@ -234,7 +241,8 @@ export async function POST(request: NextRequest) {
                 supabase,
                 s.id,
                 s.dish,
-                restaurant_id
+                restaurant_id,
+                conceptByCanonical
               );
               if (standaloneIngFailed) dishesWithMissingIngredients++;
             }
@@ -342,26 +350,73 @@ function buildDishRow(
   };
 }
 
+/**
+ * Walk every dish in the payload (parents, variant children, standalones) and
+ * fetch canonical_ingredient_id → concept_id mappings in one bulk query.
+ * Returns an empty map when no ingredients are referenced.
+ */
+async function loadConceptMap(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  menus: ConfirmPayload['menus']
+): Promise<Map<string, string>> {
+  const canonicalIds = new Set<string>();
+  for (const menu of menus) {
+    for (const cat of menu.categories ?? []) {
+      for (const dish of cat.dishes ?? []) {
+        for (const cid of dish.canonical_ingredient_ids ?? []) {
+          if (cid) canonicalIds.add(cid);
+        }
+        for (const child of dish.variant_dishes ?? []) {
+          for (const cid of child.canonical_ingredient_ids ?? []) {
+            if (cid) canonicalIds.add(cid);
+          }
+        }
+      }
+    }
+  }
+  const map = new Map<string, string>();
+  if (canonicalIds.size === 0) return map;
+
+  const { data } = await supabase
+    .from('ingredient_concepts')
+    .select('id, legacy_canonical_id')
+    .in('legacy_canonical_id', [...canonicalIds]);
+  for (const row of (data ?? []) as Array<{ id: string; legacy_canonical_id: string }>) {
+    map.set(row.legacy_canonical_id, row.id);
+  }
+  return map;
+}
+
 /** Returns true if any ingredient or option insert failed for this dish. */
 async function insertIngredientsAndOptions(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   dishId: string,
   dish: ConfirmDish,
-  restaurantId: string
+  restaurantId: string,
+  conceptByCanonical: Map<string, string>
 ): Promise<boolean> {
   let hadFailure = false;
 
-  // Insert ingredients
+  // Insert ingredients — populate concept_id / variant_id alongside the legacy
+  // ingredient_id so downstream code (enrich-dish, allergen trigger) keeps
+  // working until Phase 6 cutover retires the legacy column.
   const seen = new Set<string>();
-  const ingredientRows: { dish_id: string; ingredient_id: string }[] = [];
-  for (const cid of (dish.canonical_ingredient_ids ?? []).filter(Boolean)) {
-    if (!seen.has(cid)) {
-      seen.add(cid);
-      ingredientRows.push({ dish_id: dishId, ingredient_id: cid });
-    }
-  }
+  const uniqueCanonicalIds = (dish.canonical_ingredient_ids ?? []).filter((cid): cid is string => {
+    if (!cid || seen.has(cid)) return false;
+    seen.add(cid);
+    return true;
+  });
 
-  if (ingredientRows.length > 0) {
+  if (uniqueCanonicalIds.length > 0) {
+    const variantOverrides = dish.variant_id_by_canonical ?? {};
+
+    const ingredientRows = uniqueCanonicalIds.map(cid => ({
+      dish_id: dishId,
+      ingredient_id: cid,
+      concept_id: conceptByCanonical.get(cid) ?? null,
+      variant_id: variantOverrides[cid] ?? null,
+    }));
+
     const { error: ingError } = await supabase.from('dish_ingredients').insert(ingredientRows);
 
     if (ingError) {

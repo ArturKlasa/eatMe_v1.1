@@ -115,9 +115,62 @@ export async function POST(request: NextRequest) {
 
   const primaryAlias = insertedAliases?.find(a => a.display_name === cleanName);
 
+  // Phase 6A: auto-mirror into the new ingredient system so admin-created
+  // canonicals participate in the resolver, typeahead, and dish_ingredients
+  // writes. Mirror failures are non-fatal — the legacy record is still
+  // usable, and the concept can be created manually via the admin
+  // concept editor if needed.
+  let conceptId: string | null = null;
+  try {
+    const { data: concept, error: conceptError } = await supabase
+      .from('ingredient_concepts')
+      .insert({
+        slug: cleanName,
+        family: ingredient_family_name || 'other',
+        is_vegetarian,
+        is_vegan,
+        allergens: allergen_codes,
+        legacy_canonical_id: newIngredient.id,
+      })
+      .select('id')
+      .single();
+    if (conceptError) {
+      console.warn('[Ingredients] Concept mirror failed:', conceptError);
+    } else if (concept) {
+      conceptId = concept.id;
+      // Default variant — required so the resolver always has one to
+      // fall back to when no modifier is seen.
+      await supabase
+        .from('ingredient_variants')
+        .insert({ concept_id: concept.id, modifier: null, is_default: true });
+
+      // EN concept translation from the cleaned slug (title-cased).
+      const enName = cleanName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      await supabase
+        .from('concept_translations')
+        .insert({ concept_id: concept.id, language: 'en', name: enName });
+
+      // Mirror the aliases into ingredient_aliases_v2 so typeahead + resolver
+      // can find them. ON CONFLICT DO NOTHING keeps it idempotent across
+      // retries.
+      const v2Rows = allAliases.map(text => ({
+        alias_text: text,
+        language: 'en',
+        concept_id: concept.id,
+        variant_id: null,
+      }));
+      await supabase
+        .from('ingredient_aliases_v2')
+        .upsert(v2Rows, { onConflict: 'alias_text,language', ignoreDuplicates: true });
+    }
+  } catch (err) {
+    console.warn('[Ingredients] Concept mirror threw:', err);
+  }
+
   return NextResponse.json({
     ingredient: newIngredient,
     alias: primaryAlias ?? null,
     aliases_created: insertedAliases?.length ?? 0,
+    concept_id: conceptId,
   });
 }

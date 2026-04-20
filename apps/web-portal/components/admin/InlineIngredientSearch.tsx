@@ -72,6 +72,8 @@ export function InlineIngredientSearch({
     onAdd({
       raw_text: item.display_name,
       status: 'matched',
+      concept_id: item.concept_id,
+      variant_id: item.variant_id ?? null,
       canonical_ingredient_id: item.canonical_ingredient_id,
       canonical_name: item.canonical_name,
       display_name: item.display_name,
@@ -119,11 +121,16 @@ export function InlineIngredientSearch({
                 onClick={() => handleSelect(item)}
                 className={cn(
                   'w-full flex items-center justify-between px-3 py-2 text-left text-xs border-b border last:border-0 transition-colors',
-                  already ? 'text-muted-foreground cursor-default' : 'hover:bg-brand-primary/5 text-foreground'
+                  already
+                    ? 'text-muted-foreground cursor-default'
+                    : 'hover:bg-brand-primary/5 text-foreground'
                 )}
               >
                 <span className="truncate">
                   {item.display_name}
+                  <span className="ml-1 text-[10px] uppercase text-muted-foreground">
+                    {item.language}
+                  </span>
                   {item.is_vegan && <Leaf className="ml-1 h-3 w-3 inline-block text-success" />}
                   {!item.is_vegan && item.is_vegetarian && (
                     <Sprout className="ml-1 h-3 w-3 inline-block text-success" />

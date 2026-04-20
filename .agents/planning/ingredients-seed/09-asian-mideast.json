@@ -1,0 +1,236 @@
+{
+  "_comment": "Batch 9/10 — Asian and Middle Eastern. Skips kimchi, miso, dashi, gochujang, tahini, hummus, zaatar, tempeh, seitan, etc. already covered.",
+
+  "concepts": [
+    { "slug": "wasabi", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Wasabi", "es": "Wasabi", "pl": "Wasabi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Wasabi", "es": "Wasabi", "pl": "Wasabi" } }],
+      "aliases": { "en": ["wasabi", "japanese horseradish"], "es": ["wasabi"], "pl": ["wasabi"] } },
+
+    { "slug": "nori", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Nori", "es": "Nori", "pl": "Nori" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Nori", "es": "Nori", "pl": "Nori" } }],
+      "aliases": { "en": ["nori", "seaweed sheet"], "es": ["nori", "alga nori"], "pl": ["nori", "glony nori"] } },
+
+    { "slug": "seaweed", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Seaweed", "es": "Alga", "pl": "Wodorost" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Seaweed", "es": "Alga", "pl": "Wodorost" } },
+        { "modifier": "wakame", "translations": { "en": "Wakame", "es": "Wakame", "pl": "Wakame" } },
+        { "modifier": "kombu", "translations": { "en": "Kombu", "es": "Kombu", "pl": "Kombu" } }
+      ],
+      "aliases": { "en": ["seaweed", "wakame", "kombu", "kelp"], "es": ["alga", "algas", "wakame", "kombu"], "pl": ["wodorost", "wodorosty", "wakame", "kombu"] } },
+
+    { "slug": "sushi_vinegar", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sushi vinegar", "es": "Vinagre para sushi", "pl": "Ocet do sushi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sushi vinegar", "es": "Vinagre para sushi", "pl": "Ocet do sushi" } }],
+      "aliases": { "en": ["sushi vinegar", "seasoned rice vinegar"], "es": ["vinagre para sushi"], "pl": ["ocet do sushi"] } },
+
+    { "slug": "mirin", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mirin", "es": "Mirin", "pl": "Mirin" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mirin", "es": "Mirin", "pl": "Mirin" } }],
+      "aliases": { "en": ["mirin"], "es": ["mirin"], "pl": ["mirin"] } },
+
+    { "slug": "sake", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sake", "es": "Sake", "pl": "Sake" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sake", "es": "Sake", "pl": "Sake" } }],
+      "aliases": { "en": ["sake", "rice wine"], "es": ["sake"], "pl": ["sake"] } },
+
+    { "slug": "furikake", "family": "spice_herb", "is_vegetarian": true, "is_vegan": false, "allergens": ["fish", "sesame"],
+      "translations": { "en": "Furikake", "es": "Furikake", "pl": "Furikake" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Furikake", "es": "Furikake", "pl": "Furikake" } }],
+      "aliases": { "en": ["furikake"], "es": ["furikake"], "pl": ["furikake"] } },
+
+    { "slug": "bonito_flakes", "family": "fish", "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Bonito flakes", "es": "Hojuelas de bonito", "pl": "Płatki bonito" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Bonito flakes", "es": "Hojuelas de bonito", "pl": "Płatki bonito" } }],
+      "aliases": { "en": ["bonito flakes", "katsuobushi"], "es": ["hojuelas de bonito", "bonito seco", "katsuobushi"], "pl": ["płatki bonito", "katsuobushi"] } },
+
+    { "slug": "panko", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Panko", "es": "Panko", "pl": "Panko" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Panko", "es": "Panko", "pl": "Panko" } }],
+      "aliases": { "en": ["panko", "panko breadcrumbs"], "es": ["panko", "pan panko"], "pl": ["panko", "bułka tarta panko"] } },
+
+    { "slug": "ponzu", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["soy", "gluten"],
+      "translations": { "en": "Ponzu", "es": "Ponzu", "pl": "Ponzu" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ponzu", "es": "Ponzu", "pl": "Ponzu" } }],
+      "aliases": { "en": ["ponzu", "ponzu sauce"], "es": ["ponzu", "salsa ponzu"], "pl": ["ponzu", "sos ponzu"] } },
+
+    { "slug": "shiso", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Shiso", "es": "Shiso", "pl": "Shiso" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Shiso", "es": "Shiso", "pl": "Shiso" } }],
+      "aliases": { "en": ["shiso", "perilla"], "es": ["shiso", "perilla"], "pl": ["shiso", "perilla"] } },
+
+    { "slug": "togarashi", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Togarashi", "es": "Togarashi", "pl": "Togarashi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Togarashi", "es": "Togarashi", "pl": "Togarashi" } }],
+      "aliases": { "en": ["togarashi", "shichimi togarashi", "seven spice"], "es": ["togarashi"], "pl": ["togarashi"] } },
+
+    { "slug": "yuzu_kosho", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Yuzu kosho", "es": "Yuzu kosho", "pl": "Yuzu kosho" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Yuzu kosho", "es": "Yuzu kosho", "pl": "Yuzu kosho" } }],
+      "aliases": { "en": ["yuzu kosho"], "es": ["yuzu kosho"], "pl": ["yuzu kosho"] } },
+
+    { "slug": "dashi_ingredients_kombu", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kombu", "es": "Kombu", "pl": "Kombu" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kombu", "es": "Kombu", "pl": "Kombu" } }],
+      "aliases": { "en": ["kombu", "dried kelp"], "es": ["kombu", "alga kombu"], "pl": ["kombu", "alga kombu"] } },
+
+    { "slug": "tom_yum_paste", "family": "condiment", "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish", "fish"],
+      "translations": { "en": "Tom yum paste", "es": "Pasta tom yum", "pl": "Pasta tom yum" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tom yum paste", "es": "Pasta tom yum", "pl": "Pasta tom yum" } }],
+      "aliases": { "en": ["tom yum paste", "tom yum"], "es": ["pasta tom yum"], "pl": ["pasta tom yum"] } },
+
+    { "slug": "red_curry_paste", "family": "condiment", "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Red curry paste", "es": "Pasta de curry rojo", "pl": "Pasta curry czerwona" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Red curry paste", "es": "Pasta de curry rojo", "pl": "Pasta curry czerwona" } }],
+      "aliases": { "en": ["red curry paste", "thai red curry"], "es": ["pasta de curry rojo", "curry rojo tailandés"], "pl": ["pasta curry czerwona"] },
+      "_note": "Commercial Thai curry pastes usually contain shrimp paste → shellfish." },
+
+    { "slug": "green_curry_paste", "family": "condiment", "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Green curry paste", "es": "Pasta de curry verde", "pl": "Pasta curry zielona" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Green curry paste", "es": "Pasta de curry verde", "pl": "Pasta curry zielona" } }],
+      "aliases": { "en": ["green curry paste", "thai green curry"], "es": ["pasta de curry verde", "curry verde tailandés"], "pl": ["pasta curry zielona"] } },
+
+    { "slug": "galangal", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Galangal", "es": "Galanga", "pl": "Galangal" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Galangal", "es": "Galanga", "pl": "Galangal" } }],
+      "aliases": { "en": ["galangal"], "es": ["galanga"], "pl": ["galangal"] } },
+
+    { "slug": "thai_basil", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Thai basil", "es": "Albahaca tailandesa", "pl": "Bazylia tajska" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Thai basil", "es": "Albahaca tailandesa", "pl": "Bazylia tajska" } }],
+      "aliases": { "en": ["thai basil", "holy basil"], "es": ["albahaca tailandesa", "albahaca tai"], "pl": ["bazylia tajska"] } },
+
+    { "slug": "rice_paper", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rice paper", "es": "Papel de arroz", "pl": "Papier ryżowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rice paper", "es": "Papel de arroz", "pl": "Papier ryżowy" } }],
+      "aliases": { "en": ["rice paper", "spring roll wrapper", "banh trang"], "es": ["papel de arroz", "hojas de arroz"], "pl": ["papier ryżowy"] } },
+
+    { "slug": "wonton_wrapper", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": ["gluten", "eggs"],
+      "translations": { "en": "Wonton wrapper", "es": "Masa para wonton", "pl": "Płaty wonton" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Wonton wrapper", "es": "Masa para wonton", "pl": "Płaty wonton" } }],
+      "aliases": { "en": ["wonton wrapper", "wonton skin"], "es": ["masa para wonton"], "pl": ["płaty wonton"] } },
+
+    { "slug": "chickpea_flour", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chickpea flour", "es": "Harina de garbanzo", "pl": "Mąka z ciecierzycy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chickpea flour", "es": "Harina de garbanzo", "pl": "Mąka z ciecierzycy" } }],
+      "aliases": { "en": ["chickpea flour", "besan", "gram flour"], "es": ["harina de garbanzo"], "pl": ["mąka z ciecierzycy", "besan"] } },
+
+    { "slug": "ghee_clarified_butter", "family": "oil_fat", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Ghee", "es": "Ghee", "pl": "Ghee" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ghee", "es": "Ghee", "pl": "Ghee" } }],
+      "aliases": { "en": ["ghee"], "es": ["ghee"], "pl": ["ghee"] },
+      "_note": "Duplicate of ghee concept — will merge on slug conflict. Safe." },
+
+    { "slug": "paneer", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Paneer", "es": "Paneer", "pl": "Paneer" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Paneer", "es": "Paneer", "pl": "Paneer" } }],
+      "aliases": { "en": ["paneer", "indian cheese"], "es": ["paneer"], "pl": ["paneer"] } },
+
+    { "slug": "yogurt_labneh", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Labneh", "es": "Labneh", "pl": "Labneh" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Labneh", "es": "Labneh", "pl": "Labneh" } }],
+      "aliases": { "en": ["labneh", "strained yogurt"], "es": ["labneh", "yogur colado"], "pl": ["labneh", "jogurt odcedzony"] } },
+
+    { "slug": "feta_cheese_brined", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Brined feta", "es": "Queso feta en salmuera", "pl": "Feta w solance" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Brined feta", "es": "Queso feta en salmuera", "pl": "Feta w solance" } }],
+      "aliases": { "en": ["brined feta"], "es": ["feta en salmuera"], "pl": ["feta w solance"] } },
+
+    { "slug": "sumac_onion", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sumac onion", "es": "Cebolla con zumaque", "pl": "Cebula z sumakiem" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sumac onion", "es": "Cebolla con zumaque", "pl": "Cebula z sumakiem" } }],
+      "aliases": { "en": ["sumac onion"], "es": ["cebolla con zumaque"], "pl": ["cebula z sumakiem"] } },
+
+    { "slug": "harissa", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Harissa", "es": "Harissa", "pl": "Harissa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Harissa", "es": "Harissa", "pl": "Harissa" } }],
+      "aliases": { "en": ["harissa", "harissa paste"], "es": ["harissa", "pasta harissa"], "pl": ["harissa", "pasta harissa"] } },
+
+    { "slug": "preserved_lemon", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Preserved lemon", "es": "Limón en conserva", "pl": "Cytryna konserwowana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Preserved lemon", "es": "Limón en conserva", "pl": "Cytryna konserwowana" } }],
+      "aliases": { "en": ["preserved lemon"], "es": ["limón en conserva"], "pl": ["cytryna konserwowana"] } },
+
+    { "slug": "pomegranate_molasses", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pomegranate molasses", "es": "Melaza de granada", "pl": "Melasa z granatu" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pomegranate molasses", "es": "Melaza de granada", "pl": "Melasa z granatu" } }],
+      "aliases": { "en": ["pomegranate molasses"], "es": ["melaza de granada"], "pl": ["melasa z granatu"] } },
+
+    { "slug": "rose_water", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rose water", "es": "Agua de rosas", "pl": "Woda różana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rose water", "es": "Agua de rosas", "pl": "Woda różana" } }],
+      "aliases": { "en": ["rose water"], "es": ["agua de rosas"], "pl": ["woda różana"] } },
+
+    { "slug": "orange_blossom_water", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Orange blossom water", "es": "Agua de azahar", "pl": "Woda z kwiatu pomarańczy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Orange blossom water", "es": "Agua de azahar", "pl": "Woda z kwiatu pomarańczy" } }],
+      "aliases": { "en": ["orange blossom water"], "es": ["agua de azahar"], "pl": ["woda z kwiatu pomarańczy"] } },
+
+    { "slug": "pita_bread_khubz", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Arabic flatbread", "es": "Pan árabe", "pl": "Chleb arabski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Arabic flatbread", "es": "Pan árabe", "pl": "Chleb arabski" } }],
+      "aliases": { "en": ["arabic bread", "khubz", "arabic flatbread"], "es": ["pan árabe", "khubz"], "pl": ["chleb arabski"] } },
+
+    { "slug": "falafel", "family": "plant_protein", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Falafel", "es": "Falafel", "pl": "Falafel" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Falafel", "es": "Falafel", "pl": "Falafel" } }],
+      "aliases": { "en": ["falafel"], "es": ["falafel"], "pl": ["falafel"] } },
+
+    { "slug": "kofta", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Kofta", "es": "Kofta", "pl": "Kofta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kofta", "es": "Kofta", "pl": "Kofta" } }],
+      "aliases": { "en": ["kofta", "kefta"], "es": ["kofta"], "pl": ["kofta"] } },
+
+    { "slug": "shawarma", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Shawarma", "es": "Shawarma", "pl": "Szałma" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Shawarma", "es": "Shawarma", "pl": "Szałma" } }],
+      "aliases": { "en": ["shawarma"], "es": ["shawarma", "shaurma"], "pl": ["szałma", "shawarma"] } },
+
+    { "slug": "couscous_pearl", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Pearl couscous", "es": "Cuscús perlado", "pl": "Kuskus perłowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pearl couscous", "es": "Cuscús perlado", "pl": "Kuskus perłowy" } }],
+      "aliases": { "en": ["pearl couscous", "israeli couscous", "ptitim"], "es": ["cuscús perlado", "cuscús israelí"], "pl": ["kuskus perłowy"] } },
+
+    { "slug": "kimchi_mak", "family": "vegetable", "is_vegetarian": true, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Mak kimchi", "es": "Mak kimchi", "pl": "Mak kimchi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mak kimchi", "es": "Mak kimchi", "pl": "Mak kimchi" } }],
+      "aliases": { "en": ["mak kimchi", "cut kimchi"], "es": ["mak kimchi"], "pl": ["mak kimchi"] } },
+
+    { "slug": "doenjang", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["soy"],
+      "translations": { "en": "Doenjang", "es": "Doenjang", "pl": "Doenjang" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Doenjang", "es": "Doenjang", "pl": "Doenjang" } }],
+      "aliases": { "en": ["doenjang", "korean soybean paste"], "es": ["doenjang"], "pl": ["doenjang"] } },
+
+    { "slug": "oyster_mushroom_king", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "King oyster mushroom", "es": "Hongo ostra rey", "pl": "Boczniak królewski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "King oyster mushroom", "es": "Hongo ostra rey", "pl": "Boczniak królewski" } }],
+      "aliases": { "en": ["king oyster mushroom", "king trumpet"], "es": ["hongo ostra rey"], "pl": ["boczniak królewski"] } },
+
+    { "slug": "enoki", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Enoki", "es": "Enoki", "pl": "Enoki" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Enoki", "es": "Enoki", "pl": "Enoki" } }],
+      "aliases": { "en": ["enoki", "enokitake"], "es": ["enoki"], "pl": ["enoki"] } },
+
+    { "slug": "lychee", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lychee", "es": "Lichi", "pl": "Liczi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lychee", "es": "Lichi", "pl": "Liczi" } }],
+      "aliases": { "en": ["lychee", "litchi"], "es": ["lichi", "litchi"], "pl": ["liczi"] } },
+
+    { "slug": "longan", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Longan", "es": "Longan", "pl": "Longan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Longan", "es": "Longan", "pl": "Longan" } }],
+      "aliases": { "en": ["longan"], "es": ["longan", "ojo de dragón"], "pl": ["longan"] } },
+
+    { "slug": "durian", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Durian", "es": "Durián", "pl": "Durian" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Durian", "es": "Durián", "pl": "Durian" } }],
+      "aliases": { "en": ["durian"], "es": ["durián"], "pl": ["durian"] } },
+
+    { "slug": "rambutan", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rambutan", "es": "Rambután", "pl": "Rambutan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rambutan", "es": "Rambután", "pl": "Rambutan" } }],
+      "aliases": { "en": ["rambutan"], "es": ["rambután"], "pl": ["rambutan"] } }
+  ]
+}

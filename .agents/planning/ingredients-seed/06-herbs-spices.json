@@ -1,0 +1,303 @@
+{
+  "_comment": "Batch 6/10 — Herbs, spices, blends, salts, chile powders. Skips cilantro, chive, ginger (already done).",
+
+  "concepts": [
+    { "slug": "basil", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Basil", "es": "Albahaca", "pl": "Bazylia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Basil", "es": "Albahaca", "pl": "Bazylia" } }],
+      "aliases": { "en": ["basil", "fresh basil"], "es": ["albahaca"], "pl": ["bazylia", "bazylii"] } },
+
+    { "slug": "mint", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mint", "es": "Hierbabuena", "pl": "Mięta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mint", "es": "Hierbabuena", "pl": "Mięta" } }],
+      "aliases": { "en": ["mint", "peppermint", "spearmint"], "es": ["hierbabuena", "menta", "yerbabuena"], "pl": ["mięta", "mięty"] } },
+
+    { "slug": "oregano", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Oregano", "es": "Orégano", "pl": "Oregano" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Oregano", "es": "Orégano", "pl": "Oregano" } },
+        { "modifier": "mexican", "translations": { "en": "Mexican oregano", "es": "Orégano mexicano", "pl": "Oregano meksykańskie" } }
+      ],
+      "aliases": { "en": ["oregano", "mexican oregano"], "es": ["orégano", "orégano mexicano"], "pl": ["oregano", "lebiodka"] } },
+
+    { "slug": "thyme", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Thyme", "es": "Tomillo", "pl": "Tymianek" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Thyme", "es": "Tomillo", "pl": "Tymianek" } }],
+      "aliases": { "en": ["thyme"], "es": ["tomillo"], "pl": ["tymianek", "tymianku"] } },
+
+    { "slug": "rosemary", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rosemary", "es": "Romero", "pl": "Rozmaryn" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rosemary", "es": "Romero", "pl": "Rozmaryn" } }],
+      "aliases": { "en": ["rosemary"], "es": ["romero"], "pl": ["rozmaryn", "rozmarynu"] } },
+
+    { "slug": "sage", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sage", "es": "Salvia", "pl": "Szałwia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sage", "es": "Salvia", "pl": "Szałwia" } }],
+      "aliases": { "en": ["sage"], "es": ["salvia"], "pl": ["szałwia", "szałwii"] } },
+
+    { "slug": "parsley", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Parsley", "es": "Perejil", "pl": "Pietruszka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Parsley", "es": "Perejil", "pl": "Pietruszka" } },
+        { "modifier": "flat_leaf", "translations": { "en": "Flat-leaf parsley", "es": "Perejil liso", "pl": "Pietruszka naciowa" } }
+      ],
+      "aliases": { "en": ["parsley", "italian parsley", "flat-leaf parsley"], "es": ["perejil", "perejil liso"], "pl": ["pietruszka", "pietruszki", "natka pietruszki"] } },
+
+    { "slug": "dill", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Dill", "es": "Eneldo", "pl": "Koper" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Dill", "es": "Eneldo", "pl": "Koper" } }],
+      "aliases": { "en": ["dill", "fresh dill"], "es": ["eneldo"], "pl": ["koper", "koperek", "kopru"] } },
+
+    { "slug": "tarragon", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tarragon", "es": "Estragón", "pl": "Estragon" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tarragon", "es": "Estragón", "pl": "Estragon" } }],
+      "aliases": { "en": ["tarragon"], "es": ["estragón"], "pl": ["estragon"] } },
+
+    { "slug": "marjoram", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Marjoram", "es": "Mejorana", "pl": "Majeranek" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Marjoram", "es": "Mejorana", "pl": "Majeranek" } }],
+      "aliases": { "en": ["marjoram"], "es": ["mejorana"], "pl": ["majeranek", "majeranku"] } },
+
+    { "slug": "bay_leaf", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Bay leaf", "es": "Hoja de laurel", "pl": "Liść laurowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Bay leaf", "es": "Hoja de laurel", "pl": "Liść laurowy" } }],
+      "aliases": { "en": ["bay leaf", "bay leaves", "laurel"], "es": ["hoja de laurel", "laurel"], "pl": ["liść laurowy", "listek laurowy", "laur"] } },
+
+    { "slug": "chervil", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chervil", "es": "Perifollo", "pl": "Trybula" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chervil", "es": "Perifollo", "pl": "Trybula" } }],
+      "aliases": { "en": ["chervil"], "es": ["perifollo"], "pl": ["trybula"] } },
+
+    { "slug": "lemongrass", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lemongrass", "es": "Hierba limón", "pl": "Trawa cytrynowa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lemongrass", "es": "Hierba limón", "pl": "Trawa cytrynowa" } }],
+      "aliases": { "en": ["lemongrass"], "es": ["hierba limón", "zacate limón", "citronela"], "pl": ["trawa cytrynowa"] } },
+
+    { "slug": "kaffir_lime_leaf", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kaffir lime leaf", "es": "Hoja de lima kaffir", "pl": "Liść limonki kaffir" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kaffir lime leaf", "es": "Hoja de lima kaffir", "pl": "Liść limonki kaffir" } }],
+      "aliases": { "en": ["kaffir lime leaf", "makrut lime leaf"], "es": ["hoja de lima kaffir"], "pl": ["liść limonki kaffir"] } },
+
+    { "slug": "cumin", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cumin", "es": "Comino", "pl": "Kmin rzymski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cumin", "es": "Comino", "pl": "Kmin rzymski" } }],
+      "aliases": { "en": ["cumin", "ground cumin"], "es": ["comino", "comino molido"], "pl": ["kmin rzymski", "kumin"] } },
+
+    { "slug": "paprika", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Paprika", "es": "Pimentón", "pl": "Papryka w proszku" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Paprika", "es": "Pimentón", "pl": "Papryka w proszku" } },
+        { "modifier": "smoked", "translations": { "en": "Smoked paprika", "es": "Pimentón ahumado", "pl": "Wędzona papryka" } },
+        { "modifier": "sweet", "translations": { "en": "Sweet paprika", "es": "Pimentón dulce", "pl": "Papryka słodka" } }
+      ],
+      "aliases": { "en": ["paprika", "smoked paprika", "sweet paprika", "pimenton"], "es": ["pimentón", "páprika", "pimentón ahumado"], "pl": ["papryka w proszku", "papryka słodka", "papryka wędzona"] } },
+
+    { "slug": "cayenne", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cayenne pepper", "es": "Pimienta cayena", "pl": "Pieprz cayenne" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cayenne pepper", "es": "Pimienta cayena", "pl": "Pieprz cayenne" } }],
+      "aliases": { "en": ["cayenne", "cayenne pepper"], "es": ["cayena", "pimienta cayena", "chile de árbol en polvo"], "pl": ["pieprz cayenne", "cayenne"] } },
+
+    { "slug": "chili_powder", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chili powder", "es": "Chile en polvo", "pl": "Chili w proszku" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chili powder", "es": "Chile en polvo", "pl": "Chili w proszku" } }],
+      "aliases": { "en": ["chili powder", "chile powder"], "es": ["chile en polvo", "chili en polvo"], "pl": ["chili w proszku", "papryczka chili w proszku"] } },
+
+    { "slug": "cinnamon", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cinnamon", "es": "Canela", "pl": "Cynamon" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cinnamon", "es": "Canela", "pl": "Cynamon" } },
+        { "modifier": "stick", "translations": { "en": "Cinnamon stick", "es": "Rama de canela", "pl": "Laska cynamonu" } },
+        { "modifier": "ground", "translations": { "en": "Ground cinnamon", "es": "Canela molida", "pl": "Cynamon mielony" } }
+      ],
+      "aliases": { "en": ["cinnamon", "cinnamon stick", "ground cinnamon"], "es": ["canela", "canela en polvo", "rama de canela"], "pl": ["cynamon", "cynamonu", "laska cynamonu"] } },
+
+    { "slug": "nutmeg", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Nutmeg", "es": "Nuez moscada", "pl": "Gałka muszkatołowa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Nutmeg", "es": "Nuez moscada", "pl": "Gałka muszkatołowa" } }],
+      "aliases": { "en": ["nutmeg", "ground nutmeg"], "es": ["nuez moscada"], "pl": ["gałka muszkatołowa", "muszkat"] } },
+
+    { "slug": "mace", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mace", "es": "Macis", "pl": "Macis" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mace", "es": "Macis", "pl": "Macis" } }],
+      "aliases": { "en": ["mace"], "es": ["macis"], "pl": ["macis", "kwiat muszkatołowy"] } },
+
+    { "slug": "clove", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Clove", "es": "Clavo", "pl": "Goździki" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Clove", "es": "Clavo", "pl": "Goździki" } }],
+      "aliases": { "en": ["clove", "cloves"], "es": ["clavo", "clavo de olor"], "pl": ["goździki", "goździk"] } },
+
+    { "slug": "cardamom", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cardamom", "es": "Cardamomo", "pl": "Kardamon" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cardamom", "es": "Cardamomo", "pl": "Kardamon" } }],
+      "aliases": { "en": ["cardamom", "green cardamom"], "es": ["cardamomo"], "pl": ["kardamon", "kardamonu"] } },
+
+    { "slug": "coriander_seed", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Coriander seed", "es": "Semilla de cilantro", "pl": "Kolendra nasiona" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Coriander seed", "es": "Semilla de cilantro", "pl": "Kolendra nasiona" } }],
+      "aliases": { "en": ["coriander seed", "coriander seeds", "ground coriander"], "es": ["semilla de cilantro", "cilantro molido", "culantro"], "pl": ["kolendra nasiona", "kolendra mielona"] },
+      "_note": "Distinct concept from 'cilantro' (fresh herb) — seed is a different culinary ingredient." },
+
+    { "slug": "fennel_seed", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Fennel seed", "es": "Semilla de hinojo", "pl": "Nasiona kopru włoskiego" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Fennel seed", "es": "Semilla de hinojo", "pl": "Nasiona kopru włoskiego" } }],
+      "aliases": { "en": ["fennel seed"], "es": ["semilla de hinojo"], "pl": ["nasiona kopru włoskiego", "nasiona fenkułu"] } },
+
+    { "slug": "caraway", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Caraway", "es": "Alcaravea", "pl": "Kminek" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Caraway", "es": "Alcaravea", "pl": "Kminek" } }],
+      "aliases": { "en": ["caraway", "caraway seed"], "es": ["alcaravea"], "pl": ["kminek", "kminku"] } },
+
+    { "slug": "mustard_seed", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mustard seed", "es": "Semilla de mostaza", "pl": "Ziarno gorczycy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mustard seed", "es": "Semilla de mostaza", "pl": "Ziarno gorczycy" } }],
+      "aliases": { "en": ["mustard seed"], "es": ["semilla de mostaza", "mostaza en grano"], "pl": ["ziarno gorczycy", "gorczyca"] } },
+
+    { "slug": "turmeric", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Turmeric", "es": "Cúrcuma", "pl": "Kurkuma" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Turmeric", "es": "Cúrcuma", "pl": "Kurkuma" } }],
+      "aliases": { "en": ["turmeric"], "es": ["cúrcuma"], "pl": ["kurkuma", "kurkumy"] } },
+
+    { "slug": "saffron", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Saffron", "es": "Azafrán", "pl": "Szafran" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Saffron", "es": "Azafrán", "pl": "Szafran" } }],
+      "aliases": { "en": ["saffron"], "es": ["azafrán"], "pl": ["szafran", "szafranu"] } },
+
+    { "slug": "star_anise", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Star anise", "es": "Anís estrella", "pl": "Anyż gwiazdkowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Star anise", "es": "Anís estrella", "pl": "Anyż gwiazdkowy" } }],
+      "aliases": { "en": ["star anise"], "es": ["anís estrella", "badiana"], "pl": ["anyż gwiazdkowy"] } },
+
+    { "slug": "anise", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Anise", "es": "Anís", "pl": "Anyż" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Anise", "es": "Anís", "pl": "Anyż" } }],
+      "aliases": { "en": ["anise", "anise seed"], "es": ["anís"], "pl": ["anyż"] } },
+
+    { "slug": "vanilla", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Vanilla", "es": "Vainilla", "pl": "Wanilia" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Vanilla", "es": "Vainilla", "pl": "Wanilia" } },
+        { "modifier": "bean", "translations": { "en": "Vanilla bean", "es": "Vaina de vainilla", "pl": "Laska wanilii" } },
+        { "modifier": "extract", "translations": { "en": "Vanilla extract", "es": "Extracto de vainilla", "pl": "Ekstrakt waniliowy" } }
+      ],
+      "aliases": { "en": ["vanilla", "vanilla bean", "vanilla extract"], "es": ["vainilla", "vaina de vainilla", "extracto de vainilla"], "pl": ["wanilia", "wanilii", "ekstrakt waniliowy"] } },
+
+    { "slug": "pepper_white", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "White pepper", "es": "Pimienta blanca", "pl": "Pieprz biały" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "White pepper", "es": "Pimienta blanca", "pl": "Pieprz biały" } }],
+      "aliases": { "en": ["white pepper"], "es": ["pimienta blanca"], "pl": ["pieprz biały"] } },
+
+    { "slug": "pepper_pink", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pink peppercorn", "es": "Pimienta rosa", "pl": "Pieprz różowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pink peppercorn", "es": "Pimienta rosa", "pl": "Pieprz różowy" } }],
+      "aliases": { "en": ["pink pepper", "pink peppercorn"], "es": ["pimienta rosa"], "pl": ["pieprz różowy"] } },
+
+    { "slug": "juniper", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Juniper", "es": "Enebro", "pl": "Jałowiec" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Juniper", "es": "Enebro", "pl": "Jałowiec" } }],
+      "aliases": { "en": ["juniper", "juniper berry"], "es": ["enebro", "bayas de enebro"], "pl": ["jałowiec", "jałowca"] } },
+
+    { "slug": "sumac", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sumac", "es": "Zumaque", "pl": "Sumak" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sumac", "es": "Zumaque", "pl": "Sumak" } }],
+      "aliases": { "en": ["sumac"], "es": ["zumaque"], "pl": ["sumak"] } },
+
+    { "slug": "fenugreek", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Fenugreek", "es": "Alholva", "pl": "Kozieradka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Fenugreek", "es": "Alholva", "pl": "Kozieradka" } }],
+      "aliases": { "en": ["fenugreek", "methi"], "es": ["alholva", "fenogreco"], "pl": ["kozieradka"] } },
+
+    { "slug": "asafoetida", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Asafoetida", "es": "Asafétida", "pl": "Asafetida" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Asafoetida", "es": "Asafétida", "pl": "Asafetida" } }],
+      "aliases": { "en": ["asafoetida", "hing"], "es": ["asafétida"], "pl": ["asafetida"] } },
+
+    { "slug": "curry_powder", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Curry powder", "es": "Curry en polvo", "pl": "Curry w proszku" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Curry powder", "es": "Curry en polvo", "pl": "Curry w proszku" } }],
+      "aliases": { "en": ["curry", "curry powder"], "es": ["curry", "curry en polvo"], "pl": ["curry", "curry w proszku"] } },
+
+    { "slug": "garam_masala", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Garam masala", "es": "Garam masala", "pl": "Garam masala" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Garam masala", "es": "Garam masala", "pl": "Garam masala" } }],
+      "aliases": { "en": ["garam masala"], "es": ["garam masala"], "pl": ["garam masala"] } },
+
+    { "slug": "five_spice", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Five-spice", "es": "Cinco especias", "pl": "Pięć smaków" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Five-spice", "es": "Cinco especias", "pl": "Pięć smaków" } }],
+      "aliases": { "en": ["five spice", "chinese five spice"], "es": ["cinco especias", "cinco especias chinas"], "pl": ["pięć smaków", "chińskie pięć smaków"] } },
+
+    { "slug": "herbes_de_provence", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Herbes de Provence", "es": "Hierbas de Provenza", "pl": "Zioła prowansalskie" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Herbes de Provence", "es": "Hierbas de Provenza", "pl": "Zioła prowansalskie" } }],
+      "aliases": { "en": ["herbes de provence"], "es": ["hierbas de provenza"], "pl": ["zioła prowansalskie"] } },
+
+    { "slug": "italian_seasoning", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Italian seasoning", "es": "Sazón italiana", "pl": "Przyprawa włoska" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Italian seasoning", "es": "Sazón italiana", "pl": "Przyprawa włoska" } }],
+      "aliases": { "en": ["italian seasoning", "italian herbs"], "es": ["sazón italiana", "hierbas italianas"], "pl": ["przyprawa włoska", "zioła włoskie"] } },
+
+    { "slug": "zaatar", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": ["sesame"],
+      "translations": { "en": "Za'atar", "es": "Za'atar", "pl": "Za'atar" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Za'atar", "es": "Za'atar", "pl": "Za'atar" } }],
+      "aliases": { "en": ["zaatar", "za'atar"], "es": ["zaatar", "za'atar"], "pl": ["zaatar", "za'atar"] } },
+
+    { "slug": "ras_el_hanout", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Ras el hanout", "es": "Ras el hanout", "pl": "Ras el hanout" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ras el hanout", "es": "Ras el hanout", "pl": "Ras el hanout" } }],
+      "aliases": { "en": ["ras el hanout"], "es": ["ras el hanout"], "pl": ["ras el hanout"] } },
+
+    { "slug": "cajun_seasoning", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cajun seasoning", "es": "Sazón cajún", "pl": "Przyprawa cajun" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cajun seasoning", "es": "Sazón cajún", "pl": "Przyprawa cajun" } }],
+      "aliases": { "en": ["cajun seasoning", "cajun spice"], "es": ["sazón cajún"], "pl": ["przyprawa cajun"] } },
+
+    { "slug": "taco_seasoning", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Taco seasoning", "es": "Sazón para tacos", "pl": "Przyprawa do tacos" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Taco seasoning", "es": "Sazón para tacos", "pl": "Przyprawa do tacos" } }],
+      "aliases": { "en": ["taco seasoning"], "es": ["sazón para tacos"], "pl": ["przyprawa do tacos"] } },
+
+    { "slug": "chile_ancho", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Ancho chile", "es": "Chile ancho", "pl": "Papryka ancho" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ancho chile", "es": "Chile ancho", "pl": "Papryka ancho" } }],
+      "aliases": { "en": ["ancho", "ancho chile", "dried poblano"], "es": ["chile ancho", "ancho"], "pl": ["papryka ancho", "ancho"] } },
+
+    { "slug": "chile_guajillo", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Guajillo chile", "es": "Chile guajillo", "pl": "Papryka guajillo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Guajillo chile", "es": "Chile guajillo", "pl": "Papryka guajillo" } }],
+      "aliases": { "en": ["guajillo", "guajillo chile"], "es": ["chile guajillo", "guajillo"], "pl": ["guajillo"] } },
+
+    { "slug": "chile_pasilla", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pasilla chile", "es": "Chile pasilla", "pl": "Papryka pasilla" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pasilla chile", "es": "Chile pasilla", "pl": "Papryka pasilla" } }],
+      "aliases": { "en": ["pasilla", "pasilla chile", "chile negro"], "es": ["chile pasilla", "pasilla", "chile negro"], "pl": ["pasilla"] } },
+
+    { "slug": "chile_arbol", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Árbol chile", "es": "Chile de árbol", "pl": "Papryka de árbol" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Árbol chile", "es": "Chile de árbol", "pl": "Papryka de árbol" } }],
+      "aliases": { "en": ["arbol", "chile de arbol", "chile de árbol"], "es": ["chile de árbol", "chile árbol"], "pl": ["chile de árbol"] } },
+
+    { "slug": "chile_morita", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Morita chile", "es": "Chile morita", "pl": "Papryka morita" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Morita chile", "es": "Chile morita", "pl": "Papryka morita" } }],
+      "aliases": { "en": ["morita", "morita chile"], "es": ["chile morita", "morita"], "pl": ["morita"] } },
+
+    { "slug": "chipotle", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chipotle", "es": "Chipotle", "pl": "Chipotle" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Chipotle", "es": "Chipotle", "pl": "Chipotle" } },
+        { "modifier": "in_adobo", "translations": { "en": "Chipotle in adobo", "es": "Chipotle en adobo", "pl": "Chipotle w adobo" } }
+      ],
+      "aliases": { "en": ["chipotle", "chipotle pepper", "smoked jalapeño"], "es": ["chipotle", "chile chipotle"], "pl": ["chipotle"] } },
+
+    { "slug": "salt", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Salt", "es": "Sal", "pl": "Sól" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Salt", "es": "Sal", "pl": "Sól" } },
+        { "modifier": "sea", "translations": { "en": "Sea salt", "es": "Sal de mar", "pl": "Sól morska" } },
+        { "modifier": "kosher", "translations": { "en": "Kosher salt", "es": "Sal kosher", "pl": "Sól kosher" } },
+        { "modifier": "himalayan", "translations": { "en": "Himalayan salt", "es": "Sal del Himalaya", "pl": "Sól himalajska" } },
+        { "modifier": "smoked", "translations": { "en": "Smoked salt", "es": "Sal ahumada", "pl": "Sól wędzona" } }
+      ],
+      "aliases": { "en": ["salt", "sea salt", "kosher salt", "himalayan salt", "table salt"], "es": ["sal", "sal de mar", "sal marina", "sal kosher"], "pl": ["sól", "soli", "sól morska"] } }
+  ]
+}

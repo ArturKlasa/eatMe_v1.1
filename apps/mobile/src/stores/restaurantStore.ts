@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import { supabase, type RestaurantWithMenus, type DishWithRelations, type Dish, type OptionGroup } from '../lib/supabase';
+import {
+  supabase,
+  type RestaurantWithMenus,
+  type DishWithRelations,
+  type Dish,
+  type OptionGroup,
+} from '../lib/supabase';
 import { debugLog } from '../config/environment';
 import {
   fetchNearbyRestaurants,
@@ -66,12 +72,16 @@ interface RestaurantStore {
    * Fetch a single restaurant with menu structure (no dishes), using an in-memory cache (5-min TTL).
    * Returns cached data without a network request if the entry is still fresh.
    */
-  fetchRestaurantDetail: (id: string) => Promise<{ data: RestaurantWithMenus | null; error: Error | null }>;
+  fetchRestaurantDetail: (
+    id: string
+  ) => Promise<{ data: RestaurantWithMenus | null; error: Error | null }>;
   /**
    * Fetch dishes for a specific menu category, using an in-memory cache (5-min TTL).
    * Returns cached data without a network request if the entry is still fresh.
    */
-  fetchCategoryDishes: (categoryId: string) => Promise<{ data: CategoryDish[] | null; error: Error | null }>;
+  fetchCategoryDishes: (
+    categoryId: string
+  ) => Promise<{ data: CategoryDish[] | null; error: Error | null }>;
 
   /**
    * Fetch restaurants near a fixed latitude/longitude via the feed Edge Function.
@@ -307,7 +317,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
             spice_level, image_url, is_available, dish_kind, display_price_prefix,
             description_visibility, ingredients_visibility, parent_dish_id, is_parent,
             serves, price_per_person,
-            dish_ingredients (ingredient_id),
+            dish_ingredients (ingredient_id, concept_id),
             option_groups (
               id, name, description, selection_type, min_selections, max_selections,
               display_order, is_active,
@@ -324,7 +334,8 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
         return { data: null, error: new Error(error.message) };
       }
 
-      const dishes = ((data as unknown as { dishes?: CategoryDish[] } | null)?.dishes ?? []) as CategoryDish[];
+      const dishes = ((data as unknown as { dishes?: CategoryDish[] } | null)?.dishes ??
+        []) as CategoryDish[];
       const newCache = new Map(cache);
       newCache.set(categoryId, { data: dishes, fetchedAt: Date.now() });
       set({ categoryDishesCache: newCache });

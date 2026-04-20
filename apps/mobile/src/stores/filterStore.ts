@@ -90,9 +90,16 @@ export interface DailyFilters {
 
 /** A single ingredient entry in the "Ingredients to Avoid" permanent filter. */
 export interface IngredientToAvoid {
-  /** canonical_ingredients.id — used for matching against dish_ingredients */
+  /**
+   * ingredient_concepts.id — the primary match key after Phase 6A cutover.
+   * Optional during the transition so existing user preferences (which only
+   * carry canonicalIngredientId) keep working. New entries always include
+   * both; legacy entries get `conceptId` populated lazily on next write.
+   */
+  conceptId?: string;
+  /** canonical_ingredients.id — legacy match key. Still used as a fallback when conceptId is absent. */
   canonicalIngredientId: string;
-  /** ingredient_aliases.display_name — shown in the UI without a join */
+  /** Display name shown in the UI without a join */
   displayName: string;
 }
 
@@ -255,8 +262,8 @@ interface FilterActions {
 // Default daily filters (USD baseline — see getDefaultDailyFilters() for currency-aware defaults)
 export const defaultDailyFilters: DailyFilters = {
   priceRange: {
-    min: 10,  // 10 USD: cheapest street food / quick-service item
-    max: 50,  // 50 USD: casual sit-down restaurant meal
+    min: 10, // 10 USD: cheapest street food / quick-service item
+    max: 50, // 50 USD: casual sit-down restaurant meal
   },
   cuisineTypes: [],
   meals: [],
@@ -280,8 +287,8 @@ export const defaultDailyFilters: DailyFilters = {
   },
   spiceLevel: 'eitherWay',
   calorieRange: {
-    min: 200,  // 200 kcal: small snack or side dish
-    max: 800,  // 800 kcal: full restaurant entrée
+    min: 200, // 200 kcal: small snack or side dish
+    max: 800, // 800 kcal: full restaurant entrée
     enabled: false,
   },
   maxDistance: 5, // 5km default

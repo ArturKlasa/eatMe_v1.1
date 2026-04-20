@@ -14,11 +14,13 @@
 import { supabase } from '../lib/supabase';
 
 export interface IngredientSuggestion {
-  /** ingredient_aliases.id — used as the React key */
+  /** ingredient_aliases_v2.id — used as the React key */
   aliasId: string;
-  /** ingredient_aliases.canonical_ingredient_id — persisted to user_preferences */
+  /** ingredient_concepts.id — primary match key after Phase 6A cutover */
+  conceptId: string;
+  /** canonical_ingredients.id — legacy match key, still persisted for backward-compat during the transition */
   canonicalIngredientId: string;
-  /** ingredient_aliases.display_name — shown in the UI */
+  /** Shown in the UI */
   displayName: string;
 }
 
@@ -68,23 +70,36 @@ export async function fetchCommonIngredients(): Promise<IngredientSuggestion[]> 
     'Paprika',
   ];
 
+  const lowerNames = COMMON_NAMES.map(n => n.toLowerCase());
+
   try {
-    const { data, error } = await supabase
-      .from('ingredient_aliases')
-      .select('id, display_name, canonical_ingredient_id')
-      .in('display_name', COMMON_NAMES)
-      .order('display_name', { ascending: true });
+    const { data, error } = await (
+      supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
+    )('ingredient_aliases_v2')
+      .select('id, alias_text, concept_id, concept:ingredient_concepts!inner(legacy_canonical_id)')
+      .in('alias_text', lowerNames)
+      .order('alias_text', { ascending: true });
 
     if (error) {
       console.error('[IngredientService] Failed to fetch common ingredients:', error.message);
       return [];
     }
 
-    _commonCache = (data ?? []).map(row => ({
-      aliasId: row.id,
-      canonicalIngredientId: row.canonical_ingredient_id,
-      displayName: row.display_name,
-    }));
+    _commonCache = (
+      (data ?? []) as unknown as Array<{
+        id: string;
+        alias_text: string;
+        concept_id: string;
+        concept: { legacy_canonical_id: string | null };
+      }>
+    )
+      .filter(r => r.concept.legacy_canonical_id != null)
+      .map(row => ({
+        aliasId: row.id,
+        conceptId: row.concept_id,
+        canonicalIngredientId: row.concept.legacy_canonical_id as string,
+        displayName: row.alias_text,
+      }));
 
     return _commonCache;
   } catch (err) {
@@ -107,11 +122,12 @@ export async function searchIngredientAliases(
   if (query.trim().length < 2) return [];
 
   try {
-    const { data, error } = await supabase
-      .from('ingredient_aliases')
-      .select('id, display_name, canonical_ingredient_id')
-      .ilike('display_name', `%${query.trim()}%`)
-      .order('display_name', { ascending: true })
+    const { data, error } = await (
+      supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
+    )('ingredient_aliases_v2')
+      .select('id, alias_text, concept_id, concept:ingredient_concepts!inner(legacy_canonical_id)')
+      .ilike('alias_text', `%${query.trim().toLowerCase()}%`)
+      .order('alias_text', { ascending: true })
       .limit(limit);
 
     if (error) {
@@ -119,11 +135,21 @@ export async function searchIngredientAliases(
       return [];
     }
 
-    return (data ?? []).map(row => ({
-      aliasId: row.id,
-      canonicalIngredientId: row.canonical_ingredient_id,
-      displayName: row.display_name,
-    }));
+    return (
+      (data ?? []) as unknown as Array<{
+        id: string;
+        alias_text: string;
+        concept_id: string;
+        concept: { legacy_canonical_id: string | null };
+      }>
+    )
+      .filter(r => r.concept.legacy_canonical_id != null)
+      .map(row => ({
+        aliasId: row.id,
+        conceptId: row.concept_id,
+        canonicalIngredientId: row.concept.legacy_canonical_id as string,
+        displayName: row.alias_text,
+      }));
   } catch (err) {
     console.error('[IngredientService] Unexpected search error:', err);
     return [];

@@ -34,6 +34,8 @@ import { useRestaurantStore } from '../../stores/restaurantStore';
 import { type User } from '@supabase/supabase-js';
 import { recordInteraction } from '../../services/interactionService';
 import { type DishWithGroups } from './DishGrouping';
+import i18n from '../../i18n';
+import { resolveIngredientNames, type JoinedDishIngredient } from '../../lib/ingredientDisplay';
 
 export type { DishRating, RestaurantRating };
 
@@ -292,9 +294,23 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
         .select('*')
         .eq('dish_id', dish.id)
         .order('created_at', { ascending: false }),
-      supabase
-        .from('dish_ingredients')
-        .select('canonical_ingredient:canonical_ingredients(canonical_name)')
+      // Phase 5: fetch concept/variant + translations so we can show the
+      // user's locale. The new tables aren't in the generated Database types
+      // yet, so we cast .from() to bypass the overload check; the returned
+      // rows are retyped below via JoinedDishIngredient.
+      (supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>)(
+        'dish_ingredients'
+      )
+        .select(
+          `
+          concept_id,
+          variant_id,
+          ingredient_id,
+          concept:ingredient_concepts(slug, translations:concept_translations(language, name)),
+          variant:ingredient_variants(modifier, translations:variant_translations(language, name)),
+          canonical_ingredient:canonical_ingredients(canonical_name)
+        `
+        )
         .eq('dish_id', dish.id),
       optionsWithIngredient.length > 0
         ? supabase
@@ -328,13 +344,9 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     if (ingredientsResult.status === 'fulfilled') {
       const { data, error } = ingredientsResult.value;
       if (!error && data && data.length > 0) {
-        const names = data
-          .map(
-            (row: { canonical_ingredient: { canonical_name: string } | null }) =>
-              row.canonical_ingredient?.canonical_name
-          )
-          .filter(Boolean) as string[];
-        setDishIngredientNames(names);
+        const locale = i18n.language || 'en';
+        const names = resolveIngredientNames(data as unknown as JoinedDishIngredient[], locale);
+        setDishIngredientNames(names.length > 0 ? names : dish.ingredients || []);
       } else {
         setDishIngredientNames(dish.ingredients || []);
       }

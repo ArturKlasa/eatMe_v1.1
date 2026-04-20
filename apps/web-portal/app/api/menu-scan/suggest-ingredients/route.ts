@@ -200,53 +200,63 @@ async function analyseDish(
 
 type SupabaseClient = ReturnType<typeof createServerSupabaseClient>;
 
-interface AliasRow {
-  display_name: string;
-  canonical_ingredient_id: string;
-  canonical_ingredient: { canonical_name: string } | { canonical_name: string }[] | null;
+interface AliasV2Row {
+  alias_text: string;
+  language: string;
+  concept_id: string;
+  variant_id: string | null;
+  concept: {
+    slug: string;
+    legacy_canonical_id: string | null;
+  };
 }
 
-function canonicalName(row: AliasRow): string | undefined {
-  const ci = row.canonical_ingredient;
-  if (!ci) return undefined;
-  if (Array.isArray(ci)) return ci[0]?.canonical_name;
-  return ci.canonical_name;
-}
-
+/**
+ * Match GPT-normalized English ingredient names against ingredient_aliases_v2.
+ *
+ * Phase 6A: this route is a "suggest" helper for the admin UI, so it does
+ * not need the full resolver's variant auto-creation or translate-retry
+ * behavior. We do two passes (exact ilike then broad ilike) and stop there.
+ * Rows whose concept has no legacy_canonical_id are excluded so downstream
+ * writes that still require the legacy FK keep working until Phase 6B.
+ */
 async function matchNames(names: string[], supabase: SupabaseClient): Promise<MatchedIngredient[]> {
   if (names.length === 0) return [];
 
   const SELECT =
-    'display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
-
+    'alias_text, language, concept_id, variant_id, concept:ingredient_concepts!inner(slug, legacy_canonical_id)';
   const sanitize = (n: string) => n.replace(/[,%.()\[\]]/g, '');
-  const exactOr = names.map(n => `display_name.ilike.${sanitize(n)}`).join(',');
-  const { data: exactRows } = await supabase.from('ingredient_aliases').select(SELECT).or(exactOr);
 
-  const exactMap = new Map<string, AliasRow>();
-  for (const row of exactRows ?? []) {
-    const r = row as AliasRow;
-    const key = r.display_name.toLowerCase().trim();
-    if (!exactMap.has(key)) exactMap.set(key, r);
+  const { data: exactRows } = await (
+    supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
+  )('ingredient_aliases_v2')
+    .select(SELECT)
+    .or(names.map(n => `alias_text.ilike.${sanitize(n)}`).join(','));
+
+  const exactMap = new Map<string, AliasV2Row>();
+  for (const row of (exactRows ?? []) as unknown as AliasV2Row[]) {
+    if (!row.concept.legacy_canonical_id) continue;
+    const key = row.alias_text.toLowerCase().trim();
+    if (!exactMap.has(key)) exactMap.set(key, row);
   }
 
   const unmatched = names.filter(n => !exactMap.has(n.toLowerCase().trim()));
-  const partialMap = new Map<string, AliasRow>();
+  const partialMap = new Map<string, AliasV2Row>();
 
   if (unmatched.length > 0) {
-    const partialOr = unmatched.map(n => `display_name.ilike.%${sanitize(n)}%`).join(',');
-    const { data: partialRows } = await supabase
-      .from('ingredient_aliases')
+    const { data: partialRows } = await (
+      supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
+    )('ingredient_aliases_v2')
       .select(SELECT)
-      .or(partialOr);
+      .or(unmatched.map(n => `alias_text.ilike.%${sanitize(n)}%`).join(','));
 
-    for (const row of partialRows ?? []) {
-      const r = row as AliasRow;
-      const displayLower = r.display_name.toLowerCase();
+    for (const row of (partialRows ?? []) as unknown as AliasV2Row[]) {
+      if (!row.concept.legacy_canonical_id) continue;
+      const aliasLower = row.alias_text.toLowerCase();
       for (const name of unmatched) {
         const key = name.toLowerCase().trim();
-        if (!partialMap.has(key) && (displayLower.includes(key) || key.includes(displayLower))) {
-          partialMap.set(key, r);
+        if (!partialMap.has(key) && (aliasLower.includes(key) || key.includes(aliasLower))) {
+          partialMap.set(key, row);
         }
       }
     }
@@ -259,9 +269,11 @@ async function matchNames(names: string[], supabase: SupabaseClient): Promise<Ma
     return {
       raw_text: name,
       status: 'matched',
-      canonical_ingredient_id: row.canonical_ingredient_id,
-      canonical_name: canonicalName(row),
-      display_name: row.display_name,
+      concept_id: row.concept_id,
+      variant_id: row.variant_id,
+      canonical_ingredient_id: row.concept.legacy_canonical_id!,
+      canonical_name: row.concept.slug,
+      display_name: row.alias_text,
     };
   });
 }

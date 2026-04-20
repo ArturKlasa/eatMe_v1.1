@@ -1,0 +1,537 @@
+{
+  "_comment": "Batch 2/10 — Produce (vegetables + fruits). Skips concepts already in trial sample (tomato, onion, garlic, potato, avocado, bell_pepper, cilantro).",
+
+  "concepts": [
+    { "slug": "carrot", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Carrot", "es": "Zanahoria", "pl": "Marchew" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Carrot", "es": "Zanahoria", "pl": "Marchew" } },
+        { "modifier": "baby", "translations": { "en": "Baby carrot", "es": "Zanahoria baby", "pl": "Mini marchewka" } }
+      ],
+      "aliases": { "en": ["carrot", "carrots"], "es": ["zanahoria", "zanahorias"], "pl": ["marchew", "marchewka", "marchwi"] } },
+
+    { "slug": "beet", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Beet", "es": "Betabel", "pl": "Burak" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Beet", "es": "Betabel", "pl": "Burak" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted beet", "es": "Betabel asado", "pl": "Burak pieczony" } }
+      ],
+      "aliases": { "en": ["beet", "beets", "beetroot"], "es": ["betabel", "remolacha"], "pl": ["burak", "buraki", "buraczki"] },
+      "_note": "MX 'betabel'; Spain/SA 'remolacha'." },
+
+    { "slug": "radish", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Radish", "es": "Rábano", "pl": "Rzodkiewka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Radish", "es": "Rábano", "pl": "Rzodkiewka" } }],
+      "aliases": { "en": ["radish", "radishes"], "es": ["rábano", "rábanos"], "pl": ["rzodkiewka", "rzodkiew"] } },
+
+    { "slug": "turnip", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Turnip", "es": "Nabo", "pl": "Rzepa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Turnip", "es": "Nabo", "pl": "Rzepa" } }],
+      "aliases": { "en": ["turnip"], "es": ["nabo"], "pl": ["rzepa"] } },
+
+    { "slug": "daikon", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Daikon", "es": "Daikon", "pl": "Daikon" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Daikon", "es": "Daikon", "pl": "Daikon" } }],
+      "aliases": { "en": ["daikon", "japanese radish", "white radish"], "es": ["daikon", "rábano blanco"], "pl": ["daikon", "rzodkiew japońska"] } },
+
+    { "slug": "jicama", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Jicama", "es": "Jícama", "pl": "Jicama" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Jicama", "es": "Jícama", "pl": "Jicama" } }],
+      "aliases": { "en": ["jicama", "mexican turnip", "yam bean"], "es": ["jícama"], "pl": ["jicama"] },
+      "_note": "Mexican root vegetable; no Polish translation exists." },
+
+    { "slug": "sweet_potato", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sweet potato", "es": "Camote", "pl": "Batat" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sweet potato", "es": "Camote", "pl": "Batat" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted sweet potato", "es": "Camote asado", "pl": "Batat pieczony" } }
+      ],
+      "aliases": { "en": ["sweet potato", "sweet potatoes", "yam"], "es": ["camote", "boniato", "batata"], "pl": ["batat", "słodki ziemniak"] },
+      "_note": "MX 'camote'; Caribbean 'boniato'; Argentina 'batata'." },
+
+    { "slug": "yuca", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cassava", "es": "Yuca", "pl": "Maniok" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cassava", "es": "Yuca", "pl": "Maniok" } }],
+      "aliases": { "en": ["cassava", "yuca", "manioc"], "es": ["yuca", "mandioca"], "pl": ["maniok", "jukka"] } },
+
+    { "slug": "ginger", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Ginger", "es": "Jengibre", "pl": "Imbir" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Ginger", "es": "Jengibre", "pl": "Imbir" } },
+        { "modifier": "pickled", "translations": { "en": "Pickled ginger", "es": "Jengibre en escabeche", "pl": "Imbir marynowany" } }
+      ],
+      "aliases": { "en": ["ginger", "ginger root", "gari"], "es": ["jengibre"], "pl": ["imbir", "imbiru"] } },
+
+    { "slug": "horseradish", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Horseradish", "es": "Rábano picante", "pl": "Chrzan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Horseradish", "es": "Rábano picante", "pl": "Chrzan" } }],
+      "aliases": { "en": ["horseradish"], "es": ["rábano picante", "raifort"], "pl": ["chrzan", "chrzanu"] } },
+
+    { "slug": "spinach", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Spinach", "es": "Espinaca", "pl": "Szpinak" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Spinach", "es": "Espinaca", "pl": "Szpinak" } },
+        { "modifier": "baby", "translations": { "en": "Baby spinach", "es": "Espinaca baby", "pl": "Mini szpinak" } },
+        { "modifier": "sauteed", "translations": { "en": "Sautéed spinach", "es": "Espinaca salteada", "pl": "Szpinak sauté" } }
+      ],
+      "aliases": { "en": ["spinach", "baby spinach"], "es": ["espinaca", "espinacas"], "pl": ["szpinak", "szpinaku"] } },
+
+    { "slug": "kale", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kale", "es": "Col rizada", "pl": "Jarmuż" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kale", "es": "Col rizada", "pl": "Jarmuż" } }],
+      "aliases": { "en": ["kale", "curly kale"], "es": ["col rizada", "berza", "kale"], "pl": ["jarmuż", "jarmużu"] } },
+
+    { "slug": "lettuce", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lettuce", "es": "Lechuga", "pl": "Sałata" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Lettuce", "es": "Lechuga", "pl": "Sałata" } },
+        { "modifier": "romaine", "translations": { "en": "Romaine lettuce", "es": "Lechuga romana", "pl": "Sałata rzymska" } },
+        { "modifier": "iceberg", "translations": { "en": "Iceberg lettuce", "es": "Lechuga iceberg", "pl": "Sałata lodowa" } },
+        { "modifier": "butter", "translations": { "en": "Butter lettuce", "es": "Lechuga mantecosa", "pl": "Sałata masłowa" } }
+      ],
+      "aliases": { "en": ["lettuce", "romaine", "iceberg"], "es": ["lechuga", "lechuga romana", "lechuga iceberg"], "pl": ["sałata", "sałaty"] } },
+
+    { "slug": "arugula", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Arugula", "es": "Arúgula", "pl": "Rukola" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Arugula", "es": "Arúgula", "pl": "Rukola" } }],
+      "aliases": { "en": ["arugula", "rocket", "rucola"], "es": ["arúgula", "rúcula"], "pl": ["rukola", "rukoli"] },
+      "_note": "US 'arugula'; UK 'rocket'; Italian 'rucola'. Spain uses 'rúcula'." },
+
+    { "slug": "chard", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chard", "es": "Acelga", "pl": "Boćwina" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chard", "es": "Acelga", "pl": "Boćwina" } }],
+      "aliases": { "en": ["chard", "swiss chard", "silverbeet"], "es": ["acelga", "acelgas"], "pl": ["boćwina", "burak liściowy", "mangold"] } },
+
+    { "slug": "watercress", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Watercress", "es": "Berro", "pl": "Rukiew wodna" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Watercress", "es": "Berro", "pl": "Rukiew wodna" } }],
+      "aliases": { "en": ["watercress"], "es": ["berro", "berros"], "pl": ["rukiew wodna"] } },
+
+    { "slug": "cabbage", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cabbage", "es": "Repollo", "pl": "Kapusta" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cabbage", "es": "Repollo", "pl": "Kapusta" } },
+        { "modifier": "red", "translations": { "en": "Red cabbage", "es": "Repollo morado", "pl": "Kapusta czerwona" } },
+        { "modifier": "napa", "translations": { "en": "Napa cabbage", "es": "Col china", "pl": "Kapusta pekińska" } }
+      ],
+      "aliases": { "en": ["cabbage", "green cabbage", "napa cabbage"], "es": ["repollo", "col", "col blanca", "col china"], "pl": ["kapusta", "kapusty", "kapusta pekińska"] } },
+
+    { "slug": "bok_choy", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Bok choy", "es": "Bok choy", "pl": "Pak choi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Bok choy", "es": "Bok choy", "pl": "Pak choi" } }],
+      "aliases": { "en": ["bok choy", "pak choi", "chinese cabbage"], "es": ["bok choy", "col china"], "pl": ["pak choi", "bok choi"] } },
+
+    { "slug": "broccoli", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Broccoli", "es": "Brócoli", "pl": "Brokuły" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Broccoli", "es": "Brócoli", "pl": "Brokuły" } },
+        { "modifier": "steamed", "translations": { "en": "Steamed broccoli", "es": "Brócoli al vapor", "pl": "Brokuły na parze" } }
+      ],
+      "aliases": { "en": ["broccoli"], "es": ["brócoli", "brecol"], "pl": ["brokuły", "brokuł"] } },
+
+    { "slug": "cauliflower", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cauliflower", "es": "Coliflor", "pl": "Kalafior" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cauliflower", "es": "Coliflor", "pl": "Kalafior" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted cauliflower", "es": "Coliflor asada", "pl": "Kalafior pieczony" } }
+      ],
+      "aliases": { "en": ["cauliflower"], "es": ["coliflor"], "pl": ["kalafior", "kalafiora"] } },
+
+    { "slug": "brussels_sprouts", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Brussels sprouts", "es": "Coles de Bruselas", "pl": "Brukselka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Brussels sprouts", "es": "Coles de Bruselas", "pl": "Brukselka" } }],
+      "aliases": { "en": ["brussels sprouts", "brussels sprout"], "es": ["coles de bruselas", "repollitos de bruselas"], "pl": ["brukselka", "brukselki"] } },
+
+    { "slug": "scallion", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Scallion", "es": "Cebollín", "pl": "Dymka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Scallion", "es": "Cebollín", "pl": "Dymka" } }],
+      "aliases": { "en": ["scallion", "scallions", "green onion", "spring onion"], "es": ["cebollín", "cebolla cambray", "cebolla de cambray", "cebolleta"], "pl": ["dymka", "cebula dymka", "szczypiorek cebulowy"] } },
+
+    { "slug": "leek", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Leek", "es": "Puerro", "pl": "Por" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Leek", "es": "Puerro", "pl": "Por" } }],
+      "aliases": { "en": ["leek", "leeks"], "es": ["puerro", "poro"], "pl": ["por", "porów"] } },
+
+    { "slug": "shallot", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Shallot", "es": "Chalota", "pl": "Szalotka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Shallot", "es": "Chalota", "pl": "Szalotka" } }],
+      "aliases": { "en": ["shallot", "shallots"], "es": ["chalota", "chalote", "escaloña"], "pl": ["szalotka", "szalotki"] } },
+
+    { "slug": "chive", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chive", "es": "Cebollino", "pl": "Szczypiorek" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chive", "es": "Cebollino", "pl": "Szczypiorek" } }],
+      "aliases": { "en": ["chive", "chives"], "es": ["cebollino", "cebollines"], "pl": ["szczypiorek", "szczypiorku"] } },
+
+    { "slug": "zucchini", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Zucchini", "es": "Calabacita", "pl": "Cukinia" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Zucchini", "es": "Calabacita", "pl": "Cukinia" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled zucchini", "es": "Calabacita a la parrilla", "pl": "Cukinia z grilla" } }
+      ],
+      "aliases": { "en": ["zucchini", "courgette"], "es": ["calabacita", "calabacín", "calabaza italiana"], "pl": ["cukinia", "cukinii"] },
+      "_note": "MX 'calabacita'; Spain 'calabacín'; UK 'courgette'." },
+
+    { "slug": "pumpkin", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pumpkin", "es": "Calabaza", "pl": "Dynia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pumpkin", "es": "Calabaza", "pl": "Dynia" } }],
+      "aliases": { "en": ["pumpkin"], "es": ["calabaza"], "pl": ["dynia", "dyni"] } },
+
+    { "slug": "butternut_squash", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Butternut squash", "es": "Calabaza butternut", "pl": "Dynia piżmowa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Butternut squash", "es": "Calabaza butternut", "pl": "Dynia piżmowa" } }],
+      "aliases": { "en": ["butternut squash", "butternut"], "es": ["calabaza butternut", "calabaza moscada"], "pl": ["dynia piżmowa", "dynia butternut"] } },
+
+    { "slug": "chayote", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chayote", "es": "Chayote", "pl": "Chayote" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chayote", "es": "Chayote", "pl": "Chayote" } }],
+      "aliases": { "en": ["chayote", "mirliton", "vegetable pear"], "es": ["chayote"], "pl": ["chayote"] },
+      "_note": "Mexican/LatAm gourd; no Polish translation." },
+
+    { "slug": "cucumber", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cucumber", "es": "Pepino", "pl": "Ogórek" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cucumber", "es": "Pepino", "pl": "Ogórek" } },
+        { "modifier": "pickled", "translations": { "en": "Pickled cucumber", "es": "Pepino en escabeche", "pl": "Ogórek kiszony" } }
+      ],
+      "aliases": { "en": ["cucumber", "cucumbers", "pickle"], "es": ["pepino", "pepinillo"], "pl": ["ogórek", "ogórka", "ogórki", "ogórek kiszony"] } },
+
+    { "slug": "eggplant", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Eggplant", "es": "Berenjena", "pl": "Bakłażan" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Eggplant", "es": "Berenjena", "pl": "Bakłażan" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled eggplant", "es": "Berenjena a la parrilla", "pl": "Bakłażan z grilla" } }
+      ],
+      "aliases": { "en": ["eggplant", "aubergine"], "es": ["berenjena", "berenjenas"], "pl": ["bakłażan", "bakłażana", "oberżyna"] } },
+
+    { "slug": "tomatillo", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tomatillo", "es": "Tomate verde", "pl": "Tomatillo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tomatillo", "es": "Tomate verde", "pl": "Tomatillo" } }],
+      "aliases": { "en": ["tomatillo", "green tomato", "husk tomato"], "es": ["tomate verde", "tomatillo", "miltomate"], "pl": ["tomatillo", "pomidor zielony meksykański"] },
+      "_note": "In Mexico, 'tomate' without qualifier often means tomatillo, not red tomato. Intentional overlap with tomato aliases — admin may need to disambiguate." },
+
+    { "slug": "okra", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Okra", "es": "Okra", "pl": "Okra" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Okra", "es": "Okra", "pl": "Okra" } }],
+      "aliases": { "en": ["okra", "lady fingers", "gumbo"], "es": ["okra", "quingombó"], "pl": ["okra", "piżmian"] } },
+
+    { "slug": "green_bean", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Green bean", "es": "Ejote", "pl": "Fasolka szparagowa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Green bean", "es": "Ejote", "pl": "Fasolka szparagowa" } }],
+      "aliases": { "en": ["green bean", "green beans", "string bean", "french bean"], "es": ["ejote", "ejotes", "judía verde", "vainita"], "pl": ["fasolka szparagowa", "szparagówka"] },
+      "_note": "MX 'ejote'; Spain 'judía verde'." },
+
+    { "slug": "mushroom", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mushroom", "es": "Champiñón", "pl": "Pieczarka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Mushroom", "es": "Champiñón", "pl": "Pieczarka" } },
+        { "modifier": "sauteed", "translations": { "en": "Sautéed mushroom", "es": "Champiñones salteados", "pl": "Pieczarki smażone" } }
+      ],
+      "aliases": { "en": ["mushroom", "mushrooms", "button mushroom", "white mushroom"], "es": ["champiñón", "champiñones", "hongo", "hongos", "seta"], "pl": ["pieczarka", "pieczarki", "grzyb"] },
+      "_note": "Generic mushroom concept. Specific types (shiitake, portobello, porcini) have their own concepts." },
+
+    { "slug": "portobello", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Portobello", "es": "Portobello", "pl": "Portobello" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Portobello", "es": "Portobello", "pl": "Portobello" } }],
+      "aliases": { "en": ["portobello", "portobello mushroom", "portabella"], "es": ["portobello"], "pl": ["portobello"] } },
+
+    { "slug": "shiitake", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Shiitake", "es": "Shiitake", "pl": "Shiitake" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Shiitake", "es": "Shiitake", "pl": "Shiitake" } }],
+      "aliases": { "en": ["shiitake", "shiitake mushroom"], "es": ["shiitake"], "pl": ["shiitake", "twardnik japoński"] } },
+
+    { "slug": "oyster_mushroom", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Oyster mushroom", "es": "Seta de ostra", "pl": "Boczniak" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Oyster mushroom", "es": "Seta de ostra", "pl": "Boczniak" } }],
+      "aliases": { "en": ["oyster mushroom", "pleurotus"], "es": ["seta de ostra", "pleuroto"], "pl": ["boczniak", "boczniaki"] } },
+
+    { "slug": "porcini", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Porcini", "es": "Porcini", "pl": "Borowik" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Porcini", "es": "Porcini", "pl": "Borowik" } }],
+      "aliases": { "en": ["porcini", "cep", "king bolete"], "es": ["porcini", "boleto"], "pl": ["borowik", "borowika", "prawdziwek"] } },
+
+    { "slug": "chanterelle", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chanterelle", "es": "Rebozuelo", "pl": "Kurka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chanterelle", "es": "Rebozuelo", "pl": "Kurka" } }],
+      "aliases": { "en": ["chanterelle", "chanterelles"], "es": ["rebozuelo", "chantarela"], "pl": ["kurka", "kurki", "pieprznik"] } },
+
+    { "slug": "truffle", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Truffle", "es": "Trufa", "pl": "Trufla" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Truffle", "es": "Trufa", "pl": "Trufla" } },
+        { "modifier": "black", "translations": { "en": "Black truffle", "es": "Trufa negra", "pl": "Trufla czarna" } },
+        { "modifier": "white", "translations": { "en": "White truffle", "es": "Trufa blanca", "pl": "Trufla biała" } }
+      ],
+      "aliases": { "en": ["truffle", "truffles"], "es": ["trufa", "trufas"], "pl": ["trufla", "trufle"] } },
+
+    { "slug": "corn", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Corn", "es": "Maíz", "pl": "Kukurydza" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Corn", "es": "Maíz", "pl": "Kukurydza" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled corn", "es": "Elote asado", "pl": "Kukurydza z grilla" } },
+        { "modifier": "sweet", "translations": { "en": "Sweet corn", "es": "Maíz dulce", "pl": "Kukurydza cukrowa" } }
+      ],
+      "aliases": { "en": ["corn", "sweet corn", "corn on the cob"], "es": ["maíz", "elote", "choclo", "mazorca"], "pl": ["kukurydza", "kukurydzy"] },
+      "_note": "MX 'elote' = corn on the cob; Argentina 'choclo'." },
+
+    { "slug": "celery", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Celery", "es": "Apio", "pl": "Seler naciowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Celery", "es": "Apio", "pl": "Seler naciowy" } }],
+      "aliases": { "en": ["celery", "celery stalk"], "es": ["apio"], "pl": ["seler naciowy", "seler", "selera"] } },
+
+    { "slug": "artichoke", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Artichoke", "es": "Alcachofa", "pl": "Karczoch" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Artichoke", "es": "Alcachofa", "pl": "Karczoch" } }],
+      "aliases": { "en": ["artichoke", "artichokes", "artichoke heart"], "es": ["alcachofa", "alcaucil"], "pl": ["karczoch", "karczochy"] } },
+
+    { "slug": "asparagus", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Asparagus", "es": "Espárrago", "pl": "Szparagi" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Asparagus", "es": "Espárrago", "pl": "Szparagi" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled asparagus", "es": "Espárrago a la parrilla", "pl": "Szparagi z grilla" } }
+      ],
+      "aliases": { "en": ["asparagus"], "es": ["espárrago", "espárragos"], "pl": ["szparagi", "szparagów"] } },
+
+    { "slug": "fennel", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Fennel", "es": "Hinojo", "pl": "Fenkuł" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Fennel", "es": "Hinojo", "pl": "Fenkuł" } }],
+      "aliases": { "en": ["fennel", "fennel bulb"], "es": ["hinojo"], "pl": ["fenkuł", "koper włoski"] } },
+
+    { "slug": "nopal", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Nopal", "es": "Nopal", "pl": "Nopal" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Nopal", "es": "Nopal", "pl": "Nopal" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled nopal", "es": "Nopal asado", "pl": "Nopal grillowany" } }
+      ],
+      "aliases": { "en": ["nopal", "cactus pad", "prickly pear cactus"], "es": ["nopal", "nopales"], "pl": ["nopal", "opuncja figowa"] },
+      "_note": "Mexican cactus pad; no Polish translation, name preserved." },
+
+    { "slug": "hearts_of_palm", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Hearts of palm", "es": "Palmitos", "pl": "Serca palmowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hearts of palm", "es": "Palmitos", "pl": "Serca palmowe" } }],
+      "aliases": { "en": ["hearts of palm", "palmito"], "es": ["palmito", "palmitos", "corazones de palma"], "pl": ["serca palmowe"] } },
+
+    { "slug": "bamboo_shoots", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Bamboo shoots", "es": "Brotes de bambú", "pl": "Pędy bambusa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Bamboo shoots", "es": "Brotes de bambú", "pl": "Pędy bambusa" } }],
+      "aliases": { "en": ["bamboo shoots", "bamboo shoot"], "es": ["brotes de bambú", "bambú"], "pl": ["pędy bambusa", "bambus"] } },
+
+    { "slug": "green_peas", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Green peas", "es": "Chícharos", "pl": "Groszek zielony" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Green peas", "es": "Chícharos", "pl": "Groszek zielony" } }],
+      "aliases": { "en": ["green peas", "peas", "garden peas"], "es": ["chícharos", "guisantes", "arvejas"], "pl": ["groszek zielony", "groszek", "groszku"] },
+      "_note": "MX 'chícharos'; Spain 'guisantes'; SA 'arvejas'." },
+
+    { "slug": "snow_peas", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Snow peas", "es": "Vainas de chícharo", "pl": "Groszek cukrowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Snow peas", "es": "Vainas de chícharo", "pl": "Groszek cukrowy" } }],
+      "aliases": { "en": ["snow peas", "snow pea", "mangetout"], "es": ["vainas de chícharo", "tirabeque"], "pl": ["groszek cukrowy"] } },
+
+    { "slug": "lemon", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lemon", "es": "Limón amarillo", "pl": "Cytryna" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lemon", "es": "Limón amarillo", "pl": "Cytryna" } }],
+      "aliases": { "en": ["lemon", "lemons", "lemon juice", "lemon zest"], "es": ["limón amarillo", "limón", "limones"], "pl": ["cytryna", "cytryny", "cytryną", "sok z cytryny"] },
+      "_note": "Ambiguous in MX: 'limón' often means lime, not lemon. Defaulting to 'limón amarillo' for clarity." },
+
+    { "slug": "lime", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lime", "es": "Limón", "pl": "Limonka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lime", "es": "Limón", "pl": "Limonka" } }],
+      "aliases": { "en": ["lime", "limes", "lime juice"], "es": ["limón", "limón verde", "lima"], "pl": ["limonka", "limonki"] },
+      "_note": "Mexico: bare 'limón' = lime (not lemon). Spain 'lima'. Intentional alias overlap with lemon." },
+
+    { "slug": "orange", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Orange", "es": "Naranja", "pl": "Pomarańcza" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Orange", "es": "Naranja", "pl": "Pomarańcza" } },
+        { "modifier": "blood", "translations": { "en": "Blood orange", "es": "Naranja sanguina", "pl": "Pomarańcza krwista" } }
+      ],
+      "aliases": { "en": ["orange", "oranges", "orange juice"], "es": ["naranja", "naranjas", "jugo de naranja"], "pl": ["pomarańcza", "pomarańczy", "sok pomarańczowy"] } },
+
+    { "slug": "grapefruit", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Grapefruit", "es": "Toronja", "pl": "Grejpfrut" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Grapefruit", "es": "Toronja", "pl": "Grejpfrut" } }],
+      "aliases": { "en": ["grapefruit"], "es": ["toronja", "pomelo"], "pl": ["grejpfrut", "grejpfruta"] },
+      "_note": "MX 'toronja'; Spain 'pomelo' (which in Asia/English means a different citrus)." },
+
+    { "slug": "mandarin", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mandarin", "es": "Mandarina", "pl": "Mandarynka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mandarin", "es": "Mandarina", "pl": "Mandarynka" } }],
+      "aliases": { "en": ["mandarin", "mandarine", "tangerine", "clementine"], "es": ["mandarina", "mandarinas"], "pl": ["mandarynka", "mandarynki"] } },
+
+    { "slug": "strawberry", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Strawberry", "es": "Fresa", "pl": "Truskawka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Strawberry", "es": "Fresa", "pl": "Truskawka" } }],
+      "aliases": { "en": ["strawberry", "strawberries"], "es": ["fresa", "fresas", "frutilla"], "pl": ["truskawka", "truskawki", "truskawek"] },
+      "_note": "Argentina/Chile 'frutilla'." },
+
+    { "slug": "blueberry", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Blueberry", "es": "Arándano azul", "pl": "Borówka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Blueberry", "es": "Arándano azul", "pl": "Borówka" } }],
+      "aliases": { "en": ["blueberry", "blueberries"], "es": ["arándano", "arándano azul", "mora azul"], "pl": ["borówka", "borówki", "jagoda"] } },
+
+    { "slug": "raspberry", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Raspberry", "es": "Frambuesa", "pl": "Malina" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Raspberry", "es": "Frambuesa", "pl": "Malina" } }],
+      "aliases": { "en": ["raspberry", "raspberries"], "es": ["frambuesa", "frambuesas"], "pl": ["malina", "maliny"] } },
+
+    { "slug": "blackberry", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Blackberry", "es": "Zarzamora", "pl": "Jeżyna" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Blackberry", "es": "Zarzamora", "pl": "Jeżyna" } }],
+      "aliases": { "en": ["blackberry", "blackberries"], "es": ["zarzamora", "mora"], "pl": ["jeżyna", "jeżyny"] } },
+
+    { "slug": "cranberry", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cranberry", "es": "Arándano rojo", "pl": "Żurawina" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cranberry", "es": "Arándano rojo", "pl": "Żurawina" } }],
+      "aliases": { "en": ["cranberry", "cranberries"], "es": ["arándano rojo"], "pl": ["żurawina", "żurawiny"] } },
+
+    { "slug": "peach", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Peach", "es": "Durazno", "pl": "Brzoskwinia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Peach", "es": "Durazno", "pl": "Brzoskwinia" } }],
+      "aliases": { "en": ["peach", "peaches"], "es": ["durazno", "melocotón"], "pl": ["brzoskwinia", "brzoskwinie"] },
+      "_note": "MX 'durazno'; Spain 'melocotón'." },
+
+    { "slug": "nectarine", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Nectarine", "es": "Nectarina", "pl": "Nektarynka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Nectarine", "es": "Nectarina", "pl": "Nektarynka" } }],
+      "aliases": { "en": ["nectarine"], "es": ["nectarina"], "pl": ["nektarynka"] } },
+
+    { "slug": "plum", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Plum", "es": "Ciruela", "pl": "Śliwka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Plum", "es": "Ciruela", "pl": "Śliwka" } }],
+      "aliases": { "en": ["plum", "plums"], "es": ["ciruela", "ciruelas"], "pl": ["śliwka", "śliwki"] } },
+
+    { "slug": "apricot", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Apricot", "es": "Chabacano", "pl": "Morela" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Apricot", "es": "Chabacano", "pl": "Morela" } }],
+      "aliases": { "en": ["apricot", "apricots"], "es": ["chabacano", "albaricoque", "damasco"], "pl": ["morela", "morele"] },
+      "_note": "MX 'chabacano'; Spain 'albaricoque'; Argentina 'damasco'." },
+
+    { "slug": "cherry", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cherry", "es": "Cereza", "pl": "Wiśnia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cherry", "es": "Cereza", "pl": "Wiśnia" } }],
+      "aliases": { "en": ["cherry", "cherries"], "es": ["cereza", "cerezas", "guinda"], "pl": ["wiśnia", "wiśnie", "czereśnia"] },
+      "_note": "Polish distinguishes 'wiśnia' (sour) from 'czereśnia' (sweet) — both kept as aliases." },
+
+    { "slug": "mango", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mango", "es": "Mango", "pl": "Mango" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mango", "es": "Mango", "pl": "Mango" } }],
+      "aliases": { "en": ["mango", "mangoes"], "es": ["mango", "mangos"], "pl": ["mango"] } },
+
+    { "slug": "apple", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Apple", "es": "Manzana", "pl": "Jabłko" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Apple", "es": "Manzana", "pl": "Jabłko" } },
+        { "modifier": "green", "translations": { "en": "Green apple", "es": "Manzana verde", "pl": "Jabłko zielone" } }
+      ],
+      "aliases": { "en": ["apple", "apples"], "es": ["manzana", "manzanas"], "pl": ["jabłko", "jabłka", "jabłek"] } },
+
+    { "slug": "pear", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pear", "es": "Pera", "pl": "Gruszka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pear", "es": "Pera", "pl": "Gruszka" } }],
+      "aliases": { "en": ["pear", "pears"], "es": ["pera", "peras"], "pl": ["gruszka", "gruszki"] } },
+
+    { "slug": "watermelon", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Watermelon", "es": "Sandía", "pl": "Arbuz" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Watermelon", "es": "Sandía", "pl": "Arbuz" } }],
+      "aliases": { "en": ["watermelon"], "es": ["sandía"], "pl": ["arbuz", "arbuza"] } },
+
+    { "slug": "cantaloupe", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cantaloupe", "es": "Melón", "pl": "Melon" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cantaloupe", "es": "Melón", "pl": "Melon" } }],
+      "aliases": { "en": ["cantaloupe", "melon"], "es": ["melón", "melón cantalupo"], "pl": ["melon", "kantalupa"] } },
+
+    { "slug": "pineapple", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pineapple", "es": "Piña", "pl": "Ananas" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pineapple", "es": "Piña", "pl": "Ananas" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled pineapple", "es": "Piña a la parrilla", "pl": "Ananas z grilla" } }
+      ],
+      "aliases": { "en": ["pineapple"], "es": ["piña", "ananá"], "pl": ["ananas", "ananasa"] } },
+
+    { "slug": "papaya", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Papaya", "es": "Papaya", "pl": "Papaja" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Papaya", "es": "Papaya", "pl": "Papaja" } }],
+      "aliases": { "en": ["papaya"], "es": ["papaya"], "pl": ["papaja"] } },
+
+    { "slug": "banana", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Banana", "es": "Plátano", "pl": "Banan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Banana", "es": "Plátano", "pl": "Banan" } }],
+      "aliases": { "en": ["banana", "bananas"], "es": ["plátano", "banana", "cambur", "guineo"], "pl": ["banan", "banana", "banany"] },
+      "_note": "MX/Spain 'plátano'; SA countries vary: 'banana' (AR/UY), 'cambur' (VE), 'guineo' (CO/PR/DR)." },
+
+    { "slug": "plantain", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Plantain", "es": "Plátano macho", "pl": "Plantan" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Plantain", "es": "Plátano macho", "pl": "Plantan" } },
+        { "modifier": "fried", "translations": { "en": "Fried plantain", "es": "Plátano frito", "pl": "Plantan smażony" } }
+      ],
+      "aliases": { "en": ["plantain", "plantains"], "es": ["plátano macho", "plátano de cocina", "maduro"], "pl": ["plantan", "banan plantan"] } },
+
+    { "slug": "coconut", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Coconut", "es": "Coco", "pl": "Kokos" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Coconut", "es": "Coco", "pl": "Kokos" } }],
+      "aliases": { "en": ["coconut", "coconut meat", "coconut flesh"], "es": ["coco"], "pl": ["kokos", "kokosa"] } },
+
+    { "slug": "passion_fruit", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Passion fruit", "es": "Maracuyá", "pl": "Marakuja" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Passion fruit", "es": "Maracuyá", "pl": "Marakuja" } }],
+      "aliases": { "en": ["passion fruit", "passionfruit"], "es": ["maracuyá", "fruta de la pasión", "parcha"], "pl": ["marakuja"] } },
+
+    { "slug": "dragon_fruit", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Dragon fruit", "es": "Pitaya", "pl": "Pitaja" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Dragon fruit", "es": "Pitaya", "pl": "Pitaja" } }],
+      "aliases": { "en": ["dragon fruit", "pitaya", "pitahaya"], "es": ["pitaya", "pitahaya"], "pl": ["pitaja", "smoczy owoc"] } },
+
+    { "slug": "guava", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Guava", "es": "Guayaba", "pl": "Guawa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Guava", "es": "Guayaba", "pl": "Guawa" } }],
+      "aliases": { "en": ["guava"], "es": ["guayaba"], "pl": ["guawa"] } },
+
+    { "slug": "kiwi", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kiwi", "es": "Kiwi", "pl": "Kiwi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kiwi", "es": "Kiwi", "pl": "Kiwi" } }],
+      "aliases": { "en": ["kiwi", "kiwifruit"], "es": ["kiwi"], "pl": ["kiwi"] } },
+
+    { "slug": "pomegranate", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pomegranate", "es": "Granada", "pl": "Granat" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pomegranate", "es": "Granada", "pl": "Granat" } }],
+      "aliases": { "en": ["pomegranate", "pomegranate seeds", "arils"], "es": ["granada", "granadas"], "pl": ["granat", "granatu"] } },
+
+    { "slug": "fig", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Fig", "es": "Higo", "pl": "Figa" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Fig", "es": "Higo", "pl": "Figa" } },
+        { "modifier": "dried", "translations": { "en": "Dried fig", "es": "Higo seco", "pl": "Figa suszona" } }
+      ],
+      "aliases": { "en": ["fig", "figs"], "es": ["higo", "higos", "brevo"], "pl": ["figa", "figi"] } },
+
+    { "slug": "date", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Date", "es": "Dátil", "pl": "Daktyl" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Date", "es": "Dátil", "pl": "Daktyl" } }],
+      "aliases": { "en": ["date", "dates", "medjool date"], "es": ["dátil", "dátiles"], "pl": ["daktyl", "daktyle"] } },
+
+    { "slug": "olive", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Olive", "es": "Aceituna", "pl": "Oliwka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Olive", "es": "Aceituna", "pl": "Oliwka" } },
+        { "modifier": "black", "translations": { "en": "Black olive", "es": "Aceituna negra", "pl": "Oliwka czarna" } },
+        { "modifier": "green", "translations": { "en": "Green olive", "es": "Aceituna verde", "pl": "Oliwka zielona" } },
+        { "modifier": "kalamata", "translations": { "en": "Kalamata olive", "es": "Aceituna kalamata", "pl": "Oliwka kalamata" } }
+      ],
+      "aliases": { "en": ["olive", "olives"], "es": ["aceituna", "aceitunas", "oliva"], "pl": ["oliwka", "oliwki"] } },
+
+    { "slug": "tamarind", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tamarind", "es": "Tamarindo", "pl": "Tamaryndowiec" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tamarind", "es": "Tamarindo", "pl": "Tamaryndowiec" } }],
+      "aliases": { "en": ["tamarind", "tamarind paste", "tamarind pulp"], "es": ["tamarindo"], "pl": ["tamaryndowiec", "tamarynd"] } },
+
+    { "slug": "grape", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Grape", "es": "Uva", "pl": "Winogrono" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Grape", "es": "Uva", "pl": "Winogrono" } }],
+      "aliases": { "en": ["grape", "grapes"], "es": ["uva", "uvas"], "pl": ["winogrono", "winogrona"] } },
+
+    { "slug": "raisin", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Raisin", "es": "Pasa", "pl": "Rodzynka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Raisin", "es": "Pasa", "pl": "Rodzynka" } }],
+      "aliases": { "en": ["raisin", "raisins", "sultana"], "es": ["pasa", "pasas", "uva pasa"], "pl": ["rodzynka", "rodzynki"] } }
+  ]
+}

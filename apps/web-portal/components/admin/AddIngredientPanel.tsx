@@ -119,6 +119,8 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
     onSuccess({
       raw_text: rawText,
       status: 'matched',
+      concept_id: ingredient.concept_id,
+      variant_id: ingredient.variant_id ?? null,
       canonical_ingredient_id: ingredient.canonical_ingredient_id,
       canonical_name: ingredient.canonical_name,
       display_name: ingredient.display_name,
@@ -199,6 +201,8 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
       onSuccess({
         raw_text: rawText,
         status: 'matched',
+        concept_id: data.concept_id ?? undefined,
+        variant_id: null,
         canonical_ingredient_id: data.ingredient.id,
         canonical_name: data.ingredient.canonical_name,
         display_name: data.alias?.display_name ?? data.ingredient.canonical_name,
@@ -300,6 +304,9 @@ export function AddIngredientPanel({ rawText, onSuccess, onClose }: AddIngredien
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
                         {item.display_name}
+                        <span className="ml-1.5 text-[10px] uppercase text-muted-foreground">
+                          {item.language}
+                        </span>
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {item.canonical_name}

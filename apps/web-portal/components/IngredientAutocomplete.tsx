@@ -142,7 +142,12 @@ export function IngredientAutocomplete({
                 className="w-full px-4 py-2 text-left hover:bg-accent flex items-center justify-between group"
               >
                 <div className="flex-1">
-                  <div className="font-medium text-foreground">{ingredient.display_name}</div>
+                  <div className="font-medium text-foreground">
+                    {ingredient.display_name}
+                    <span className="ml-2 text-[10px] uppercase text-muted-foreground">
+                      {ingredient.language}
+                    </span>
+                  </div>
                   {ingredient.canonical_name && (
                     <div className="text-xs text-muted-foreground">
                       Canonical: {ingredient.canonical_name}

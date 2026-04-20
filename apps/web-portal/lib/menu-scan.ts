@@ -1,10 +1,17 @@
 import { compareTwoStrings } from 'string-similarity';
 
+export interface RawExtractedIngredient {
+  /** Base ingredient term as it appears on the menu (e.g. "salmon", "cheese"). */
+  base: string;
+  /** Modifier or preparation qualifier (e.g. "smoked", "aged", "fresh"). Null when none. */
+  modifier: string | null;
+}
+
 export interface RawExtractedDish {
   name: string;
   price: number | null;
   description: string | null;
-  raw_ingredients: string[] | null;
+  raw_ingredients: RawExtractedIngredient[] | null;
   dietary_hints: string[];
   /** Allergen codes or loose synonyms the AI read from dish-specific text.
    *  Enrichment maps these through ALLERGEN_HINT_MAP to canonical codes. */
@@ -54,7 +61,13 @@ export interface RawExtractionResult {
 
 export interface MatchedIngredient {
   raw_text: string;
+  /** Modifier extracted alongside the base ingredient (e.g. "smoked" in "smoked salmon"). Null when no modifier. */
+  raw_modifier?: string | null;
   status: 'matched' | 'unmatched';
+  /** ingredient_concepts.id — populated by the new resolver. Optional for backward-compat with admin-picked ingredients. */
+  concept_id?: string;
+  /** ingredient_variants.id — populated when a specific variant (modifier) was resolved. Null means default variant. */
+  variant_id?: string | null;
   canonical_ingredient_id?: string;
   canonical_name?: string;
   display_name?: string;
@@ -86,7 +99,10 @@ export interface EnrichedResult {
 
 export interface EditableIngredient {
   raw_text: string;
+  raw_modifier?: string | null;
   status: 'matched' | 'unmatched';
+  concept_id?: string;
+  variant_id?: string | null;
   canonical_ingredient_id?: string;
   canonical_name?: string;
   display_name?: string;
@@ -148,6 +164,8 @@ export interface ConfirmDish {
   calories?: number | null;
   dish_category_id?: string | null;
   canonical_ingredient_ids: string[];
+  /** Optional variant override per canonical_ingredient_id. Only set when menu-scan resolver identified a specific variant. */
+  variant_id_by_canonical?: Record<string, string>;
   option_groups?: ConfirmOptionGroup[];
   dish_kind: 'standard' | 'template' | 'combo' | 'experience';
   is_parent: boolean;
@@ -829,6 +847,14 @@ function editableToConfirm(dish: EditableDish): ConfirmDish {
     canonical_ingredient_ids: dish.ingredients
       .filter(i => i.status === 'matched' && i.canonical_ingredient_id)
       .map(i => i.canonical_ingredient_id!),
+    variant_id_by_canonical: Object.fromEntries(
+      dish.ingredients
+        .filter(
+          (i): i is EditableIngredient & { canonical_ingredient_id: string; variant_id: string } =>
+            i.status === 'matched' && !!i.canonical_ingredient_id && !!i.variant_id
+        )
+        .map(i => [i.canonical_ingredient_id, i.variant_id])
+    ),
     dish_kind: dish.dish_kind,
     is_parent: dish.is_parent,
     serves: dish.serves ?? 1,

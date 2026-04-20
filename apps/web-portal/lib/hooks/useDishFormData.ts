@@ -305,12 +305,40 @@ export function useDishFormData({
         toast.success('Dish added successfully');
       }
 
-      // Sync dish_ingredients junction table
+      // Sync dish_ingredients junction table. Phase 6A cutover: every row
+      // must carry concept_id. Ingredients picked from the Phase 4C typeahead
+      // already carry it; legacy-loaded ingredients (without concept_id)
+      // need a one-shot canonical → concept lookup here.
       if (selectedIngredients.length > 0) {
         await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
+
+        const needLookup = selectedIngredients
+          .filter(ing => !ing.concept_id && ing.canonical_ingredient_id)
+          .map(ing => ing.canonical_ingredient_id);
+        const conceptByCanonical = new Map<string, string>();
+        if (needLookup.length > 0) {
+          const { data: conceptRows } = await (
+            supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
+          )('ingredient_concepts')
+            .select('id, legacy_canonical_id')
+            .in('legacy_canonical_id', needLookup);
+          for (const row of (conceptRows ?? []) as unknown as Array<{
+            id: string;
+            legacy_canonical_id: string;
+          }>) {
+            conceptByCanonical.set(row.legacy_canonical_id, row.id);
+          }
+        }
+
         const ingredientRows = selectedIngredients.map(ing => ({
           dish_id: dishId,
           ingredient_id: ing.canonical_ingredient_id,
+          concept_id:
+            ing.concept_id ??
+            (ing.canonical_ingredient_id
+              ? (conceptByCanonical.get(ing.canonical_ingredient_id) ?? null)
+              : null),
+          variant_id: ing.variant_id ?? null,
           quantity: ing.quantity ?? null,
         }));
         const { error: ingError } = await supabase.from('dish_ingredients').insert(ingredientRows);

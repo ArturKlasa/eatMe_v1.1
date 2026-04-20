@@ -55,14 +55,22 @@ export function classifyDish(
   dish: {
     allergens?: string[] | null;
     dietary_tags?: string[] | null;
-    dish_ingredients?: Array<{ ingredient_id: string }> | null;
+    dish_ingredients?: Array<{ ingredient_id: string; concept_id?: string | null }> | null;
   },
   permanent: PermanentFilters,
   ingredientsToAvoid: IngredientToAvoid[]
 ): DishClassification {
   const allergens: string[] = dish.allergens ?? [];
   const dietaryTags: string[] = dish.dietary_tags ?? [];
-  const dishIngredientIds = new Set((dish.dish_ingredients ?? []).map(di => di.ingredient_id));
+  // Phase 6A: match on concept_id when available (post-cutover rows) with
+  // legacy ingredient_id as fallback for any rows that still carry only the
+  // canonical FK.
+  const dishIngredientIds = new Set<string>();
+  const dishConceptIds = new Set<string>();
+  for (const di of dish.dish_ingredients ?? []) {
+    if (di.ingredient_id) dishIngredientIds.add(di.ingredient_id);
+    if (di.concept_id) dishConceptIds.add(di.concept_id);
+  }
 
   // ── Hard filter checks ───────────────────────────────────────────────────
 
@@ -109,7 +117,10 @@ export function classifyDish(
   // ── Soft: ingredient flagging ────────────────────────────────────────────
 
   const flaggedIngredientNames: string[] = ingredientsToAvoid
-    .filter(item => dishIngredientIds.has(item.canonicalIngredientId))
+    .filter(item => {
+      if (item.conceptId && dishConceptIds.has(item.conceptId)) return true;
+      return dishIngredientIds.has(item.canonicalIngredientId);
+    })
     .map(item => item.displayName);
 
   return { passesHardFilters, flaggedIngredientNames };

@@ -1,0 +1,204 @@
+{
+  "_comment": "Batch 5/10 — Nuts, seeds, oils, fats. Skips olive_oil (trial).",
+
+  "concepts": [
+    { "slug": "almond", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Almond", "es": "Almendra", "pl": "Migdał" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Almond", "es": "Almendra", "pl": "Migdał" } },
+        { "modifier": "slivered", "translations": { "en": "Slivered almond", "es": "Almendra fileteada", "pl": "Migdały płatkowane" } },
+        { "modifier": "toasted", "translations": { "en": "Toasted almond", "es": "Almendra tostada", "pl": "Migdał prażony" } }
+      ],
+      "aliases": { "en": ["almond", "almonds"], "es": ["almendra", "almendras"], "pl": ["migdał", "migdały", "migdałów"] } },
+
+    { "slug": "walnut", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Walnut", "es": "Nuez", "pl": "Orzech włoski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Walnut", "es": "Nuez", "pl": "Orzech włoski" } }],
+      "aliases": { "en": ["walnut", "walnuts"], "es": ["nuez", "nueces", "nuez de castilla"], "pl": ["orzech włoski", "orzechy włoskie"] },
+      "_note": "'Nuez' in MX often defaults to walnut. Other nuts get qualifiers." },
+
+    { "slug": "pecan", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Pecan", "es": "Nuez pecana", "pl": "Pekan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pecan", "es": "Nuez pecana", "pl": "Pekan" } }],
+      "aliases": { "en": ["pecan", "pecans"], "es": ["nuez pecana", "pecán", "nuez encarcelada"], "pl": ["pekan", "orzech pekan"] } },
+
+    { "slug": "cashew", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Cashew", "es": "Marañón", "pl": "Nerkowiec" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cashew", "es": "Marañón", "pl": "Nerkowiec" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted cashew", "es": "Marañón tostado", "pl": "Nerkowce prażone" } }
+      ],
+      "aliases": { "en": ["cashew", "cashews"], "es": ["marañón", "nuez de la india", "anacardo"], "pl": ["nerkowiec", "nerkowce", "orzech nerkowca"] },
+      "_note": "MX 'marañón' / 'nuez de la india'; Spain 'anacardo'." },
+
+    { "slug": "pistachio", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Pistachio", "es": "Pistache", "pl": "Pistacja" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pistachio", "es": "Pistache", "pl": "Pistacja" } }],
+      "aliases": { "en": ["pistachio", "pistachios"], "es": ["pistache", "pistacho"], "pl": ["pistacja", "pistacje"] },
+      "_note": "MX 'pistache'; Spain 'pistacho'." },
+
+    { "slug": "hazelnut", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Hazelnut", "es": "Avellana", "pl": "Orzech laskowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hazelnut", "es": "Avellana", "pl": "Orzech laskowy" } }],
+      "aliases": { "en": ["hazelnut", "hazelnuts", "filbert"], "es": ["avellana", "avellanas"], "pl": ["orzech laskowy", "orzechy laskowe"] } },
+
+    { "slug": "macadamia", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Macadamia", "es": "Macadamia", "pl": "Orzech makadamia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Macadamia", "es": "Macadamia", "pl": "Orzech makadamia" } }],
+      "aliases": { "en": ["macadamia", "macadamia nut"], "es": ["macadamia", "nuez de macadamia"], "pl": ["orzech makadamia", "makadamia"] } },
+
+    { "slug": "brazil_nut", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Brazil nut", "es": "Nuez de Brasil", "pl": "Orzech brazylijski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Brazil nut", "es": "Nuez de Brasil", "pl": "Orzech brazylijski" } }],
+      "aliases": { "en": ["brazil nut"], "es": ["nuez de brasil", "castaña de pará"], "pl": ["orzech brazylijski"] } },
+
+    { "slug": "pine_nut", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Pine nut", "es": "Piñón", "pl": "Orzeszek pinii" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pine nut", "es": "Piñón", "pl": "Orzeszek pinii" } }],
+      "aliases": { "en": ["pine nut", "pine nuts", "pignoli"], "es": ["piñón", "piñones"], "pl": ["orzeszek pinii", "orzeszki piniowe"] } },
+
+    { "slug": "chestnut", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chestnut", "es": "Castaña", "pl": "Kasztan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chestnut", "es": "Castaña", "pl": "Kasztan" } }],
+      "aliases": { "en": ["chestnut", "chestnuts"], "es": ["castaña", "castañas"], "pl": ["kasztan", "kasztany"] },
+      "_note": "Chestnuts are NOT tree nuts for allergy purposes (different botanical family) — no 'nuts' allergen." },
+
+    { "slug": "peanut", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["peanuts"],
+      "translations": { "en": "Peanut", "es": "Cacahuate", "pl": "Orzech ziemny" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Peanut", "es": "Cacahuate", "pl": "Orzech ziemny" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted peanut", "es": "Cacahuate tostado", "pl": "Orzeszki prażone" } }
+      ],
+      "aliases": { "en": ["peanut", "peanuts", "groundnut"], "es": ["cacahuate", "cacahuates", "maní", "cacahuete"], "pl": ["orzech ziemny", "orzeszki ziemne", "fistaszki"] },
+      "_note": "MX 'cacahuate'; LatAm 'maní'; Spain 'cacahuete'. All kept as aliases." },
+
+    { "slug": "peanut_butter", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["peanuts"],
+      "translations": { "en": "Peanut butter", "es": "Crema de cacahuate", "pl": "Masło orzechowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Peanut butter", "es": "Crema de cacahuate", "pl": "Masło orzechowe" } }],
+      "aliases": { "en": ["peanut butter"], "es": ["crema de cacahuate", "mantequilla de maní", "crema de maní"], "pl": ["masło orzechowe"] } },
+
+    { "slug": "almond_butter", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Almond butter", "es": "Mantequilla de almendra", "pl": "Masło migdałowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Almond butter", "es": "Mantequilla de almendra", "pl": "Masło migdałowe" } }],
+      "aliases": { "en": ["almond butter"], "es": ["mantequilla de almendra", "crema de almendra"], "pl": ["masło migdałowe"] } },
+
+    { "slug": "sesame", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": ["sesame"],
+      "translations": { "en": "Sesame", "es": "Ajonjolí", "pl": "Sezam" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sesame", "es": "Ajonjolí", "pl": "Sezam" } },
+        { "modifier": "toasted", "translations": { "en": "Toasted sesame", "es": "Ajonjolí tostado", "pl": "Sezam prażony" } }
+      ],
+      "aliases": { "en": ["sesame", "sesame seed", "sesame seeds"], "es": ["ajonjolí", "sésamo", "semillas de ajonjolí"], "pl": ["sezam", "sezamu", "ziarna sezamu"] },
+      "_note": "MX 'ajonjolí'; Spain 'sésamo'." },
+
+    { "slug": "tahini", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["sesame"],
+      "translations": { "en": "Tahini", "es": "Tahini", "pl": "Tahini" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tahini", "es": "Tahini", "pl": "Tahini" } }],
+      "aliases": { "en": ["tahini", "sesame paste"], "es": ["tahini", "tahina", "pasta de ajonjolí"], "pl": ["tahini", "pasta sezamowa"] } },
+
+    { "slug": "sunflower_seed", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sunflower seed", "es": "Semilla de girasol", "pl": "Słonecznik" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sunflower seed", "es": "Semilla de girasol", "pl": "Słonecznik" } }],
+      "aliases": { "en": ["sunflower seed", "sunflower seeds"], "es": ["semilla de girasol", "pipa", "pepita de girasol"], "pl": ["słonecznik", "pestki słonecznika"] } },
+
+    { "slug": "pumpkin_seed", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pumpkin seed", "es": "Pepita", "pl": "Pestki dyni" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pumpkin seed", "es": "Pepita", "pl": "Pestki dyni" } }],
+      "aliases": { "en": ["pumpkin seed", "pumpkin seeds", "pepita", "pepitas"], "es": ["pepita", "pepitas", "semillas de calabaza"], "pl": ["pestki dyni", "pestka dyni"] },
+      "_note": "MX 'pepita' = pumpkin seed; often toasted/used in moles. Common menu term." },
+
+    { "slug": "flaxseed", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Flaxseed", "es": "Linaza", "pl": "Siemię lniane" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Flaxseed", "es": "Linaza", "pl": "Siemię lniane" } }],
+      "aliases": { "en": ["flaxseed", "linseed"], "es": ["linaza", "semilla de lino"], "pl": ["siemię lniane", "len"] } },
+
+    { "slug": "chia_seed", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chia seed", "es": "Chía", "pl": "Nasiona chia" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chia seed", "es": "Chía", "pl": "Nasiona chia" } }],
+      "aliases": { "en": ["chia", "chia seed", "chia seeds"], "es": ["chía", "semillas de chía"], "pl": ["nasiona chia", "chia"] } },
+
+    { "slug": "poppy_seed", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Poppy seed", "es": "Semilla de amapola", "pl": "Mak" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Poppy seed", "es": "Semilla de amapola", "pl": "Mak" } }],
+      "aliases": { "en": ["poppy seed", "poppy seeds"], "es": ["semilla de amapola", "amapola"], "pl": ["mak", "maku"] } },
+
+    { "slug": "hemp_seed", "family": "nut_seed", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Hemp seed", "es": "Semilla de cáñamo", "pl": "Nasiona konopi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hemp seed", "es": "Semilla de cáñamo", "pl": "Nasiona konopi" } }],
+      "aliases": { "en": ["hemp seed", "hemp hearts"], "es": ["semilla de cáñamo"], "pl": ["nasiona konopi"] } },
+
+    { "slug": "vegetable_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Vegetable oil", "es": "Aceite vegetal", "pl": "Olej roślinny" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Vegetable oil", "es": "Aceite vegetal", "pl": "Olej roślinny" } }],
+      "aliases": { "en": ["vegetable oil", "cooking oil"], "es": ["aceite vegetal", "aceite para cocinar"], "pl": ["olej roślinny", "olej do smażenia"] } },
+
+    { "slug": "canola_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Canola oil", "es": "Aceite de canola", "pl": "Olej rzepakowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Canola oil", "es": "Aceite de canola", "pl": "Olej rzepakowy" } }],
+      "aliases": { "en": ["canola oil", "rapeseed oil"], "es": ["aceite de canola", "aceite de colza"], "pl": ["olej rzepakowy", "olej z rzepaku"] } },
+
+    { "slug": "sunflower_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sunflower oil", "es": "Aceite de girasol", "pl": "Olej słonecznikowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sunflower oil", "es": "Aceite de girasol", "pl": "Olej słonecznikowy" } }],
+      "aliases": { "en": ["sunflower oil"], "es": ["aceite de girasol"], "pl": ["olej słonecznikowy"] } },
+
+    { "slug": "sesame_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": ["sesame"],
+      "translations": { "en": "Sesame oil", "es": "Aceite de ajonjolí", "pl": "Olej sezamowy" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sesame oil", "es": "Aceite de ajonjolí", "pl": "Olej sezamowy" } },
+        { "modifier": "toasted", "translations": { "en": "Toasted sesame oil", "es": "Aceite de ajonjolí tostado", "pl": "Olej sezamowy prażony" } }
+      ],
+      "aliases": { "en": ["sesame oil"], "es": ["aceite de ajonjolí", "aceite de sésamo"], "pl": ["olej sezamowy"] } },
+
+    { "slug": "coconut_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Coconut oil", "es": "Aceite de coco", "pl": "Olej kokosowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Coconut oil", "es": "Aceite de coco", "pl": "Olej kokosowy" } }],
+      "aliases": { "en": ["coconut oil"], "es": ["aceite de coco"], "pl": ["olej kokosowy"] } },
+
+    { "slug": "avocado_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Avocado oil", "es": "Aceite de aguacate", "pl": "Olej z awokado" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Avocado oil", "es": "Aceite de aguacate", "pl": "Olej z awokado" } }],
+      "aliases": { "en": ["avocado oil"], "es": ["aceite de aguacate"], "pl": ["olej z awokado"] } },
+
+    { "slug": "peanut_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": ["peanuts"],
+      "translations": { "en": "Peanut oil", "es": "Aceite de cacahuate", "pl": "Olej arachidowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Peanut oil", "es": "Aceite de cacahuate", "pl": "Olej arachidowy" } }],
+      "aliases": { "en": ["peanut oil", "groundnut oil"], "es": ["aceite de cacahuate", "aceite de maní", "aceite de cacahuete"], "pl": ["olej arachidowy", "olej z orzechów ziemnych"] } },
+
+    { "slug": "corn_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Corn oil", "es": "Aceite de maíz", "pl": "Olej kukurydziany" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Corn oil", "es": "Aceite de maíz", "pl": "Olej kukurydziany" } }],
+      "aliases": { "en": ["corn oil"], "es": ["aceite de maíz"], "pl": ["olej kukurydziany"] } },
+
+    { "slug": "grapeseed_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Grapeseed oil", "es": "Aceite de semilla de uva", "pl": "Olej z pestek winogron" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Grapeseed oil", "es": "Aceite de semilla de uva", "pl": "Olej z pestek winogron" } }],
+      "aliases": { "en": ["grapeseed oil"], "es": ["aceite de semilla de uva", "aceite de pepita de uva"], "pl": ["olej z pestek winogron"] } },
+
+    { "slug": "palm_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Palm oil", "es": "Aceite de palma", "pl": "Olej palmowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Palm oil", "es": "Aceite de palma", "pl": "Olej palmowy" } }],
+      "aliases": { "en": ["palm oil"], "es": ["aceite de palma"], "pl": ["olej palmowy"] } },
+
+    { "slug": "lard", "family": "oil_fat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Lard", "es": "Manteca de cerdo", "pl": "Smalec" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lard", "es": "Manteca de cerdo", "pl": "Smalec" } }],
+      "aliases": { "en": ["lard"], "es": ["manteca de cerdo", "manteca"], "pl": ["smalec"] },
+      "_note": "In MX, 'manteca' typically = lard. Ambiguity with 'butter' in Spain — admin review if needed." },
+
+    { "slug": "shortening", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Shortening", "es": "Manteca vegetal", "pl": "Tłuszcz roślinny" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Shortening", "es": "Manteca vegetal", "pl": "Tłuszcz roślinny" } }],
+      "aliases": { "en": ["shortening", "vegetable shortening"], "es": ["manteca vegetal"], "pl": ["tłuszcz roślinny", "margaryna piekarska"] } },
+
+    { "slug": "duck_fat", "family": "oil_fat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Duck fat", "es": "Grasa de pato", "pl": "Tłuszcz z kaczki" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Duck fat", "es": "Grasa de pato", "pl": "Tłuszcz z kaczki" } }],
+      "aliases": { "en": ["duck fat"], "es": ["grasa de pato"], "pl": ["tłuszcz z kaczki", "tłuszcz kaczy"] } },
+
+    { "slug": "margarine", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Margarine", "es": "Margarina", "pl": "Margaryna" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Margarine", "es": "Margarina", "pl": "Margaryna" } }],
+      "aliases": { "en": ["margarine"], "es": ["margarina"], "pl": ["margaryna", "margaryny"] } }
+  ]
+}

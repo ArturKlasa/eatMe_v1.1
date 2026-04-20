@@ -1,0 +1,217 @@
+{
+  "_comment": "Batch 3/10 — Grains, starches, pasta, bread. Skips rice (trial), corn (produce batch).",
+
+  "concepts": [
+    { "slug": "wheat", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Wheat", "es": "Trigo", "pl": "Pszenica" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Wheat", "es": "Trigo", "pl": "Pszenica" } }],
+      "aliases": { "en": ["wheat", "wheat berry", "wheat grain"], "es": ["trigo"], "pl": ["pszenica", "pszenicy"] } },
+
+    { "slug": "flour", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Flour", "es": "Harina", "pl": "Mąka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Flour", "es": "Harina", "pl": "Mąka" } },
+        { "modifier": "whole_wheat", "translations": { "en": "Whole wheat flour", "es": "Harina integral", "pl": "Mąka pełnoziarnista" } },
+        { "modifier": "all_purpose", "translations": { "en": "All-purpose flour", "es": "Harina de trigo", "pl": "Mąka uniwersalna" } }
+      ],
+      "aliases": { "en": ["flour", "wheat flour", "all-purpose flour"], "es": ["harina", "harina de trigo"], "pl": ["mąka", "mąki", "mąka pszenna"] } },
+
+    { "slug": "corn_flour", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Corn flour", "es": "Harina de maíz", "pl": "Mąka kukurydziana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Corn flour", "es": "Harina de maíz", "pl": "Mąka kukurydziana" } }],
+      "aliases": { "en": ["corn flour", "masa harina", "cornmeal"], "es": ["harina de maíz", "masa harina", "masa de maíz"], "pl": ["mąka kukurydziana"] } },
+
+    { "slug": "masa", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Masa", "es": "Masa", "pl": "Masa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Masa", "es": "Masa", "pl": "Masa" } }],
+      "aliases": { "en": ["masa", "nixtamal", "masa dough"], "es": ["masa", "masa de maíz", "nixtamal"], "pl": ["masa", "ciasto kukurydziane"] },
+      "_note": "Mexican nixtamalized corn dough; no direct Polish equivalent." },
+
+    { "slug": "tortilla", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tortilla", "es": "Tortilla", "pl": "Tortilla" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Tortilla", "es": "Tortilla", "pl": "Tortilla" } },
+        { "modifier": "corn", "translations": { "en": "Corn tortilla", "es": "Tortilla de maíz", "pl": "Tortilla kukurydziana" } },
+        { "modifier": "flour", "translations": { "en": "Flour tortilla", "es": "Tortilla de harina", "pl": "Tortilla pszenna" } }
+      ],
+      "aliases": { "en": ["tortilla", "tortillas"], "es": ["tortilla", "tortillas", "tortilla de maíz", "tortilla de harina"], "pl": ["tortilla"] },
+      "_note": "Flour tortillas contain gluten (flagged on variant via family — no allergen here because corn tortillas don't)." },
+
+    { "slug": "pasta", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Pasta", "es": "Pasta", "pl": "Makaron" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pasta", "es": "Pasta", "pl": "Makaron" } },
+        { "modifier": "spaghetti", "translations": { "en": "Spaghetti", "es": "Espagueti", "pl": "Spaghetti" } },
+        { "modifier": "penne", "translations": { "en": "Penne", "es": "Penne", "pl": "Penne" } },
+        { "modifier": "fettuccine", "translations": { "en": "Fettuccine", "es": "Fettuccine", "pl": "Fettuccine" } },
+        { "modifier": "linguine", "translations": { "en": "Linguine", "es": "Linguine", "pl": "Linguine" } },
+        { "modifier": "ravioli", "translations": { "en": "Ravioli", "es": "Ravioles", "pl": "Ravioli" } },
+        { "modifier": "lasagna", "translations": { "en": "Lasagna", "es": "Lasaña", "pl": "Lasagna" } }
+      ],
+      "aliases": { "en": ["pasta", "noodle", "spaghetti", "penne", "fettuccine", "ravioli", "lasagna"], "es": ["pasta", "espagueti", "tallarines", "fideos"], "pl": ["makaron", "makaronu", "spaghetti"] } },
+
+    { "slug": "noodle_asian", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Asian noodle", "es": "Fideo asiático", "pl": "Makaron azjatycki" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Asian noodle", "es": "Fideo asiático", "pl": "Makaron azjatycki" } },
+        { "modifier": "ramen", "translations": { "en": "Ramen noodle", "es": "Fideos ramen", "pl": "Makaron ramen" } },
+        { "modifier": "udon", "translations": { "en": "Udon noodle", "es": "Fideos udon", "pl": "Makaron udon" } },
+        { "modifier": "soba", "translations": { "en": "Soba noodle", "es": "Fideos soba", "pl": "Makaron soba" } },
+        { "modifier": "rice", "translations": { "en": "Rice noodle", "es": "Fideos de arroz", "pl": "Makaron ryżowy" } },
+        { "modifier": "glass", "translations": { "en": "Glass noodle", "es": "Fideos de vidrio", "pl": "Makaron szklany" } }
+      ],
+      "aliases": { "en": ["ramen", "udon", "soba", "rice noodle", "glass noodle", "cellophane noodle", "vermicelli"], "es": ["ramen", "udon", "soba", "fideos de arroz"], "pl": ["ramen", "udon", "soba", "makaron ryżowy"] },
+      "_note": "Ramen/udon/soba contain wheat (gluten); rice/glass noodles don't. Allergen tracked at variant level in later enhancement." },
+
+    { "slug": "bread", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": ["gluten"],
+      "translations": { "en": "Bread", "es": "Pan", "pl": "Chleb" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Bread", "es": "Pan", "pl": "Chleb" } },
+        { "modifier": "white", "translations": { "en": "White bread", "es": "Pan blanco", "pl": "Chleb biały" } },
+        { "modifier": "whole_grain", "translations": { "en": "Whole grain bread", "es": "Pan integral", "pl": "Chleb pełnoziarnisty" } },
+        { "modifier": "sourdough", "translations": { "en": "Sourdough bread", "es": "Pan de masa madre", "pl": "Chleb na zakwasie" } }
+      ],
+      "aliases": { "en": ["bread", "bread slice", "white bread", "whole wheat bread"], "es": ["pan", "pan blanco", "pan integral", "bolillo"], "pl": ["chleb", "chleba", "pieczywo"] },
+      "_note": "is_vegan=false because many breads contain milk/butter/eggs. Vegan bread could be a variant." },
+
+    { "slug": "baguette", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Baguette", "es": "Baguette", "pl": "Bagietka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Baguette", "es": "Baguette", "pl": "Bagietka" } }],
+      "aliases": { "en": ["baguette", "french bread"], "es": ["baguette", "pan francés"], "pl": ["bagietka", "bagietki"] } },
+
+    { "slug": "ciabatta", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Ciabatta", "es": "Ciabatta", "pl": "Ciabatta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ciabatta", "es": "Ciabatta", "pl": "Ciabatta" } }],
+      "aliases": { "en": ["ciabatta"], "es": ["ciabatta"], "pl": ["ciabatta"] } },
+
+    { "slug": "pita", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Pita", "es": "Pan pita", "pl": "Pita" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pita", "es": "Pan pita", "pl": "Pita" } }],
+      "aliases": { "en": ["pita", "pita bread"], "es": ["pita", "pan pita", "pan árabe"], "pl": ["pita", "chleb pita"] } },
+
+    { "slug": "naan", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": ["gluten", "lactose"],
+      "translations": { "en": "Naan", "es": "Naan", "pl": "Naan" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Naan", "es": "Naan", "pl": "Naan" } },
+        { "modifier": "garlic", "translations": { "en": "Garlic naan", "es": "Naan de ajo", "pl": "Naan czosnkowy" } }
+      ],
+      "aliases": { "en": ["naan", "naan bread"], "es": ["naan", "pan naan"], "pl": ["naan", "chleb naan"] },
+      "_note": "Contains yogurt/milk traditionally → lactose. Vegan naan variants exist but aren't default." },
+
+    { "slug": "tortilla_wrap", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Wrap", "es": "Wrap", "pl": "Wrap" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Wrap", "es": "Wrap", "pl": "Wrap" } }],
+      "aliases": { "en": ["wrap", "wrap bread"], "es": ["wrap", "tortilla wrap"], "pl": ["wrap", "tortilla wrap"] } },
+
+    { "slug": "bun", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": ["gluten"],
+      "translations": { "en": "Bun", "es": "Pan de hamburguesa", "pl": "Bułka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Bun", "es": "Pan de hamburguesa", "pl": "Bułka" } },
+        { "modifier": "brioche", "translations": { "en": "Brioche bun", "es": "Pan brioche", "pl": "Bułka brioche" } }
+      ],
+      "aliases": { "en": ["bun", "hamburger bun", "brioche bun"], "es": ["pan de hamburguesa", "bollo"], "pl": ["bułka", "bułeczka", "bułka do hamburgera"] } },
+
+    { "slug": "quinoa", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Quinoa", "es": "Quinoa", "pl": "Komosa ryżowa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Quinoa", "es": "Quinoa", "pl": "Komosa ryżowa" } }],
+      "aliases": { "en": ["quinoa"], "es": ["quinoa", "quinua"], "pl": ["komosa ryżowa", "quinoa"] } },
+
+    { "slug": "couscous", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Couscous", "es": "Cuscús", "pl": "Kuskus" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Couscous", "es": "Cuscús", "pl": "Kuskus" } }],
+      "aliases": { "en": ["couscous"], "es": ["cuscús", "couscous"], "pl": ["kuskus", "couscous"] } },
+
+    { "slug": "bulgur", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Bulgur", "es": "Bulgur", "pl": "Bulgur" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Bulgur", "es": "Bulgur", "pl": "Bulgur" } }],
+      "aliases": { "en": ["bulgur", "bulgur wheat", "cracked wheat"], "es": ["bulgur", "trigo bulgur"], "pl": ["bulgur", "kasza bulgur"] } },
+
+    { "slug": "farro", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Farro", "es": "Farro", "pl": "Farro" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Farro", "es": "Farro", "pl": "Farro" } }],
+      "aliases": { "en": ["farro", "emmer", "spelt"], "es": ["farro", "espelta"], "pl": ["farro", "orkisz"] } },
+
+    { "slug": "barley", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Barley", "es": "Cebada", "pl": "Jęczmień" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Barley", "es": "Cebada", "pl": "Jęczmień" } }],
+      "aliases": { "en": ["barley", "pearl barley"], "es": ["cebada", "cebada perlada"], "pl": ["jęczmień", "kasza jęczmienna"] } },
+
+    { "slug": "buckwheat", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Buckwheat", "es": "Trigo sarraceno", "pl": "Kasza gryczana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Buckwheat", "es": "Trigo sarraceno", "pl": "Kasza gryczana" } }],
+      "aliases": { "en": ["buckwheat", "kasha"], "es": ["trigo sarraceno", "alforfón"], "pl": ["kasza gryczana", "gryka"] } },
+
+    { "slug": "oats", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Oats", "es": "Avena", "pl": "Owies" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Oats", "es": "Avena", "pl": "Owies" } },
+        { "modifier": "rolled", "translations": { "en": "Rolled oats", "es": "Avena en hojuelas", "pl": "Płatki owsiane" } }
+      ],
+      "aliases": { "en": ["oats", "rolled oats", "oatmeal", "steel-cut oats"], "es": ["avena", "avena en hojuelas", "hojuelas de avena"], "pl": ["owies", "owsa", "płatki owsiane"] },
+      "_note": "Allergen-wise oats are GF but often cross-contaminated with wheat — conservatively flagged." },
+
+    { "slug": "millet", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Millet", "es": "Mijo", "pl": "Proso" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Millet", "es": "Mijo", "pl": "Proso" } }],
+      "aliases": { "en": ["millet"], "es": ["mijo"], "pl": ["proso", "kasza jaglana"] } },
+
+    { "slug": "polenta", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Polenta", "es": "Polenta", "pl": "Polenta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Polenta", "es": "Polenta", "pl": "Polenta" } }],
+      "aliases": { "en": ["polenta"], "es": ["polenta"], "pl": ["polenta"] } },
+
+    { "slug": "rice_basmati", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Basmati rice", "es": "Arroz basmati", "pl": "Ryż basmati" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Basmati rice", "es": "Arroz basmati", "pl": "Ryż basmati" } }],
+      "aliases": { "en": ["basmati", "basmati rice"], "es": ["arroz basmati", "basmati"], "pl": ["ryż basmati", "basmati"] } },
+
+    { "slug": "rice_jasmine", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Jasmine rice", "es": "Arroz jazmín", "pl": "Ryż jaśminowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Jasmine rice", "es": "Arroz jazmín", "pl": "Ryż jaśminowy" } }],
+      "aliases": { "en": ["jasmine rice", "thai rice"], "es": ["arroz jazmín", "arroz tailandés"], "pl": ["ryż jaśminowy"] } },
+
+    { "slug": "rice_arborio", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Arborio rice", "es": "Arroz arborio", "pl": "Ryż arborio" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Arborio rice", "es": "Arroz arborio", "pl": "Ryż arborio" } }],
+      "aliases": { "en": ["arborio", "arborio rice", "risotto rice"], "es": ["arroz arborio", "arroz para risotto"], "pl": ["ryż arborio", "ryż do risotto"] } },
+
+    { "slug": "rice_sushi", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sushi rice", "es": "Arroz para sushi", "pl": "Ryż do sushi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sushi rice", "es": "Arroz para sushi", "pl": "Ryż do sushi" } }],
+      "aliases": { "en": ["sushi rice", "japanese rice"], "es": ["arroz para sushi", "arroz japonés"], "pl": ["ryż do sushi", "ryż japoński"] } },
+
+    { "slug": "breadcrumb", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Breadcrumbs", "es": "Pan rallado", "pl": "Bułka tarta" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Breadcrumbs", "es": "Pan rallado", "pl": "Bułka tarta" } },
+        { "modifier": "panko", "translations": { "en": "Panko breadcrumbs", "es": "Pan panko", "pl": "Panko" } }
+      ],
+      "aliases": { "en": ["breadcrumbs", "panko", "japanese breadcrumbs"], "es": ["pan rallado", "pan molido", "panko"], "pl": ["bułka tarta", "panko"] } },
+
+    { "slug": "cracker", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Cracker", "es": "Galleta salada", "pl": "Krakers" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cracker", "es": "Galleta salada", "pl": "Krakers" } }],
+      "aliases": { "en": ["cracker", "crackers", "saltine"], "es": ["galleta salada", "cracker", "galleta"], "pl": ["krakers", "krakersy"] } },
+
+    { "slug": "flatbread", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Flatbread", "es": "Pan plano", "pl": "Chleb płaski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Flatbread", "es": "Pan plano", "pl": "Chleb płaski" } }],
+      "aliases": { "en": ["flatbread", "lavash"], "es": ["pan plano", "pan lavash"], "pl": ["chleb płaski", "lawasz"] } },
+
+    { "slug": "gnocchi", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": ["gluten", "eggs"],
+      "translations": { "en": "Gnocchi", "es": "Ñoquis", "pl": "Gnocchi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Gnocchi", "es": "Ñoquis", "pl": "Gnocchi" } }],
+      "aliases": { "en": ["gnocchi", "potato gnocchi"], "es": ["ñoquis", "gnocchi", "ñoqui"], "pl": ["gnocchi", "kopytka"] } },
+
+    { "slug": "tortellini", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": ["gluten", "eggs"],
+      "translations": { "en": "Tortellini", "es": "Tortellini", "pl": "Tortellini" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tortellini", "es": "Tortellini", "pl": "Tortellini" } }],
+      "aliases": { "en": ["tortellini"], "es": ["tortellini"], "pl": ["tortellini"] } },
+
+    { "slug": "risotto", "family": "grain", "is_vegetarian": true, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Risotto", "es": "Risotto", "pl": "Risotto" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Risotto", "es": "Risotto", "pl": "Risotto" } }],
+      "aliases": { "en": ["risotto"], "es": ["risotto"], "pl": ["risotto"] },
+      "_note": "Debatable if risotto is ingredient or dish — common enough as a menu element to keep." }
+  ]
+}

@@ -1,0 +1,675 @@
+{
+  "_comment": "Batch 1/10 — Proteins. Meat, poultry, fish, shellfish, eggs, plant proteins. Mexican Spanish as primary es; regional alternates as aliases. Already-seeded concepts (chicken, beef, salmon, tuna, shrimp, egg, chorizo, nduja) are NOT repeated here — they live in ingredients-trial-sample.json.",
+
+  "concepts": [
+    {
+      "slug": "pork",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Pork", "es": "Cerdo", "pl": "Wieprzowina" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pork", "es": "Cerdo", "pl": "Wieprzowina" } },
+        { "modifier": "ground", "translations": { "en": "Ground pork", "es": "Carne de cerdo molida", "pl": "Wieprzowina mielona" } },
+        { "modifier": "pulled", "translations": { "en": "Pulled pork", "es": "Carnitas", "pl": "Wieprzowina szarpana" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled pork", "es": "Cerdo a la parrilla", "pl": "Wieprzowina z grilla" } },
+        { "modifier": "belly", "translations": { "en": "Pork belly", "es": "Panceta de cerdo", "pl": "Boczek wieprzowy" } }
+      ],
+      "aliases": {
+        "en": ["pork", "pork loin", "pork shoulder", "pork chop"],
+        "es": ["cerdo", "puerco", "carne de cerdo", "carne de puerco", "carnitas", "lomo de cerdo"],
+        "pl": ["wieprzowina", "wieprzowiny", "mięso wieprzowe", "schab"]
+      },
+      "_note": "Mexico uses both 'cerdo' and 'puerco'. 'Carnitas' is specifically pulled pork — variant alias."
+    },
+    {
+      "slug": "lamb",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Lamb", "es": "Cordero", "pl": "Jagnięcina" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Lamb", "es": "Cordero", "pl": "Jagnięcina" } },
+        { "modifier": "ground", "translations": { "en": "Ground lamb", "es": "Cordero molido", "pl": "Jagnięcina mielona" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled lamb", "es": "Cordero a la parrilla", "pl": "Jagnięcina z grilla" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted lamb", "es": "Cordero asado", "pl": "Jagnięcina pieczona" } }
+      ],
+      "aliases": {
+        "en": ["lamb", "lamb shank", "lamb chop", "rack of lamb"],
+        "es": ["cordero", "borrego", "carne de cordero"],
+        "pl": ["jagnięcina", "jagnięciny", "baranina"]
+      },
+      "_note": "'Borrego' is common in Mexico. 'Baranina' in Polish technically means mutton (older sheep) but often used interchangeably — kept as alias."
+    },
+    {
+      "slug": "goat",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Goat", "es": "Cabra", "pl": "Koza" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Goat", "es": "Cabra", "pl": "Koza" } },
+        { "modifier": "stewed", "translations": { "en": "Stewed goat", "es": "Birria", "pl": "Koza duszona" } }
+      ],
+      "aliases": {
+        "en": ["goat", "goat meat", "kid goat", "cabrito"],
+        "es": ["cabra", "chivo", "cabrito", "carne de cabra", "birria"],
+        "pl": ["koza", "kozina", "mięso kozie"]
+      },
+      "_note": "'Cabrito' (MX) = kid goat. 'Birria' is the stewed preparation — captured as variant + alias."
+    },
+    {
+      "slug": "veal",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Veal", "es": "Ternera", "pl": "Cielęcina" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Veal", "es": "Ternera", "pl": "Cielęcina" } }
+      ],
+      "aliases": {
+        "en": ["veal", "veal cutlet", "veal chop"],
+        "es": ["ternera", "carne de ternera", "becerro"],
+        "pl": ["cielęcina", "cielęciny"]
+      },
+      "_note": "In Spain 'ternera' = beef, in MX = veal specifically. Ambiguous with beef concept — admin should disambiguate."
+    },
+    {
+      "slug": "rabbit",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Rabbit", "es": "Conejo", "pl": "Królik" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Rabbit", "es": "Conejo", "pl": "Królik" } }
+      ],
+      "aliases": {
+        "en": ["rabbit", "hare"],
+        "es": ["conejo", "carne de conejo"],
+        "pl": ["królik", "królika", "zając"]
+      }
+    },
+    {
+      "slug": "duck",
+      "family": "poultry",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Duck", "es": "Pato", "pl": "Kaczka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Duck", "es": "Pato", "pl": "Kaczka" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted duck", "es": "Pato asado", "pl": "Kaczka pieczona" } },
+        { "modifier": "confit", "translations": { "en": "Duck confit", "es": "Confit de pato", "pl": "Confit z kaczki" } }
+      ],
+      "aliases": {
+        "en": ["duck", "duck breast", "duck leg"],
+        "es": ["pato", "pechuga de pato"],
+        "pl": ["kaczka", "kaczki", "pierś z kaczki"]
+      }
+    },
+    {
+      "slug": "turkey",
+      "family": "poultry",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Turkey", "es": "Pavo", "pl": "Indyk" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Turkey", "es": "Pavo", "pl": "Indyk" } },
+        { "modifier": "ground", "translations": { "en": "Ground turkey", "es": "Pavo molido", "pl": "Indyk mielony" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted turkey", "es": "Pavo asado", "pl": "Indyk pieczony" } }
+      ],
+      "aliases": {
+        "en": ["turkey", "turkey breast"],
+        "es": ["pavo", "guajolote", "pechuga de pavo"],
+        "pl": ["indyk", "indyka", "pierś z indyka"]
+      },
+      "_note": "'Guajolote' is a Nahuatl-origin Mexican term for turkey — rural/traditional usage."
+    },
+    {
+      "slug": "quail",
+      "family": "poultry",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Quail", "es": "Codorniz", "pl": "Przepiórka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Quail", "es": "Codorniz", "pl": "Przepiórka" } }
+      ],
+      "aliases": { "en": ["quail"], "es": ["codorniz"], "pl": ["przepiórka", "przepiórki"] }
+    },
+    {
+      "slug": "bison",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Bison", "es": "Bisonte", "pl": "Bizon" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Bison", "es": "Bisonte", "pl": "Bizon" } }
+      ],
+      "aliases": { "en": ["bison", "buffalo"], "es": ["bisonte", "búfalo"], "pl": ["bizon", "bizona"] }
+    },
+    {
+      "slug": "venison",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Venison", "es": "Venado", "pl": "Dziczyzna" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Venison", "es": "Venado", "pl": "Dziczyzna" } }
+      ],
+      "aliases": { "en": ["venison", "deer meat"], "es": ["venado", "carne de venado", "carne de ciervo"], "pl": ["dziczyzna", "sarnina", "jelenina"] }
+    },
+
+    {
+      "slug": "bacon",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Bacon", "es": "Tocino", "pl": "Boczek" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Bacon", "es": "Tocino", "pl": "Boczek" } },
+        { "modifier": "crispy", "translations": { "en": "Crispy bacon", "es": "Tocino crujiente", "pl": "Chrupiący boczek" } }
+      ],
+      "aliases": { "en": ["bacon", "streaky bacon"], "es": ["tocino", "tocineta", "panceta ahumada"], "pl": ["boczek", "bekon", "wędzony boczek"] },
+      "_note": "MX uses 'tocino'; some LatAm countries use 'tocineta' or 'panceta'. Spain 'panceta ahumada'."
+    },
+    {
+      "slug": "ham",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Ham", "es": "Jamón", "pl": "Szynka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Ham", "es": "Jamón", "pl": "Szynka" } },
+        { "modifier": "smoked", "translations": { "en": "Smoked ham", "es": "Jamón ahumado", "pl": "Szynka wędzona" } },
+        { "modifier": "serrano", "translations": { "en": "Serrano ham", "es": "Jamón serrano", "pl": "Szynka serrano" } }
+      ],
+      "aliases": { "en": ["ham", "cooked ham", "honey ham"], "es": ["jamón", "jamón cocido", "jamón york"], "pl": ["szynka", "szynki"] }
+    },
+    {
+      "slug": "prosciutto",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Prosciutto", "es": "Prosciutto", "pl": "Prosciutto" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Prosciutto", "es": "Prosciutto", "pl": "Prosciutto" } }
+      ],
+      "aliases": { "en": ["prosciutto", "prosciutto di parma", "parma ham"], "es": ["prosciutto", "jamón de parma"], "pl": ["prosciutto", "szynka parmeńska"] },
+      "_note": "No-direct-translation; name preserved in all locales."
+    },
+    {
+      "slug": "pancetta",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Pancetta", "es": "Pancetta", "pl": "Pancetta" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pancetta", "es": "Pancetta", "pl": "Pancetta" } }
+      ],
+      "aliases": { "en": ["pancetta"], "es": ["pancetta"], "pl": ["pancetta"] }
+    },
+    {
+      "slug": "salami",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Salami", "es": "Salami", "pl": "Salami" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Salami", "es": "Salami", "pl": "Salami" } }
+      ],
+      "aliases": { "en": ["salami", "genoa salami"], "es": ["salami"], "pl": ["salami"] }
+    },
+    {
+      "slug": "pepperoni",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Pepperoni", "es": "Pepperoni", "pl": "Pepperoni" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pepperoni", "es": "Pepperoni", "pl": "Pepperoni" } }
+      ],
+      "aliases": { "en": ["pepperoni"], "es": ["pepperoni", "salami picante"], "pl": ["pepperoni"] }
+    },
+    {
+      "slug": "sausage",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Sausage", "es": "Salchicha", "pl": "Kiełbasa" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sausage", "es": "Salchicha", "pl": "Kiełbasa" } },
+        { "modifier": "italian", "translations": { "en": "Italian sausage", "es": "Salchicha italiana", "pl": "Kiełbasa włoska" } },
+        { "modifier": "breakfast", "translations": { "en": "Breakfast sausage", "es": "Salchicha para desayuno", "pl": "Kiełbaska śniadaniowa" } }
+      ],
+      "aliases": { "en": ["sausage", "sausages", "bratwurst"], "es": ["salchicha", "salchichas", "longaniza"], "pl": ["kiełbasa", "kiełbasy", "parówka"] },
+      "_note": "Generic sausage concept. Culturally-specific sausages (chorizo, kielbasa, bratwurst) have or should have dedicated concepts."
+    },
+    {
+      "slug": "kielbasa",
+      "family": "meat",
+      "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Kielbasa", "es": "Kielbasa", "pl": "Kiełbasa polska" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Kielbasa", "es": "Kielbasa", "pl": "Kiełbasa polska" } }
+      ],
+      "aliases": { "en": ["kielbasa", "polish sausage"], "es": ["kielbasa", "salchicha polaca"], "pl": ["kiełbasa polska", "kiełbasa krakowska", "kabanos"] },
+      "_note": "No-direct-translation to Spanish; preserved. Polish has many varieties (krakowska, kabanos) — aliases."
+    },
+
+    {
+      "slug": "cod",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Cod", "es": "Bacalao", "pl": "Dorsz" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cod", "es": "Bacalao", "pl": "Dorsz" } },
+        { "modifier": "salted", "translations": { "en": "Salted cod", "es": "Bacalao salado", "pl": "Dorsz solony" } }
+      ],
+      "aliases": { "en": ["cod", "atlantic cod"], "es": ["bacalao", "bacalao fresco"], "pl": ["dorsz", "dorsza"] }
+    },
+    {
+      "slug": "haddock",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Haddock", "es": "Eglefino", "pl": "Łupacz" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Haddock", "es": "Eglefino", "pl": "Łupacz" } }
+      ],
+      "aliases": { "en": ["haddock"], "es": ["eglefino", "abadejo"], "pl": ["łupacz", "plamiak"] }
+    },
+    {
+      "slug": "halibut",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Halibut", "es": "Fletán", "pl": "Halibut" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Halibut", "es": "Fletán", "pl": "Halibut" } }
+      ],
+      "aliases": { "en": ["halibut"], "es": ["fletán", "hipogloso"], "pl": ["halibut", "halibuta"] }
+    },
+    {
+      "slug": "sea_bass",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Sea bass", "es": "Robalo", "pl": "Okoń morski" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sea bass", "es": "Robalo", "pl": "Okoń morski" } }
+      ],
+      "aliases": { "en": ["sea bass", "branzino", "european sea bass"], "es": ["robalo", "lubina", "róbalo"], "pl": ["okoń morski", "labraks", "branzino"] },
+      "_note": "'Lubina' (Spain), 'robalo' (MX/LatAm). 'Branzino' is Italian — crosses languages."
+    },
+    {
+      "slug": "trout",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Trout", "es": "Trucha", "pl": "Pstrąg" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Trout", "es": "Trucha", "pl": "Pstrąg" } },
+        { "modifier": "smoked", "translations": { "en": "Smoked trout", "es": "Trucha ahumada", "pl": "Pstrąg wędzony" } }
+      ],
+      "aliases": { "en": ["trout", "rainbow trout"], "es": ["trucha", "trucha arcoíris"], "pl": ["pstrąg", "pstrąga", "pstrąg tęczowy"] }
+    },
+    {
+      "slug": "mackerel",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Mackerel", "es": "Caballa", "pl": "Makrela" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Mackerel", "es": "Caballa", "pl": "Makrela" } }
+      ],
+      "aliases": { "en": ["mackerel"], "es": ["caballa", "sierra"], "pl": ["makrela", "makreli"] }
+    },
+    {
+      "slug": "sardine",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Sardine", "es": "Sardina", "pl": "Sardynka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sardine", "es": "Sardina", "pl": "Sardynka" } }
+      ],
+      "aliases": { "en": ["sardine", "sardines"], "es": ["sardina", "sardinas"], "pl": ["sardynka", "sardynki"] }
+    },
+    {
+      "slug": "anchovy",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Anchovy", "es": "Anchoa", "pl": "Anchois" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Anchovy", "es": "Anchoa", "pl": "Anchois" } }
+      ],
+      "aliases": { "en": ["anchovy", "anchovies"], "es": ["anchoa", "anchoas", "boquerón", "boquerones"], "pl": ["anchois", "sardela"] },
+      "_note": "Spain 'boquerón' = fresh anchovy; 'anchoa' = cured/canned. Both kept as aliases."
+    },
+    {
+      "slug": "herring",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Herring", "es": "Arenque", "pl": "Śledź" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Herring", "es": "Arenque", "pl": "Śledź" } },
+        { "modifier": "pickled", "translations": { "en": "Pickled herring", "es": "Arenque en escabeche", "pl": "Śledź marynowany" } },
+        { "modifier": "smoked", "translations": { "en": "Smoked herring", "es": "Arenque ahumado", "pl": "Śledź wędzony" } }
+      ],
+      "aliases": { "en": ["herring", "pickled herring"], "es": ["arenque"], "pl": ["śledź", "śledzia", "śledzie"] }
+    },
+    {
+      "slug": "tilapia",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Tilapia", "es": "Tilapia", "pl": "Tilapia" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Tilapia", "es": "Tilapia", "pl": "Tilapia" } }
+      ],
+      "aliases": { "en": ["tilapia"], "es": ["tilapia", "mojarra"], "pl": ["tilapia"] },
+      "_note": "'Mojarra' is common in MX for tilapia and similar freshwater fish."
+    },
+    {
+      "slug": "snapper",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Snapper", "es": "Huachinango", "pl": "Lucjan" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Snapper", "es": "Huachinango", "pl": "Lucjan" } }
+      ],
+      "aliases": { "en": ["snapper", "red snapper"], "es": ["huachinango", "pargo"], "pl": ["lucjan", "lucjan czerwony"] },
+      "_note": "'Huachinango' is MX red snapper; 'pargo' in other LatAm."
+    },
+    {
+      "slug": "swordfish",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Swordfish", "es": "Pez espada", "pl": "Miecznik" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Swordfish", "es": "Pez espada", "pl": "Miecznik" } }
+      ],
+      "aliases": { "en": ["swordfish"], "es": ["pez espada", "emperador"], "pl": ["miecznik", "ryba miecz"] }
+    },
+    {
+      "slug": "monkfish",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Monkfish", "es": "Rape", "pl": "Żabnica" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Monkfish", "es": "Rape", "pl": "Żabnica" } }
+      ],
+      "aliases": { "en": ["monkfish", "angler fish"], "es": ["rape"], "pl": ["żabnica"] }
+    },
+    {
+      "slug": "sole",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Sole", "es": "Lenguado", "pl": "Sola" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sole", "es": "Lenguado", "pl": "Sola" } }
+      ],
+      "aliases": { "en": ["sole", "dover sole"], "es": ["lenguado"], "pl": ["sola", "soli"] }
+    },
+    {
+      "slug": "flounder",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Flounder", "es": "Platija", "pl": "Flądra" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Flounder", "es": "Platija", "pl": "Flądra" } }
+      ],
+      "aliases": { "en": ["flounder"], "es": ["platija"], "pl": ["flądra", "flądry"] }
+    },
+    {
+      "slug": "catfish",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Catfish", "es": "Bagre", "pl": "Sum" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Catfish", "es": "Bagre", "pl": "Sum" } }
+      ],
+      "aliases": { "en": ["catfish"], "es": ["bagre", "pez gato"], "pl": ["sum", "suma"] }
+    },
+    {
+      "slug": "eel",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Eel", "es": "Anguila", "pl": "Węgorz" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Eel", "es": "Anguila", "pl": "Węgorz" } },
+        { "modifier": "smoked", "translations": { "en": "Smoked eel", "es": "Anguila ahumada", "pl": "Węgorz wędzony" } }
+      ],
+      "aliases": { "en": ["eel", "unagi"], "es": ["anguila"], "pl": ["węgorz", "węgorza"] },
+      "_note": "'Unagi' (Japanese) often appears on sushi menus — alias."
+    },
+    {
+      "slug": "carp",
+      "family": "fish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Carp", "es": "Carpa", "pl": "Karp" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Carp", "es": "Carpa", "pl": "Karp" } }
+      ],
+      "aliases": { "en": ["carp"], "es": ["carpa"], "pl": ["karp", "karpia"] }
+    },
+
+    {
+      "slug": "lobster",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Lobster", "es": "Langosta", "pl": "Homar" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Lobster", "es": "Langosta", "pl": "Homar" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled lobster", "es": "Langosta a la parrilla", "pl": "Homar z grilla" } }
+      ],
+      "aliases": { "en": ["lobster", "lobster tail"], "es": ["langosta", "bogavante"], "pl": ["homar", "homara"] },
+      "_note": "'Langosta' (MX/LatAm) = spiny lobster; 'bogavante' (Spain) = clawed lobster. Culinary distinction often ignored — kept as aliases."
+    },
+    {
+      "slug": "crab",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Crab", "es": "Cangrejo", "pl": "Krab" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Crab", "es": "Cangrejo", "pl": "Krab" } },
+        { "modifier": "soft_shell", "translations": { "en": "Soft-shell crab", "es": "Cangrejo de concha blanda", "pl": "Krab miękkoskorupowy" } }
+      ],
+      "aliases": { "en": ["crab", "crabmeat", "king crab"], "es": ["cangrejo", "jaiba", "carne de cangrejo"], "pl": ["krab", "kraba", "mięso z kraba"] },
+      "_note": "'Jaiba' is common in MX for blue crab."
+    },
+    {
+      "slug": "scallop",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Scallop", "es": "Vieira", "pl": "Przegrzebek" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Scallop", "es": "Vieira", "pl": "Przegrzebek" } },
+        { "modifier": "seared", "translations": { "en": "Seared scallop", "es": "Vieira sellada", "pl": "Przegrzebek obsmażony" } }
+      ],
+      "aliases": { "en": ["scallop", "scallops"], "es": ["vieira", "callo de hacha", "concha"], "pl": ["przegrzebek", "przegrzebki"] },
+      "_note": "'Callo de hacha' is Mexican/Pacific for large scallop."
+    },
+    {
+      "slug": "oyster",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Oyster", "es": "Ostión", "pl": "Ostryga" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Oyster", "es": "Ostión", "pl": "Ostryga" } }
+      ],
+      "aliases": { "en": ["oyster", "oysters"], "es": ["ostión", "ostiones", "ostra", "ostras"], "pl": ["ostryga", "ostrygi"] },
+      "_note": "MX uses 'ostión'; Spain uses 'ostra'."
+    },
+    {
+      "slug": "mussel",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Mussel", "es": "Mejillón", "pl": "Małż" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Mussel", "es": "Mejillón", "pl": "Małż" } }
+      ],
+      "aliases": { "en": ["mussel", "mussels"], "es": ["mejillón", "mejillones"], "pl": ["małż", "małże", "omułek"] }
+    },
+    {
+      "slug": "clam",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Clam", "es": "Almeja", "pl": "Małż jadalny" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Clam", "es": "Almeja", "pl": "Małż jadalny" } }
+      ],
+      "aliases": { "en": ["clam", "clams"], "es": ["almeja", "almejas"], "pl": ["małż jadalny", "małże jadalne"] }
+    },
+    {
+      "slug": "squid",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Squid", "es": "Calamar", "pl": "Kałamarnica" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Squid", "es": "Calamar", "pl": "Kałamarnica" } },
+        { "modifier": "breaded", "translations": { "en": "Breaded squid", "es": "Calamar empanizado", "pl": "Kałamarnica panierowana" } }
+      ],
+      "aliases": { "en": ["squid", "calamari"], "es": ["calamar", "calamares"], "pl": ["kałamarnica", "kalmar"] },
+      "_note": "'Calamari' is Italian-origin, widely used in English menus."
+    },
+    {
+      "slug": "octopus",
+      "family": "shellfish",
+      "is_vegetarian": false, "is_vegan": false, "allergens": ["shellfish"],
+      "translations": { "en": "Octopus", "es": "Pulpo", "pl": "Ośmiornica" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Octopus", "es": "Pulpo", "pl": "Ośmiornica" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled octopus", "es": "Pulpo a la parrilla", "pl": "Ośmiornica z grilla" } }
+      ],
+      "aliases": { "en": ["octopus"], "es": ["pulpo"], "pl": ["ośmiornica"] }
+    },
+
+    {
+      "slug": "duck_egg",
+      "family": "eggs",
+      "is_vegetarian": true, "is_vegan": false, "allergens": ["eggs"],
+      "translations": { "en": "Duck egg", "es": "Huevo de pato", "pl": "Jajko kacze" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Duck egg", "es": "Huevo de pato", "pl": "Jajko kacze" } }
+      ],
+      "aliases": { "en": ["duck egg"], "es": ["huevo de pato"], "pl": ["jajko kacze"] }
+    },
+    {
+      "slug": "quail_egg",
+      "family": "eggs",
+      "is_vegetarian": true, "is_vegan": false, "allergens": ["eggs"],
+      "translations": { "en": "Quail egg", "es": "Huevo de codorniz", "pl": "Jajko przepiórcze" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Quail egg", "es": "Huevo de codorniz", "pl": "Jajko przepiórcze" } }
+      ],
+      "aliases": { "en": ["quail egg", "quail eggs"], "es": ["huevo de codorniz"], "pl": ["jajko przepiórcze"] }
+    },
+
+    {
+      "slug": "tofu",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": ["soy"],
+      "translations": { "en": "Tofu", "es": "Tofu", "pl": "Tofu" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Tofu", "es": "Tofu", "pl": "Tofu" } },
+        { "modifier": "firm", "translations": { "en": "Firm tofu", "es": "Tofu firme", "pl": "Tofu twarde" } },
+        { "modifier": "silken", "translations": { "en": "Silken tofu", "es": "Tofu sedoso", "pl": "Tofu jedwabiste" } },
+        { "modifier": "fried", "translations": { "en": "Fried tofu", "es": "Tofu frito", "pl": "Tofu smażone" } }
+      ],
+      "aliases": { "en": ["tofu", "bean curd"], "es": ["tofu"], "pl": ["tofu"] }
+    },
+    {
+      "slug": "tempeh",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": ["soy"],
+      "translations": { "en": "Tempeh", "es": "Tempeh", "pl": "Tempeh" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Tempeh", "es": "Tempeh", "pl": "Tempeh" } }
+      ],
+      "aliases": { "en": ["tempeh"], "es": ["tempeh"], "pl": ["tempeh"] },
+      "_note": "No-direct-translation; Indonesian-origin fermented soy."
+    },
+    {
+      "slug": "seitan",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Seitan", "es": "Seitán", "pl": "Seitan" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Seitan", "es": "Seitán", "pl": "Seitan" } }
+      ],
+      "aliases": { "en": ["seitan", "wheat meat", "vital wheat gluten"], "es": ["seitán", "seitan"], "pl": ["seitan"] }
+    },
+    {
+      "slug": "edamame",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": ["soy"],
+      "translations": { "en": "Edamame", "es": "Edamame", "pl": "Edamame" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Edamame", "es": "Edamame", "pl": "Edamame" } }
+      ],
+      "aliases": { "en": ["edamame", "soybean pods"], "es": ["edamame"], "pl": ["edamame"] }
+    },
+    {
+      "slug": "chickpea",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Chickpea", "es": "Garbanzo", "pl": "Cieciorka" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Chickpea", "es": "Garbanzo", "pl": "Cieciorka" } },
+        { "modifier": "roasted", "translations": { "en": "Roasted chickpea", "es": "Garbanzo tostado", "pl": "Cieciorka prażona" } }
+      ],
+      "aliases": { "en": ["chickpea", "chickpeas", "garbanzo", "garbanzo beans"], "es": ["garbanzo", "garbanzos"], "pl": ["cieciorka", "ciecierzyca", "groch włoski"] }
+    },
+    {
+      "slug": "lentil",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lentil", "es": "Lenteja", "pl": "Soczewica" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Lentil", "es": "Lenteja", "pl": "Soczewica" } },
+        { "modifier": "red", "translations": { "en": "Red lentil", "es": "Lenteja roja", "pl": "Soczewica czerwona" } },
+        { "modifier": "green", "translations": { "en": "Green lentil", "es": "Lenteja verde", "pl": "Soczewica zielona" } }
+      ],
+      "aliases": { "en": ["lentil", "lentils"], "es": ["lenteja", "lentejas"], "pl": ["soczewica", "soczewicy"] }
+    },
+    {
+      "slug": "black_bean",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Black bean", "es": "Frijol negro", "pl": "Fasola czarna" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Black bean", "es": "Frijol negro", "pl": "Fasola czarna" } },
+        { "modifier": "refried", "translations": { "en": "Refried black beans", "es": "Frijoles negros refritos", "pl": "Fasola czarna smażona" } }
+      ],
+      "aliases": { "en": ["black bean", "black beans"], "es": ["frijol negro", "frijoles negros", "judía negra"], "pl": ["fasola czarna"] },
+      "_note": "MX 'frijol' vs Spain 'judía' / 'alubia'."
+    },
+    {
+      "slug": "pinto_bean",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pinto bean", "es": "Frijol pinto", "pl": "Fasola pinto" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pinto bean", "es": "Frijol pinto", "pl": "Fasola pinto" } },
+        { "modifier": "refried", "translations": { "en": "Refried pinto beans", "es": "Frijoles refritos", "pl": "Fasola pinto smażona" } }
+      ],
+      "aliases": { "en": ["pinto bean", "pinto beans"], "es": ["frijol pinto", "frijoles pintos", "frijoles refritos"], "pl": ["fasola pinto"] }
+    },
+    {
+      "slug": "kidney_bean",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kidney bean", "es": "Frijol rojo", "pl": "Fasola czerwona" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Kidney bean", "es": "Frijol rojo", "pl": "Fasola czerwona" } }
+      ],
+      "aliases": { "en": ["kidney bean", "kidney beans", "red bean"], "es": ["frijol rojo", "frijoles rojos", "alubia roja"], "pl": ["fasola czerwona", "fasola kidney"] }
+    },
+    {
+      "slug": "white_bean",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "White bean", "es": "Frijol blanco", "pl": "Fasola biała" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "White bean", "es": "Frijol blanco", "pl": "Fasola biała" } }
+      ],
+      "aliases": { "en": ["white bean", "white beans", "cannellini", "navy bean", "great northern bean"], "es": ["frijol blanco", "alubia blanca", "judía blanca"], "pl": ["fasola biała", "fasolka biała"] }
+    },
+    {
+      "slug": "fava_bean",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Fava bean", "es": "Haba", "pl": "Bób" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Fava bean", "es": "Haba", "pl": "Bób" } }
+      ],
+      "aliases": { "en": ["fava bean", "fava beans", "broad bean"], "es": ["haba", "habas"], "pl": ["bób"] }
+    },
+    {
+      "slug": "black_eyed_pea",
+      "family": "plant_protein",
+      "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Black-eyed pea", "es": "Frijol carita", "pl": "Fasola wężowata" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Black-eyed pea", "es": "Frijol carita", "pl": "Fasola wężowata" } }
+      ],
+      "aliases": { "en": ["black-eyed pea", "black-eyed peas", "cowpea"], "es": ["frijol carita", "caupí"], "pl": ["fasola wężowata"] }
+    }
+  ]
+}

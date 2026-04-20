@@ -8,6 +8,7 @@ import {
   FileText,
   Shield,
   Leaf,
+  Sprout,
   Tag,
   ScanLine,
   Download,
@@ -16,9 +17,20 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
-  { name: 'Restaurants', href: '/admin/restaurants', icon: Store, exclude: '/admin/restaurants/import' },
+  {
+    name: 'Restaurants',
+    href: '/admin/restaurants',
+    icon: Store,
+    exclude: '/admin/restaurants/import',
+  },
   { name: 'Import', href: '/admin/restaurants/import', icon: Download },
-  { name: 'Ingredients', href: '/admin/ingredients', icon: Leaf },
+  {
+    name: 'Ingredients',
+    href: '/admin/ingredients',
+    icon: Leaf,
+    exclude: '/admin/ingredients/review',
+  },
+  { name: 'Ingredient Review', href: '/admin/ingredients/review', icon: Sprout },
   { name: 'Dish Categories', href: '/admin/dish-categories', icon: Tag },
   { name: 'Menu Scan', href: '/admin/menu-scan', icon: ScanLine },
   { name: 'Audit Logs', href: '/admin/audit', icon: FileText },

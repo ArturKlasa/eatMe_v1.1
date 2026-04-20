@@ -1,0 +1,207 @@
+{
+  "_comment": "Batch 4/10 — Dairy + plant milks. Skips butter, egg (trial sample).",
+
+  "concepts": [
+    { "slug": "milk", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Milk", "es": "Leche", "pl": "Mleko" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Milk", "es": "Leche", "pl": "Mleko" } },
+        { "modifier": "whole", "translations": { "en": "Whole milk", "es": "Leche entera", "pl": "Mleko pełne" } },
+        { "modifier": "skim", "translations": { "en": "Skim milk", "es": "Leche descremada", "pl": "Mleko chude" } }
+      ],
+      "aliases": { "en": ["milk", "cow milk", "dairy milk"], "es": ["leche", "leche de vaca", "leche entera"], "pl": ["mleko", "mleka"] } },
+
+    { "slug": "yogurt", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Yogurt", "es": "Yogur", "pl": "Jogurt" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Yogurt", "es": "Yogur", "pl": "Jogurt" } },
+        { "modifier": "greek", "translations": { "en": "Greek yogurt", "es": "Yogur griego", "pl": "Jogurt grecki" } },
+        { "modifier": "natural", "translations": { "en": "Plain yogurt", "es": "Yogur natural", "pl": "Jogurt naturalny" } }
+      ],
+      "aliases": { "en": ["yogurt", "yoghurt", "greek yogurt"], "es": ["yogur", "yogurt", "yogur natural", "yogur griego"], "pl": ["jogurt", "jogurtu", "jogurt grecki"] } },
+
+    { "slug": "cream", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Cream", "es": "Crema", "pl": "Śmietana" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cream", "es": "Crema", "pl": "Śmietana" } },
+        { "modifier": "heavy", "translations": { "en": "Heavy cream", "es": "Crema para batir", "pl": "Śmietana kremówka" } },
+        { "modifier": "whipped", "translations": { "en": "Whipped cream", "es": "Crema batida", "pl": "Bita śmietana" } }
+      ],
+      "aliases": { "en": ["cream", "heavy cream", "whipping cream", "double cream"], "es": ["crema", "nata", "crema de leche", "crema para batir"], "pl": ["śmietana", "śmietany", "śmietanka", "bita śmietana"] } },
+
+    { "slug": "sour_cream", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Sour cream", "es": "Crema agria", "pl": "Śmietana kwaśna" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sour cream", "es": "Crema agria", "pl": "Śmietana kwaśna" } }],
+      "aliases": { "en": ["sour cream"], "es": ["crema agria", "crema ácida", "nata ácida"], "pl": ["śmietana kwaśna", "kwaśna śmietana"] } },
+
+    { "slug": "crema_mexicana", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Crema mexicana", "es": "Crema mexicana", "pl": "Crema mexicana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Crema mexicana", "es": "Crema mexicana", "pl": "Crema mexicana" } }],
+      "aliases": { "en": ["crema", "mexican crema", "crema mexicana"], "es": ["crema mexicana", "crema", "crema fresca"], "pl": ["crema mexicana"] },
+      "_note": "Between sour cream and French crème fraîche. Common on Mexican menus, no direct Polish equivalent." },
+
+    { "slug": "cream_cheese", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Cream cheese", "es": "Queso crema", "pl": "Serek kremowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cream cheese", "es": "Queso crema", "pl": "Serek kremowy" } }],
+      "aliases": { "en": ["cream cheese", "philadelphia"], "es": ["queso crema", "philadelphia"], "pl": ["serek kremowy", "serek philadelphia"] } },
+
+    { "slug": "cheddar", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Cheddar", "es": "Cheddar", "pl": "Cheddar" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cheddar", "es": "Cheddar", "pl": "Cheddar" } }],
+      "aliases": { "en": ["cheddar", "cheddar cheese"], "es": ["cheddar", "queso cheddar"], "pl": ["cheddar", "ser cheddar"] } },
+
+    { "slug": "mozzarella", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Mozzarella", "es": "Mozzarella", "pl": "Mozzarella" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Mozzarella", "es": "Mozzarella", "pl": "Mozzarella" } },
+        { "modifier": "buffalo", "translations": { "en": "Buffalo mozzarella", "es": "Mozzarella de búfala", "pl": "Mozzarella z mleka bawolego" } },
+        { "modifier": "fresh", "translations": { "en": "Fresh mozzarella", "es": "Mozzarella fresca", "pl": "Mozzarella świeża" } }
+      ],
+      "aliases": { "en": ["mozzarella", "fresh mozzarella", "buffalo mozzarella"], "es": ["mozzarella", "muzarela", "queso mozzarella"], "pl": ["mozzarella", "mozzarelli"] } },
+
+    { "slug": "parmesan", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Parmesan", "es": "Parmesano", "pl": "Parmezan" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Parmesan", "es": "Parmesano", "pl": "Parmezan" } }],
+      "aliases": { "en": ["parmesan", "parmigiano", "parmigiano reggiano"], "es": ["parmesano", "queso parmesano", "parmigiano"], "pl": ["parmezan", "parmezanu", "parmigiano"] } },
+
+    { "slug": "feta", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Feta", "es": "Queso feta", "pl": "Feta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Feta", "es": "Queso feta", "pl": "Feta" } }],
+      "aliases": { "en": ["feta", "feta cheese"], "es": ["feta", "queso feta"], "pl": ["feta", "ser feta"] } },
+
+    { "slug": "goat_cheese", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Goat cheese", "es": "Queso de cabra", "pl": "Ser kozi" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Goat cheese", "es": "Queso de cabra", "pl": "Ser kozi" } }],
+      "aliases": { "en": ["goat cheese", "chèvre"], "es": ["queso de cabra"], "pl": ["ser kozi", "ser z koziego mleka"] } },
+
+    { "slug": "brie", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Brie", "es": "Brie", "pl": "Brie" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Brie", "es": "Brie", "pl": "Brie" } }],
+      "aliases": { "en": ["brie", "brie cheese"], "es": ["brie", "queso brie"], "pl": ["brie", "ser brie"] } },
+
+    { "slug": "camembert", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Camembert", "es": "Camembert", "pl": "Camembert" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Camembert", "es": "Camembert", "pl": "Camembert" } }],
+      "aliases": { "en": ["camembert"], "es": ["camembert"], "pl": ["camembert"] } },
+
+    { "slug": "blue_cheese", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Blue cheese", "es": "Queso azul", "pl": "Ser pleśniowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Blue cheese", "es": "Queso azul", "pl": "Ser pleśniowy" } }],
+      "aliases": { "en": ["blue cheese", "gorgonzola", "roquefort", "stilton"], "es": ["queso azul", "gorgonzola", "roquefort"], "pl": ["ser pleśniowy", "gorgonzola", "roquefort"] } },
+
+    { "slug": "ricotta", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Ricotta", "es": "Ricotta", "pl": "Ricotta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ricotta", "es": "Ricotta", "pl": "Ricotta" } }],
+      "aliases": { "en": ["ricotta", "ricotta cheese"], "es": ["ricotta", "requesón"], "pl": ["ricotta", "twaróg włoski"] } },
+
+    { "slug": "cottage_cheese", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Cottage cheese", "es": "Queso cottage", "pl": "Twaróg" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cottage cheese", "es": "Queso cottage", "pl": "Twaróg" } }],
+      "aliases": { "en": ["cottage cheese"], "es": ["queso cottage", "requesón"], "pl": ["twaróg", "twarogu", "serek wiejski"] } },
+
+    { "slug": "mascarpone", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Mascarpone", "es": "Mascarpone", "pl": "Mascarpone" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mascarpone", "es": "Mascarpone", "pl": "Mascarpone" } }],
+      "aliases": { "en": ["mascarpone"], "es": ["mascarpone"], "pl": ["mascarpone"] } },
+
+    { "slug": "queso_fresco", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Queso fresco", "es": "Queso fresco", "pl": "Queso fresco" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Queso fresco", "es": "Queso fresco", "pl": "Queso fresco" } }],
+      "aliases": { "en": ["queso fresco", "fresh cheese", "mexican cheese"], "es": ["queso fresco", "queso blanco", "queso ranchero"], "pl": ["queso fresco", "ser świeży meksykański"] } },
+
+    { "slug": "queso_oaxaca", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Oaxaca cheese", "es": "Queso Oaxaca", "pl": "Queso Oaxaca" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Oaxaca cheese", "es": "Queso Oaxaca", "pl": "Queso Oaxaca" } }],
+      "aliases": { "en": ["oaxaca cheese", "queso oaxaca", "quesillo"], "es": ["queso oaxaca", "quesillo", "queso de hebra"], "pl": ["queso oaxaca"] },
+      "_note": "Mexican string cheese; no Polish translation." },
+
+    { "slug": "queso_cotija", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Cotija cheese", "es": "Queso Cotija", "pl": "Queso Cotija" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cotija cheese", "es": "Queso Cotija", "pl": "Queso Cotija" } }],
+      "aliases": { "en": ["cotija", "cotija cheese"], "es": ["queso cotija", "cotija"], "pl": ["cotija"] } },
+
+    { "slug": "queso_manchego", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Manchego", "es": "Manchego", "pl": "Manchego" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Manchego", "es": "Manchego", "pl": "Manchego" } }],
+      "aliases": { "en": ["manchego", "manchego cheese"], "es": ["manchego", "queso manchego"], "pl": ["manchego"] } },
+
+    { "slug": "gruyere", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Gruyère", "es": "Gruyère", "pl": "Gruyère" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Gruyère", "es": "Gruyère", "pl": "Gruyère" } }],
+      "aliases": { "en": ["gruyere", "gruyère"], "es": ["gruyère", "gruyere"], "pl": ["gruyère", "gruyere"] } },
+
+    { "slug": "provolone", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Provolone", "es": "Provolone", "pl": "Provolone" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Provolone", "es": "Provolone", "pl": "Provolone" } }],
+      "aliases": { "en": ["provolone"], "es": ["provolone"], "pl": ["provolone"] } },
+
+    { "slug": "gouda", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Gouda", "es": "Gouda", "pl": "Gouda" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Gouda", "es": "Gouda", "pl": "Gouda" } }],
+      "aliases": { "en": ["gouda", "gouda cheese"], "es": ["gouda", "queso gouda"], "pl": ["gouda", "ser gouda"] } },
+
+    { "slug": "swiss_cheese", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Swiss cheese", "es": "Queso suizo", "pl": "Ser szwajcarski" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Swiss cheese", "es": "Queso suizo", "pl": "Ser szwajcarski" } }],
+      "aliases": { "en": ["swiss cheese", "emmental", "emmentaler"], "es": ["queso suizo", "emmental"], "pl": ["ser szwajcarski", "ementaler"] } },
+
+    { "slug": "halloumi", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Halloumi", "es": "Halloumi", "pl": "Halloumi" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Halloumi", "es": "Halloumi", "pl": "Halloumi" } },
+        { "modifier": "grilled", "translations": { "en": "Grilled halloumi", "es": "Halloumi a la parrilla", "pl": "Halloumi z grilla" } }
+      ],
+      "aliases": { "en": ["halloumi"], "es": ["halloumi"], "pl": ["halloumi"] } },
+
+    { "slug": "burrata", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Burrata", "es": "Burrata", "pl": "Burrata" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Burrata", "es": "Burrata", "pl": "Burrata" } }],
+      "aliases": { "en": ["burrata"], "es": ["burrata"], "pl": ["burrata"] } },
+
+    { "slug": "ghee", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Ghee", "es": "Ghee", "pl": "Ghee" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Ghee", "es": "Ghee", "pl": "Ghee" } }],
+      "aliases": { "en": ["ghee", "clarified butter"], "es": ["ghee", "mantequilla clarificada"], "pl": ["ghee", "masło klarowane"] } },
+
+    { "slug": "buttermilk", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Buttermilk", "es": "Suero de leche", "pl": "Maślanka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Buttermilk", "es": "Suero de leche", "pl": "Maślanka" } }],
+      "aliases": { "en": ["buttermilk"], "es": ["suero de leche", "buttermilk"], "pl": ["maślanka", "maślanki"] } },
+
+    { "slug": "kefir", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Kefir", "es": "Kéfir", "pl": "Kefir" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kefir", "es": "Kéfir", "pl": "Kefir" } }],
+      "aliases": { "en": ["kefir"], "es": ["kéfir"], "pl": ["kefir", "kefiru"] } },
+
+    { "slug": "almond_milk", "family": "plant_milk", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Almond milk", "es": "Leche de almendra", "pl": "Mleko migdałowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Almond milk", "es": "Leche de almendra", "pl": "Mleko migdałowe" } }],
+      "aliases": { "en": ["almond milk"], "es": ["leche de almendra", "leche de almendras"], "pl": ["mleko migdałowe"] } },
+
+    { "slug": "soy_milk", "family": "plant_milk", "is_vegetarian": true, "is_vegan": true, "allergens": ["soy"],
+      "translations": { "en": "Soy milk", "es": "Leche de soya", "pl": "Mleko sojowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Soy milk", "es": "Leche de soya", "pl": "Mleko sojowe" } }],
+      "aliases": { "en": ["soy milk", "soya milk"], "es": ["leche de soya", "leche de soja"], "pl": ["mleko sojowe"] },
+      "_note": "MX 'soya'; Spain 'soja'." },
+
+    { "slug": "oat_milk", "family": "plant_milk", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Oat milk", "es": "Leche de avena", "pl": "Mleko owsiane" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Oat milk", "es": "Leche de avena", "pl": "Mleko owsiane" } }],
+      "aliases": { "en": ["oat milk"], "es": ["leche de avena"], "pl": ["mleko owsiane"] } },
+
+    { "slug": "coconut_milk", "family": "plant_milk", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Coconut milk", "es": "Leche de coco", "pl": "Mleko kokosowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Coconut milk", "es": "Leche de coco", "pl": "Mleko kokosowe" } }],
+      "aliases": { "en": ["coconut milk"], "es": ["leche de coco"], "pl": ["mleko kokosowe"] } },
+
+    { "slug": "rice_milk", "family": "plant_milk", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rice milk", "es": "Leche de arroz", "pl": "Mleko ryżowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rice milk", "es": "Leche de arroz", "pl": "Mleko ryżowe" } }],
+      "aliases": { "en": ["rice milk"], "es": ["leche de arroz"], "pl": ["mleko ryżowe"] } },
+
+    { "slug": "cashew_milk", "family": "plant_milk", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Cashew milk", "es": "Leche de marañón", "pl": "Mleko z nerkowców" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cashew milk", "es": "Leche de marañón", "pl": "Mleko z nerkowców" } }],
+      "aliases": { "en": ["cashew milk"], "es": ["leche de marañón", "leche de nuez de la india", "leche de anacardo"], "pl": ["mleko z nerkowców"] } }
+  ]
+}

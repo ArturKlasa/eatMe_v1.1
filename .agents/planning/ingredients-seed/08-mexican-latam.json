@@ -1,0 +1,181 @@
+{
+  "_comment": "Batch 8/10 — Mexican/LatAm specifics beyond what trial sample + other batches covered.",
+
+  "concepts": [
+    { "slug": "achiote", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Achiote", "es": "Achiote", "pl": "Achiote" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Achiote", "es": "Achiote", "pl": "Achiote" } },
+        { "modifier": "paste", "translations": { "en": "Achiote paste", "es": "Pasta de achiote", "pl": "Pasta achiote" } }
+      ],
+      "aliases": { "en": ["achiote", "annatto", "bija"], "es": ["achiote", "bijol", "onoto"], "pl": ["achiote", "annato"] } },
+
+    { "slug": "adobo", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Adobo", "es": "Adobo", "pl": "Adobo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Adobo", "es": "Adobo", "pl": "Adobo" } }],
+      "aliases": { "en": ["adobo", "adobo seasoning", "adobo sauce"], "es": ["adobo", "sazón adobo"], "pl": ["adobo"] } },
+
+    { "slug": "hoja_santa", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Hoja santa", "es": "Hoja santa", "pl": "Hoja santa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hoja santa", "es": "Hoja santa", "pl": "Hoja santa" } }],
+      "aliases": { "en": ["hoja santa", "mexican pepperleaf"], "es": ["hoja santa", "acuyo", "tlanepa"], "pl": ["hoja santa"] } },
+
+    { "slug": "huitlacoche", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Huitlacoche", "es": "Huitlacoche", "pl": "Huitlacoche" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Huitlacoche", "es": "Huitlacoche", "pl": "Huitlacoche" } }],
+      "aliases": { "en": ["huitlacoche", "cuitlacoche", "corn smut", "mexican truffle"], "es": ["huitlacoche", "cuitlacoche"], "pl": ["huitlacoche"] } },
+
+    { "slug": "cacao", "family": "baking", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Cacao", "es": "Cacao", "pl": "Kakao" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Cacao", "es": "Cacao", "pl": "Kakao" } },
+        { "modifier": "nib", "translations": { "en": "Cacao nib", "es": "Nibs de cacao", "pl": "Ziarna kakaowca" } }
+      ],
+      "aliases": { "en": ["cacao", "cacao bean", "cocoa bean"], "es": ["cacao", "grano de cacao"], "pl": ["kakao", "ziarno kakaowca"] } },
+
+    { "slug": "cajeta", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Cajeta", "es": "Cajeta", "pl": "Cajeta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cajeta", "es": "Cajeta", "pl": "Cajeta" } }],
+      "aliases": { "en": ["cajeta", "mexican caramel", "goat milk caramel"], "es": ["cajeta"], "pl": ["cajeta"] },
+      "_note": "Mexican caramel made from goat milk." },
+
+    { "slug": "dulce_de_leche", "family": "condiment", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Dulce de leche", "es": "Dulce de leche", "pl": "Dulce de leche" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Dulce de leche", "es": "Dulce de leche", "pl": "Dulce de leche" } }],
+      "aliases": { "en": ["dulce de leche", "milk caramel"], "es": ["dulce de leche", "manjar", "arequipe"], "pl": ["dulce de leche"] } },
+
+    { "slug": "mamey", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mamey", "es": "Mamey", "pl": "Mamey" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mamey", "es": "Mamey", "pl": "Mamey" } }],
+      "aliases": { "en": ["mamey", "mamey sapote"], "es": ["mamey", "zapote rojo"], "pl": ["mamey"] } },
+
+    { "slug": "zapote", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sapote", "es": "Zapote", "pl": "Zapote" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sapote", "es": "Zapote", "pl": "Zapote" } }],
+      "aliases": { "en": ["sapote", "zapote"], "es": ["zapote"], "pl": ["zapote"] } },
+
+    { "slug": "guanabana", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Soursop", "es": "Guanábana", "pl": "Gruszka kaczuszka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Soursop", "es": "Guanábana", "pl": "Gruszka kaczuszka" } }],
+      "aliases": { "en": ["soursop", "guanabana", "graviola"], "es": ["guanábana"], "pl": ["gruszka kaczuszka", "guanabana"] } },
+
+    { "slug": "tuna_cactus", "family": "fruit", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Prickly pear", "es": "Tuna", "pl": "Opuncja" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Prickly pear", "es": "Tuna", "pl": "Opuncja" } }],
+      "aliases": { "en": ["prickly pear", "cactus fruit", "tuna cactus"], "es": ["tuna", "higo chumbo"], "pl": ["opuncja", "figa indyjska"] },
+      "_note": "In MX 'tuna' is the cactus fruit (not fish). Slug 'tuna_cactus' to avoid collision with the tuna fish concept." },
+
+    { "slug": "platano_macho_verde", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Green plantain", "es": "Plátano macho verde", "pl": "Plantan zielony" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Green plantain", "es": "Plátano macho verde", "pl": "Plantan zielony" } }],
+      "aliases": { "en": ["green plantain", "unripe plantain"], "es": ["plátano macho verde", "plátano verde"], "pl": ["plantan zielony"] } },
+
+    { "slug": "masa_harina", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Masa harina", "es": "Masa harina", "pl": "Masa harina" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Masa harina", "es": "Masa harina", "pl": "Masa harina" } }],
+      "aliases": { "en": ["masa harina", "masa flour"], "es": ["masa harina", "harina de masa"], "pl": ["masa harina"] } },
+
+    { "slug": "queso_panela", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Panela cheese", "es": "Queso panela", "pl": "Queso panela" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Panela cheese", "es": "Queso panela", "pl": "Queso panela" } }],
+      "aliases": { "en": ["panela", "queso panela"], "es": ["queso panela", "panela"], "pl": ["queso panela"] } },
+
+    { "slug": "queso_chihuahua", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Chihuahua cheese", "es": "Queso Chihuahua", "pl": "Queso Chihuahua" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chihuahua cheese", "es": "Queso Chihuahua", "pl": "Queso Chihuahua" } }],
+      "aliases": { "en": ["chihuahua cheese", "queso menonita"], "es": ["queso chihuahua", "queso menonita"], "pl": ["queso chihuahua"] } },
+
+    { "slug": "chorizo_mexicano", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Mexican chorizo", "es": "Chorizo mexicano", "pl": "Chorizo meksykańskie" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mexican chorizo", "es": "Chorizo mexicano", "pl": "Chorizo meksykańskie" } }],
+      "aliases": { "en": ["mexican chorizo"], "es": ["chorizo mexicano", "chorizo fresco"], "pl": ["chorizo meksykańskie"] },
+      "_note": "Raw fresh sausage; distinct from Spanish cured chorizo (separate concept via variants on 'chorizo')." },
+
+    { "slug": "al_pastor", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Al pastor", "es": "Al pastor", "pl": "Al pastor" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Al pastor", "es": "Al pastor", "pl": "Al pastor" } }],
+      "aliases": { "en": ["al pastor", "pastor", "trompo"], "es": ["al pastor", "pastor"], "pl": ["al pastor"] },
+      "_note": "Marinated pork preparation; core Mexican taco filling." },
+
+    { "slug": "cochinita_pibil", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Cochinita pibil", "es": "Cochinita pibil", "pl": "Cochinita pibil" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Cochinita pibil", "es": "Cochinita pibil", "pl": "Cochinita pibil" } }],
+      "aliases": { "en": ["cochinita pibil"], "es": ["cochinita pibil", "cochinita"], "pl": ["cochinita pibil"] },
+      "_note": "Yucatecan slow-roasted pork; ingredient-level reference for tacos and tortas." },
+
+    { "slug": "barbacoa", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Barbacoa", "es": "Barbacoa", "pl": "Barbacoa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Barbacoa", "es": "Barbacoa", "pl": "Barbacoa" } }],
+      "aliases": { "en": ["barbacoa"], "es": ["barbacoa"], "pl": ["barbacoa"] } },
+
+    { "slug": "carne_asada", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Carne asada", "es": "Carne asada", "pl": "Carne asada" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Carne asada", "es": "Carne asada", "pl": "Carne asada" } }],
+      "aliases": { "en": ["carne asada", "grilled beef"], "es": ["carne asada"], "pl": ["carne asada"] } },
+
+    { "slug": "carnitas", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Carnitas", "es": "Carnitas", "pl": "Carnitas" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Carnitas", "es": "Carnitas", "pl": "Carnitas" } }],
+      "aliases": { "en": ["carnitas", "pulled pork"], "es": ["carnitas"], "pl": ["carnitas"] } },
+
+    { "slug": "chicharron", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Chicharrón", "es": "Chicharrón", "pl": "Chicharrón" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Chicharrón", "es": "Chicharrón", "pl": "Chicharrón" } }],
+      "aliases": { "en": ["chicharron", "chicharrón", "pork rind", "pork cracklings"], "es": ["chicharrón", "chicharrones"], "pl": ["chicharrón", "skwarki"] } },
+
+    { "slug": "longaniza", "family": "meat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Longaniza", "es": "Longaniza", "pl": "Longaniza" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Longaniza", "es": "Longaniza", "pl": "Longaniza" } }],
+      "aliases": { "en": ["longaniza"], "es": ["longaniza"], "pl": ["longaniza"] } },
+
+    { "slug": "yerba_mate", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Yerba mate", "es": "Yerba mate", "pl": "Yerba mate" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Yerba mate", "es": "Yerba mate", "pl": "Yerba mate" } }],
+      "aliases": { "en": ["yerba mate", "mate"], "es": ["yerba mate", "mate"], "pl": ["yerba mate", "mate"] } },
+
+    { "slug": "horchata", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Horchata", "es": "Horchata", "pl": "Horchata" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Horchata", "es": "Horchata", "pl": "Horchata" } }],
+      "aliases": { "en": ["horchata"], "es": ["horchata", "agua de horchata"], "pl": ["horchata"] } },
+
+    { "slug": "jamaica_flower", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Hibiscus flower", "es": "Flor de jamaica", "pl": "Kwiat hibiskusa" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Hibiscus flower", "es": "Flor de jamaica", "pl": "Kwiat hibiskusa" } }],
+      "aliases": { "en": ["hibiscus", "hibiscus flower", "jamaica"], "es": ["jamaica", "flor de jamaica", "hibisco"], "pl": ["hibiskus", "kwiat hibiskusa"] } },
+
+    { "slug": "tamarindo_pulp", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tamarind pulp", "es": "Pulpa de tamarindo", "pl": "Tamaryndowiec miąższ" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tamarind pulp", "es": "Pulpa de tamarindo", "pl": "Tamaryndowiec miąższ" } }],
+      "aliases": { "en": ["tamarind pulp", "tamarind paste"], "es": ["pulpa de tamarindo", "pasta de tamarindo"], "pl": ["pulpa tamaryndowca"] } },
+
+    { "slug": "cebolla_morada_encurtida", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pickled red onion", "es": "Cebolla morada encurtida", "pl": "Cebula czerwona marynowana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pickled red onion", "es": "Cebolla morada encurtida", "pl": "Cebula czerwona marynowana" } }],
+      "aliases": { "en": ["pickled red onion", "pickled onion"], "es": ["cebolla morada encurtida", "cebolla encurtida", "cebolla en vinagre"], "pl": ["cebula czerwona marynowana"] },
+      "_note": "Ubiquitous Yucatecan condiment on tacos/cochinita pibil." },
+
+    { "slug": "chile_serrano_encurtido", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pickled serrano chile", "es": "Chile serrano en escabeche", "pl": "Serrano marynowane" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pickled serrano chile", "es": "Chile serrano en escabeche", "pl": "Serrano marynowane" } }],
+      "aliases": { "en": ["pickled serrano", "pickled jalapenos"], "es": ["chile serrano en escabeche", "chiles en escabeche"], "pl": ["serrano marynowane"] } },
+
+    { "slug": "crema_agave", "family": "sweetener", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Agave syrup", "es": "Miel de agave", "pl": "Syrop z agawy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Agave syrup", "es": "Miel de agave", "pl": "Syrop z agawy" } }],
+      "aliases": { "en": ["agave syrup", "agave nectar"], "es": ["miel de agave", "jarabe de agave"], "pl": ["syrop z agawy"] } },
+
+    { "slug": "papalo", "family": "spice_herb", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Papalo", "es": "Papalo", "pl": "Papalo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Papalo", "es": "Papalo", "pl": "Papalo" } }],
+      "aliases": { "en": ["papalo", "papaloquelite"], "es": ["papalo", "pápalo", "papaloquelite"], "pl": ["papalo"] } },
+
+    { "slug": "pipian", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": ["nuts"],
+      "translations": { "en": "Pipián", "es": "Pipián", "pl": "Pipián" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Pipián", "es": "Pipián", "pl": "Pipián" } },
+        { "modifier": "verde", "translations": { "en": "Pipián verde", "es": "Pipián verde", "pl": "Pipián verde" } },
+        { "modifier": "rojo", "translations": { "en": "Pipián rojo", "es": "Pipián rojo", "pl": "Pipián rojo" } }
+      ],
+      "aliases": { "en": ["pipian", "pipián", "pumpkin seed sauce"], "es": ["pipián", "mole pipián"], "pl": ["pipián"] } }
+  ]
+}

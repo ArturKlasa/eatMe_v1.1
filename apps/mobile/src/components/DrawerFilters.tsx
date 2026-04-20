@@ -107,6 +107,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
       removeIngredientToAvoid(item.canonicalIngredientId);
     } else {
       addIngredientToAvoid({
+        conceptId: item.conceptId,
         canonicalIngredientId: item.canonicalIngredientId,
         displayName: item.displayName,
       } satisfies IngredientToAvoid);

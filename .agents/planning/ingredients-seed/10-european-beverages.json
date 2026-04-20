@@ -1,0 +1,203 @@
+{
+  "_comment": "Batch 10/10 — European specifics, beverages, alcohols. Cleanup (dish contamination in 'other' family) is handled separately via SQL.",
+
+  "concepts": [
+    { "slug": "sauerkraut", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sauerkraut", "es": "Chucrut", "pl": "Kiszona kapusta" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sauerkraut", "es": "Chucrut", "pl": "Kiszona kapusta" } }],
+      "aliases": { "en": ["sauerkraut"], "es": ["chucrut", "col fermentada"], "pl": ["kiszona kapusta", "kapusta kiszona"] } },
+
+    { "slug": "gherkin", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Gherkin", "es": "Pepinillo", "pl": "Ogórek konserwowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Gherkin", "es": "Pepinillo", "pl": "Ogórek konserwowy" } }],
+      "aliases": { "en": ["gherkin", "cornichon", "pickle"], "es": ["pepinillo", "pepinillo en vinagre"], "pl": ["ogórek konserwowy", "korniszon"] } },
+
+    { "slug": "caper", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Caper", "es": "Alcaparra", "pl": "Kapary" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Caper", "es": "Alcaparra", "pl": "Kapary" } }],
+      "aliases": { "en": ["caper", "capers"], "es": ["alcaparra", "alcaparras"], "pl": ["kapary", "kaparu"] } },
+
+    { "slug": "pickle_dill", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Dill pickle", "es": "Pepinillo en eneldo", "pl": "Ogórek kiszony" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Dill pickle", "es": "Pepinillo en eneldo", "pl": "Ogórek kiszony" } }],
+      "aliases": { "en": ["dill pickle", "pickles", "polish pickle"], "es": ["pepinillo en eneldo", "pepinillos kosher"], "pl": ["ogórek kiszony", "ogórki kiszone"] } },
+
+    { "slug": "beer", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Beer", "es": "Cerveza", "pl": "Piwo" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Beer", "es": "Cerveza", "pl": "Piwo" } }],
+      "aliases": { "en": ["beer", "lager", "ale"], "es": ["cerveza", "chela"], "pl": ["piwo", "piwa"] } },
+
+    { "slug": "wine_red", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Red wine", "es": "Vino tinto", "pl": "Wino czerwone" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Red wine", "es": "Vino tinto", "pl": "Wino czerwone" } }],
+      "aliases": { "en": ["red wine"], "es": ["vino tinto", "tinto"], "pl": ["wino czerwone"] } },
+
+    { "slug": "wine_white", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "White wine", "es": "Vino blanco", "pl": "Wino białe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "White wine", "es": "Vino blanco", "pl": "Wino białe" } }],
+      "aliases": { "en": ["white wine"], "es": ["vino blanco"], "pl": ["wino białe"] } },
+
+    { "slug": "wine_rose", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rosé", "es": "Vino rosado", "pl": "Wino różowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rosé", "es": "Vino rosado", "pl": "Wino różowe" } }],
+      "aliases": { "en": ["rose", "rosé", "rose wine"], "es": ["vino rosado", "rosado"], "pl": ["wino różowe", "różowe"] } },
+
+    { "slug": "wine_sparkling", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sparkling wine", "es": "Vino espumoso", "pl": "Wino musujące" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Sparkling wine", "es": "Vino espumoso", "pl": "Wino musujące" } },
+        { "modifier": "champagne", "translations": { "en": "Champagne", "es": "Champán", "pl": "Szampan" } },
+        { "modifier": "prosecco", "translations": { "en": "Prosecco", "es": "Prosecco", "pl": "Prosecco" } },
+        { "modifier": "cava", "translations": { "en": "Cava", "es": "Cava", "pl": "Cava" } }
+      ],
+      "aliases": { "en": ["sparkling wine", "champagne", "prosecco", "cava"], "es": ["vino espumoso", "champán", "prosecco", "cava"], "pl": ["wino musujące", "szampan", "prosecco"] } },
+
+    { "slug": "tequila", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tequila", "es": "Tequila", "pl": "Tequila" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Tequila", "es": "Tequila", "pl": "Tequila" } }],
+      "aliases": { "en": ["tequila"], "es": ["tequila"], "pl": ["tequila"] } },
+
+    { "slug": "mezcal", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Mezcal", "es": "Mezcal", "pl": "Mezcal" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Mezcal", "es": "Mezcal", "pl": "Mezcal" } }],
+      "aliases": { "en": ["mezcal", "mescal"], "es": ["mezcal"], "pl": ["mezcal"] } },
+
+    { "slug": "rum", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Rum", "es": "Ron", "pl": "Rum" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Rum", "es": "Ron", "pl": "Rum" } }],
+      "aliases": { "en": ["rum"], "es": ["ron"], "pl": ["rum"] } },
+
+    { "slug": "whiskey", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": ["gluten"],
+      "translations": { "en": "Whiskey", "es": "Whisky", "pl": "Whisky" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Whiskey", "es": "Whisky", "pl": "Whisky" } }],
+      "aliases": { "en": ["whiskey", "whisky", "bourbon", "scotch"], "es": ["whisky", "whiskey"], "pl": ["whisky", "whiskey"] } },
+
+    { "slug": "vodka", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Vodka", "es": "Vodka", "pl": "Wódka" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Vodka", "es": "Vodka", "pl": "Wódka" } }],
+      "aliases": { "en": ["vodka"], "es": ["vodka"], "pl": ["wódka", "wódki"] } },
+
+    { "slug": "gin", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Gin", "es": "Gin", "pl": "Gin" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Gin", "es": "Gin", "pl": "Gin" } }],
+      "aliases": { "en": ["gin"], "es": ["ginebra", "gin"], "pl": ["gin"] } },
+
+    { "slug": "brandy", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Brandy", "es": "Brandy", "pl": "Brandy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Brandy", "es": "Brandy", "pl": "Brandy" } }],
+      "aliases": { "en": ["brandy", "cognac"], "es": ["brandy", "coñac"], "pl": ["brandy", "koniak"] } },
+
+    { "slug": "liqueur", "family": "alcohol", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Liqueur", "es": "Licor", "pl": "Likier" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Liqueur", "es": "Licor", "pl": "Likier" } }],
+      "aliases": { "en": ["liqueur", "liquor"], "es": ["licor"], "pl": ["likier"] } },
+
+    { "slug": "coffee", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Coffee", "es": "Café", "pl": "Kawa" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Coffee", "es": "Café", "pl": "Kawa" } },
+        { "modifier": "espresso", "translations": { "en": "Espresso", "es": "Expreso", "pl": "Espresso" } },
+        { "modifier": "americano", "translations": { "en": "Americano", "es": "Americano", "pl": "Americano" } },
+        { "modifier": "latte", "translations": { "en": "Latte", "es": "Latte", "pl": "Latte" } },
+        { "modifier": "cappuccino", "translations": { "en": "Cappuccino", "es": "Capuchino", "pl": "Cappuccino" } }
+      ],
+      "aliases": { "en": ["coffee", "espresso", "latte", "cappuccino", "americano"], "es": ["café", "expreso", "latte", "capuchino"], "pl": ["kawa", "kawy", "espresso", "cappuccino"] } },
+
+    { "slug": "tea", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Tea", "es": "Té", "pl": "Herbata" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Tea", "es": "Té", "pl": "Herbata" } },
+        { "modifier": "green", "translations": { "en": "Green tea", "es": "Té verde", "pl": "Zielona herbata" } },
+        { "modifier": "black", "translations": { "en": "Black tea", "es": "Té negro", "pl": "Czarna herbata" } },
+        { "modifier": "matcha", "translations": { "en": "Matcha", "es": "Matcha", "pl": "Matcha" } },
+        { "modifier": "chai", "translations": { "en": "Chai", "es": "Chai", "pl": "Chai" } }
+      ],
+      "aliases": { "en": ["tea", "green tea", "black tea", "matcha", "chai"], "es": ["té", "té verde", "té negro", "matcha"], "pl": ["herbata", "herbaty", "zielona herbata", "matcha"] } },
+
+    { "slug": "sparkling_water", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sparkling water", "es": "Agua mineral", "pl": "Woda gazowana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sparkling water", "es": "Agua mineral", "pl": "Woda gazowana" } }],
+      "aliases": { "en": ["sparkling water", "soda water", "seltzer"], "es": ["agua mineral", "agua con gas", "soda"], "pl": ["woda gazowana"] } },
+
+    { "slug": "juice", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Juice", "es": "Jugo", "pl": "Sok" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Juice", "es": "Jugo", "pl": "Sok" } }],
+      "aliases": { "en": ["juice", "fruit juice"], "es": ["jugo", "zumo"], "pl": ["sok", "soku"] },
+      "_note": "MX 'jugo'; Spain 'zumo'." },
+
+    { "slug": "soda", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Soda", "es": "Refresco", "pl": "Napój gazowany" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Soda", "es": "Refresco", "pl": "Napój gazowany" } }],
+      "aliases": { "en": ["soda", "soft drink", "pop"], "es": ["refresco", "gaseosa", "bebida gaseosa"], "pl": ["napój gazowany", "napoje gazowane"] } },
+
+    { "slug": "lemonade", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Lemonade", "es": "Limonada", "pl": "Lemoniada" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lemonade", "es": "Limonada", "pl": "Lemoniada" } }],
+      "aliases": { "en": ["lemonade"], "es": ["limonada"], "pl": ["lemoniada"] } },
+
+    { "slug": "kombucha", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kombucha", "es": "Kombucha", "pl": "Kombucha" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kombucha", "es": "Kombucha", "pl": "Kombucha" } }],
+      "aliases": { "en": ["kombucha"], "es": ["kombucha"], "pl": ["kombucza", "kombucha"] } },
+
+    { "slug": "smoothie_base", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Smoothie", "es": "Smoothie", "pl": "Smoothie" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Smoothie", "es": "Smoothie", "pl": "Smoothie" } }],
+      "aliases": { "en": ["smoothie"], "es": ["smoothie", "licuado"], "pl": ["smoothie", "koktajl"] } },
+
+    { "slug": "atole", "family": "beverage", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Atole", "es": "Atole", "pl": "Atole" },
+      "variants": [
+        { "modifier": null, "is_default": true, "translations": { "en": "Atole", "es": "Atole", "pl": "Atole" } },
+        { "modifier": "champurrado", "translations": { "en": "Champurrado", "es": "Champurrado", "pl": "Champurrado" } }
+      ],
+      "aliases": { "en": ["atole", "champurrado"], "es": ["atole", "champurrado"], "pl": ["atole"] } },
+
+    { "slug": "polish_herring", "family": "fish", "is_vegetarian": false, "is_vegan": false, "allergens": ["fish"],
+      "translations": { "en": "Herring in oil", "es": "Arenque en aceite", "pl": "Śledź w oleju" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Herring in oil", "es": "Arenque en aceite", "pl": "Śledź w oleju" } }],
+      "aliases": { "en": ["pickled herring", "herring in oil"], "es": ["arenque en aceite"], "pl": ["śledź w oleju", "śledź w śmietanie"] },
+      "_note": "Polish staple; covered with base herring concept too." },
+
+    { "slug": "smalec_polish", "family": "oil_fat", "is_vegetarian": false, "is_vegan": false, "allergens": [],
+      "translations": { "en": "Lard spread", "es": "Manteca untable", "pl": "Smalec" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Lard spread", "es": "Manteca untable", "pl": "Smalec" } }],
+      "aliases": { "en": ["lard spread"], "es": ["manteca untable"], "pl": ["smalec", "smalcu"] } },
+
+    { "slug": "bigos_kraut", "family": "vegetable", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Sauerkraut blend", "es": "Col fermentada mezclada", "pl": "Kapusta kwaszona z kiszoną" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Sauerkraut blend", "es": "Col fermentada mezclada", "pl": "Kapusta kwaszona z kiszoną" } }],
+      "aliases": { "en": ["sauerkraut blend"], "es": ["col fermentada"], "pl": ["kapusta kwaszona z kiszoną"] },
+      "_note": "Polish bigos uses both fresh and fermented cabbage; flagging as an ingredient for specificity." },
+
+    { "slug": "kasha_buckwheat", "family": "grain", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Kasha", "es": "Kasha", "pl": "Kasza gryczana" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Kasha", "es": "Kasha", "pl": "Kasza gryczana" } }],
+      "aliases": { "en": ["kasha", "roasted buckwheat"], "es": ["kasha", "kasza"], "pl": ["kasza gryczana", "kasza"] } },
+
+    { "slug": "dill_pickle_brine", "family": "condiment", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Pickle brine", "es": "Salmuera de pepinillo", "pl": "Zalewa z ogórków" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Pickle brine", "es": "Salmuera de pepinillo", "pl": "Zalewa z ogórków" } }],
+      "aliases": { "en": ["pickle brine", "pickle juice"], "es": ["salmuera de pepinillo"], "pl": ["zalewa z ogórków"] } },
+
+    { "slug": "truffle_oil", "family": "oil_fat", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Truffle oil", "es": "Aceite de trufa", "pl": "Olej truflowy" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Truffle oil", "es": "Aceite de trufa", "pl": "Olej truflowy" } }],
+      "aliases": { "en": ["truffle oil"], "es": ["aceite de trufa"], "pl": ["olej truflowy"] } },
+
+    { "slug": "truffle_butter", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Truffle butter", "es": "Mantequilla de trufa", "pl": "Masło truflowe" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Truffle butter", "es": "Mantequilla de trufa", "pl": "Masło truflowe" } }],
+      "aliases": { "en": ["truffle butter"], "es": ["mantequilla de trufa"], "pl": ["masło truflowe"] } },
+
+    { "slug": "creme_fraiche", "family": "dairy", "is_vegetarian": true, "is_vegan": false, "allergens": ["lactose"],
+      "translations": { "en": "Crème fraîche", "es": "Crème fraîche", "pl": "Crème fraîche" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Crème fraîche", "es": "Crème fraîche", "pl": "Crème fraîche" } }],
+      "aliases": { "en": ["creme fraiche", "crème fraîche"], "es": ["crème fraîche", "nata fresca"], "pl": ["crème fraîche"] } },
+
+    { "slug": "espresso_shot", "family": "beverage", "is_vegetarian": true, "is_vegan": true, "allergens": [],
+      "translations": { "en": "Espresso shot", "es": "Shot de expreso", "pl": "Shot espresso" },
+      "variants": [{ "modifier": null, "is_default": true, "translations": { "en": "Espresso shot", "es": "Shot de expreso", "pl": "Shot espresso" } }],
+      "aliases": { "en": ["espresso shot", "shot of espresso"], "es": ["shot de expreso"], "pl": ["shot espresso"] } }
+  ]
+}

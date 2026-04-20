@@ -10,20 +10,25 @@ import {
   getCurrencyForRestaurant,
   type RawExtractionResult,
   type RawExtractedDish,
-  type MatchedIngredient,
   type EnrichedResult,
   type EnrichedMenu,
   type EnrichedCategory,
   type EnrichedDish,
   type FlaggedDuplicate,
 } from '@/lib/menu-scan';
+import { resolveIngredients } from '@/lib/ingredient-resolver';
+
+const RawIngredientSchema = z.object({
+  base: z.string(),
+  modifier: z.string().nullable(),
+});
 
 const DishSchema: z.ZodType<unknown> = z.lazy(() =>
   z.object({
     name: z.string(),
     price: z.number().nullable(),
     description: z.string().nullable(),
-    raw_ingredients: z.array(z.string()).nullable(),
+    raw_ingredients: z.array(RawIngredientSchema).nullable(),
     dietary_hints: z.array(z.string()),
     allergen_hints: z.array(z.string()),
     spice_level: z.union([z.literal(0), z.literal(1), z.literal(3)]).nullable(),
@@ -97,6 +102,11 @@ STRICT RULES:
    When unsure, omit the allergen. Under-claiming is safer than over-claiming.
 7. Detect spice indicators (🌶, "picante", "spicy") → spice_level: 1 (mild) or 3 (very spicy). null = no indicator, 0 = explicitly non-spicy.
 8. Extract ingredients ONLY when explicitly listed on the menu. If not listed, set raw_ingredients to null.
+   Each ingredient is an object: { "base": <core ingredient>, "modifier": <preparation/state qualifier or null> }.
+   - base: the core ingredient term as it appears on the menu, in its original language (e.g. "salmon", "tomate", "queso"). Do NOT translate here.
+   - modifier: a qualifier describing preparation, cut, form, or state when the menu explicitly uses one. Examples: "smoked", "ahumado", "fresh", "fresco", "aged", "añejo", "grilled", "a la parrilla", "shredded", "rallado", "pickled", "encurtido". Null when the menu gives no qualifier.
+   - Split compound terms aggressively when the qualifier is a known preparation/state ("smoked salmon" → base="salmon", modifier="smoked"). Do NOT split varietal names that belong together ("cherry tomatoes" → base="cherry tomatoes", modifier=null; "serrano ham" is a variety, base="serrano ham", modifier=null).
+   - Keep modifier in the menu's language to preserve intent; translation happens downstream.
 9. confidence: 1.0 = perfectly legible, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
 10. Keep all names in their original language (Spanish, English, etc.).
 11. For "menu_type": use "drink" only for a clearly separate beverage page/section. A "Bebidas" subsection at the bottom of a food page → category inside the food menu.
@@ -139,6 +149,15 @@ Menu showing "Lunch Special $129 — includes soup, main course, and drink":
 → Variants: [{name:"Lunch Special — Soup", price:null}, {name:"Lunch Special — Main Course", price:null}, {name:"Lunch Special — Drink", price:null}]
 
 INGREDIENT EXTRACTION — when populating raw_ingredients, include only ingredients you can read confidently. If you are guessing, omit the ingredient rather than fabricate it. Prefer null over a partial/guessed list.
+
+Example — ingredient shape:
+"Ensalada con salmón ahumado, queso fresco, tomates cherry y aceite de oliva" →
+raw_ingredients: [
+  { "base": "salmón", "modifier": "ahumado" },
+  { "base": "queso", "modifier": "fresco" },
+  { "base": "tomates cherry", "modifier": null },
+  { "base": "aceite de oliva", "modifier": null }
+]
 
 QUALITY SELF-REPORT — after extraction, populate extraction_notes with issues YOU observed. This is a self-review step to help the admin verify accuracy.
 Note types:
@@ -286,208 +305,6 @@ function getMenuLanguage(countryCode: string | null | undefined): string {
   return COUNTRY_LANGUAGE_MAP[countryCode.toUpperCase()] ?? 'und';
 }
 
-type AliasRow = {
-  canonical_ingredient_id: string;
-  display_name: string;
-  canonical_ingredient: { canonical_name: string } | null;
-};
-
-const ALIAS_SELECT =
-  'display_name, canonical_ingredient_id, canonical_ingredient:canonical_ingredients(canonical_name)';
-
-/** Bulk-lookup ingredient names against ingredient_aliases (exact then partial ilike). */
-async function bulkLookupAliases(
-  names: string[],
-  supabase: ReturnType<typeof createServerSupabaseClient>
-): Promise<Map<string, AliasRow>> {
-  const resultMap = new Map<string, AliasRow>();
-  if (names.length === 0) return resultMap;
-
-  // Strip characters that break PostgREST OR-filter parsing: commas (value delimiter),
-  // percent signs (unintended wildcards), and dots/parens (field.op.value syntax).
-  const sanitize = (n: string) => n.replace(/[,%.()\[\]]/g, '');
-
-  // Pass A: exact ilike for all names in one OR query
-  const exactOr = names.map(n => `display_name.ilike.${sanitize(n)}`).join(',');
-  const { data: exactRows } = await supabase
-    .from('ingredient_aliases')
-    .select(ALIAS_SELECT)
-    .or(exactOr);
-
-  for (const row of exactRows ?? []) {
-    const r = row as unknown as AliasRow;
-    const key = r.display_name.toLowerCase().trim();
-    if (!resultMap.has(key)) resultMap.set(key, r);
-  }
-
-  // Pass B: partial ilike for names that got no exact hit
-  const unmatched = names.filter(n => !resultMap.has(n.toLowerCase().trim()));
-  if (unmatched.length > 0) {
-    const partialOr = unmatched.map(n => `display_name.ilike.%${sanitize(n)}%`).join(',');
-    const { data: partialRows } = await supabase
-      .from('ingredient_aliases')
-      .select(ALIAS_SELECT)
-      .or(partialOr);
-
-    for (const row of partialRows ?? []) {
-      const r = row as unknown as AliasRow;
-      const displayLower = r.display_name.toLowerCase();
-      for (const name of unmatched) {
-        const key = name.toLowerCase().trim();
-        if (!resultMap.has(key) && (displayLower.includes(key) || key.includes(displayLower))) {
-          resultMap.set(key, r);
-        }
-      }
-    }
-  }
-
-  return resultMap;
-}
-
-async function translateIngredients(
-  terms: string[],
-  openai: OpenAI,
-  menuLanguage: string = 'und'
-): Promise<{ translations: Record<string, string>; error?: boolean }> {
-  if (terms.length === 0) return { translations: {} };
-  const langHint =
-    menuLanguage !== 'und' && menuLanguage !== 'en'
-      ? ` The ingredient names are in ${menuLanguage}.`
-      : ' The ingredient names may be in any language.';
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a culinary ingredient translator.${langHint} Given a JSON array of food ingredient names, return a JSON object mapping each original name to its standard English culinary name. Keep the output minimal: only ingredient names, no explanations. If a name is already a well-known culinary term in English (e.g. "pierogi", "tofu", "naan"), return it unchanged.`,
-        },
-        {
-          role: 'user',
-          content: JSON.stringify(terms),
-        },
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 512,
-      temperature: 0.1,
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) return { translations: {}, error: true };
-
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const raw =
-      typeof parsed.translations === 'object' && parsed.translations !== null
-        ? (parsed.translations as Record<string, string>)
-        : (parsed as Record<string, string>);
-
-    return {
-      translations: Object.fromEntries(
-        Object.entries(raw).map(([k, v]) => [k, typeof v === 'string' ? v : k])
-      ),
-    };
-  } catch (err) {
-    console.error('[MenuScan] Translation fallback failed:', err);
-    return { translations: {}, error: true };
-  }
-}
-
-async function saveNewAlias(
-  displayName: string,
-  language: string,
-  canonicalIngredientId: string,
-  supabase: ReturnType<typeof createServerSupabaseClient>
-): Promise<void> {
-  try {
-    await supabase
-      .from('ingredient_aliases')
-      .insert({
-        display_name: displayName,
-        language,
-        canonical_ingredient_id: canonicalIngredientId,
-      })
-      .select()
-      .single();
-  } catch {
-    // ON CONFLICT — alias already exists; not an error
-  }
-}
-
-async function matchIngredients(
-  rawIngredients: string[],
-  supabase: ReturnType<typeof createServerSupabaseClient>,
-  openai: OpenAI,
-  menuLanguage: string
-): Promise<MatchedIngredient[]> {
-  if (!rawIngredients || rawIngredients.length === 0) return [];
-
-  const trimmedInputs = rawIngredients.map(r => r.trim());
-
-  function rowToMatch(raw: string, row: AliasRow): MatchedIngredient {
-    return {
-      raw_text: raw,
-      status: 'matched',
-      canonical_ingredient_id: row.canonical_ingredient_id,
-      canonical_name: row.canonical_ingredient?.canonical_name,
-      display_name: row.display_name,
-    };
-  }
-
-  // ---- Pass 1: bulk DB lookup for all ingredients (≤2 queries) ----
-  const lookupMap = await bulkLookupAliases(trimmedInputs.filter(Boolean), supabase);
-
-  const results: MatchedIngredient[] = trimmedInputs.map((t, i) => {
-    const raw = rawIngredients[i];
-    if (!t) return { raw_text: raw, status: 'unmatched' };
-    const row = lookupMap.get(t.toLowerCase().trim()) ?? null;
-    return row ? rowToMatch(raw, row) : { raw_text: raw, status: 'unmatched' };
-  });
-
-  // ---- Pass 2: batch-translate unmatched terms (1 LLM call + ≤2 DB queries) ----
-  const needsTranslation = trimmedInputs.filter((t, i) => t && results[i].status === 'unmatched');
-  if (needsTranslation.length === 0) return results;
-
-  const { translations, error: translationError } = await translateIngredients(
-    needsTranslation,
-    openai,
-    menuLanguage
-  );
-
-  if (translationError) {
-    console.warn('[MenuScan] Ingredient translation failed — some ingredients may be unmatched');
-  }
-
-  // Collect unique translated names that differ from the originals
-  const translatedTerms: string[] = [];
-  const seenTranslations = new Set<string>();
-  for (const t of needsTranslation) {
-    const eng = translations[t];
-    if (eng && eng.toLowerCase() !== t.toLowerCase() && !seenTranslations.has(eng.toLowerCase())) {
-      seenTranslations.add(eng.toLowerCase());
-      translatedTerms.push(eng);
-    }
-  }
-
-  if (translatedTerms.length === 0) return results;
-
-  const translatedMap = await bulkLookupAliases(translatedTerms, supabase);
-
-  for (let i = 0; i < results.length; i++) {
-    if (results[i].status !== 'unmatched') continue;
-    const t = trimmedInputs[i];
-    if (!t) continue;
-    const englishName = translations[t];
-    if (!englishName || englishName.toLowerCase() === t.toLowerCase()) continue;
-    const row = translatedMap.get(englishName.toLowerCase().trim()) ?? null;
-    if (row) {
-      results[i] = rowToMatch(rawIngredients[i], row);
-      void saveNewAlias(t, menuLanguage, row.canonical_ingredient_id, supabase);
-    }
-  }
-
-  return results;
-}
-
 type UnmappedHintEntry = { dishName: string; kind: 'dietary' | 'allergen'; hints: string[] };
 
 async function enrichDish(
@@ -497,7 +314,7 @@ async function enrichDish(
   menuLanguage: string,
   unmappedCollector?: UnmappedHintEntry[]
 ): Promise<EnrichedDish> {
-  const matched = await matchIngredients(
+  const matched = await resolveIngredients(
     dish.raw_ingredients ?? [],
     supabase,
     openai,

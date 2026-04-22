@@ -21,7 +21,7 @@ Assumptions going in:
 - [x] Step 2: Shared types, constants, and test fixture sweep
 - [x] Step 3: AI extraction prompt + Zod schema + enrich-dish function update
 - [x] Step 4: Confirm endpoint extended for new kinds + courses + soft-undo endpoint
-- [ ] Step 5: Experience triage admin page with audit log
+- [x] Step 5: Experience triage admin page with audit log
 - [ ] Step 6: Tighten CHECK migration
 - [ ] Step 7: Zustand store scaffold — uploadSlice + processingSlice (ported from existing hooks)
 - [ ] Step 8: reviewSlice + draftSlice with versioned localStorage + confidence config

@@ -12,8 +12,13 @@ import {
   Tag,
   ScanLine,
   Download,
+  RefreshCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
+const LEGACY_KINDS = ['experience', 'template', 'combo'];
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
@@ -38,6 +43,22 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [showTriage, setShowTriage] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const { count } = await supabase
+          .from('dishes')
+          .select('id', { count: 'exact', head: true })
+          .in('dish_kind', LEGACY_KINDS);
+        setShowTriage((count ?? 0) > 0);
+      } catch {
+        // non-fatal — sidebar just won't show the triage link
+      }
+    };
+    void check();
+  }, []);
 
   return (
     <aside className="hidden md:flex w-64 bg-background border-r border min-h-[calc(100vh-57px)] flex-col">
@@ -72,6 +93,22 @@ export function AdminSidebar() {
             </Link>
           );
         })}
+
+        {/* Shown only while legacy experience-kind dishes remain */}
+        {showTriage && (
+          <Link
+            href="/admin/dishes/experience-triage"
+            className={cn(
+              'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+              pathname.startsWith('/admin/dishes/experience-triage')
+                ? 'bg-brand-primary/10 text-brand-primary font-medium'
+                : 'text-warning hover:bg-warning/10'
+            )}
+          >
+            <RefreshCcw className="h-5 w-5" />
+            <span>Experience Triage</span>
+          </Link>
+        )}
       </nav>
 
       {/* Footer */}

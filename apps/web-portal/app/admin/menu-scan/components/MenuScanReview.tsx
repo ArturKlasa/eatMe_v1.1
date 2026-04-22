@@ -4,7 +4,7 @@ import { AddIngredientPanel } from '@/components/admin/AddIngredientPanel';
 import { useReviewStore } from '../store';
 import { ReviewHeader } from './ReviewHeader';
 import { ReviewLeftPanel } from './ReviewLeftPanel';
-import { MenuExtractionList } from './MenuExtractionList';
+import { PageGroupedList } from './PageGroupedList';
 import { ImageZoomLightbox } from './ImageZoomLightbox';
 
 export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
@@ -23,7 +23,7 @@ export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
 
       <div className="flex gap-5 min-h-0 flex-1">
         <ReviewLeftPanel />
-        <MenuExtractionList />
+        <PageGroupedList />
       </div>
 
       <ImageZoomLightbox

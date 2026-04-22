@@ -34,7 +34,7 @@ Assumptions going in:
 - [x] Step 15: SavePreviewModal + UndoToast wired to soft-undo endpoint
 - [x] Step 16: useKeyboardShortcuts + actionable warnings
 - [x] Step 17: Mobile (React Native) kind-badge update
-- [ ] Step 18: Merge prep — cleanup, docs, final verification against checklist
+- [x] Step 18: Merge prep — cleanup, docs, final verification against checklist
 
 ---
 

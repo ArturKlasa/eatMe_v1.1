@@ -20,8 +20,49 @@ export interface SelectedIngredient extends Ingredient {
   quantity?: string;
 }
 
-/** How a dish is composed: single item, customisable template, tasting experience, or combo bundle. */
-export type DishKind = 'standard' | 'template' | 'experience' | 'combo';
+/**
+ * Transitional union (Steps 2–17): old values kept so dependent code migrates one file at a time.
+ * Narrowed to 5-value enum in Step 18.
+ */
+export type DishKind =
+  | 'standard'
+  | 'bundle'
+  | 'configurable'
+  | 'course_menu'
+  | 'buffet'
+  // legacy — present until Step 6 migration has run in production
+  | 'template'
+  | 'experience'
+  | 'combo';
+
+/** Legacy kind values — exist in DB until admin triage (Step 5) + Step 6 migration. */
+export const LEGACY_DISH_KINDS = ['template', 'experience', 'combo'] as const;
+
+export function isLegacyKind(k: string): boolean {
+  return (LEGACY_DISH_KINDS as readonly string[]).includes(k);
+}
+
+/** Publishing / curation state for a dish. */
+export type DishStatus = 'published' | 'draft' | 'archived';
+
+export interface DishCourse {
+  id: string;
+  parent_dish_id: string;
+  course_number: number;
+  course_name: string | null;
+  required_count: number;
+  choice_type: 'fixed' | 'one_of';
+}
+
+export interface DishCourseItem {
+  id: string;
+  course_id: string;
+  option_label: string;
+  price_delta: number;
+  links_to_dish_id: string | null;
+  sort_order: number;
+}
+
 /** How a menu's availability repeats: fixed weekly hours, varies day-by-day, or rotates periodically. */
 export type ScheduleType = 'regular' | 'daily' | 'rotating';
 /** How the base price should be labelled in the UI (e.g. "from 12 PLN", "per person", "market price"). */

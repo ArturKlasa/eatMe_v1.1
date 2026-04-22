@@ -11,6 +11,21 @@ export const MENU_CATEGORIES = [
 /** Union of valid menu category string values. */
 export type MenuCategory = (typeof MENU_CATEGORIES)[number]['value'];
 
+/**
+ * Metadata for the 5 canonical dish kinds (Step 2 onwards).
+ * Use this in new components; DISH_KINDS below is kept for legacy consumers only.
+ */
+export const DISH_KIND_META = {
+  standard: { label: 'Standard', description: 'Single fixed dish', icon: '🍽️' },
+  bundle: { label: 'Bundle', description: 'N items together at one price', icon: '🎁' },
+  configurable: { label: 'Configurable', description: 'Customer selects from slots', icon: '🔧' },
+  course_menu: { label: 'Course Menu', description: 'Multi-course sequenced', icon: '🍷' },
+  buffet: { label: 'Buffet', description: 'Flat-rate unlimited access', icon: '🍱' },
+} as const;
+
+/**
+ * @deprecated Use DISH_KIND_META for new code. Removed in Step 18.
+ */
 export const DISH_KINDS = [
   {
     value: 'standard' as const,

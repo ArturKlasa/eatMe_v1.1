@@ -9,9 +9,8 @@ export interface ProcessingSlice {
   fireProcess: () => Promise<FireResult | null>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createProcessingSlice: StateCreator<
-  UploadSlice & ProcessingSlice & any,
+  UploadSlice & ProcessingSlice & any, // eslint-disable-line @typescript-eslint/no-explicit-any
   [],
   [],
   ProcessingSlice

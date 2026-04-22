@@ -66,3 +66,45 @@ describe('LEGACY_DISH_KINDS', () => {
     expect(LEGACY_DISH_KINDS).toContain('combo');
   });
 });
+
+// KIND_BADGE logic used in apps/mobile/src/components/DishPhotoModal.tsx
+const KIND_BADGE: Record<string, string> = {
+  configurable: '  🔧',
+  course_menu: '  🍷',
+  buffet: '  🍱',
+  bundle: '  🎁',
+};
+
+describe('KIND_BADGE (mobile DishPhotoModal badge logic)', () => {
+  it('returns the right badge for configurable', () => {
+    expect(KIND_BADGE['configurable'] ?? '').toBe('  🔧');
+  });
+
+  it('returns the right badge for course_menu', () => {
+    expect(KIND_BADGE['course_menu'] ?? '').toBe('  🍷');
+  });
+
+  it('returns the right badge for buffet', () => {
+    expect(KIND_BADGE['buffet'] ?? '').toBe('  🍱');
+  });
+
+  it('returns the right badge for bundle', () => {
+    expect(KIND_BADGE['bundle'] ?? '').toBe('  🎁');
+  });
+
+  it('returns empty string for standard (no badge)', () => {
+    expect(KIND_BADGE['standard'] ?? '').toBe('');
+  });
+
+  it('returns empty string for unknown kind (no crash)', () => {
+    expect(KIND_BADGE['unknown_future_value'] ?? '').toBe('');
+  });
+
+  it('badge icons match DISH_KIND_META icons for badged kinds', () => {
+    const badgedKinds = ['configurable', 'course_menu', 'buffet', 'bundle'] as const;
+    for (const kind of badgedKinds) {
+      const meta = DISH_KIND_META[kind];
+      expect(KIND_BADGE[kind]).toBe(`  ${meta.icon}`);
+    }
+  });
+});

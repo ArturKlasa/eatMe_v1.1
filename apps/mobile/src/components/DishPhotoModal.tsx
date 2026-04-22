@@ -23,6 +23,14 @@ import type { DishOpinion, DishTag } from '../types/rating';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const KIND_BADGE: Record<string, string> = {
+  configurable: '  🔧',
+  course_menu: '  🍷',
+  buffet: '  🍱',
+  bundle: '  🎁',
+  // 'standard' intentionally has no badge
+};
+
 interface DishPhoto {
   id: string;
   photo_url: string;
@@ -170,8 +178,7 @@ export function DishPhotoModal({
           <View style={styles.headerInfo}>
             <Text style={styles.dishName}>
               {dishName}
-              {dishKind === 'template' && '  🔧'}
-              {dishKind === 'experience' && '  ✨'}
+              {KIND_BADGE[dishKind] ?? ''}
             </Text>
             <Text style={styles.dishPrice}>
               {displayPricePrefix === 'from' && `from $${dishPrice.toFixed(2)}`}
@@ -302,7 +309,9 @@ export function DishPhotoModal({
           {dishIngredients && dishIngredients.length > 0 && (
             <View style={styles.descriptionContainer}>
               <Text style={styles.descriptionLabel}>{t('dish.ingredients')}</Text>
-              <Text style={styles.description}>{dishIngredients.map(i => i.replace(/_/g, ' ')).join(', ')}</Text>
+              <Text style={styles.description}>
+                {dishIngredients.map(i => i.replace(/_/g, ' ')).join(', ')}
+              </Text>
             </View>
           )}
 
@@ -388,7 +397,6 @@ export function DishPhotoModal({
               })}
             </View>
           )}
-
         </ScrollView>
       </View>
     </Modal>

@@ -295,6 +295,7 @@ describe('MenuScanReview', () => {
     suggestAllDishes: asyncNoOp,
     deleteDish: noOp,
     addDish: noOp,
+    addVariantDish: noOp,
     deleteCategory: noOp,
     addCategory: noOp,
     deleteMenu: noOp,

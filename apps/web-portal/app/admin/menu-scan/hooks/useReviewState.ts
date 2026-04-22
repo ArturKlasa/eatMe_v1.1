@@ -226,6 +226,30 @@ export function useReviewState(deps: ReviewDeps) {
     setExpandedDishes(prev => new Set([...prev, dish._id]));
   };
 
+  const addVariantDish = (mIdx: number, cIdx: number, parentId: string) => {
+    const child: EditableDish = {
+      ...newEmptyDish(),
+      parent_id: parentId,
+      is_parent: false,
+      group_status: 'manual' as const,
+    };
+    setEditableMenus(prev =>
+      prev.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            const updatedDishes = c.dishes.map(d =>
+              d._id === parentId ? { ...d, variant_ids: [...d.variant_ids, child._id] } : d
+            );
+            return { ...c, dishes: [...updatedDishes, child] };
+          }),
+        };
+      })
+    );
+  };
+
   const deleteCategory = (mIdx: number, cIdx: number) => {
     setEditableMenus(prev =>
       prev.map((m, mi) => {
@@ -319,6 +343,7 @@ export function useReviewState(deps: ReviewDeps) {
     updateDish,
     deleteDish,
     addDish,
+    addVariantDish,
     deleteCategory,
     addCategory,
     deleteMenu,

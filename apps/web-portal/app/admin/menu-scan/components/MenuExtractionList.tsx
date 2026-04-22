@@ -83,12 +83,7 @@ export interface MenuExtractionListProps {
     rawText: string,
     resolved: EditableIngredient
   ) => void;
-  addIngredientToDish: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    ing: EditableIngredient
-  ) => void;
+  addIngredientToDish: (mIdx: number, cIdx: number, dIdx: number, ing: EditableIngredient) => void;
   removeIngredientFromDish: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => void;
   addSubIngredient: (
     mIdx: number,
@@ -115,6 +110,7 @@ export interface MenuExtractionListProps {
   suggestAllDishes: () => Promise<void>;
   deleteDish: (mIdx: number, cIdx: number, dIdx: number) => void;
   addDish: (mIdx: number, cIdx: number) => void;
+  addVariantDish: (mIdx: number, cIdx: number, parentId: string) => void;
   deleteCategory: (mIdx: number, cIdx: number) => void;
   addCategory: (mIdx: number) => void;
   deleteMenu: (mIdx: number) => void;
@@ -173,6 +169,7 @@ export function MenuExtractionList({
   suggestAllDishes,
   deleteDish,
   addDish,
+  addVariantDish,
   deleteCategory,
   addCategory,
   deleteMenu,
@@ -271,9 +268,7 @@ export function MenuExtractionList({
               />
               <select
                 value={menu.menu_type}
-                onChange={e =>
-                  updateMenu(mIdx, { menu_type: e.target.value as 'food' | 'drink' })
-                }
+                onChange={e => updateMenu(mIdx, { menu_type: e.target.value as 'food' | 'drink' })}
                 className="text-xs border border-input rounded px-2 py-1 bg-background"
               >
                 <option value="food">Food</option>
@@ -332,8 +327,24 @@ export function MenuExtractionList({
                         return (
                           <div
                             key={dish._id}
-                            onFocus={() => setFocusedGroupId(dish._id)}
-                            onClick={() => setFocusedGroupId(dish._id)}
+                            onFocus={e => {
+                              if (
+                                !(e.target as HTMLElement).closest(
+                                  'select, input, button, textarea, label'
+                                )
+                              ) {
+                                setFocusedGroupId(dish._id);
+                              }
+                            }}
+                            onClick={e => {
+                              if (
+                                !(e.target as HTMLElement).closest(
+                                  'select, input, button, textarea, label'
+                                )
+                              ) {
+                                setFocusedGroupId(dish._id);
+                              }
+                            }}
                           >
                             <DishGroupCard
                               parent={dish}
@@ -344,6 +355,7 @@ export function MenuExtractionList({
                               onEdit={() => toggleExpand(dish._id)}
                               onUngroup={ungroupChild}
                               onUpdateDish={updateDishById}
+                              onAddVariant={() => addVariantDish(mIdx, cIdx, dish._id)}
                               currency={currency}
                               isSelected={selectedGroupIds.has(dish._id)}
                               onToggleSelect={() =>
@@ -378,9 +390,7 @@ export function MenuExtractionList({
                           <div className="flex items-center gap-2">
                             <input
                               value={dish.name}
-                              onChange={e =>
-                                updateDish(mIdx, cIdx, dIdx, { name: e.target.value })
-                              }
+                              onChange={e => updateDish(mIdx, cIdx, dIdx, { name: e.target.value })}
                               className="flex-1 font-medium text-sm bg-transparent border-0 border-b border-transparent focus:border-brand-primary/70 focus:outline-none min-w-0"
                               placeholder="Dish name"
                             />

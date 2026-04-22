@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Unlink, Check, X, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronUp, Unlink, Check, X, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DISH_KINDS } from '@eatme/shared';
@@ -15,6 +15,7 @@ interface DishGroupCardProps {
   onEdit: () => void;
   onUngroup: (childId: string) => void;
   onUpdateDish: (dishId: string, updates: Partial<EditableDish>) => void;
+  onAddVariant: () => void;
   currency: string;
   isSelected: boolean;
   onToggleSelect: () => void;
@@ -28,6 +29,7 @@ export function DishGroupCard({
   onEdit,
   onUngroup,
   onUpdateDish,
+  onAddVariant,
   currency,
   isSelected,
   onToggleSelect,
@@ -65,18 +67,45 @@ export function DishGroupCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm truncate">{parent.name}</span>
+            <input
+              value={parent.name}
+              onChange={e => onUpdateDish(parent._id, { name: e.target.value })}
+              className="font-semibold text-sm bg-transparent border-0 border-b border-transparent focus:border-brand-primary/70 focus:outline-none min-w-0 flex-1"
+              placeholder="Dish name"
+            />
             {dishKindInfo && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+              <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 shrink-0">
                 {dishKindInfo.icon} {dishKindInfo.label}
               </span>
             )}
-            <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded', confidenceColor)}>
+            <span
+              className={cn(
+                'text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0',
+                confidenceColor
+              )}
+            >
               {confidencePct}%
             </span>
           </div>
-          {parent.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">{parent.description}</p>
+          <input
+            value={parent.description ?? ''}
+            onChange={e => onUpdateDish(parent._id, { description: e.target.value })}
+            className="text-xs text-muted-foreground mt-0.5 bg-transparent border-0 border-b border-transparent focus:border-brand-primary/70 focus:outline-none w-full"
+            placeholder="Description"
+          />
+          {!isCombo && (
+            <div className="flex items-center gap-1 mt-1">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={parent.price}
+                onChange={e => onUpdateDish(parent._id, { price: e.target.value })}
+                className="w-24 text-xs border rounded px-1 py-0.5 text-right"
+                placeholder="Base price"
+              />
+              <span className="text-xs text-muted-foreground">{currency}</span>
+            </div>
           )}
         </div>
 
@@ -84,11 +113,15 @@ export function DishGroupCard({
           {/* dish_kind dropdown */}
           <select
             value={parent.dish_kind}
-            onChange={e =>
-              onUpdateDish(parent._id, {
-                dish_kind: e.target.value as EditableDish['dish_kind'],
-              })
-            }
+            onChange={e => {
+              const newKind = e.target.value as EditableDish['dish_kind'];
+              const patch: Partial<EditableDish> = { dish_kind: newKind };
+              if (newKind === 'template') patch.display_price_prefix = 'from';
+              else if (newKind === 'experience') patch.display_price_prefix = 'per_person';
+              else if (newKind === 'combo' || newKind === 'standard')
+                patch.display_price_prefix = 'exact';
+              onUpdateDish(parent._id, patch);
+            }}
             className="text-xs border rounded px-1 py-0.5"
           >
             {DISH_KINDS.map(k => (
@@ -141,20 +174,31 @@ export function DishGroupCard({
       </div>
 
       {/* Variant children (indented, left-border connector) */}
-      {isExpanded && children.length > 0 && (
+      {isExpanded && (
         <div className="mt-2 ml-4 border-l-2 border-blue-200 pl-3 space-y-1.5">
           {children.map(child => (
             <div
               key={child._id}
               className="flex items-center gap-2 py-1 px-2 rounded bg-background/60 text-sm"
             >
-              <span className="flex-1 truncate">{child.name}</span>
+              <input
+                value={child.name}
+                onChange={e => onUpdateDish(child._id, { name: e.target.value })}
+                className="flex-1 text-sm bg-transparent border-0 border-b border-transparent focus:border-brand-primary/70 focus:outline-none min-w-0"
+                placeholder="Variant name"
+              />
               {isCombo ? (
                 <span className="text-[10px] italic text-muted-foreground">Included</span>
               ) : (
-                <span className="text-xs text-muted-foreground">
-                  {currency} {child.price || '—'}
-                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={child.price}
+                  onChange={e => onUpdateDish(child._id, { price: e.target.value })}
+                  className="w-20 text-xs border rounded px-1 py-0.5 text-right"
+                  placeholder="Price"
+                />
               )}
               {child.dietary_tags.length > 0 && (
                 <span className="text-[10px] text-muted-foreground">
@@ -204,6 +248,12 @@ export function DishGroupCard({
               </Button>
             </div>
           ))}
+          <button
+            onClick={onAddVariant}
+            className="mt-1.5 flex items-center gap-1 text-xs text-brand-primary hover:underline"
+          >
+            <Plus className="h-3 w-3" /> Add Variant
+          </button>
         </div>
       )}
 

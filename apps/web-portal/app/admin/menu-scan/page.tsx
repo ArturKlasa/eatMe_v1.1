@@ -106,6 +106,7 @@ export default function MenuScanPage() {
       suggestAllDishes={state.suggestAllDishes}
       deleteDish={state.deleteDish}
       addDish={state.addDish}
+      addVariantDish={state.addVariantDish}
       deleteCategory={state.deleteCategory}
       addCategory={state.addCategory}
       deleteMenu={state.deleteMenu}

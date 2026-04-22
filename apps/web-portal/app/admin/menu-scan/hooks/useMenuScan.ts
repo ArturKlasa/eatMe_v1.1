@@ -275,6 +275,7 @@ export function useMenuScan() {
     suggestAllDishes: review.suggestAllDishes,
     deleteDish: review.deleteDish,
     addDish: review.addDish,
+    addVariantDish: review.addVariantDish,
     deleteCategory: review.deleteCategory,
     addCategory: review.addCategory,
     deleteMenu: review.deleteMenu,

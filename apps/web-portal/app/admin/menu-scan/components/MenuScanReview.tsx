@@ -108,6 +108,7 @@ export interface MenuScanReviewProps {
   suggestAllDishes: () => Promise<void>;
   deleteDish: (mIdx: number, cIdx: number, dIdx: number) => void;
   addDish: (mIdx: number, cIdx: number) => void;
+  addVariantDish: (mIdx: number, cIdx: number, parentId: string) => void;
   deleteCategory: (mIdx: number, cIdx: number) => void;
   addCategory: (mIdx: number) => void;
   deleteMenu: (mIdx: number) => void;
@@ -214,6 +215,7 @@ export function MenuScanReview(props: MenuScanReviewProps) {
           suggestAllDishes={props.suggestAllDishes}
           deleteDish={props.deleteDish}
           addDish={props.addDish}
+          addVariantDish={props.addVariantDish}
           deleteCategory={props.deleteCategory}
           addCategory={props.addCategory}
           deleteMenu={props.deleteMenu}

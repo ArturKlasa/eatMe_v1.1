@@ -12,11 +12,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { type EditableDish, type EditableMenu, countDishes } from '@/lib/menu-scan';
+import { DISH_KIND_META } from '@eatme/shared';
 import { DishGroupCard } from '@/components/admin/menu-scan/DishGroupCard';
 import { BatchToolbar } from '@/components/admin/menu-scan/BatchToolbar';
 import { FlaggedDuplicateCard } from '@/components/admin/menu-scan/FlaggedDuplicateCard';
-import { DishEditPanel } from './DishEditPanel';
+import { DishEditPanelV2 } from './DishEditPanelV2';
 import { useReviewStore } from '../store';
+
+// New-kind parent dishes use DishEditPanelV2+VariantEditor; legacy parents use DishGroupCard.
+const NEW_KIND_SET = new Set(Object.keys(DISH_KIND_META));
 
 // ---------------------------------------------------------------------------
 // Confidence badge (local helper)
@@ -229,11 +233,12 @@ export function MenuExtractionList() {
                   {/* Dishes */}
                   <div className="space-y-2">
                     {cat.dishes.map((dish, dIdx) => {
-                      // Skip children — they render inside their parent's DishGroupCard
+                      // Skip children — they render inside VariantEditor (new kinds)
+                      // or inside DishGroupCard (legacy kinds).
                       if (dish.parent_id) return null;
 
-                      // Parent dishes render as DishGroupCard
-                      if (dish.is_parent) {
+                      // Legacy-kind parent dishes render as DishGroupCard (accept/reject flow).
+                      if (dish.is_parent && !NEW_KIND_SET.has(dish.dish_kind)) {
                         const children = cat.dishes.filter(d => d.parent_id === dish._id);
                         return (
                           <div
@@ -282,6 +287,8 @@ export function MenuExtractionList() {
                         );
                       }
 
+                      // New-kind dishes (including new-kind parents) use collapsible card +
+                      // DishEditPanelV2 which embeds KindSelectorV2 and VariantEditor.
                       const isExpanded = expandedDishes.has(dish._id);
                       const hasUnmatched = dish.ingredients.some(i => i.status === 'unmatched');
 
@@ -346,7 +353,7 @@ export function MenuExtractionList() {
 
                           {/* Expanded detail */}
                           {isExpanded && (
-                            <DishEditPanel dish={dish} mIdx={mIdx} cIdx={cIdx} dIdx={dIdx} />
+                            <DishEditPanelV2 dish={dish} mIdx={mIdx} cIdx={cIdx} dIdx={dIdx} />
                           )}
                         </div>
                       );

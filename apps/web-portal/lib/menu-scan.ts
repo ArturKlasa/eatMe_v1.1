@@ -132,6 +132,21 @@ export interface EditableIngredient {
   sub_ingredients?: EditableIngredient[];
 }
 
+export interface EditableCourseItem {
+  _id: string;
+  option_label: string;
+  price_delta: number;
+}
+
+export interface EditableCourse {
+  _id: string;
+  course_number: number;
+  course_name: string;
+  choice_type: 'fixed' | 'one_of';
+  required_count: number;
+  items: EditableCourseItem[];
+}
+
 export interface EditableDish {
   _id: string; // stable React key (client-generated UUID)
   name: string;
@@ -156,6 +171,9 @@ export interface EditableDish {
   group_status: 'ai_proposed' | 'accepted' | 'rejected' | 'manual';
   /** 0-based index of the source image this dish was extracted from. */
   source_image_index?: number;
+  courses?: EditableCourse[];
+  is_template?: boolean;
+  status?: 'published' | 'draft' | 'archived';
 }
 
 export interface EditableCategory {
@@ -960,5 +978,20 @@ export function newEmptyDish(): EditableDish {
     primary_protein: null,
     parent_id: null,
     group_status: 'manual',
+  };
+}
+
+export function newEmptyCourseItem(): EditableCourseItem {
+  return { _id: crypto.randomUUID(), option_label: '', price_delta: 0 };
+}
+
+export function newEmptyCourse(courseNumber: number): EditableCourse {
+  return {
+    _id: crypto.randomUUID(),
+    course_number: courseNumber,
+    course_name: '',
+    choice_type: 'one_of',
+    required_count: 1,
+    items: [newEmptyCourseItem()],
   };
 }

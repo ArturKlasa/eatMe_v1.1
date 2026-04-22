@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMenuScan } from '@/app/admin/menu-scan/hooks/useMenuScan';
+import { useReviewStore } from '@/app/admin/menu-scan/store';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -17,6 +18,7 @@ vi.mock('@/lib/supabase', () => ({
     }),
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
     },
   },
   formatLocationForSupabase: vi.fn(),
@@ -50,6 +52,9 @@ vi.mock('next/navigation', () => ({
 describe('useMenuScan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the singleton Zustand store between tests so state does not leak
+    useReviewStore.getState().resetUpload();
+    useReviewStore.getState().resetReview();
   });
 
   it('starts with step = "upload"', () => {

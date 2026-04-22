@@ -32,7 +32,7 @@ Assumptions going in:
 - [x] Step 13: PageGroupedList with source-image chip and carousel sync
 - [x] Step 14: FlaggedDuplicatePanel — why-flagged breakdown + side-by-side
 - [x] Step 15: SavePreviewModal + UndoToast wired to soft-undo endpoint
-- [ ] Step 16: useKeyboardShortcuts + actionable warnings
+- [x] Step 16: useKeyboardShortcuts + actionable warnings
 - [ ] Step 17: Mobile (React Native) kind-badge update
 - [ ] Step 18: Merge prep — cleanup, docs, final verification against checklist
 

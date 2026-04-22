@@ -23,6 +23,18 @@ const RawIngredientSchema = z.object({
   modifier: z.string().nullable(),
 });
 
+const CourseItemSchema = z.object({
+  option_label: z.string(),
+  price_delta: z.number().default(0),
+});
+
+const CourseSchema = z.object({
+  course_number: z.number().int().min(1),
+  course_name: z.string().nullable(),
+  choice_type: z.enum(['fixed', 'one_of']),
+  items: z.array(CourseItemSchema),
+});
+
 const DishSchema: z.ZodType<unknown> = z.lazy(() =>
   z.object({
     name: z.string(),
@@ -51,10 +63,11 @@ const DishSchema: z.ZodType<unknown> = z.lazy(() =>
     dish_category: z.string().nullable(),
     confidence: z.number(),
     is_parent: z.boolean(),
-    dish_kind: z.enum(['standard', 'template', 'combo', 'experience']),
+    dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']),
     serves: z.number().nullable(),
     display_price_prefix: z.enum(['exact', 'from', 'per_person', 'market_price', 'ask_server']),
     variants: z.array(DishSchema).nullable(),
+    courses: z.array(CourseSchema).optional(),
   })
 );
 
@@ -123,18 +136,28 @@ STRICT RULES:
 11. For "menu_type": use "drink" only for a clearly separate beverage page/section. A "Bebidas" subsection at the bottom of a food page → category inside the food menu.
 
 DISH PATTERN DETECTION — apply in this priority order:
-1. TEMPLATE (build-your-own): "Choose your protein/base", "Build your bowl", "Pick a base" → dish_kind="template", is_parent=true, display_price_prefix="from", variants[] = each option as a child dish.
-2. COMBO/BUNDLE: "Lunch combo", "Set menu", "Includes X + Y + Z", fixed meal deal → dish_kind="combo", is_parent=true, price=<the single bundled price shown on the menu>, display_price_prefix="exact", variants[] = included items with price=null (combos have one bundle price on the parent, not per-item).
-3. EXPERIENCE: "All-you-can-eat", "Hot pot", "BBQ", "Tasting menu", per-person pricing → dish_kind="experience", is_parent=true, display_price_prefix="per_person", serves=number of people.
-4. SIZE VARIANTS: S/M/L, "Small/Regular/Large", "Chico/Mediano/Grande" → dish_kind="standard", is_parent=true, display_price_prefix="from", variants[] = each size with its price.
-5. MARKET PRICE: "MP", "Market price", "Precio de mercado" → price=null, display_price_prefix="market_price".
-6. FAMILY/SHARING: "For 2-3", "Para compartir", "Feeds 4" → serves=N (number of people), dish_kind="standard".
-7. STANDARD: everything else → dish_kind="standard", is_parent=false, serves=1, display_price_prefix="exact".
+1. CONFIGURABLE (build-your-own): "Choose your protein/base", "Build your bowl", "Pick a base" → dish_kind="configurable", is_parent=true, display_price_prefix="from", variants[] = each option as a child dish.
+2. BUNDLE: "Lunch combo", "Set menu", "Includes X + Y + Z", fixed meal deal → dish_kind="bundle", is_parent=true, price=<the single bundled price shown on the menu>, display_price_prefix="exact", variants[] = included items with price=null (bundles have one price on the parent, not per-item).
+3. COURSE MENU (multi-course sequenced): "Tasting menu", "Prix fixe", "Menú de Degustación", "Omakase" → dish_kind="course_menu", is_parent=true, display_price_prefix="per_person", serves=number of people, courses[] = ordered list of courses each with items.
+4. BUFFET (flat-rate unlimited): "All-you-can-eat", "AYCE", "Hot pot" (when unlimited), "BBQ buffet", per-person unlimited access → dish_kind="buffet", is_parent=false, display_price_prefix="per_person", price=the flat rate, serves=1.
+5. SIZE VARIANTS: S/M/L, "Small/Regular/Large", "Chico/Mediano/Grande" → dish_kind="standard", is_parent=true, display_price_prefix="from", variants[] = each size with its price.
+6. MARKET PRICE: "MP", "Market price", "Precio de mercado" → price=null, display_price_prefix="market_price".
+7. FAMILY/SHARING: "For 2-3", "Para compartir", "Feeds 4" → serves=N (number of people), dish_kind="standard".
+8. STANDARD: everything else → dish_kind="standard", is_parent=false, serves=1, display_price_prefix="exact".
+
+COURSE MENU RULES (dish_kind="course_menu"):
+- The parent dish is_parent=true; variants[] = null (use courses[] instead).
+- courses[] must list each course in order: course_number (1, 2, 3…), course_name (e.g. "Starter", "Main", "Dessert"), choice_type:
+  - "fixed" when the course has exactly one item (no diner choice).
+  - "one_of" when the diner selects one item from multiple options.
+- Each course has items[]: option_label (dish name or description) and price_delta (default 0; non-zero when upgrades carry a surcharge).
+- If the menu shows a tasting menu without listing individual courses, create one course (course_number=1, choice_type="fixed") with a single item.
 
 PARENT-CHILD RULES:
 - Parent: is_parent=true, variants[] = child dishes.
-  - dish_kind="combo": parent.price = the bundled combo price from the menu; each child.price = null (children are included items sharing the bundle price).
-  - dish_kind="template" | "standard" (size variants) | "experience": parent.price = 0 (display-only container); each child has its own price.
+  - dish_kind="bundle": parent.price = the bundled price from the menu; each child.price = null (children share the bundle price).
+  - dish_kind="configurable" | "standard" (size variants): parent.price = 0 (display-only container); each child has its own price.
+  - dish_kind="course_menu": parent.price = the total prix-fixe price; variants[] = null; use courses[] instead.
 - Each child: is_parent=false, its own dietary_hints and primary_protein. Child price follows the rule above.
 - If unsure, default to standard single dish (is_parent=false, no variants).
 
@@ -149,15 +172,28 @@ Example 1 — Standard dishes:
 Menu showing "Tacos" section with "Taco al Pastor $45" and "Taco de Bistec $50":
 → Two standard dishes: dish_kind="standard", is_parent=false, serves=1, display_price_prefix="exact"
 
-Example 2 — Template with variants:
+Example 2 — Configurable with variants:
 Menu showing "Poke Bowl" with options "Salmon $189", "Tofu $159", "Shrimp $179":
-→ Parent: name="Poke Bowl", dish_kind="template", is_parent=true, price=0, display_price_prefix="from"
+→ Parent: name="Poke Bowl", dish_kind="configurable", is_parent=true, price=0, display_price_prefix="from"
 → Variants: [{name:"Poke Bowl — Salmon", price:189}, {name:"Poke Bowl — Tofu", price:159}, {name:"Poke Bowl — Shrimp", price:179}]
 
-Example 3 — Combo:
+Example 3 — Bundle:
 Menu showing "Lunch Special $129 — includes soup, main course, and drink":
-→ Parent: name="Lunch Special", dish_kind="combo", is_parent=true, price=129, display_price_prefix="exact"
+→ Parent: name="Lunch Special", dish_kind="bundle", is_parent=true, price=129, display_price_prefix="exact"
 → Variants: [{name:"Lunch Special — Soup", price:null}, {name:"Lunch Special — Main Course", price:null}, {name:"Lunch Special — Drink", price:null}]
+
+Example 4 — Course menu (tasting / prix-fixe):
+Menu showing "Chef's Tasting Menu $850/person — Starter (choose: Oysters / Tartare), Main (Wagyu only), Dessert (choose: Tart / Ice Cream)":
+→ Parent: name="Chef's Tasting Menu", dish_kind="course_menu", is_parent=true, price=850, display_price_prefix="per_person", serves=1, variants=null
+→ courses: [
+    {course_number:1, course_name:"Starter", choice_type:"one_of", items:[{option_label:"Oysters", price_delta:0},{option_label:"Tartare", price_delta:0}]},
+    {course_number:2, course_name:"Main", choice_type:"fixed", items:[{option_label:"Wagyu", price_delta:0}]},
+    {course_number:3, course_name:"Dessert", choice_type:"one_of", items:[{option_label:"Tart", price_delta:0},{option_label:"Ice Cream", price_delta:0}]}
+  ]
+
+Example 5 — Buffet:
+Menu showing "Korean BBQ Buffet $299/person — unlimited meat selections":
+→ name="Korean BBQ Buffet", dish_kind="buffet", is_parent=false, price=299, display_price_prefix="per_person", serves=1
 
 PRIMARY PROTEIN — infer the dominant protein for each dish and set primary_protein to one of: chicken, beef, pork, lamb, duck, other_meat, fish, shellfish, eggs, vegetarian, vegan.
 - Use "vegetarian" or "vegan" when the dish has no animal protein (and is not a drink).
@@ -264,11 +300,13 @@ async function extractMenuFromImage(
     });
   }
 
-  // Apply defaults for fields GPT may have set to null within valid schema
+  // Apply defaults and tag each dish with its 0-based source image index.
+  const imageIndex = pageNumber - 1;
   for (const menu of parsed.menus) {
     for (const cat of menu.categories) {
       for (const dish of cat.dishes) {
         applyDishDefaults(dish);
+        tagSourceImageIndex(dish, imageIndex);
       }
     }
   }
@@ -287,12 +325,23 @@ function applyDishDefaults(dish: RawExtractedDish): void {
   if (!dish.display_price_prefix) dish.display_price_prefix = 'exact';
   if (dish.serves === undefined) dish.serves = null;
   if (!dish.variants) dish.variants = null;
+  if (!dish.courses) dish.courses = undefined;
 
   // Recursively apply to variants
   if (dish.variants) {
     for (const variant of dish.variants) {
       applyDishDefaults(variant);
       variant.is_parent = false; // variants are never parents
+    }
+  }
+}
+
+/** Tag all dishes (and their variants) with the 0-based source image index. */
+function tagSourceImageIndex(dish: RawExtractedDish, imageIndex: number): void {
+  dish.source_image_index = imageIndex;
+  if (dish.variants) {
+    for (const variant of dish.variants) {
+      tagSourceImageIndex(variant, imageIndex);
     }
   }
 }

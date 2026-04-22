@@ -64,6 +64,7 @@ interface DishRow {
   is_parent: boolean;
   parent_dish_id: string | null;
   primary_protein: string | null;
+  price: number | null;
 }
 
 interface EnrichmentPayload {
@@ -182,16 +183,36 @@ function evaluateCompleteness(
   hasDescription: boolean,
   descriptionLength: number,
   dishKind: string,
-  optionCount: number
+  optionCount: number,
+  price: number | null,
+  courseCount: number,
+  courseItemCounts: number[]
 ): Completeness {
-  // Template/experience: completeness comes from options, not ingredients
-  if ((dishKind === 'template' || dishKind === 'experience') && optionCount >= 3) {
-    return 'complete';
+  // course_menu: complete when >= 2 courses each with >= 1 item
+  if (dishKind === 'course_menu' || dishKind === 'experience') {
+    if (courseCount >= 2 && courseItemCounts.every(c => c >= 1)) return 'complete';
+    if (courseCount >= 1) return 'partial';
+    return 'sparse';
   }
 
-  // Combo: complete if has child items
-  if (dishKind === 'combo' && optionCount >= 2) {
-    return 'complete';
+  // buffet: complete when price > 0
+  if (dishKind === 'buffet') {
+    if (price !== null && price > 0) return hasDescription ? 'complete' : 'partial';
+    return 'sparse';
+  }
+
+  // configurable (was template): completeness comes from variant options
+  // bundle (was combo): complete if has included child items
+  if (dishKind === 'configurable' || dishKind === 'template') {
+    if (optionCount >= 3) return 'complete';
+    if (optionCount >= 1) return 'partial';
+    return 'sparse';
+  }
+
+  if (dishKind === 'bundle' || dishKind === 'combo') {
+    if (optionCount >= 2) return 'complete';
+    if (optionCount >= 1) return 'partial';
+    return 'sparse';
   }
 
   // Standard: ingredient-based with description boost
@@ -328,7 +349,7 @@ serve(async (req: Request) => {
     const { data: dish, error: dishError } = (await supabase
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id, primary_protein'
+        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id, primary_protein, price'
       )
       .eq('id', dishId)
       .single()) as { data: DishRow | null; error: unknown };
@@ -370,6 +391,7 @@ serve(async (req: Request) => {
       { data: optionGroupRows },
       { data: restaurantRow },
       { data: parentDish },
+      { data: courseRows },
     ] = await Promise.all([
       supabase
         .from('dish_ingredients')
@@ -383,6 +405,13 @@ serve(async (req: Request) => {
       supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
       dish.parent_dish_id
         ? supabase.from('dishes').select('name').eq('id', dish.parent_dish_id).single()
+        : Promise.resolve({ data: null, error: null }),
+      // Load course structure for course_menu completeness evaluation.
+      dish.dish_kind === 'course_menu' || dish.dish_kind === 'experience'
+        ? supabase
+            .from('dish_courses')
+            .select('id, dish_course_items(id)')
+            .eq('parent_dish_id', dishId)
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -425,12 +454,22 @@ serve(async (req: Request) => {
 
     // ── Evaluate completeness (dish_kind-aware) ──────────────────────────────
 
+    const typedCourseRows = courseRows as Array<{
+      id: string;
+      dish_course_items: Array<{ id: string }>;
+    }> | null;
+    const courseCount = typedCourseRows?.length ?? 0;
+    const courseItemCounts = (typedCourseRows ?? []).map(c => c.dish_course_items?.length ?? 0);
+
     const completeness = evaluateCompleteness(
       ingredientNames,
       !!dish.description,
       dish.description?.length ?? 0,
       dish.dish_kind,
-      optionCount
+      optionCount,
+      dish.price,
+      courseCount,
+      courseItemCounts
     );
     console.log(
       '[enrich-dish] Completeness:',

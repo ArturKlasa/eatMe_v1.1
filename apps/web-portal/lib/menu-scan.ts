@@ -1,10 +1,23 @@
 import { compareTwoStrings } from 'string-similarity';
+import type { DishKind } from '@eatme/shared';
 
 export interface RawExtractedIngredient {
   /** Base ingredient term as it appears on the menu (e.g. "salmon", "cheese"). */
   base: string;
   /** Modifier or preparation qualifier (e.g. "smoked", "aged", "fresh"). Null when none. */
   modifier: string | null;
+}
+
+export interface ExtractedCourseItem {
+  option_label: string;
+  price_delta: number;
+}
+
+export interface ExtractedCourse {
+  course_number: number;
+  course_name: string | null;
+  choice_type: 'fixed' | 'one_of';
+  items: ExtractedCourseItem[];
 }
 
 export interface RawExtractedDish {
@@ -24,10 +37,15 @@ export interface RawExtractedDish {
   dish_category: string | null;
   confidence: number;
   is_parent: boolean;
-  dish_kind: 'standard' | 'template' | 'combo' | 'experience';
+  /** Transitional union: old values (template, combo, experience) may appear in pre-migration jobs. */
+  dish_kind: DishKind;
   serves: number | null;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
   variants: RawExtractedDish[] | null;
+  /** For course_menu dishes: structured course list from AI extraction. */
+  courses?: ExtractedCourse[];
+  /** 0-based index of the source image this dish was extracted from. */
+  source_image_index?: number;
 }
 
 export interface RawExtractedCategory {
@@ -128,7 +146,7 @@ export interface EditableDish {
   /** AI-suggested allergen codes — informational only, not saved to DB directly.
    *  The authoritative allergens are calculated by the DB trigger from dish_ingredients. */
   suggested_allergens?: string[];
-  dish_kind: 'standard' | 'template' | 'combo' | 'experience';
+  dish_kind: DishKind;
   is_parent: boolean;
   serves: number | null;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
@@ -136,6 +154,8 @@ export interface EditableDish {
   variant_ids: string[]; // _ids of child EditableDish entries
   parent_id: string | null; // _id of parent EditableDish
   group_status: 'ai_proposed' | 'accepted' | 'rejected' | 'manual';
+  /** 0-based index of the source image this dish was extracted from. */
+  source_image_index?: number;
 }
 
 export interface EditableCategory {
@@ -172,7 +192,7 @@ export interface ConfirmDish {
   /** Optional variant override per canonical_ingredient_id. Only set when menu-scan resolver identified a specific variant. */
   variant_id_by_canonical?: Record<string, string>;
   option_groups?: ConfirmOptionGroup[];
-  dish_kind: 'standard' | 'template' | 'combo' | 'experience';
+  dish_kind: DishKind;
   is_parent: boolean;
   serves: number;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
@@ -801,6 +821,7 @@ function enrichedToEditable(
     variant_ids: variantIds,
     parent_id: parentId,
     group_status: isParent ? 'ai_proposed' : parentId ? 'ai_proposed' : 'manual',
+    source_image_index: (dish as RawExtractedDish).source_image_index,
   };
 }
 

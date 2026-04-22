@@ -19,6 +19,7 @@ export const DIETARY_TAGS = [
   { value: 'kosher', label: 'Kosher', icon: '✡️' },
   { value: 'jain', label: 'Jain', icon: '☸️' },
   { value: 'buddhist', label: 'Buddhist', icon: '☸️' },
+  { value: 'non_alcoholic', label: 'Non-Alcoholic', icon: '🚫' },
 ] as const;
 
 export type DietaryTagCode = (typeof DIETARY_TAGS)[number]['value'];

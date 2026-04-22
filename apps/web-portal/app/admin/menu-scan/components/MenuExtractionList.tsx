@@ -16,13 +16,7 @@ import { DishGroupCard } from '@/components/admin/menu-scan/DishGroupCard';
 import { BatchToolbar } from '@/components/admin/menu-scan/BatchToolbar';
 import { FlaggedDuplicateCard } from '@/components/admin/menu-scan/FlaggedDuplicateCard';
 import { DishEditPanel } from './DishEditPanel';
-import type { EditableIngredient, FlaggedDuplicate } from '@/lib/menu-scan';
-import type { DishCategory } from '@/lib/dish-categories';
-import type {
-  AddIngredientTarget,
-  DietaryTagOption,
-} from '@/app/admin/menu-scan/hooks/menuScanTypes';
-import type { BatchFilters } from '@/components/admin/menu-scan/BatchToolbar';
+import { useReviewStore } from '../store';
 
 // ---------------------------------------------------------------------------
 // Confidence badge (local helper)
@@ -40,151 +34,68 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
-export interface MenuExtractionListProps {
-  currency: string;
-  editableMenus: EditableMenu[];
-  dishCategories: DishCategory[];
-  setDishCategories: (v: DishCategory[] | ((prev: DishCategory[]) => DishCategory[])) => void;
-  dietaryTags: DietaryTagOption[];
-  expandedDishes: Set<string>;
-  addIngredientTarget: AddIngredientTarget | null;
-  setAddIngredientTarget: (v: AddIngredientTarget | null) => void;
-  suggestingDishId: string | null;
-  isSuggestingAll: boolean;
-  suggestAllProgress: { done: number; total: number } | null;
-  inlineSearchTarget: { mIdx: number; cIdx: number; dIdx: number } | null;
-  setInlineSearchTarget: (v: { mIdx: number; cIdx: number; dIdx: number } | null) => void;
-  subIngredientEditTarget: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null;
-  setSubIngredientEditTarget: (
-    v: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null
-  ) => void;
-  saving: boolean;
-  flaggedDuplicates: FlaggedDuplicate[];
-  selectedGroupIds: Set<string>;
-  setSelectedGroupIds: (v: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
-  batchFilters: BatchFilters;
-  setBatchFilters: (v: BatchFilters) => void;
-  focusedGroupId: string | null;
-  setFocusedGroupId: (v: string | null) => void;
-  reviewedGroupCount: number;
-  totalGroupCount: number;
-  setStep: (step: 'upload' | 'processing' | 'review' | 'done') => void;
-  handleSave: () => Promise<void>;
-  updateMenu: (mIdx: number, patch: Partial<EditableMenu>) => void;
-  updateCategory: (mIdx: number, cIdx: number, patch: { name?: string }) => void;
-  updateDish: (mIdx: number, cIdx: number, dIdx: number, patch: Partial<EditableDish>) => void;
-  resolveIngredient: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    rawText: string,
-    resolved: EditableIngredient
-  ) => void;
-  addIngredientToDish: (mIdx: number, cIdx: number, dIdx: number, ing: EditableIngredient) => void;
-  removeIngredientFromDish: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => void;
-  addSubIngredient: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    ingIdx: number,
-    sub: EditableIngredient
-  ) => void;
-  removeSubIngredient: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    ingIdx: number,
-    subIdx: number
-  ) => void;
-  suggestIngredients: (
-    dishId: string,
-    dishName: string,
-    description: string,
-    mIdx: number,
-    cIdx: number,
-    dIdx: number
-  ) => Promise<void>;
-  suggestAllDishes: () => Promise<void>;
-  deleteDish: (mIdx: number, cIdx: number, dIdx: number) => void;
-  addDish: (mIdx: number, cIdx: number) => void;
-  addVariantDish: (mIdx: number, cIdx: number, parentId: string) => void;
-  deleteCategory: (mIdx: number, cIdx: number) => void;
-  addCategory: (mIdx: number) => void;
-  deleteMenu: (mIdx: number) => void;
-  addMenu: () => void;
-  toggleExpand: (dishId: string) => void;
-  updateDishById: (dishId: string, updates: Partial<EditableDish>) => void;
-  acceptGroup: (parentId: string) => void;
-  rejectGroup: (parentId: string) => void;
-  ungroupChild: (childId: string) => void;
-  groupFlaggedDuplicate: (dupIndex: number) => void;
-  dismissFlaggedDuplicate: (dupIndex: number) => void;
-  acceptHighConfidence: (threshold: number) => void;
-  acceptSelected: () => void;
-  rejectSelected: () => void;
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function MenuExtractionList({
-  currency,
-  editableMenus,
-  dishCategories,
-  setDishCategories,
-  dietaryTags,
-  expandedDishes,
-  setAddIngredientTarget,
-  suggestingDishId,
-  isSuggestingAll,
-  suggestAllProgress,
-  inlineSearchTarget,
-  setInlineSearchTarget,
-  subIngredientEditTarget,
-  setSubIngredientEditTarget,
-  saving,
-  flaggedDuplicates,
-  selectedGroupIds,
-  setSelectedGroupIds,
-  batchFilters,
-  setBatchFilters,
-  focusedGroupId: _focusedGroupId,
-  setFocusedGroupId,
-  reviewedGroupCount,
-  totalGroupCount,
-  setStep,
-  handleSave,
-  updateMenu,
-  updateCategory,
-  updateDish,
-  addIngredientToDish,
-  removeIngredientFromDish,
-  addSubIngredient,
-  removeSubIngredient,
-  suggestIngredients,
-  suggestAllDishes,
-  deleteDish,
-  addDish,
-  addVariantDish,
-  deleteCategory,
-  addCategory,
-  deleteMenu,
-  addMenu,
-  toggleExpand,
-  updateDishById,
-  acceptGroup,
-  rejectGroup,
-  ungroupChild,
-  groupFlaggedDuplicate,
-  dismissFlaggedDuplicate,
-  acceptHighConfidence,
-  acceptSelected,
-  rejectSelected,
-}: MenuExtractionListProps) {
+export function MenuExtractionList() {
+  const currency = useReviewStore(s => s.currency);
+  const editableMenus = useReviewStore(s => s.editableMenus);
+  const expandedDishes = useReviewStore(s => s.expandedDishes);
+  const isSuggestingAll = useReviewStore(s => s.isSuggestingAll);
+  const suggestAllProgress = useReviewStore(s => s.suggestAllProgress);
+  const saving = useReviewStore(s => s.saving);
+  const flaggedDuplicates = useReviewStore(s => s.flaggedDuplicates);
+  const selectedGroupIds = useReviewStore(s => s.selectedGroupIds);
+  const setSelectedGroupIds = useReviewStore(s => s.setSelectedGroupIds);
+  const batchFilters = useReviewStore(s => s.batchFilters);
+  const setBatchFilters = useReviewStore(s => s.setBatchFilters);
+  const setFocusedGroupId = useReviewStore(s => s.setFocusedGroupId);
+  const handleSave = useReviewStore(s => s.handleSave);
+  const setStep = useReviewStore(s => s.setStep);
+  const updateMenu = useReviewStore(s => s.updateMenu);
+  const updateCategory = useReviewStore(s => s.updateCategory);
+  const updateDish = useReviewStore(s => s.updateDish);
+  const suggestAllDishes = useReviewStore(s => s.suggestAllDishes);
+  const deleteDish = useReviewStore(s => s.deleteDish);
+  const addDish = useReviewStore(s => s.addDish);
+  const addVariantDish = useReviewStore(s => s.addVariantDish);
+  const deleteCategory = useReviewStore(s => s.deleteCategory);
+  const addCategory = useReviewStore(s => s.addCategory);
+  const deleteMenu = useReviewStore(s => s.deleteMenu);
+  const addMenu = useReviewStore(s => s.addMenu);
+  const toggleExpand = useReviewStore(s => s.toggleExpand);
+  const updateDishById = useReviewStore(s => s.updateDishById);
+  const acceptGroup = useReviewStore(s => s.acceptGroup);
+  const rejectGroup = useReviewStore(s => s.rejectGroup);
+  const ungroupChild = useReviewStore(s => s.ungroupChild);
+  const groupFlaggedDuplicate = useReviewStore(s => s.groupFlaggedDuplicate);
+  const dismissFlaggedDuplicate = useReviewStore(s => s.dismissFlaggedDuplicate);
+  const acceptHighConfidence = useReviewStore(s => s.acceptHighConfidence);
+  const acceptSelected = useReviewStore(s => s.acceptSelected);
+  const rejectSelected = useReviewStore(s => s.rejectSelected);
+
+  // Derived counts
+  const reviewedGroupCount = editableMenus.reduce(
+    (total, menu) =>
+      total +
+      menu.categories.reduce(
+        (sum, cat) =>
+          sum +
+          cat.dishes.filter(
+            d => d.is_parent && (d.group_status === 'accepted' || d.group_status === 'rejected')
+          ).length,
+        0
+      ),
+    0
+  );
+
+  const totalGroupCount = editableMenus.reduce(
+    (total, menu) =>
+      total +
+      menu.categories.reduce((sum, cat) => sum + cat.dishes.filter(d => d.is_parent).length, 0),
+    0
+  );
+
   const totalDishes = countDishes(editableMenus);
 
   return (
@@ -435,27 +346,7 @@ export function MenuExtractionList({
 
                           {/* Expanded detail */}
                           {isExpanded && (
-                            <DishEditPanel
-                              dish={dish}
-                              mIdx={mIdx}
-                              cIdx={cIdx}
-                              dIdx={dIdx}
-                              dietaryTags={dietaryTags}
-                              dishCategories={dishCategories}
-                              setDishCategories={setDishCategories}
-                              suggestingDishId={suggestingDishId}
-                              suggestIngredients={suggestIngredients}
-                              inlineSearchTarget={inlineSearchTarget}
-                              setInlineSearchTarget={setInlineSearchTarget}
-                              subIngredientEditTarget={subIngredientEditTarget}
-                              setSubIngredientEditTarget={setSubIngredientEditTarget}
-                              setAddIngredientTarget={setAddIngredientTarget}
-                              updateDish={updateDish}
-                              addIngredientToDish={addIngredientToDish}
-                              removeIngredientFromDish={removeIngredientFromDish}
-                              addSubIngredient={addSubIngredient}
-                              removeSubIngredient={removeSubIngredient}
-                            />
+                            <DishEditPanel dish={dish} mIdx={mIdx} cIdx={cIdx} dIdx={dIdx} />
                           )}
                         </div>
                       );
@@ -492,7 +383,7 @@ export function MenuExtractionList({
             save
           </p>
           <Button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={saving || totalDishes === 0}
             className="bg-brand-primary hover:bg-brand-primary/90 text-background"
           >

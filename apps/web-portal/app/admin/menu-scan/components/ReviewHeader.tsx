@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Loader2,
   Utensils,
@@ -12,19 +12,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { RestaurantOption } from '@/app/admin/menu-scan/hooks/menuScanTypes';
-import type { MenuWarning } from '@/lib/menu-scan-warnings';
-
-export interface ReviewHeaderProps {
-  selectedRestaurant: RestaurantOption | null;
-  currency: string;
-  totalDishes: number;
-  imageFileCount: number;
-  saving: boolean;
-  setStep: (step: 'upload' | 'processing' | 'review' | 'done') => void;
-  handleSave: () => Promise<void>;
-  menuWarnings: MenuWarning[];
-}
+import { computeMenuWarnings, extractionNotesToWarnings } from '@/lib/menu-scan-warnings';
+import { countDishes } from '@/lib/menu-scan';
+import { useReviewStore } from '../store';
 
 const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 } as const;
 const SEVERITY_CONFIG = {
@@ -33,16 +23,25 @@ const SEVERITY_CONFIG = {
   info: { icon: Info, color: 'text-info', bg: 'bg-info/10', label: 'Info' },
 } as const;
 
-export function ReviewHeader({
-  selectedRestaurant,
-  currency,
-  totalDishes,
-  imageFileCount,
-  saving,
-  setStep,
-  handleSave,
-  menuWarnings,
-}: ReviewHeaderProps) {
+export function ReviewHeader() {
+  const selectedRestaurant = useReviewStore(s => s.selectedRestaurant);
+  const currency = useReviewStore(s => s.currency);
+  const editableMenus = useReviewStore(s => s.editableMenus);
+  const imageFiles = useReviewStore(s => s.imageFiles);
+  const saving = useReviewStore(s => s.saving);
+  const extractionNotes = useReviewStore(s => s.extractionNotes);
+  const setStep = useReviewStore(s => s.setStep);
+  const handleSave = useReviewStore(s => s.handleSave);
+
+  const totalDishes = useMemo(() => countDishes(editableMenus), [editableMenus]);
+  const menuWarnings = useMemo(
+    () => [
+      ...computeMenuWarnings(editableMenus, currency),
+      ...extractionNotesToWarnings(extractionNotes),
+    ],
+    [editableMenus, currency, extractionNotes]
+  );
+
   const [showWarnings, setShowWarnings] = useState(false);
 
   const errorCount = menuWarnings.filter(w => w.severity === 'error').length;
@@ -63,8 +62,8 @@ export function ReviewHeader({
             <span className="text-sm font-normal text-muted-foreground ml-1">({currency})</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {totalDishes} dish{totalDishes !== 1 ? 'es' : ''} extracted — {imageFileCount} image
-            {imageFileCount !== 1 ? 's' : ''}. Edit as needed, then save.
+            {totalDishes} dish{totalDishes !== 1 ? 'es' : ''} extracted — {imageFiles.length} image
+            {imageFiles.length !== 1 ? 's' : ''}. Edit as needed, then save.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -72,7 +71,7 @@ export function ReviewHeader({
             ← Re-scan
           </Button>
           <Button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={saving || totalDishes === 0}
             className="bg-brand-primary hover:bg-brand-primary/90 text-background"
           >

@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MenuScanUpload } from '@/app/admin/menu-scan/components/MenuScanUpload';
 import { MenuScanProcessing } from '@/app/admin/menu-scan/components/MenuScanProcessing';
 import { MenuScanReview } from '@/app/admin/menu-scan/components/MenuScanReview';
+import { useReviewStore } from '@/app/admin/menu-scan/store';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -210,116 +211,62 @@ describe('MenuScanProcessing', () => {
 // ---------------------------------------------------------------------------
 
 describe('MenuScanReview', () => {
-  const defaultProps = {
-    selectedRestaurant: mockRestaurant,
-    currency: 'MXN',
-    imageFiles: [],
-    previewUrls: [],
-    editableMenus: [
-      {
-        name: 'Lunch',
-        menu_type: 'food' as const,
-        categories: [
-          {
-            name: 'Starters',
-            dishes: [
-              {
-                _id: 'd1',
-                name: 'Tacos',
-                price: '80',
-                description: '',
-                confidence: 0.9,
-                ingredients: [],
-                dietary_tags: [],
-                is_parent: false,
-                parent_id: null,
-                variant_ids: [],
-                group_status: 'manual' as const,
-                dish_kind: 'standard' as const,
-                serves: 1,
-                display_price_prefix: 'exact' as const,
-                spice_level: null,
-                calories: null,
-                dish_category_id: null,
-                primary_protein: null,
-                suggested_allergens: [],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    setEditableMenus: noOp,
-    dishCategories: [],
-    setDishCategories: noOp,
-    dietaryTags: [],
-    currentImageIdx: 0,
-    setCurrentImageIdx: noOp,
-    expandedDishes: new Set<string>(),
-    addIngredientTarget: null,
-    setAddIngredientTarget: noOp,
-    suggestingDishId: null,
-    isSuggestingAll: false,
-    suggestAllProgress: null,
-    inlineSearchTarget: null,
-    setInlineSearchTarget: noOp,
-    subIngredientEditTarget: null,
-    setSubIngredientEditTarget: noOp,
-    saving: false,
-    flaggedDuplicates: [],
-    selectedGroupIds: new Set<string>(),
-    setSelectedGroupIds: noOp,
-    batchFilters: { confidenceMin: null, dishKind: null, hasGrouping: null },
-    setBatchFilters: noOp,
-    focusedGroupId: null,
-    setFocusedGroupId: noOp,
-    restaurantDetails: mockRestaurantDetails,
-    updateRestaurantDetails: noOp,
-    leftPanelTab: 'images' as const,
-    setLeftPanelTab: noOp,
-    lightboxOpen: false,
-    setLightboxOpen: noOp,
-    reviewedGroupCount: 0,
-    totalGroupCount: 0,
-    setStep: noOp,
-    handleSave: asyncNoOp,
-    updateMenu: noOp,
-    updateCategory: noOp,
-    updateDish: noOp,
-    resolveIngredient: noOp,
-    addIngredientToDish: noOp,
-    removeIngredientFromDish: noOp,
-    addSubIngredient: noOp,
-    removeSubIngredient: noOp,
-    suggestIngredients: asyncNoOp,
-    suggestAllDishes: asyncNoOp,
-    deleteDish: noOp,
-    addDish: noOp,
-    addVariantDish: noOp,
-    deleteCategory: noOp,
-    addCategory: noOp,
-    deleteMenu: noOp,
-    addMenu: noOp,
-    toggleExpand: noOp,
-    updateDishById: noOp,
-    acceptGroup: noOp,
-    rejectGroup: noOp,
-    ungroupChild: noOp,
-    groupFlaggedDuplicate: noOp,
-    dismissFlaggedDuplicate: noOp,
-    acceptHighConfidence: noOp,
-    acceptSelected: noOp,
-    rejectSelected: noOp,
-    menuWarnings: [],
-  };
+  beforeEach(() => {
+    useReviewStore.setState({
+      selectedRestaurant: mockRestaurant,
+      currency: 'MXN',
+      imageFiles: [],
+      previewUrls: [],
+      editableMenus: [
+        {
+          name: 'Lunch',
+          menu_type: 'food' as const,
+          categories: [
+            {
+              name: 'Starters',
+              dishes: [
+                {
+                  _id: 'd1',
+                  name: 'Tacos',
+                  price: '80',
+                  description: '',
+                  confidence: 0.9,
+                  ingredients: [],
+                  dietary_tags: [],
+                  is_parent: false,
+                  parent_id: null,
+                  variant_ids: [],
+                  group_status: 'manual' as const,
+                  dish_kind: 'standard' as const,
+                  serves: 1,
+                  display_price_prefix: 'exact' as const,
+                  spice_level: null,
+                  calories: null,
+                  dish_category_id: null,
+                  primary_protein: null,
+                  suggested_allergens: [],
+                  courses: [],
+                  is_template: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      saving: false,
+      lightboxOpen: false,
+      extractionNotes: [],
+      addIngredientTarget: null,
+    });
+  });
 
   it('renders dish count', () => {
-    render(<MenuScanReview {...defaultProps} />);
+    render(<MenuScanReview jobId="test-job" />);
     expect(screen.getByText(/1 dish extracted/)).toBeInTheDocument();
   });
 
   it('renders "Save X dishes to DB" button', () => {
-    render(<MenuScanReview {...defaultProps} />);
+    render(<MenuScanReview jobId="test-job" />);
     expect(screen.getByRole('button', { name: /save 1 dishes to db/i })).toBeInTheDocument();
   });
 });

@@ -1,10 +1,8 @@
 'use client';
+import { useReviewStore } from '../store';
 
-import { useState } from 'react';
-import type { Step } from './menuScanTypes';
-
-/** Manages the step state machine: upload → processing → review → done */
 export function useMenuScanStep() {
-  const [step, setStep] = useState<Step>('upload');
+  const step = useReviewStore(s => s.step);
+  const setStep = useReviewStore(s => s.setStep);
   return { step, setStep };
 }

@@ -4,29 +4,18 @@ import { Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ImageCarousel } from './ImageCarousel';
 import { RestaurantDetailsFormPanel } from './RestaurantDetailsFormPanel';
-import type { RestaurantDetailsForm } from '@/app/admin/menu-scan/hooks/menuScanTypes';
+import { useReviewStore } from '../store';
 
-export interface ReviewLeftPanelProps {
-  leftPanelTab: 'images' | 'details';
-  setLeftPanelTab: (v: 'images' | 'details') => void;
-  previewUrls: string[];
-  currentImageIdx: number;
-  setCurrentImageIdx: (v: number | ((prev: number) => number)) => void;
-  setLightboxOpen: (v: boolean) => void;
-  restaurantDetails: RestaurantDetailsForm;
-  updateRestaurantDetails: (patch: Partial<RestaurantDetailsForm>) => void;
-}
+export function ReviewLeftPanel() {
+  const leftPanelTab = useReviewStore(s => s.leftPanelTab);
+  const setLeftPanelTab = useReviewStore(s => s.setLeftPanelTab);
+  const previewUrls = useReviewStore(s => s.previewUrls);
+  const currentImageIdx = useReviewStore(s => s.currentImageIdx);
+  const setCurrentImageIdx = useReviewStore(s => s.setCurrentImageIdx);
+  const setLightboxOpen = useReviewStore(s => s.setLightboxOpen);
+  const restaurantDetails = useReviewStore(s => s.restaurantDetails);
+  const updateRestaurantDetails = useReviewStore(s => s.updateRestaurantDetails);
 
-export function ReviewLeftPanel({
-  leftPanelTab,
-  setLeftPanelTab,
-  previewUrls,
-  currentImageIdx,
-  setCurrentImageIdx,
-  setLightboxOpen,
-  restaurantDetails,
-  updateRestaurantDetails,
-}: ReviewLeftPanelProps) {
   return (
     <div className="w-80 shrink-0 flex flex-col bg-background rounded-xl border overflow-hidden">
       {/* Tab switcher */}

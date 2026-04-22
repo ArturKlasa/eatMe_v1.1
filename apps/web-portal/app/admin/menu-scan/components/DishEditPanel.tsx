@@ -6,77 +6,33 @@ import { cn } from '@/lib/utils';
 import { getDietaryTagIcon, getAllergenIcon } from '@/lib/icons';
 import { InlineIngredientSearch } from '@/components/admin/InlineIngredientSearch';
 import { createDishCategory } from '@/lib/dish-categories';
-import type { EditableDish, EditableIngredient } from '@/lib/menu-scan';
-import type { DishCategory } from '@/lib/dish-categories';
-import type {
-  AddIngredientTarget,
-  DietaryTagOption,
-} from '@/app/admin/menu-scan/hooks/menuScanTypes';
+import type { EditableDish } from '@/lib/menu-scan';
+import { useReviewStore } from '../store';
 
 export interface DishEditPanelProps {
   dish: EditableDish;
   mIdx: number;
   cIdx: number;
   dIdx: number;
-  dietaryTags: DietaryTagOption[];
-  dishCategories: DishCategory[];
-  setDishCategories: (v: DishCategory[] | ((prev: DishCategory[]) => DishCategory[])) => void;
-  suggestingDishId: string | null;
-  suggestIngredients: (
-    dishId: string,
-    dishName: string,
-    description: string,
-    mIdx: number,
-    cIdx: number,
-    dIdx: number
-  ) => Promise<void>;
-  inlineSearchTarget: { mIdx: number; cIdx: number; dIdx: number } | null;
-  setInlineSearchTarget: (v: { mIdx: number; cIdx: number; dIdx: number } | null) => void;
-  subIngredientEditTarget: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null;
-  setSubIngredientEditTarget: (
-    v: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null
-  ) => void;
-  setAddIngredientTarget: (v: AddIngredientTarget | null) => void;
-  updateDish: (mIdx: number, cIdx: number, dIdx: number, patch: Partial<EditableDish>) => void;
-  addIngredientToDish: (mIdx: number, cIdx: number, dIdx: number, ing: EditableIngredient) => void;
-  removeIngredientFromDish: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => void;
-  addSubIngredient: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    ingIdx: number,
-    sub: EditableIngredient
-  ) => void;
-  removeSubIngredient: (
-    mIdx: number,
-    cIdx: number,
-    dIdx: number,
-    ingIdx: number,
-    subIdx: number
-  ) => void;
 }
 
-export function DishEditPanel({
-  dish,
-  mIdx,
-  cIdx,
-  dIdx,
-  dietaryTags,
-  dishCategories,
-  setDishCategories,
-  suggestingDishId,
-  suggestIngredients,
-  inlineSearchTarget,
-  setInlineSearchTarget,
-  subIngredientEditTarget,
-  setSubIngredientEditTarget,
-  setAddIngredientTarget,
-  updateDish,
-  addIngredientToDish,
-  removeIngredientFromDish,
-  addSubIngredient,
-  removeSubIngredient,
-}: DishEditPanelProps) {
+export function DishEditPanel({ dish, mIdx, cIdx, dIdx }: DishEditPanelProps) {
+  const dietaryTags = useReviewStore(s => s.dietaryTags);
+  const dishCategories = useReviewStore(s => s.dishCategories);
+  const setDishCategories = useReviewStore(s => s.setDishCategories);
+  const suggestingDishId = useReviewStore(s => s.suggestingDishId);
+  const suggestIngredients = useReviewStore(s => s.suggestIngredients);
+  const inlineSearchTarget = useReviewStore(s => s.inlineSearchTarget);
+  const setInlineSearchTarget = useReviewStore(s => s.setInlineSearchTarget);
+  const subIngredientEditTarget = useReviewStore(s => s.subIngredientEditTarget);
+  const setSubIngredientEditTarget = useReviewStore(s => s.setSubIngredientEditTarget);
+  const setAddIngredientTarget = useReviewStore(s => s.setAddIngredientTarget);
+  const updateDish = useReviewStore(s => s.updateDish);
+  const addIngredientToDish = useReviewStore(s => s.addIngredientToDish);
+  const removeIngredientFromDish = useReviewStore(s => s.removeIngredientFromDish);
+  const addSubIngredient = useReviewStore(s => s.addSubIngredient);
+  const removeSubIngredient = useReviewStore(s => s.removeSubIngredient);
+
   return (
     <div className="mt-3 space-y-3 pl-1">
       {/* Description */}

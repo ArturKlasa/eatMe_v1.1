@@ -2,10 +2,11 @@ import { StateCreator } from 'zustand';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { pdfToImages } from '@/lib/menu-scan-utils';
-import type { RestaurantOption } from '../hooks/menuScanTypes';
+import type { RestaurantOption, Step } from '../hooks/menuScanTypes';
 
 export interface UploadSlice {
   // State
+  step: Step;
   restaurants: RestaurantOption[];
   restaurantSearch: string;
   showRestaurantDropdown: boolean;
@@ -19,6 +20,9 @@ export interface UploadSlice {
   isPdfConverting: boolean;
   currentImageIdx: number;
   restaurantsWithoutMenu: RestaurantOption[];
+
+  // Setters
+  setStep: (step: Step) => void;
 
   // Setters — some accept functional updater form to match React Dispatch<SetStateAction<T>> callsites
   setRestaurants: (
@@ -48,9 +52,11 @@ export interface UploadSlice {
 
   // Reset
   resetUpload: () => void;
+  resetAll: () => void;
 }
 
 const initialState = {
+  step: 'upload' as Step,
   restaurants: [] as RestaurantOption[],
   restaurantSearch: '',
   showRestaurantDropdown: false,
@@ -194,4 +200,57 @@ export const createUploadSlice: StateCreator<any, [], [], UploadSlice> = (set, g
   },
 
   resetUpload: () => set(initialState),
+
+  setStep: step => set({ step }),
+
+  resetAll: () =>
+    set({
+      // Step
+      step: 'upload' as Step,
+      // Upload (keep restaurants and restaurantsWithoutMenu loaded)
+      selectedRestaurant: null,
+      restaurantSearch: '',
+      showRestaurantDropdown: false,
+      isPreSelected: false,
+      imageFiles: [],
+      previewUrls: [],
+      isDragging: false,
+      isPdfConverting: false,
+      currentImageIdx: 0,
+      // Review
+      jobId: '',
+      currency: 'USD',
+      editableMenus: [],
+      expandedDishes: new Set<string>(),
+      extractionNotes: [],
+      saving: false,
+      savedCount: 0,
+      restaurantDetails: {
+        address: '',
+        city: '',
+        neighbourhood: '',
+        state: '',
+        postal_code: '',
+        country_code: 'MX' as const,
+        phone: '',
+        website: '',
+        lat: null,
+        lng: null,
+        dirty: false,
+      },
+      leftPanelTab: 'images' as const,
+      lightboxOpen: false,
+      // Ingredient UI
+      addIngredientTarget: null,
+      inlineSearchTarget: null,
+      subIngredientEditTarget: null,
+      suggestingDishId: null,
+      isSuggestingAll: false,
+      suggestAllProgress: null,
+      // Group
+      flaggedDuplicates: [],
+      selectedGroupIds: new Set<string>(),
+      focusedGroupId: null,
+      batchFilters: { confidenceMin: null, dishKind: null, hasGrouping: null },
+    }),
 });

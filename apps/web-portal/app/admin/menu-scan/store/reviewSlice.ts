@@ -4,6 +4,7 @@ import { supabase, formatLocationForSupabase } from '@/lib/supabase';
 import {
   type EditableMenu,
   type EditableDish,
+  type EditableIngredient,
   type EditableCourse,
   type EditableCourseItem,
   type EnrichedResult,
@@ -17,7 +18,11 @@ import {
   buildConfirmPayload,
 } from '@/lib/menu-scan';
 import { type DishCategory } from '@/lib/dish-categories';
-import type { DietaryTagOption, RestaurantDetailsForm } from '../hooks/menuScanTypes';
+import type {
+  AddIngredientTarget,
+  DietaryTagOption,
+  RestaurantDetailsForm,
+} from '../hooks/menuScanTypes';
 import type { DishKind } from '@eatme/shared';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +43,53 @@ export interface ReviewSlice {
   restaurantDetails: RestaurantDetailsForm;
   leftPanelTab: 'images' | 'details';
   lightboxOpen: boolean;
+
+  // Ingredient UI state
+  addIngredientTarget: AddIngredientTarget | null;
+  setAddIngredientTarget: (v: AddIngredientTarget | null) => void;
+  inlineSearchTarget: { mIdx: number; cIdx: number; dIdx: number } | null;
+  setInlineSearchTarget: (v: { mIdx: number; cIdx: number; dIdx: number } | null) => void;
+  subIngredientEditTarget: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null;
+  setSubIngredientEditTarget: (
+    v: { mIdx: number; cIdx: number; dIdx: number; ingIdx: number } | null
+  ) => void;
+  suggestingDishId: string | null;
+  isSuggestingAll: boolean;
+  suggestAllProgress: { done: number; total: number } | null;
+
+  // Ingredient mutation actions
+  resolveIngredient: (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    rawText: string,
+    resolved: EditableIngredient
+  ) => void;
+  addIngredientToDish: (mIdx: number, cIdx: number, dIdx: number, ing: EditableIngredient) => void;
+  removeIngredientFromDish: (mIdx: number, cIdx: number, dIdx: number, ingIdx: number) => void;
+  addSubIngredient: (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ingIdx: number,
+    sub: EditableIngredient
+  ) => void;
+  removeSubIngredient: (
+    mIdx: number,
+    cIdx: number,
+    dIdx: number,
+    ingIdx: number,
+    subIdx: number
+  ) => void;
+  suggestIngredients: (
+    dishId: string,
+    dishName: string,
+    description: string,
+    mIdx: number,
+    cIdx: number,
+    dIdx: number
+  ) => Promise<void>;
+  suggestAllDishes: () => Promise<void>;
 
   // Simple setters
   setJobId: (jobId: string) => void;
@@ -127,6 +179,17 @@ const initialState = {
   restaurantDetails: initialRestaurantDetails,
   leftPanelTab: 'images' as 'images' | 'details',
   lightboxOpen: false,
+  addIngredientTarget: null as AddIngredientTarget | null,
+  inlineSearchTarget: null as { mIdx: number; cIdx: number; dIdx: number } | null,
+  subIngredientEditTarget: null as {
+    mIdx: number;
+    cIdx: number;
+    dIdx: number;
+    ingIdx: number;
+  } | null,
+  suggestingDishId: null as string | null,
+  isSuggestingAll: false,
+  suggestAllProgress: null as { done: number; total: number } | null,
 };
 
 // ---------------------------------------------------------------------------
@@ -184,6 +247,170 @@ export const createReviewSlice: StateCreator<any, [], [], ReviewSlice> = (set, g
   setRestaurantDetails: restaurantDetails => set({ restaurantDetails }),
   setLeftPanelTab: leftPanelTab => set({ leftPanelTab }),
   setLightboxOpen: lightboxOpen => set({ lightboxOpen }),
+
+  // --- Ingredient UI setters ---
+  setAddIngredientTarget: v => set({ addIngredientTarget: v }),
+  setInlineSearchTarget: v => set({ inlineSearchTarget: v }),
+  setSubIngredientEditTarget: v => set({ subIngredientEditTarget: v }),
+
+  // --- Ingredient mutation actions ---
+  resolveIngredient: (mIdx, cIdx, dIdx, rawText, resolved) =>
+    set((s: ReviewSlice) => ({
+      editableMenus: s.editableMenus.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return {
+                  ...d,
+                  ingredients: d.ingredients.map(ing =>
+                    ing.raw_text === rawText ? resolved : ing
+                  ),
+                };
+              }),
+            };
+          }),
+        };
+      }),
+    })),
+
+  addIngredientToDish: (mIdx, cIdx, dIdx, ing) =>
+    set((s: ReviewSlice) => ({
+      editableMenus: s.editableMenus.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                const alreadyHas = d.ingredients.some(
+                  i =>
+                    i.canonical_ingredient_id &&
+                    i.canonical_ingredient_id === ing.canonical_ingredient_id
+                );
+                if (alreadyHas) return d;
+                return { ...d, ingredients: [...d.ingredients, ing] };
+              }),
+            };
+          }),
+        };
+      }),
+    })),
+
+  removeIngredientFromDish: (mIdx, cIdx, dIdx, ingIdx) => {
+    const { subIngredientEditTarget } = get() as ReviewSlice;
+    if (
+      subIngredientEditTarget?.mIdx === mIdx &&
+      subIngredientEditTarget?.cIdx === cIdx &&
+      subIngredientEditTarget?.dIdx === dIdx
+    ) {
+      if (subIngredientEditTarget.ingIdx === ingIdx) {
+        set({ subIngredientEditTarget: null });
+      } else if (subIngredientEditTarget.ingIdx > ingIdx) {
+        set({
+          subIngredientEditTarget: {
+            ...subIngredientEditTarget,
+            ingIdx: subIngredientEditTarget.ingIdx - 1,
+          },
+        });
+      }
+    }
+    set((s: ReviewSlice) => ({
+      editableMenus: s.editableMenus.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return { ...d, ingredients: d.ingredients.filter((_, ii) => ii !== ingIdx) };
+              }),
+            };
+          }),
+        };
+      }),
+    }));
+  },
+
+  addSubIngredient: (mIdx, cIdx, dIdx, ingIdx, sub) =>
+    set((s: ReviewSlice) => ({
+      editableMenus: s.editableMenus.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return {
+                  ...d,
+                  ingredients: d.ingredients.map((ing, ii) => {
+                    if (ii !== ingIdx) return ing;
+                    const existing = ing.sub_ingredients ?? [];
+                    if (
+                      sub.canonical_ingredient_id &&
+                      existing.some(s => s.canonical_ingredient_id === sub.canonical_ingredient_id)
+                    )
+                      return ing;
+                    return { ...ing, sub_ingredients: [...existing, sub] };
+                  }),
+                };
+              }),
+            };
+          }),
+        };
+      }),
+    })),
+
+  removeSubIngredient: (mIdx, cIdx, dIdx, ingIdx, subIdx) =>
+    set((s: ReviewSlice) => ({
+      editableMenus: s.editableMenus.map((m, mi) => {
+        if (mi !== mIdx) return m;
+        return {
+          ...m,
+          categories: m.categories.map((c, ci) => {
+            if (ci !== cIdx) return c;
+            return {
+              ...c,
+              dishes: c.dishes.map((d, di) => {
+                if (di !== dIdx) return d;
+                return {
+                  ...d,
+                  ingredients: d.ingredients.map((ing, ii) => {
+                    if (ii !== ingIdx) return ing;
+                    return {
+                      ...ing,
+                      sub_ingredients: (ing.sub_ingredients ?? []).filter((_, si) => si !== subIdx),
+                    };
+                  }),
+                };
+              }),
+            };
+          }),
+        };
+      }),
+    })),
+
+  suggestIngredients: async () => {
+    return;
+  },
+
+  suggestAllDishes: async () => {
+    return;
+  },
 
   // --- Compound setters ---
   updateRestaurantDetails: patch =>
@@ -396,6 +623,8 @@ export const createReviewSlice: StateCreator<any, [], [], ReviewSlice> = (set, g
         `${data.dishes_saved} dishes saved to ${selectedRestaurant?.name ?? 'restaurant'}!`
       );
       opts.onSaveSuccess?.();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (get() as any).resetAll?.();
     } catch (err: unknown) {
       console.error('[MenuScan] Save error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save');
@@ -557,5 +786,9 @@ export const createReviewSlice: StateCreator<any, [], [], ReviewSlice> = (set, g
   },
 
   // --- Reset ---
-  resetReview: () => set({ ...initialState, expandedDishes: new Set<string>() }),
+  resetReview: () =>
+    set({
+      ...initialState,
+      expandedDishes: new Set<string>(),
+    }),
 });

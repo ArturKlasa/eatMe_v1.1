@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { toEditableMenus } from '@/lib/menu-scan';
+import type { EditableMenu } from '@/lib/menu-scan';
 import { useMenuScanStep } from './useMenuScanStep';
 import { useUploadState } from './useUploadState';
 import { useProcessingState } from './useProcessingState';
 import { useReviewState } from './useReviewState';
 import { useGroupState } from './useGroupState';
 import { useJobQueue } from './useJobQueue';
+import { useReviewStore } from '../store';
 import type { ScanJob } from './menuScanTypes';
 
 /**
@@ -29,7 +31,9 @@ export function useMenuScan() {
   });
   const group = useGroupState({
     editableMenus: review.editableMenus,
-    setEditableMenus: review.setEditableMenus,
+    setEditableMenus: review.setEditableMenus as unknown as React.Dispatch<
+      React.SetStateAction<EditableMenu[]>
+    >,
     step,
     toggleExpand: review.toggleExpand,
   });
@@ -132,36 +136,7 @@ export function useMenuScan() {
     [jobQueue.getJob, jobQueue.dismissJob]
   );
 
-  const resetAll = () => {
-    setStep('upload');
-    upload.setSelectedRestaurant(null);
-    upload.setRestaurantSearch('');
-    upload.setImageFiles([]);
-    upload.setPreviewUrls([]);
-    review.setJobId('');
-    review.setEditableMenus([]);
-    review.setExpandedDishes(new Set());
-    review.setExtractionNotes([]);
-    review.setSavedCount(0);
-    review.setRestaurantDetails({
-      address: '',
-      city: '',
-      neighbourhood: '',
-      state: '',
-      postal_code: '',
-      country_code: 'MX',
-      phone: '',
-      website: '',
-      lat: null,
-      lng: null,
-      dirty: false,
-    });
-    review.setLightboxOpen(false);
-    review.setLeftPanelTab('images');
-    group.setSelectedGroupIds(new Set());
-    group.setFocusedGroupId(null);
-    group.setBatchFilters({ confidenceMin: null, dishKind: null, hasGrouping: null });
-  };
+  const resetAll = () => useReviewStore.getState().resetAll();
 
   useEffect(() => {
     resetAllRef.current = resetAll;

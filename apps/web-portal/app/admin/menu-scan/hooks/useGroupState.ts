@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import type { EditableDish, EditableMenu, FlaggedDuplicate } from '@/lib/menu-scan';
+import { useEffect } from 'react';
+import { useReviewStore } from '../store';
+import type { EditableDish, EditableMenu } from '@/lib/menu-scan';
 import type { BatchFilters } from '@/components/admin/menu-scan/BatchToolbar';
 import type { Step } from './menuScanTypes';
 
@@ -13,212 +13,31 @@ interface GroupDeps {
   toggleExpand: (dishId: string) => void;
 }
 
-/** Manages group/batch state: duplicate flagging, batch acceptance, group review */
-export function useGroupState(deps: GroupDeps) {
-  // ---------- flagged duplicates from merge ----------
-  const [flaggedDuplicates, setFlaggedDuplicates] = useState<FlaggedDuplicate[]>([]);
+/** Thin store wrapper — all group state and actions live in the Zustand store */
+export function useGroupState(_deps: GroupDeps) {
+  const flaggedDuplicates = useReviewStore(s => s.flaggedDuplicates);
+  const selectedGroupIds = useReviewStore(s => s.selectedGroupIds);
+  const batchFilters = useReviewStore(s => s.batchFilters);
+  const focusedGroupId = useReviewStore(s => s.focusedGroupId);
+  const step = useReviewStore(s => s.step);
+  const editableMenus = useReviewStore(s => s.editableMenus);
 
-  // ---------- batch toolbar / group review state ----------
-  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
-  const [batchFilters, setBatchFilters] = useState<BatchFilters>({
-    confidenceMin: null,
-    dishKind: null,
-    hasGrouping: null,
-  });
-  const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
+  const setFlaggedDuplicates = useReviewStore(s => s.setFlaggedDuplicates);
+  const setSelectedGroupIds = useReviewStore(s => s.setSelectedGroupIds);
+  const setBatchFilters = useReviewStore(s => s.setBatchFilters);
+  const setFocusedGroupId = useReviewStore(s => s.setFocusedGroupId);
+  const acceptGroup = useReviewStore(s => s.acceptGroup);
+  const rejectGroup = useReviewStore(s => s.rejectGroup);
+  const ungroupChild = useReviewStore(s => s.ungroupChild);
+  const groupFlaggedDuplicate = useReviewStore(s => s.groupFlaggedDuplicate);
+  const dismissFlaggedDuplicate = useReviewStore(s => s.dismissFlaggedDuplicate);
+  const acceptHighConfidence = useReviewStore(s => s.acceptHighConfidence);
+  const acceptSelected = useReviewStore(s => s.acceptSelected);
+  const rejectSelected = useReviewStore(s => s.rejectSelected);
+  const toggleExpand = useReviewStore(s => s.toggleExpand);
 
-  // ---------- group management helpers ----------
-
-  const acceptGroup = (parentId: string) => {
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (d._id === parentId || d.parent_id === parentId) {
-              return { ...d, group_status: 'accepted' as const };
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    toast.success('Group accepted');
-  };
-
-  const rejectGroup = (parentId: string) => {
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (d._id === parentId || d.parent_id === parentId) {
-              return { ...d, group_status: 'rejected' as const };
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    toast('Group rejected', { icon: '✕' });
-  };
-
-  const ungroupChild = (childId: string) => {
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (d._id === childId) {
-              return { ...d, parent_id: null, is_parent: false, group_status: 'manual' as const };
-            }
-            if (d.variant_ids.includes(childId)) {
-              const newVariantIds = d.variant_ids.filter(id => id !== childId);
-              return {
-                ...d,
-                variant_ids: newVariantIds,
-                is_parent: newVariantIds.length > 0,
-              };
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    toast('Variant ungrouped');
-  };
-
-  const groupFlaggedDuplicate = (dupIndex: number) => {
-    const dup = flaggedDuplicates[dupIndex];
-    if (!dup) return;
-
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (d.name.toLowerCase().trim() === dup.existingDish.name.toLowerCase().trim()) {
-              if (d.price === String(dup.existingDish.price)) {
-                return {
-                  ...d,
-                  is_parent: true,
-                  dish_kind: 'standard' as const,
-                  display_price_prefix: 'from' as const,
-                  group_status: 'manual' as const,
-                };
-              }
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    setFlaggedDuplicates(prev => prev.filter((_, i) => i !== dupIndex));
-    toast.success('Dishes grouped as variants');
-  };
-
-  const dismissFlaggedDuplicate = (dupIndex: number) => {
-    setFlaggedDuplicates(prev => prev.filter((_, i) => i !== dupIndex));
-  };
-
-  const getParentGroups = useCallback((): Array<{
-    parent: EditableDish;
-    children: EditableDish[];
-    menuIdx: number;
-    catIdx: number;
-  }> => {
-    const groups: Array<{
-      parent: EditableDish;
-      children: EditableDish[];
-      menuIdx: number;
-      catIdx: number;
-    }> = [];
-
-    deps.editableMenus.forEach((menu, mIdx) => {
-      menu.categories.forEach((cat, cIdx) => {
-        cat.dishes.forEach(dish => {
-          if (dish.is_parent) {
-            const children = cat.dishes.filter(d => d.parent_id === dish._id);
-            groups.push({ parent: dish, children, menuIdx: mIdx, catIdx: cIdx });
-          }
-        });
-      });
-    });
-
-    return groups;
-  }, [deps.editableMenus]);
-
-  const acceptHighConfidence = (threshold: number) => {
-    let count = 0;
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (d.is_parent && d.confidence >= threshold && d.group_status === 'ai_proposed') {
-              count++;
-              return { ...d, group_status: 'accepted' as const };
-            }
-            if (d.parent_id) {
-              const parent = c.dishes.find(p => p._id === d.parent_id);
-              if (parent && parent.confidence >= threshold && parent.group_status === 'ai_proposed') {
-                return { ...d, group_status: 'accepted' as const };
-              }
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    if (count > 0) toast.success(`Accepted ${count} high-confidence group(s)`);
-    else toast.info('No unreviewed high-confidence groups found');
-  };
-
-  const acceptSelected = () => {
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (selectedGroupIds.has(d._id) || (d.parent_id && selectedGroupIds.has(d.parent_id))) {
-              return { ...d, group_status: 'accepted' as const };
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    toast.success(`Accepted ${selectedGroupIds.size} group(s)`);
-    setSelectedGroupIds(new Set());
-  };
-
-  const rejectSelected = () => {
-    deps.setEditableMenus(prev =>
-      prev.map(m => ({
-        ...m,
-        categories: m.categories.map(c => ({
-          ...c,
-          dishes: c.dishes.map(d => {
-            if (selectedGroupIds.has(d._id) || (d.parent_id && selectedGroupIds.has(d.parent_id))) {
-              return { ...d, group_status: 'rejected' as const };
-            }
-            return d;
-          }),
-        })),
-      }))
-    );
-    toast('Rejected selected groups', { icon: '✕' });
-    setSelectedGroupIds(new Set());
-  };
-
-  // ---------- derived counts ----------
-  const reviewedGroupCount = deps.editableMenus.reduce(
+  // Derived counts (computed from store state)
+  const reviewedGroupCount = editableMenus.reduce(
     (total, menu) =>
       total +
       menu.categories.reduce(
@@ -232,19 +51,16 @@ export function useGroupState(deps: GroupDeps) {
     0
   );
 
-  const totalGroupCount = deps.editableMenus.reduce(
+  const totalGroupCount = editableMenus.reduce(
     (total, menu) =>
       total +
-      menu.categories.reduce(
-        (sum, cat) => sum + cat.dishes.filter(d => d.is_parent).length,
-        0
-      ),
+      menu.categories.reduce((sum, cat) => sum + cat.dishes.filter(d => d.is_parent).length, 0),
     0
   );
 
-  // ---------- keyboard shortcuts for group review (A/R/E) ----------
+  // Keyboard shortcuts for focused group (A/R/E)
   useEffect(() => {
-    if (deps.step !== 'review' || !focusedGroupId) return;
+    if (step !== 'review' || !focusedGroupId) return;
 
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -258,13 +74,35 @@ export function useGroupState(deps: GroupDeps) {
         rejectGroup(focusedGroupId);
       } else if (e.key === 'e' || e.key === 'E') {
         e.preventDefault();
-        deps.toggleExpand(focusedGroupId);
+        toggleExpand(focusedGroupId);
       }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [deps.step, focusedGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, focusedGroupId, acceptGroup, rejectGroup, toggleExpand]);
+
+  const getParentGroups = () => {
+    const groups: Array<{
+      parent: EditableDish;
+      children: EditableDish[];
+      menuIdx: number;
+      catIdx: number;
+    }> = [];
+
+    editableMenus.forEach((menu, mIdx) => {
+      menu.categories.forEach((cat, cIdx) => {
+        cat.dishes.forEach(dish => {
+          if (dish.is_parent) {
+            const children = cat.dishes.filter(d => d.parent_id === dish._id);
+            groups.push({ parent: dish, children, menuIdx: mIdx, catIdx: cIdx });
+          }
+        });
+      });
+    });
+
+    return groups;
+  };
 
   return {
     flaggedDuplicates,

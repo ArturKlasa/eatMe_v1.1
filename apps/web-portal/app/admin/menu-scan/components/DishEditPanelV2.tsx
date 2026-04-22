@@ -11,6 +11,7 @@ import { DISH_KIND_META } from '@eatme/shared';
 import { useReviewStore } from '../store';
 import { KindSelectorV2 } from './KindSelectorV2';
 import { VariantEditor } from './VariantEditor';
+import { CourseEditor } from './CourseEditor';
 
 type NewKind = keyof typeof DISH_KIND_META;
 
@@ -127,6 +128,9 @@ export function DishEditPanelV2({ dish, mIdx, cIdx, dIdx }: DishEditPanelV2Props
       {showVariantEditor && (
         <VariantEditor mIdx={mIdx} cIdx={cIdx} parentDish={dish} currency={currency} />
       )}
+
+      {/* Course editor (for course_menu parents) */}
+      {isCourseMenuParent && <CourseEditor dishId={dish._id} />}
 
       {/* Dietary tags */}
       {dietaryTags.length > 0 && (

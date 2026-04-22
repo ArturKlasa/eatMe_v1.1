@@ -48,6 +48,11 @@ vi.mock('../VariantEditor', () => ({
   VariantEditor: () => <div data-testid="variant-editor" />,
 }));
 
+// Mock CourseEditor
+vi.mock('../CourseEditor', () => ({
+  CourseEditor: () => <div data-testid="course-editor" />,
+}));
+
 const baseStoreState = {
   dietaryTags: [],
   dishCategories: [],
@@ -147,5 +152,21 @@ describe('DishEditPanelV2', () => {
     const dish = { ...newEmptyDish(), dish_kind: 'standard' as const, is_parent: false };
     render(<DishEditPanelV2 dish={dish} mIdx={0} cIdx={0} dIdx={0} />);
     expect(screen.queryByTestId('variant-editor')).not.toBeInTheDocument();
+  });
+
+  it('renders CourseEditor for course_menu parent', () => {
+    const dish = {
+      ...newEmptyDish(),
+      dish_kind: 'course_menu' as const,
+      is_parent: true,
+    };
+    render(<DishEditPanelV2 dish={dish} mIdx={0} cIdx={0} dIdx={0} />);
+    expect(screen.getByTestId('course-editor')).toBeInTheDocument();
+  });
+
+  it('does NOT render CourseEditor for non-course_menu kinds', () => {
+    const dish = { ...newEmptyDish(), dish_kind: 'standard' as const, is_parent: false };
+    render(<DishEditPanelV2 dish={dish} mIdx={0} cIdx={0} dIdx={0} />);
+    expect(screen.queryByTestId('course-editor')).not.toBeInTheDocument();
   });
 });

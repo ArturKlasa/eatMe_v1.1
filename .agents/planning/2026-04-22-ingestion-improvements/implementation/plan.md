@@ -28,7 +28,7 @@ Assumptions going in:
 - [x] Step 9: groupSlice + selectors (flagged, grouped-by-image, confirm summary)
 - [x] Step 10: ReviewPage shell reads from store (functional parity with old UI)
 - [x] Step 11: DishEditPanelV2 + KindSelectorV2 + VariantEditor
-- [ ] Step 12: CourseEditor
+- [x] Step 12: CourseEditor
 - [ ] Step 13: PageGroupedList with source-image chip and carousel sync
 - [ ] Step 14: FlaggedDuplicatePanel — why-flagged breakdown + side-by-side
 - [ ] Step 15: SavePreviewModal + UndoToast wired to soft-undo endpoint

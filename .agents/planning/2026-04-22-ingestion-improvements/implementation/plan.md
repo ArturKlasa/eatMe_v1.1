@@ -30,7 +30,7 @@ Assumptions going in:
 - [x] Step 11: DishEditPanelV2 + KindSelectorV2 + VariantEditor
 - [x] Step 12: CourseEditor
 - [x] Step 13: PageGroupedList with source-image chip and carousel sync
-- [ ] Step 14: FlaggedDuplicatePanel — why-flagged breakdown + side-by-side
+- [x] Step 14: FlaggedDuplicatePanel — why-flagged breakdown + side-by-side
 - [ ] Step 15: SavePreviewModal + UndoToast wired to soft-undo endpoint
 - [ ] Step 16: useKeyboardShortcuts + actionable warnings
 - [ ] Step 17: Mobile (React Native) kind-badge update

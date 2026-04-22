@@ -25,7 +25,7 @@ Assumptions going in:
 - [x] Step 6: Tighten CHECK migration
 - [x] Step 7: Zustand store scaffold — uploadSlice + processingSlice (ported from existing hooks)
 - [x] Step 8: reviewSlice + draftSlice with versioned localStorage + confidence config
-- [ ] Step 9: groupSlice + selectors (flagged, grouped-by-image, confirm summary)
+- [x] Step 9: groupSlice + selectors (flagged, grouped-by-image, confirm summary)
 - [ ] Step 10: ReviewPage shell reads from store (functional parity with old UI)
 - [ ] Step 11: DishEditPanelV2 + KindSelectorV2 + VariantEditor
 - [ ] Step 12: CourseEditor

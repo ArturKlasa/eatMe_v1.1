@@ -17,6 +17,7 @@ function Elapsed({ since }: { since: Date }) {
     const id = setInterval(() => tick(n => n + 1), 1000);
     return () => clearInterval(id);
   }, []);
+  // eslint-disable-next-line react-hooks/purity
   const secs = Math.floor((Date.now() - since.getTime()) / 1000);
   if (secs < 60) return <span>{secs}s</span>;
   const mins = Math.floor(secs / 60);

@@ -553,7 +553,9 @@ export const createReviewSlice: StateCreator<any, [], [], ReviewSlice> = (set, g
   // --- Save ---
   handleSave: async (opts = {}) => {
     const state = get();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const selectedRestaurant = (state as any).selectedRestaurant;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const previewUrls: string[] = (state as any).previewUrls ?? [];
     const { jobId, editableMenus, restaurantDetails, saving } = state as ReviewSlice;
 

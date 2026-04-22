@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 let _draftTimer: ReturnType<typeof setTimeout> | null = null;
 let _draftUnsub: (() => void) | null = null;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DraftSubscribeFn = (listener: (state: any) => void) => () => void;
 
 export interface DraftSlice {
@@ -59,6 +60,7 @@ export const createDraftSlice: StateCreator<any, [], [], DraftSlice> = (set, _ge
       _draftTimer = null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unsub = subscribeFn((state: any) => {
       if (_draftTimer !== null) {
         clearTimeout(_draftTimer);

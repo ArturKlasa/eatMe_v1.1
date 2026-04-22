@@ -123,7 +123,6 @@ export function useCountryDetection(autoRefineWithGPS = true): CountryDetectionR
     if (autoRefineWithGPS) {
       refineWithGPS();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefineWithGPS]);
 
   return {

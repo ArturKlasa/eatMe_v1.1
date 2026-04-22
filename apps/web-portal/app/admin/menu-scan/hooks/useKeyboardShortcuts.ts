@@ -53,6 +53,7 @@ export function useKeyboardShortcuts({ onOpenSaveModal }: UseKeyboardShortcutsOp
     setFocusedGroupId,
     setLightboxOpen,
   });
+  // eslint-disable-next-line react-hooks/refs
   storeRef.current = {
     editableMenus,
     expandedDishes,

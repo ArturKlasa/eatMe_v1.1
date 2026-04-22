@@ -169,6 +169,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       if (!mountedRef.current) return;
       setRestaurantRating(ratingResult);
       if (favResult !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setIsFavorite((favResult as any).ok ? (favResult as any).data : false);
       }
       setFavoritesInitialized(true);
@@ -177,7 +178,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     loadAll();
     // user?.id (not the full user object) — prevents TOKEN_REFRESHED from causing
     // re-runs every time Supabase issues a new access token with a new object reference.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId, user?.id, loadAttempt, trackRestaurantView]);
 
   // Lazy-load dishes for a specific category; no-op if already loading or loaded
@@ -221,7 +221,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
         }
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [fetchCategoryDishes, user?.id]
   );
 

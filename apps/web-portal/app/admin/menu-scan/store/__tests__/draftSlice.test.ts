@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createStore } from 'zustand/vanilla';
 import { createDraftSlice, DraftSlice } from '../draftSlice';

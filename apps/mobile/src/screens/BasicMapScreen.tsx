@@ -280,7 +280,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Eagerly request location on mount so the feed can load without waiting for map auto-centering
   useEffect(() => {
     getLocationWithPermission();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch dishes + restaurants in a single combined call whenever location or filters change
   useEffect(() => {

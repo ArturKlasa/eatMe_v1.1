@@ -1,12 +1,15 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Codebase Review (read-only)
-# Task: Review the entire EatMe monorepo for correctness, security,
-#       maintainability, and convention-adherence issues. Produce findings
-#       only — NO code changes, NO commits, NO file edits outside the
-#       review output directory.
-# Pattern: scoper → reviewer (loop per area) → synthesizer → LOOP_COMPLETE
-# Mode: READ-ONLY. Source edits are forbidden.
-# Docs: https://mikeyobrien.github.io/ralph-orchestrator/
+# Project: EatMe — Dish Ingestion & Menu-Scan Review Rework
+# Task:    Execute the 18-step implementation plan at
+#          .agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md
+# Pattern: builder → reviewer (loop per step) → LOOP_COMPLETE when all boxes ticked.
+# Mode:    FULL WRITE. Source edits allowed; atomic per-step commits expected.
+# Docs:    https://mikeyobrien.github.io/ralph-orchestrator/
+#
+# Alternative launch (no custom hats):
+#   ralph run -c ralph.yml -H builtin:code-assist
+# The custom hats below tailor the loop to our per-step-in-plan.md flow; the
+# builtin preset is a valid fallback if the custom shape feels too rigid.
 
 cli:
   backend: "claude"
@@ -14,211 +17,141 @@ cli:
 
 event_loop:
   completion_promise: "LOOP_COMPLETE"
-  starting_event: "review.start"
-  max_iterations: 60
-  max_runtime_seconds: 14400       # 4 hours
-  idle_timeout_secs: 900
-  checkpoint_interval: 5
+  starting_event: "impl.start"
+  max_iterations: 200          # 18 steps × multi-iteration per step
+  max_runtime_seconds: 28800   # 8 hours
+  idle_timeout_secs: 1800
+  checkpoint_interval: 3       # tight checkpoints — each step commits anyway
 
 core:
-  specs_dir: ".agents/research/"
+  specs_dir: ".agents/planning/2026-04-22-ingestion-improvements/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "READ-ONLY MODE. Do not edit, create, move, or delete any file under apps/, packages/, infra/, or the repo root. The only writable locations are `.agent/scratchpad.md` and `.agents/research/codebase-review-2026-04-16/`."
-    - "Never run `git add`, `git commit`, `git push`, `git reset`, `git checkout -- <files>`, or any command that mutates tracked files. Read-only git commands (`git log`, `git blame`, `git diff`, `git show`) are fine."
-    - "Do not run code formatters, linters, or codegen in write mode. `turbo check-types`, `turbo lint`, read-only CLI tools are allowed for evidence gathering."
-    - "Every finding must cite file:line. Unverified claims are not findings — verify with a second read before recording."
-    - "Migrations under infra/supabase/migrations/ are read-only history. Review them for issues but never propose edits to existing migrations — only new-migration recommendations."
-    - "Generated files (*.generated.ts, Supabase types in packages/database/src/types/) are off-limits to review — they are not human-authored."
-    - "Classify every finding with severity (critical | high | medium | low | info) and category (security | correctness | performance | maintainability | a11y | conventions | dx)."
-    - "If a suspected issue cannot be confirmed from code inspection alone, mark it `needs-verification` with a concrete repro or question rather than asserting a defect."
-    - "Never skip git hooks. Never bypass signing. Never force-push. These do not apply in read-only mode but the prohibition stands."
+    - "AUTHORITATIVE SOURCES: PROMPT.md is the task brief. The design doc at `.agents/planning/2026-04-22-ingestion-improvements/design/detailed-design.md` is the spec. The plan at `.agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md` is the ordered step list with checklist. Always re-read all three on each activation — fresh context is reliability."
+    - "Work one step at a time, in the order given in plan.md. Do not skip or reorder steps. Each step is an atomic commit (or small set of commits if truly needed) that ticks its checkbox in plan.md when done."
+    - "TDD: write tests alongside code in the same step. No 'add tests later' steps exist in the plan. If a step's test requirements aren't satisfied, the step is not done."
+    - "Run the relevant test suite before declaring a step complete. The minimum gate is: `turbo check-types` (whole repo) + `turbo test` (affected package) + the step's explicit demo criterion."
+    - "After implementing a step, update plan.md: change `- [ ]` to `- [x]` for the step's checklist entry. This is the signal of 'done for this step'."
+    - "Commits follow conventional-commit style matching existing repo history. Example: `feat(menu-scan): rename combo→bundle, add is_template column (step 1)`. Tie every commit back to the plan step number."
+    - "Never skip git hooks (--no-verify), never bypass signing (--no-gpg-sign), never force-push. If a hook fails, fix the underlying issue and retry."
+    - "Do not auto-apply migration 115 in this loop — it is operationally gated (runs after admin triage in production, see plan.md Step 6). Author it and test it locally; do not run it against a DB that still contains `experience` rows."
+    - "Keep the new review UI behind NO feature flag per Q9.2. This means intermediate commits may leave the live review page in an awkward half-rewritten state; accept this but prioritize keeping upload/processing functional at every commit."
+    - "For the Zustand migration (Steps 7–10), keep existing hook names as thin wrappers until the final cleanup in Step 18 — avoid breaking consumers mid-rewrite."
+    - "Mobile app changes (Step 17) can land in the same branch but mobile release is lagging 1–2 weeks — do not gate the web ship on a mobile build."
+    - "Monorepo commands use `pnpm` + `turbo`. Package-scoped installs use `pnpm add <pkg> --filter @eatme/<workspace>` (verify exact workspace name from package.json)."
+    - "Ingestion pipeline quirks: PostGIS POINT is `POINT(lng lat)`, RLS required on every new table with owner_id FK to auth.users, primary_protein is NOT NULL on dishes. Respect these — they are documented in CLAUDE.md."
+    - "If a step reveals the design is wrong (not just imprecise), STOP and add a note to `.agent/scratchpad.md` flagging the contradiction — do NOT silently deviate. The plan trusts the design to be consistent; an inconsistency is a signal to escalate."
 
 memories:
   enabled: true
   inject: "auto"
   budget: 2000
   filter:
-    types: ["pattern", "context", "decision"]
+    types: ["pattern", "decision", "fix", "context"]
 
 tasks:
   enabled: true
 
 hats:
-  scoper:
-    name: "Review Scoper"
-    emoji: "🗺️"
-    description: "Surveys the repo and produces a prioritised agenda of review areas"
+  builder:
+    name: "Builder"
+    emoji: "🔨"
+    description: "Picks the next unchecked step from plan.md and implements it end-to-end with tests and an atomic commit"
     instructions: |
-      You are scoping a read-only codebase review of the EatMe monorepo.
-      No source edits are permitted in any hat of this loop.
+      You implement ONE step of the plan per activation.
 
-      Read in order:
-      1. PROMPT.md — review goal, scope, deliverables, acceptance criteria
-      2. CLAUDE.md — project conventions and pitfalls
-      3. agent_docs/architecture.md — package relationships
-      4. Top-level `apps/` and `packages/` structure (use `ls`/Glob, not `tree`)
+      On every activation:
+      1. Read `PROMPT.md` (task brief) and
+         `.agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md`
+         (ordered checklist + step details).
+      2. Skim `.agents/planning/2026-04-22-ingestion-improvements/design/detailed-design.md`
+         for the section relevant to the next step (don't re-read top-to-bottom each time — use the §-numbers referenced in the plan).
+      3. Read `.agent/scratchpad.md` for any prior-iteration notes, especially design contradictions or blockers.
+      4. Identify the first unchecked step (`- [ ] Step N:`) in plan.md's checklist. THAT is your step.
+      5. Open the matching `## Step N:` section in plan.md — it has objective, implementation guidance, test requirements, integration, and demo criteria.
 
-      Produce an agenda of 8-14 review AREAS (not individual bugs — areas).
-      Good review areas include:
-      - `apps/web-portal` — Next.js routing, server actions, form handling
-      - `apps/web-portal` — admin menu-scan flow (AI pipeline surface)
-      - `apps/mobile` — Expo navigation + Zustand stores
-      - `apps/mobile` — i18n coverage (en/es/pl)
-      - `packages/database` — Supabase client factory, RLS assumptions
-      - `packages/shared` — Zod schemas, shared types, constants
-      - `packages/tokens` — design token usage consistency
-      - Supabase schema — RLS policies, FK integrity, indexes
-      - Auth & session handling — web portal + mobile
-      - PostGIS usage — POINT(lng lat) correctness across call sites
-      - Error handling at system boundaries (API routes, Supabase calls)
-      - Type safety — unsafe `as` casts, `any`, missing Zod parse
-      - Dependency hygiene — unused deps, version drift across workspaces
-      - Test coverage gaps in high-risk surfaces
+      Then execute:
+      a) Read the code files named in the step (pick a sensible subset — the step's "Implementation guidance" tells you where to look).
+      b) Implement the changes. Write tests per the step's "Test requirements" in the same commit — not later.
+      c) Run backpressure gates locally:
+         - `turbo check-types` (monorepo) — must pass.
+         - `turbo test --filter <affected workspace>` — must pass.
+         - For DB migrations: test against a local `supabase db reset` where relevant.
+         - For deploy-path sensitive changes (enrich-dish function, generate_candidates RPC): exercise or smoke-test before claiming done.
+      d) If a gate fails, fix and retry — do not commit red code.
+      e) Commit with a conventional-commit message naming the plan step:
+         `<type>(<scope>): <summary> (plan step N)`
+         Examples:
+           - `feat(db): add is_template + status, new course tables (plan step 1)`
+           - `refactor(menu-scan): port review state to Zustand (plan step 10)`
+           - `test(menu-scan): hook tests for reviewSlice (plan step 8)`
+      f) Tick the checkbox in plan.md: change `- [ ] Step N: <title>` to `- [x] Step N: <title>`. Commit this plan.md update in the same commit or a follow-up trivial commit (`chore(plan): tick step N`).
+      g) Emit `step.complete` with a short payload summarising what passed:
+         `ralph emit "step.complete" "step N: tests pass, typecheck pass, commit <sha>"`
 
-      Write the agenda to `.agent/scratchpad.md` in this format per area:
-      ```
-      - [ ] REV-01: <slug> — <1-line area description>
-        - Why it matters: <risk hypothesis>
-        - Key paths: <dirs / representative files>
-        - Focus categories: <security | correctness | perf | maintainability | a11y | conventions | dx>
-        - Detail file: .agents/research/codebase-review-2026-04-16/<slug>.md
-      ```
+      If you hit a genuine blocker (e.g. design contradicts itself, a dependency issue you can't resolve):
+      - Write a short note to `.agent/scratchpad.md` with the blocker, what you tried, and what you need.
+      - Emit `step.complete` anyway with the payload starting `BLOCKED:` so the reviewer can assess and decide next steps.
+      - Do NOT silently skip the step or move on — the reviewer will route back.
 
-      Sort by risk × surface area (security/correctness first, DX last).
+      Capture learnings as memories when useful:
+      - `ralph tools memory add "<rule>" -t pattern --tags menu-scan`
+      - `ralph tools memory add "<decision>" -t decision --tags ingestion`
+      - `ralph tools memory add "<fix>" -t fix --tags menu-scan`
+      Prefer small, specific memories over broad ones.
 
-      Do NOT review in depth in this hat — only scope. Do NOT edit source.
-      When the agenda is written, emit `agenda.ready`.
+      You MAY update plan.md (tick boxes, annotate) and may add/remove code anywhere in the repo the step authorizes. You must NOT edit the design doc or PROMPT.md (those are locked inputs).
     triggers:
-      - "review.start"
+      - "impl.start"
+      - "step.rework"
+      - "step.next"
     publishes:
-      - "agenda.ready"
+      - "step.complete"
 
   reviewer:
     name: "Reviewer"
     emoji: "🔍"
-    description: "Reviews one area per activation and writes a findings file"
+    description: "Verifies the step's backpressure gates + demo criteria; either loops back for the next step or signals loop complete"
     instructions: |
-      You are reviewing ONE area per activation. READ-ONLY — no source edits.
+      You verify the most recently completed step and decide what happens next.
 
-      Start every activation by:
-      1. Reading `.agent/scratchpad.md`
-      2. Picking the FIRST area still marked `[ ]`
-      3. Reading the referenced paths in depth (use Explore sub-agents for
-         wide traces, Grep/Read for targeted checks)
+      On every activation:
+      1. Read the last `step.complete` event payload to know which step the builder claims to have finished.
+      2. Re-read `.agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md` — find that step's section and its demo criterion.
+      3. Independently re-run the backpressure gates:
+         - `turbo check-types` — must pass.
+         - `turbo test` (or `turbo test --filter <workspace>` if the step is narrow) — must pass.
+         - The step's "Demo" criterion — actually exercise it if automatable (curl a route, insert a test row, etc.). If it requires a manual demo, spot-check the code against the claim.
+      4. Verify the commit message references the plan step.
+      5. Verify `plan.md` has the checkbox ticked for this step.
+      6. Check git status / diff — any files modified that the step wasn't supposed to touch? Flag it.
 
-      For each area, investigate against these categories as applicable:
-      - **security** — RLS bypass, missing auth checks, secret leakage,
-        SQL/XSS/command injection, open redirects, unsafe deserialisation
-      - **correctness** — race conditions, off-by-one, nullability holes,
-        PostGIS POINT order mistakes, floating-point money, timezone bugs,
-        Zod schemas that don't match runtime shape
-      - **performance** — N+1 queries, missing indexes, large client bundles,
-        unnecessary re-renders, unbatched network calls
-      - **maintainability** — duplicate logic, god-components, unclear
-        naming, missing types at boundaries, dead code, excessive casts
-      - **a11y** (web-portal only) — missing labels, color contrast in
-        tokens, keyboard traps, focus management
-      - **conventions** — departures from patterns documented in CLAUDE.md
-        and agent_docs/
-      - **dx** — broken scripts, missing type-check coverage, flaky tests
+      Then decide:
 
-      Write findings to
-      `.agents/research/codebase-review-2026-04-16/<slug>.md` in this shape:
-      ```
-      # <Area title>
+      **If the step passes all gates AND at least one `- [ ]` box remains in plan.md:**
+      - Emit `step.next` with a short confirmation:
+        `ralph emit "step.next" "step N verified: typecheck pass, tests pass, demo verified; N-1 steps remain"`
 
-      ## Scope reviewed
-      List the files / directories actually read (with line ranges if partial).
+      **If the step passes AND every box is `- [x]`:**
+      - Do one final end-to-end pass: `turbo check-types && turbo test && turbo build && turbo lint`
+      - Verify no stray edits (run `git status` — the tree should be clean or contain only intended files).
+      - Run the manual verification checklist from `design/detailed-design.md` §7.5 — check each item against actual behavior.
+      - If all pass: emit `LOOP_COMPLETE` with a final summary.
+      - If any final-gate item fails: that's a new work item — open or extend the plan (add Step 18a, etc.) and emit `step.rework` routing back to the builder.
 
-      ## Findings
+      **If the step fails (tests red, typecheck errors, demo doesn't work, box not ticked, off-scope edits, payload starts with `BLOCKED:`):**
+      - Write a short note to `.agent/scratchpad.md` naming the gap.
+      - If the builder reported `BLOCKED:`, record the blocker and decide: do we need a design fix first (escalate), or is this something the builder can still do with more context?
+      - Emit `step.rework` with a precise failure reason:
+        `ralph emit "step.rework" "step N: failing test X at file:line — re-run after fixing"`
 
-      ### REV-01-a: <short title>
-      - Severity: critical | high | medium | low | info
-      - Category: security | correctness | performance | maintainability | a11y | conventions | dx
-      - Location: `path/to/file.ts:42-58`
-      - Observation: What the code does today (cite file:line).
-      - Why it matters: Concrete risk or cost.
-      - Suggested direction: How a future fix might approach this (do NOT
-        implement — this is advisory only).
-      - Confidence: confirmed | likely | needs-verification
-      - Evidence: command output, cross-references, or quoted snippet.
-
-      ### REV-01-b: ...
-
-      ## No issues found in
-      Bullet list of sub-areas checked that came back clean — prevents
-      future passes from re-investigating.
-
-      ## Follow-up questions
-      Anything that would need runtime traces, DB inspection, or product
-      context to resolve. Frame as questions, not assertions.
-      ```
-
-      After writing the findings file:
-      1. Mark the agenda item `[x]` in `.agent/scratchpad.md` and append
-         `(N findings: <critical>c/<high>h/<medium>m/<low>l/<info>i)`.
-      2. If at least one `[ ]` area remains — emit `area.reviewed` to loop
-         back to yourself for the next area.
-      3. If no `[ ]` areas remain — emit `review.complete` to hand off to
-         the synthesizer.
-
-      You MUST NOT edit, create, or delete any file outside
-      `.agent/scratchpad.md` and
-      `.agents/research/codebase-review-2026-04-16/`.
+      You MAY edit `.agent/scratchpad.md` and plan.md (to fix checklist drift). You must NOT edit code directly — that's the builder's job. You must NOT edit the design doc or PROMPT.md.
     triggers:
-      - "agenda.ready"
-      - "area.reviewed"
+      - "step.complete"
     publishes:
-      - "area.reviewed"
-      - "review.complete"
-
-  synthesizer:
-    name: "Synthesizer"
-    emoji: "📊"
-    description: "Aggregates per-area findings into a single review report, emits LOOP_COMPLETE"
-    instructions: |
-      You finalise the review. READ-ONLY — no source edits.
-
-      1. Read every file under
-         `.agents/research/codebase-review-2026-04-16/` (except any file
-         you are about to write).
-
-      2. Write
-         `.agents/research/codebase-review-2026-04-16/00-summary.md` with:
-         - **Executive summary** — 4-8 sentences: what was reviewed, the
-           top 3-5 risks, overall health signal.
-         - **Severity rollup** — counts by severity across the whole
-           review: `critical: N, high: N, medium: N, low: N, info: N`.
-         - **Top findings** — the 5-10 highest-severity items across all
-           areas, each as: title, severity, category, location
-           (`file:line`), one-sentence observation, link to the detail
-           file (markdown link).
-         - **Areas table** — columns: Area | Status | Findings count |
-           Highest severity | Detail file (markdown link).
-         - **Category heatmap** — findings count per category so the team
-           can see where systemic issues cluster.
-         - **Needs-verification queue** — every finding marked
-           `needs-verification` with the question or repro needed.
-         - **Out of scope / not reviewed** — anything intentionally
-           skipped with a brief reason (so future passes know).
-         - **Recommended next steps** — ordered list of concrete
-           follow-ups the team could take, grouped by severity.
-
-      3. Sanity check acceptance criteria in PROMPT.md. If every box
-         ticks, emit `LOOP_COMPLETE`. If not, list unmet criteria at the
-         top of the summary and emit `area.reviewed` to loop back to the
-         reviewer for another pass (the reviewer will re-pick any `[ ]`
-         item — if none remain, add a new one to the agenda explaining
-         what still needs coverage).
-
-      You MUST NOT edit, create, or delete any file outside
-      `.agents/research/codebase-review-2026-04-16/`.
-    triggers:
-      - "review.complete"
-    publishes:
+      - "step.next"
+      - "step.rework"
       - "LOOP_COMPLETE"
-      - "area.reviewed"
 
 features:
   parallel: false

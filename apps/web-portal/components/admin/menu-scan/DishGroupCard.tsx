@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Unlink, Check, X, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { DISH_KINDS } from '@eatme/shared';
+import { DISH_KIND_META } from '@eatme/shared';
 import type { EditableDish } from '@/lib/menu-scan';
 
 interface DishGroupCardProps {
@@ -51,8 +51,10 @@ export function DishGroupCard({
         ? 'border-red-300 bg-destructive/10'
         : 'border-blue-200 bg-info/10';
 
-  const dishKindInfo = DISH_KINDS.find(k => k.value === parent.dish_kind);
-  const isCombo = parent.dish_kind === 'combo';
+  const dishKindInfo = parent.dish_kind
+    ? DISH_KIND_META[parent.dish_kind as keyof typeof DISH_KIND_META]
+    : undefined;
+  const isBundle = parent.dish_kind === 'bundle';
 
   return (
     <div className={cn('rounded-lg border-2 p-3 transition-all duration-200', statusColor)}>
@@ -93,7 +95,7 @@ export function DishGroupCard({
             className="text-xs text-muted-foreground mt-0.5 bg-transparent border-0 border-b border-transparent focus:border-brand-primary/70 focus:outline-none w-full"
             placeholder="Description"
           />
-          {!isCombo && (
+          {!isBundle && (
             <div className="flex items-center gap-1 mt-1">
               <input
                 type="number"
@@ -116,16 +118,17 @@ export function DishGroupCard({
             onChange={e => {
               const newKind = e.target.value as EditableDish['dish_kind'];
               const patch: Partial<EditableDish> = { dish_kind: newKind };
-              if (newKind === 'template') patch.display_price_prefix = 'from';
-              else if (newKind === 'experience') patch.display_price_prefix = 'per_person';
-              else if (newKind === 'combo' || newKind === 'standard')
+              if (newKind === 'configurable') patch.display_price_prefix = 'from';
+              else if (newKind === 'course_menu' || newKind === 'buffet')
+                patch.display_price_prefix = 'per_person';
+              else if (newKind === 'bundle' || newKind === 'standard')
                 patch.display_price_prefix = 'exact';
               onUpdateDish(parent._id, patch);
             }}
             className="text-xs border rounded px-1 py-0.5"
           >
-            {DISH_KINDS.map(k => (
-              <option key={k.value} value={k.value}>
+            {Object.entries(DISH_KIND_META).map(([value, k]) => (
+              <option key={value} value={value}>
                 {k.icon} {k.label}
               </option>
             ))}
@@ -187,7 +190,7 @@ export function DishGroupCard({
                 className="flex-1 text-sm bg-transparent border-0 border-b border-transparent focus:border-brand-primary/70 focus:outline-none min-w-0"
                 placeholder="Variant name"
               />
-              {isCombo ? (
+              {isBundle ? (
                 <span className="text-[10px] italic text-muted-foreground">Included</span>
               ) : (
                 <input
@@ -216,8 +219,8 @@ export function DishGroupCard({
                 title="Serves"
               />
 
-              {/* display_price_prefix — irrelevant for combo children (no individual price) */}
-              {!isCombo && (
+              {/* display_price_prefix — irrelevant for bundle children (no individual price) */}
+              {!isBundle && (
                 <select
                   value={child.display_price_prefix}
                   onChange={e =>
@@ -257,12 +260,12 @@ export function DishGroupCard({
         </div>
       )}
 
-      {/* Parent-level combo price, serves & display_price_prefix */}
+      {/* Parent-level bundle price, serves & display_price_prefix */}
       {isExpanded && (
         <div className="mt-2 ml-4 flex items-center gap-3 text-xs text-muted-foreground">
-          {isCombo && (
+          {isBundle && (
             <label className="flex items-center gap-1">
-              Combo price:
+              Bundle price:
               <input
                 type="number"
                 step="0.01"

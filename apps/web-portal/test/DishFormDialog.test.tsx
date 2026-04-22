@@ -251,28 +251,30 @@ describe('DishKindSelector', () => {
 
     expect(screen.getByText('Dish Type')).toBeInTheDocument();
     expect(screen.getByText('Standard')).toBeInTheDocument();
-    expect(screen.getByText('Template')).toBeInTheDocument();
+    expect(screen.getByText('Configurable')).toBeInTheDocument();
   });
 
-  it('selecting template shows option section indicator', async () => {
+  it('selecting configurable radio checks correctly', async () => {
     render(
       <FormWrapper>
         <DishKindSelector />
       </FormWrapper>
     );
 
-    // Get the Template radio input and click it
-    const templateLabel = screen.getByText('Template');
-    const templateRadio = templateLabel.closest('label')?.querySelector('input[type="radio"]');
-    expect(templateRadio).toBeTruthy();
+    // Get the Configurable radio input and click it
+    const configurableLabel = screen.getByText('Configurable');
+    const configurableRadio = configurableLabel
+      .closest('label')
+      ?.querySelector('input[type="radio"]');
+    expect(configurableRadio).toBeTruthy();
 
     await act(async () => {
-      fireEvent.click(templateRadio!);
+      fireEvent.click(configurableRadio!);
     });
 
-    // Template radio should now be checked
+    // Configurable radio should now be checked
     await waitFor(() => {
-      expect(templateRadio).toBeChecked();
+      expect(configurableRadio).toBeChecked();
     });
   });
 });

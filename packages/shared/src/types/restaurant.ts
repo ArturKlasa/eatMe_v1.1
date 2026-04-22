@@ -20,27 +20,8 @@ export interface SelectedIngredient extends Ingredient {
   quantity?: string;
 }
 
-/**
- * Transitional union (Steps 2–17): old values kept so dependent code migrates one file at a time.
- * Narrowed to 5-value enum in Step 18.
- */
-export type DishKind =
-  | 'standard'
-  | 'bundle'
-  | 'configurable'
-  | 'course_menu'
-  | 'buffet'
-  // legacy — present until Step 6 migration has run in production
-  | 'template'
-  | 'experience'
-  | 'combo';
-
-/** Legacy kind values — exist in DB until admin triage (Step 5) + Step 6 migration. */
-export const LEGACY_DISH_KINDS = ['template', 'experience', 'combo'] as const;
-
-export function isLegacyKind(k: string): boolean {
-  return (LEGACY_DISH_KINDS as readonly string[]).includes(k);
-}
+/** Canonical 5-value dish composition kind. */
+export type DishKind = 'standard' | 'bundle' | 'configurable' | 'course_menu' | 'buffet';
 
 /** Publishing / curation state for a dish. */
 export type DishStatus = 'published' | 'draft' | 'archived';

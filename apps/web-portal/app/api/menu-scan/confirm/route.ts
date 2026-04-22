@@ -140,9 +140,9 @@ export async function POST(request: NextRequest) {
         // ---- Pass 1: Insert parent dishes ----
         for (const parentDish of parentDishes) {
           const parentId = randomUUID();
-          // bundle/combo/course_menu/buffet carry the price on the parent.
-          // configurable/standard/template are display-only containers → force price: 0.
-          const carriesParentPrice = ['bundle', 'combo', 'course_menu', 'buffet'].includes(
+          // bundle/course_menu/buffet carry the price on the parent.
+          // configurable/standard are display-only containers → force price: 0.
+          const carriesParentPrice = ['bundle', 'course_menu', 'buffet'].includes(
             parentDish.dish_kind
           );
           const parentRow = buildDishRow(parentDish, parentId, restaurant_id, newCat.id, {

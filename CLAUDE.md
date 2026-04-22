@@ -46,6 +46,21 @@ Dishes are classified by a single `primary_protein` column (enum, not null) on t
 
 To expose the ingredient pipeline, flip both flags to `"true"` in the respective `.env.local` / `.env` files.
 
+## Dish Kind — Composition Type
+
+Dishes carry a `dish_kind` column (enum, not null default `'standard'`). The canonical 5 values live in `packages/shared/src/constants/menu.ts` (`DISH_KIND_META`) and `packages/shared/src/types/restaurant.ts` (`DishKind` type). Both apps import from `@eatme/shared`.
+
+| Kind | Description |
+|---|---|
+| `standard` | Single fixed item |
+| `bundle` | N items together at one price (formerly `combo`) |
+| `configurable` | Customer selects from slots; use `is_template=true` for reusable shells |
+| `course_menu` | Multi-course sequenced menu; courses stored in `dish_courses` + `dish_course_items` |
+| `buffet` | Flat-rate unlimited access |
+
+- `is_template boolean` (default `false`) — marks a dish as a reusable shell excluded from the consumer feed. Used with `configurable` kind (formerly `template` rows).
+- Legacy values (`template`, `experience`, `combo`) were renamed by migration 114 and are no longer valid after migration 115 runs. Use `DISH_KIND_META` (keyed object) for new code; the old `DISH_KINDS` array has been removed.
+
 ## Common Pitfalls
 
 1. **PostGIS POINT format** — `POINT(lng lat)` not `POINT(lat lng)`. Supabase returns `{type: "Point", coordinates: [lng, lat]}`.

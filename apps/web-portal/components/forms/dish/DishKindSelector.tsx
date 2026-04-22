@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
-import { DISH_KINDS } from '@eatme/shared';
+import { DISH_KIND_META } from '@eatme/shared';
 import type { DishFormData } from '@eatme/shared';
 
 export function DishKindSelector() {
@@ -11,17 +11,12 @@ export function DishKindSelector() {
     <div className="space-y-4">
       <h3 className="text-sm font-semibold text-foreground">Dish Type</h3>
       <div className="grid grid-cols-3 gap-2">
-        {DISH_KINDS.map(kind => (
+        {Object.entries(DISH_KIND_META).map(([value, kind]) => (
           <label
-            key={kind.value}
+            key={value}
             className="flex flex-col gap-1 cursor-pointer rounded-lg border p-3 hover:bg-accent has-checked:border-primary has-checked:bg-primary/5"
           >
-            <input
-              type="radio"
-              value={kind.value}
-              {...register('dish_kind')}
-              className="sr-only"
-            />
+            <input type="radio" value={value} {...register('dish_kind')} className="sr-only" />
             <span className="text-lg">{kind.icon}</span>
             <span className="text-sm font-medium">{kind.label}</span>
             <span className="text-xs text-muted-foreground">{kind.description}</span>

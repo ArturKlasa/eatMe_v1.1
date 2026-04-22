@@ -86,11 +86,7 @@ export function useDishFormData({
         dish_category_id: dish.dish_category_id ?? null,
         description_visibility: dish.description_visibility ?? 'menu',
         ingredients_visibility: dish.ingredients_visibility ?? 'detail',
-        dish_kind: (dish.dish_kind ?? 'standard') as
-          | 'standard'
-          | 'template'
-          | 'experience'
-          | 'combo',
+        dish_kind: dish.dish_kind ?? 'standard',
         display_price_prefix: (dish.display_price_prefix ?? 'exact') as
           | 'exact'
           | 'from'

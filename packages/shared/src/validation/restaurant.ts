@@ -63,7 +63,9 @@ export const dishSchema = z.object({
   is_available: z.boolean().optional(),
   description_visibility: z.enum(['menu', 'detail']).optional(),
   ingredients_visibility: z.enum(['menu', 'detail', 'none']).optional(),
-  dish_kind: z.enum(['standard', 'template', 'experience', 'combo']).default('standard'),
+  dish_kind: z
+    .enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet'])
+    .default('standard'),
   serves: z.number().int().min(1).default(1).optional(),
   display_price_prefix: z
     .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])

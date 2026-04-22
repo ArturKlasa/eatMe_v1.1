@@ -22,4 +22,3 @@ export type {
   WizardStep,
   FormProgress,
 } from './restaurant';
-export { LEGACY_DISH_KINDS, isLegacyKind } from './restaurant';

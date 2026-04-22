@@ -34,15 +34,6 @@ export function DishOptionsSection({
     defaultValue: 'exact',
   });
 
-  if (
-    dishKind !== 'template' &&
-    dishKind !== 'experience' &&
-    dishKind !== 'combo' &&
-    dishKind !== 'standard'
-  ) {
-    return null;
-  }
-
   return (
     <>
       <Separator />

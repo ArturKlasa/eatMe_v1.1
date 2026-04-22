@@ -23,39 +23,6 @@ export const DISH_KIND_META = {
   buffet: { label: 'Buffet', description: 'Flat-rate unlimited access', icon: '🍱' },
 } as const;
 
-/**
- * @deprecated Use DISH_KIND_META for new code. Removed in Step 18.
- */
-export const DISH_KINDS = [
-  {
-    value: 'standard' as const,
-    label: 'Standard',
-    description: 'Single item, fixed composition',
-    icon: '🍽️',
-  },
-  {
-    value: 'template' as const,
-    label: 'Template',
-    description: 'Customer chooses components (protein, sauce…)',
-    icon: '🔧',
-  },
-  {
-    value: 'experience' as const,
-    label: 'Experience',
-    description: 'Multi-course or group dining (hot pot, tasting menu…)',
-    icon: '✨',
-  },
-  {
-    value: 'combo' as const,
-    label: 'Combo',
-    description: 'Bundle of multiple items (burger + fries + drink)',
-    icon: '🎁',
-  },
-] as const;
-
-/** Union of valid dish kind string values. */
-export type DishKindValue = (typeof DISH_KINDS)[number]['value'];
-
 /** Selection types available for option groups within a dish. */
 export const SELECTION_TYPES = [
   { value: 'single' as const, label: 'Single choice', description: 'Pick exactly one option' },

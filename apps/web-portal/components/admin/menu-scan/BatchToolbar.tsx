@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DISH_KINDS } from '@eatme/shared';
+import { DISH_KIND_META } from '@eatme/shared';
 import type { EditableDish } from '@/lib/menu-scan';
 
 interface BatchToolbarProps {
@@ -54,17 +54,18 @@ export function BatchToolbar({
                 <Check className="h-3 w-3 mr-1" />
                 Accept selected ({selectedIds.size})
               </Button>
-              <Button size="sm" variant="outline" onClick={onRejectSelected} className="text-destructive">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onRejectSelected}
+                className="text-destructive"
+              >
                 Reject selected ({selectedIds.size})
               </Button>
             </>
           )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onAcceptHighConfidence(0.85)}
-          >
+          <Button size="sm" variant="outline" onClick={() => onAcceptHighConfidence(0.85)}>
             Accept all high-confidence
           </Button>
 
@@ -116,8 +117,8 @@ export function BatchToolbar({
               className="border rounded px-1 py-0.5"
             >
               <option value="">All</option>
-              {DISH_KINDS.map(k => (
-                <option key={k.value} value={k.value}>
+              {Object.entries(DISH_KIND_META).map(([value, k]) => (
+                <option key={value} value={value}>
                   {k.icon} {k.label}
                 </option>
               ))}
@@ -127,12 +128,13 @@ export function BatchToolbar({
           <label className="flex items-center gap-1">
             Grouping:
             <select
-              value={filters.hasGrouping === null ? '' : filters.hasGrouping ? 'grouped' : 'standalone'}
+              value={
+                filters.hasGrouping === null ? '' : filters.hasGrouping ? 'grouped' : 'standalone'
+              }
               onChange={e =>
                 onFiltersChange({
                   ...filters,
-                  hasGrouping:
-                    e.target.value === '' ? null : e.target.value === 'grouped',
+                  hasGrouping: e.target.value === '' ? null : e.target.value === 'grouped',
                 })
               }
               className="border rounded px-1 py-0.5"

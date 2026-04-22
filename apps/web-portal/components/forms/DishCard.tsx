@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Dish } from '@eatme/shared';
 import { Edit, Trash2, Copy, Layers, AlertTriangle } from 'lucide-react';
-import { SPICE_LEVELS, DISH_KINDS } from '@eatme/shared';
+import { SPICE_LEVELS, DISH_KIND_META } from '@eatme/shared';
 
 interface DishCardProps {
   dish: Dish;
@@ -32,8 +32,10 @@ function formatPrice(price: number, prefix?: string): string {
 }
 
 export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps) {
-  const dishKindMeta = DISH_KINDS.find(k => k.value === (dish.dish_kind ?? 'standard'));
-  const isComposable = dish.dish_kind === 'template' || dish.dish_kind === 'experience';
+  const dishKindMeta = dish.dish_kind
+    ? DISH_KIND_META[dish.dish_kind as keyof typeof DISH_KIND_META]
+    : undefined;
+  const isComposable = !!dish.dish_kind && dish.dish_kind !== 'standard';
   const optionGroupCount = dish.option_groups?.length ?? 0;
 
   return (
@@ -72,10 +74,18 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
                 </Badge>
               )}
             </div>
-            {dish.description && <p className="text-sm text-muted-foreground">{dish.description}</p>}
+            {dish.description && (
+              <p className="text-sm text-muted-foreground">{dish.description}</p>
+            )}
           </div>
           <div className="flex gap-2 ml-4">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(dish)} title="Edit dish" aria-label="Edit dish">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(dish)}
+              title="Edit dish"
+              aria-label="Edit dish"
+            >
               <Edit className="h-4 w-4" />
             </Button>
             <Button
@@ -120,7 +130,10 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
           <div className="flex flex-wrap gap-2">
             {/* Spice Level */}
             {dish.spice_level && dish.spice_level !== 'none' && (
-              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+              <Badge
+                variant="outline"
+                className="bg-destructive/10 text-destructive border-destructive/20"
+              >
                 {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
               </Badge>
             )}
@@ -143,7 +156,8 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
                 variant="secondary"
                 className="bg-brand-primary/10 text-brand-primary capitalize"
               >
-                <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />{allergen}
+                <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />
+                {allergen}
               </Badge>
             ))}
           </div>

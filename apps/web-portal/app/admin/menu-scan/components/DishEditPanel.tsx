@@ -94,11 +94,24 @@ export function DishEditPanel({
           Kind:
           <select
             value={dish.dish_kind ?? 'standard'}
-            onChange={e =>
-              updateDish(mIdx, cIdx, dIdx, {
-                dish_kind: e.target.value as EditableDish['dish_kind'],
-              })
-            }
+            onChange={e => {
+              const newKind = e.target.value as EditableDish['dish_kind'];
+              const patch: Partial<EditableDish> = { dish_kind: newKind };
+              if (newKind === 'template') {
+                patch.is_parent = true;
+                patch.display_price_prefix = 'from';
+              } else if (newKind === 'experience') {
+                patch.is_parent = true;
+                patch.display_price_prefix = 'per_person';
+              } else if (newKind === 'combo') {
+                patch.is_parent = true;
+                patch.display_price_prefix = 'exact';
+              } else {
+                patch.is_parent = false;
+                patch.display_price_prefix = 'exact';
+              }
+              updateDish(mIdx, cIdx, dIdx, patch);
+            }}
             className="text-xs border rounded px-1 py-0.5"
           >
             <option value="standard">Standard</option>

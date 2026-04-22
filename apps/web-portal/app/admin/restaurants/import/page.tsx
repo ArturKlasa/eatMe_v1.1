@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Download, FileText, Loader2, RefreshCw, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
+import { supabase } from '@/lib/supabase';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
@@ -13,17 +14,23 @@ import type { AreaSelection } from '@/components/admin/ImportAreaSelector';
 import type { ImportSummary } from '@/lib/import-types';
 
 // Dynamic import to avoid Leaflet SSR crash
-const ImportAreaSelector = dynamic(
-  () => import('@/components/admin/ImportAreaSelector'),
-  { ssr: false, loading: () => (
+const ImportAreaSelector = dynamic(() => import('@/components/admin/ImportAreaSelector'), {
+  ssr: false,
+  loading: () => (
     <div className="h-80 rounded-lg border-2 flex items-center justify-center text-muted-foreground text-sm">
       <Loader2 className="h-5 w-5 animate-spin mr-2" />
       Loading map...
     </div>
-  ) }
-);
+  ),
+});
 
 export default function ImportPage() {
+  const authHeader = useCallback(async (): Promise<HeadersInit> => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
   // Google Places tab state
   const [selectedArea, setSelectedArea] = useState<AreaSelection | null>(null);
   const [maxPages, setMaxPages] = useState(1);
@@ -41,8 +48,9 @@ export default function ImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/admin/import/google')
-      .then((r) => r.ok ? r.json() : null)
+    authHeader()
+      .then(headers => fetch('/api/admin/import/google', { headers }))
+      .then(r => (r.ok ? r.json() : null))
       .then((data: { calls: number } | null) => {
         if (data && typeof data.calls === 'number') {
           setMonthlyApiCalls(data.calls);
@@ -61,7 +69,7 @@ export default function ImportPage() {
     try {
       const response = await fetch('/api/admin/import/google', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
         body: JSON.stringify({
           lat: selectedArea.lat,
           lng: selectedArea.lng,
@@ -72,11 +80,11 @@ export default function ImportPage() {
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({})) as { error?: string };
+        const errData = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(errData.error ?? `HTTP ${response.status}`);
       }
 
-      const data = await response.json() as ImportSummary & { warnings?: string[] };
+      const data = (await response.json()) as ImportSummary & { warnings?: string[] };
       const { warnings: resWarnings, ...summary } = data;
 
       setImportResult(summary);
@@ -132,17 +140,21 @@ export default function ImportPage() {
 
       const response = await fetch('/api/admin/import/csv', {
         method: 'POST',
+        headers: { ...(await authHeader()) },
         body: formData,
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({})) as { error?: string; details?: string[] };
+        const errData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          details?: string[];
+        };
         const detail = errData.details?.join('; ') ?? errData.error ?? `HTTP ${response.status}`;
         setCsvParseError(detail);
         throw new Error(detail);
       }
 
-      const data = await response.json() as ImportSummary;
+      const data = (await response.json()) as ImportSummary;
       setCsvImportResult(data);
 
       toast.success(
@@ -209,10 +221,10 @@ export default function ImportPage() {
                 <select
                   id="max-pages"
                   value={maxPages}
-                  onChange={(e) => setMaxPages(Number(e.target.value))}
+                  onChange={e => setMaxPages(Number(e.target.value))}
                   className="px-3 py-1.5 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
                     <option key={n} value={n}>
                       {n} page{n !== 1 ? 's' : ''} (~{n * 20} restaurants)
                     </option>
@@ -279,7 +291,8 @@ export default function ImportPage() {
                   <ul className="space-y-1">
                     {importResult.errors.map((e, i) => (
                       <li key={i} className="text-xs text-destructive">
-                        Row {e.index + 1}{e.field ? ` (${e.field})` : ''}: {e.message}
+                        Row {e.index + 1}
+                        {e.field ? ` (${e.field})` : ''}: {e.message}
                       </li>
                     ))}
                   </ul>
@@ -316,7 +329,8 @@ export default function ImportPage() {
               <div>
                 <h2 className="text-base font-semibold">Upload CSV File</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Upload a CSV file with restaurant data. Required columns: name, latitude, longitude.
+                  Upload a CSV file with restaurant data. Required columns: name, latitude,
+                  longitude.
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
@@ -334,21 +348,26 @@ export default function ImportPage() {
                 isDragging
                   ? 'border-brand-primary/50 bg-brand-primary/5'
                   : csvFile
-                  ? 'border-success/50 bg-success/10'
-                  : 'border-input hover:border-input'
+                    ? 'border-success/50 bg-success/10'
+                    : 'border-input hover:border-input'
               }`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragOver={e => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+              }}
             >
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".csv"
                 className="hidden"
-                onChange={(e) => {
+                onChange={e => {
                   const f = e.target.files?.[0];
                   if (f) handleFileSelect(f);
                   e.target.value = '';
@@ -398,7 +417,11 @@ export default function ImportPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => { setCsvFile(null); setCsvParseError(null); setCsvImportResult(null); }}
+                  onClick={() => {
+                    setCsvFile(null);
+                    setCsvParseError(null);
+                    setCsvImportResult(null);
+                  }}
                 >
                   <X className="h-4 w-4 mr-1" />
                   Clear
@@ -428,7 +451,8 @@ export default function ImportPage() {
                   <ul className="space-y-1">
                     {csvImportResult.errors.map((e, i) => (
                       <li key={i} className="text-xs text-destructive">
-                        Row {e.index + 1}{e.field ? ` (${e.field})` : ''}: {e.message}
+                        Row {e.index + 1}
+                        {e.field ? ` (${e.field})` : ''}: {e.message}
                       </li>
                     ))}
                   </ul>

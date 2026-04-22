@@ -48,6 +48,7 @@ const DishSchema: z.ZodType<unknown> = z.lazy(() =>
       .nullable(),
     spice_level: z.union([z.literal(0), z.literal(1), z.literal(3)]).nullable(),
     calories: z.number().nullable(),
+    dish_category: z.string().nullable(),
     confidence: z.number(),
     is_parent: z.boolean(),
     dish_kind: z.enum(['standard', 'template', 'combo', 'experience']),
@@ -62,7 +63,6 @@ const ExtractionNoteSchema = z.object({
     'likely_ocr_error',
     'price_outlier',
     'unreadable_section',
-    'ingredient_mismatch',
     'dish_category_mismatch',
   ]),
   path: z.string(),
@@ -102,6 +102,7 @@ STRICT RULES:
    - GF/sin gluten → "gluten_free"; DF/sin lácteos → "dairy_free"; nut-free → "nut_free"; egg-free → "egg_free"; soy-free → "soy_free"
    - H/halal → "halal"; K/kosher → "kosher"; hindu → "hindu"; jain → "jain"; buddhist → "buddhist"
    - keto → "keto"; paleo → "paleo"; low-carb → "low_carb"; low-sodium → "low_sodium"; diabetic-friendly → "diabetic_friendly"; organic → "organic"
+   - non-alcoholic/sin alcohol/alcohol-free/NA → "non_alcoholic" (use for mocktails, NA beer, virgin cocktails, dealcoholised wine)
    Only use these exact canonical codes. If a hint doesn't fit, omit it.
 6a. ALLERGENS — populate allergen_hints[] when a dish's OWN text (name, description, ingredient list, dish-specific badge) names or directly implies an allergen. Canonical codes:
    - "lactose" — milk, cream, cheese, butter, yoghurt, dairy
@@ -116,12 +117,7 @@ STRICT RULES:
    IGNORE menu-wide "may contain" / "produced in a facility" / "*all dishes" disclaimers. Those are legal boilerplate, not dish-specific data. Only extract allergens that are specifically claimed or obviously present in a given dish.
    When unsure, omit the allergen. Under-claiming is safer than over-claiming.
 7. Detect spice indicators (🌶, "picante", "spicy") → spice_level: 1 (mild) or 3 (very spicy). null = no indicator, 0 = explicitly non-spicy.
-8. Extract ingredients ONLY when explicitly listed on the menu. If not listed, set raw_ingredients to null.
-   Each ingredient is an object: { "base": <core ingredient>, "modifier": <preparation/state qualifier or null> }.
-   - base: the core ingredient term as it appears on the menu, in its original language (e.g. "salmon", "tomate", "queso"). Do NOT translate here.
-   - modifier: a qualifier describing preparation, cut, form, or state when the menu explicitly uses one. Examples: "smoked", "ahumado", "fresh", "fresco", "aged", "añejo", "grilled", "a la parrilla", "shredded", "rallado", "pickled", "encurtido". Null when the menu gives no qualifier.
-   - Split compound terms aggressively when the qualifier is a known preparation/state ("smoked salmon" → base="salmon", modifier="smoked"). Do NOT split varietal names that belong together ("cherry tomatoes" → base="cherry tomatoes", modifier=null; "serrano ham" is a variety, base="serrano ham", modifier=null).
-   - Keep modifier in the menu's language to preserve intent; translation happens downstream.
+8. raw_ingredients: always return an empty array []. Do NOT extract individual ingredients — we only need the primary_protein (see below).
 9. confidence: 1.0 = perfectly legible, 0.7 = slightly unclear, 0.5 = partially obscured, 0.3 = mostly guessing.
 10. Keep all names in their original language (Spanish, English, etc.).
 11. For "menu_type": use "drink" only for a clearly separate beverage page/section. A "Bebidas" subsection at the bottom of a food page → category inside the food menu.
@@ -139,7 +135,7 @@ PARENT-CHILD RULES:
 - Parent: is_parent=true, variants[] = child dishes.
   - dish_kind="combo": parent.price = the bundled combo price from the menu; each child.price = null (children are included items sharing the bundle price).
   - dish_kind="template" | "standard" (size variants) | "experience": parent.price = 0 (display-only container); each child has its own price.
-- Each child: is_parent=false, its own dietary_hints and raw_ingredients. Child price follows the rule above.
+- Each child: is_parent=false, its own dietary_hints and primary_protein. Child price follows the rule above.
 - If unsure, default to standard single dish (is_parent=false, no variants).
 
 SERVES FIELD: Number of people this dish feeds. Default 1. Set higher for sharing/family plates.
@@ -168,23 +164,19 @@ PRIMARY PROTEIN — infer the dominant protein for each dish and set primary_pro
 - Use null ONLY when you genuinely cannot determine the protein (e.g. parent containers, drinks, unknown ingredients). Do not guess when confidence is low.
 - For parent dishes (is_parent=true), set primary_protein=null on the parent; infer it on each child variant.
 
-INGREDIENT EXTRACTION — when populating raw_ingredients, include only ingredients you can read confidently. If you are guessing, omit the ingredient rather than fabricate it. Prefer null over a partial/guessed list.
-
-Example — ingredient shape:
-"Ensalada con salmón ahumado, queso fresco, tomates cherry y aceite de oliva" →
-raw_ingredients: [
-  { "base": "salmón", "modifier": "ahumado" },
-  { "base": "queso", "modifier": "fresco" },
-  { "base": "tomates cherry", "modifier": null },
-  { "base": "aceite de oliva", "modifier": null }
-]
+DISH CATEGORY — set dish_category to a short canonical name describing what kind of dish this is (e.g. "Pizza", "Taco", "Ramen", "Caesar Salad", "Pad Thai", "Cheesecake").
+- A canonical list is provided in the user message. STRONGLY PREFER an exact match from that list — copy the name verbatim (case-sensitive) when one fits.
+- If no listed category fits, propose a new short name (English, title-case, max 3 words). Examples of good new names: "Bao Buns", "Beef Stew", "Stuffed Squid".
+- Be specific when possible: "Pad Thai" is better than "Noodles"; "Carne Asada" is better than "Beef Dish"; "Eggs Benedict" is better than "Breakfast".
+- For parent dishes with size variants (same dish, different sizes), set the same dish_category on parent and children.
+- For combos and templates where children are different dish types, set dish_category=null on the parent and a specific dish_category on each child.
+- Only set null when the dish is genuinely uncategorisable.
 
 QUALITY SELF-REPORT — after extraction, populate extraction_notes with issues YOU observed. This is a self-review step to help the admin verify accuracy.
 Note types:
 - likely_ocr_error: a dish name or description appears garbled or partially corrupted (e.g. "Mrghrtta Pzz" → likely "Margherita Pizza")
 - price_outlier: a price is wildly inconsistent with nearby dishes on the same menu (possible decimal/comma error, e.g. $1,200 among $8–15 dishes)
 - unreadable_section: a portion of the image was too obscured to extract confidently (use path "page_1", "page_2", etc.)
-- ingredient_mismatch: a dish description mentions ingredients that don't match the dish name (e.g. "Pizza" description mentions noodles)
 - dish_category_mismatch: a dish appears to be in the wrong category (e.g. "Caesar Salad" under "Desserts")
 
 Format: { type, path ("Menu Name > Category > Dish Name" or "page_X"), message, suggestion (proposed fix or null) }.
@@ -208,6 +200,7 @@ async function extractMenuFromImage(
   openai: OpenAI,
   base64Data: string,
   mimeType: string,
+  canonicalCategoryNames: string[],
   pageNumber: number = 1,
   totalPages: number = 1
 ): Promise<ExtractionResult> {
@@ -215,6 +208,11 @@ async function extractMenuFromImage(
     totalPages > 1
       ? `Extract all dishes from this menu image (page ${pageNumber} of ${totalPages}).`
       : 'Extract all dishes from this menu image.';
+
+  const categoryList =
+    canonicalCategoryNames.length > 0
+      ? `\n\nCanonical dish_category list (prefer exact match, copy verbatim):\n${JSON.stringify(canonicalCategoryNames)}`
+      : '';
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
@@ -229,7 +227,7 @@ async function extractMenuFromImage(
           },
           {
             type: 'text',
-            text: pageContext,
+            text: pageContext + categoryList,
           },
         ],
       },
@@ -373,14 +371,41 @@ async function enrichDish(
     }
   }
 
+  // Resolve dish_category text → dish_category_id (match by name, insert new if absent).
+  const dishCategoryId = await resolveDishCategoryId(dish.dish_category, supabase);
+
   return {
     ...dish,
     spice_level: normalisedSpice,
     matched_ingredients: matched,
     mapped_dietary_tags: dietaryCodes,
     mapped_allergens: allergenCodes,
+    dish_category_id: dishCategoryId,
     variants: enrichedVariants as RawExtractedDish[] | null,
   };
+}
+
+async function resolveDishCategoryId(
+  rawName: string | null | undefined,
+  supabase: ReturnType<typeof createServerSupabaseClient>
+): Promise<string | null> {
+  const name = rawName?.trim();
+  if (!name) return null;
+
+  const { data: existing } = await supabase
+    .from('dish_categories')
+    .select('id')
+    .ilike('name', name)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (existing?.id) return existing.id;
+
+  const { data: created } = await supabase
+    .from('dish_categories')
+    .insert({ name, is_drink: false, is_active: true })
+    .select('id')
+    .single();
+  return created?.id ?? null;
 }
 
 async function enrichResult(
@@ -492,8 +517,24 @@ export async function POST(request: NextRequest) {
       return storagePath;
     });
 
+    // Pre-fetch canonical dish categories so GPT can pick from the curated list.
+    const { data: categoryRows } = await supabase
+      .from('dish_categories')
+      .select('name')
+      .eq('is_active', true)
+      .eq('is_drink', false)
+      .order('name', { ascending: true });
+    const canonicalCategoryNames = (categoryRows ?? []).map(r => r.name);
+
     const gptExtractionPromises = images.map((img, i) =>
-      extractMenuFromImage(openai, img.data, img.mime_type, i + 1, images.length)
+      extractMenuFromImage(
+        openai,
+        img.data,
+        img.mime_type,
+        canonicalCategoryNames,
+        i + 1,
+        images.length
+      )
     );
 
     // Run storage uploads and GPT-4o extractions in parallel.

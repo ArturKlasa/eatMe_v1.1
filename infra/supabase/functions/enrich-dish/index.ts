@@ -67,7 +67,6 @@ interface DishRow {
 }
 
 interface EnrichmentPayload {
-  inferred_ingredients?: string[];
   inferred_dish_type?: string;
   notes?: string;
   inferred_allergens?: string[];
@@ -108,15 +107,13 @@ async function enrichWithAI(
 ): Promise<EnrichmentPayload | null> {
   const systemPrompt = `You are a culinary assistant helping to enrich restaurant menu data.
 Given a dish name and optional description, infer the most likely:
-1. Main ingredients (max 8 canonical names, common English)
-2. Dish type (e.g. "grilled meat", "pasta", "salad", "soup", "dessert", "drink")
-3. Any notes about cuisine or preparation
-4. Likely allergens (canonical codes only: lactose, gluten, peanuts, soy, sesame, shellfish, nuts)
-5. A dish category (e.g. "Pizza", "Burger", "Salad", "Soup", "Taco", "Bowl", "Sandwich", "Pasta", "Dessert")
+1. Dish type (e.g. "grilled meat", "pasta", "salad", "soup", "dessert", "drink")
+2. Any notes about cuisine or preparation
+3. Likely allergens (canonical codes only: lactose, gluten, peanuts, soy, sesame, shellfish, nuts)
+4. A dish category (e.g. "Pizza", "Burger", "Salad", "Soup", "Taco", "Bowl", "Sandwich", "Pasta", "Dessert")
 
 Respond ONLY with valid JSON in this exact schema:
 {
-  "inferred_ingredients": ["string"],
   "inferred_dish_type": "string",
   "notes": "string or null",
   "inferred_allergens": ["string"],
@@ -262,17 +259,8 @@ function buildEmbeddingInput(params: {
   // AI notes (cuisine/preparation context)
   if (enrichmentPayload?.notes) parts.push(enrichmentPayload.notes);
 
-  // Ingredients (DB + parent + AI supplemental)
-  const allIngredients = [
-    ...parentIngredients,
-    ...ingredientNames,
-    ...(completeness !== 'complete'
-      ? (enrichmentPayload?.inferred_ingredients ?? []).slice(
-          0,
-          Math.max(0, COMPLETE_INGREDIENT_THRESHOLD - ingredientNames.length)
-        )
-      : []),
-  ];
+  // Ingredients (DB + parent only; AI ingredient inference removed)
+  const allIngredients = [...parentIngredients, ...ingredientNames];
   if (allIngredients.length > 0) {
     parts.push(`Ingredients: ${allIngredients.join(', ')}`);
   } else if (primaryProtein) {
@@ -461,10 +449,9 @@ serve(async (req: Request) => {
         enrichmentSource = 'ai';
         console.log(
           '[enrich-dish] AI inferred',
-          enrichmentPayload.inferred_ingredients?.length ?? 0,
-          'ingredients,',
           enrichmentPayload.inferred_allergens?.length ?? 0,
-          'allergens'
+          'allergens, category:',
+          enrichmentPayload.inferred_dish_category ?? '(none)'
         );
       } else {
         // AI call failed — mark as failed so the dish is visible for retry,

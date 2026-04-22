@@ -20,6 +20,8 @@ export interface RawExtractedDish {
   // route.ts normalises any out-of-range value before producing EnrichedDish.
   spice_level: 0 | 1 | 3 | null;
   calories: number | null;
+  /** AI-suggested dish_category name (text). Resolved server-side to dish_category_id. */
+  dish_category: string | null;
   confidence: number;
   is_parent: boolean;
   dish_kind: 'standard' | 'template' | 'combo' | 'experience';
@@ -77,6 +79,8 @@ export interface EnrichedDish extends RawExtractedDish {
   matched_ingredients: MatchedIngredient[];
   mapped_dietary_tags: string[]; // dietary_tags.code values mapped from dietary_hints
   mapped_allergens: string[]; // allergens.code values mapped from allergen_hints
+  /** Resolved from RawExtractedDish.dish_category text — matched or freshly inserted in dish_categories. */
+  dish_category_id: string | null;
 }
 
 export interface EnrichedCategory {
@@ -274,6 +278,20 @@ const DIETARY_HINT_MAP: Record<string, DietaryTagCode> = {
   organic: 'organic',
   orgánico: 'organic',
   organico: 'organic',
+  non_alcoholic: 'non_alcoholic',
+  'non-alcoholic': 'non_alcoholic',
+  'non alcoholic': 'non_alcoholic',
+  nonalcoholic: 'non_alcoholic',
+  'sin alcohol': 'non_alcoholic',
+  'sin alcoholes': 'non_alcoholic',
+  'no alcohol': 'non_alcoholic',
+  alcoholfree: 'non_alcoholic',
+  'alcohol-free': 'non_alcoholic',
+  'alcohol free': 'non_alcoholic',
+  'sans alcool': 'non_alcoholic',
+  'senza alcol': 'non_alcoholic',
+  'sem álcool': 'non_alcoholic',
+  na: 'non_alcoholic',
 
   // --- Regional spellings ---
   végétarien: 'vegetarian',
@@ -769,7 +787,7 @@ function enrichedToEditable(
             ? 'mild'
             : 'hot',
     calories: dish.calories ?? null,
-    dish_category_id: null,
+    dish_category_id: dish.dish_category_id ?? null,
     confidence: dish.confidence,
     ingredients: (dish.matched_ingredients ?? []).map(ing => ({ ...ing })),
     // AI-extracted allergens from dish-specific text (route.ts prompt rule 6a).

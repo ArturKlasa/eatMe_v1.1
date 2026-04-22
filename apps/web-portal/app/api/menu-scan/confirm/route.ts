@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, verifyAdminRequest } from '@/lib/supabase-server';
 import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
 import { ingredientEntryEnabled } from '@/lib/featureFlags';
-import type { ConfirmPayload, ConfirmDish } from '@/lib/menu-scan';
+import type { ConfirmPayload, ConfirmDish, ConfirmCourse } from '@/lib/menu-scan';
 
 /** Vegan always implies vegetarian — ensure both tags are present. */
 function normalizeDietaryTags(tags: string[]): string[] {
@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
   let totalDishesFailed = 0;
   let dishesWithMissingIngredients = 0;
   const errors: string[] = [];
+  const allInsertedIds: string[] = [];
 
   // Preload canonical_ingredient_id → concept_id once up front. Without this,
   // insertIngredientsAndOptions would issue one SELECT per dish, adding N
@@ -139,13 +140,14 @@ export async function POST(request: NextRequest) {
         // ---- Pass 1: Insert parent dishes ----
         for (const parentDish of parentDishes) {
           const parentId = randomUUID();
-          // Combos carry the bundled price on the parent. Other parent kinds
-          // (template, experience, size-variants) are display-only containers,
-          // so we force their price to 0 regardless of what the user typed.
-          const isCombo = parentDish.dish_kind === 'combo';
+          // bundle/combo/course_menu/buffet carry the price on the parent.
+          // configurable/standard/template are display-only containers → force price: 0.
+          const carriesParentPrice = ['bundle', 'combo', 'course_menu', 'buffet'].includes(
+            parentDish.dish_kind
+          );
           const parentRow = buildDishRow(parentDish, parentId, restaurant_id, newCat.id, {
             is_parent: true,
-            ...(isCombo ? {} : { price: 0 }),
+            ...(carriesParentPrice ? {} : { price: 0 }),
           });
 
           const { error: parentError } = await supabase.from('dishes').insert(parentRow);
@@ -160,6 +162,7 @@ export async function POST(request: NextRequest) {
           }
 
           totalDishesInserted++;
+          allInsertedIds.push(parentId);
           const parentIngFailed = await insertIngredientsAndOptions(
             supabase,
             parentId,
@@ -195,6 +198,9 @@ export async function POST(request: NextRequest) {
               console.error('[MenuScan/confirm] Child batch insert error:', childBatchError);
             } else {
               totalDishesInserted += childRows.length;
+              for (const child of childRows) {
+                allInsertedIds.push(child.id);
+              }
               // Insert ingredients/options for each child
               for (const child of childRows) {
                 const childIngFailed = await insertIngredientsAndOptions(
@@ -207,6 +213,11 @@ export async function POST(request: NextRequest) {
                 if (childIngFailed) dishesWithMissingIngredients++;
               }
             }
+          }
+
+          // ---- Pass 3: Insert courses for course_menu parents ----
+          if (parentDish.dish_kind === 'course_menu' && parentDish.courses?.length) {
+            await insertCourses(supabase, parentId, parentDish.courses, errors);
           }
         }
 
@@ -237,6 +248,9 @@ export async function POST(request: NextRequest) {
             );
           } else {
             totalDishesInserted += standaloneRows.length;
+            for (const s of standaloneRows) {
+              allInsertedIds.push(s.id);
+            }
             // Insert ingredients/options for each standalone dish
             for (const s of standaloneRows) {
               const standaloneIngFailed = await insertIngredientsAndOptions(
@@ -257,7 +271,12 @@ export async function POST(request: NextRequest) {
     const finalStatus = totalDishesInserted === 0 && errors.length > 0 ? 'failed' : 'completed';
     await supabase
       .from('menu_scan_jobs')
-      .update({ status: finalStatus, dishes_saved: totalDishesInserted })
+      .update({
+        status: finalStatus,
+        dishes_saved: totalDishesInserted,
+        saved_dish_ids: allInsertedIds.length > 0 ? allInsertedIds : null,
+        saved_at: allInsertedIds.length > 0 ? new Date().toISOString() : null,
+      })
       .eq('id', job_id);
 
     console.log(
@@ -355,7 +374,54 @@ function buildDishRow(
     enrichment_status: 'pending',
     enrichment_source: 'ai',
     enrichment_confidence: enrichmentConfidence,
+    is_template: dish.is_template ?? false,
+    status: dish.status ?? 'published',
+    source_image_index: dish.source_image_index ?? null,
   };
+}
+
+async function insertCourses(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  parentDishId: string,
+  courses: ConfirmCourse[],
+  errors: string[]
+): Promise<void> {
+  for (const course of courses) {
+    const courseId = randomUUID();
+    const { error: courseError } = await supabase.from('dish_courses').insert({
+      id: courseId,
+      parent_dish_id: parentDishId,
+      course_number: course.course_number,
+      course_name: course.course_name ?? null,
+      required_count: 1,
+      choice_type: course.choice_type,
+    });
+
+    if (courseError) {
+      errors.push(
+        `Failed to insert course ${course.course_number} for dish ${parentDishId}: ${courseError.message}`
+      );
+      continue;
+    }
+
+    if (course.items && course.items.length > 0) {
+      const itemRows = course.items.map((item, idx) => ({
+        id: randomUUID(),
+        course_id: courseId,
+        option_label: item.option_label,
+        price_delta: item.price_delta ?? 0,
+        links_to_dish_id: null,
+        sort_order: idx,
+      }));
+
+      const { error: itemsError } = await supabase.from('dish_course_items').insert(itemRows);
+      if (itemsError) {
+        errors.push(
+          `Failed to insert course items for course ${course.course_number}: ${itemsError.message}`
+        );
+      }
+    }
+  }
 }
 
 /**

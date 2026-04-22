@@ -180,6 +180,18 @@ export interface ConfirmOptionGroup {
   }[];
 }
 
+export interface ConfirmCourseItem {
+  option_label: string;
+  price_delta?: number;
+}
+
+export interface ConfirmCourse {
+  course_number: number;
+  course_name: string | null;
+  choice_type: 'fixed' | 'one_of';
+  items: ConfirmCourseItem[];
+}
+
 export interface ConfirmDish {
   name: string;
   price: number;
@@ -202,6 +214,14 @@ export interface ConfirmDish {
   allergens?: string[];
   /** GPT-4o extraction confidence [0–1]. Used to populate enrichment_confidence at confirm. */
   confidence?: number;
+  /** Structured courses for course_menu dishes. */
+  courses?: ConfirmCourse[];
+  /** Whether this dish is a reusable template (excluded from feed). */
+  is_template?: boolean;
+  /** Publishing state. Defaults to 'published'. */
+  status?: 'published' | 'draft' | 'archived';
+  /** 0-based index of the source image this dish was extracted from. */
+  source_image_index?: number;
 }
 
 export interface ConfirmCategory {

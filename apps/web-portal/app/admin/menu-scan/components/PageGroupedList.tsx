@@ -16,7 +16,7 @@ import { type EditableDish, type EditableMenu, countDishes } from '@/lib/menu-sc
 import { DISH_KIND_META } from '@eatme/shared';
 import { DishGroupCard } from '@/components/admin/menu-scan/DishGroupCard';
 import { BatchToolbar } from '@/components/admin/menu-scan/BatchToolbar';
-import { FlaggedDuplicateCard } from '@/components/admin/menu-scan/FlaggedDuplicateCard';
+import { FlaggedDuplicatePanel } from './FlaggedDuplicatePanel';
 import { DishEditPanelV2 } from './DishEditPanelV2';
 import { useReviewStore } from '../store';
 import { selectDishesByImageIndex } from '../store/selectors';
@@ -299,7 +299,7 @@ export function PageGroupedList() {
             {flaggedDuplicates.length !== 1 ? 's' : ''} detected
           </h3>
           {flaggedDuplicates.map((dup, i) => (
-            <FlaggedDuplicateCard
+            <FlaggedDuplicatePanel
               key={i}
               duplicate={dup}
               onGroupTogether={() => groupFlaggedDuplicate(i)}

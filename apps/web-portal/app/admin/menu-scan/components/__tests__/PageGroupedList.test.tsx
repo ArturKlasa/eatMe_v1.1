@@ -37,8 +37,8 @@ vi.mock('@/components/admin/menu-scan/BatchToolbar', () => ({
   BatchToolbar: () => <div data-testid="batch-toolbar" />,
 }));
 
-vi.mock('@/components/admin/menu-scan/FlaggedDuplicateCard', () => ({
-  FlaggedDuplicateCard: () => <div data-testid="flagged-duplicate-card" />,
+vi.mock('../FlaggedDuplicatePanel', () => ({
+  FlaggedDuplicatePanel: () => <div data-testid="flagged-duplicate-panel" />,
 }));
 
 vi.mock('@/components/admin/InlineIngredientSearch', () => ({

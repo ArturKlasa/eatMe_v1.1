@@ -93,6 +93,8 @@ describe('groupSlice — setters', () => {
       existingDish: { name: 'Burger' } as RawExtractedDish,
       incomingDish: { name: 'Burger' } as RawExtractedDish,
       categoryName: 'Mains',
+      similarity: 1,
+      reasons: ['name 100% match', 'same category'],
     };
     store.getState().setFlaggedDuplicates([dup]);
     expect(store.getState().flaggedDuplicates).toHaveLength(1);
@@ -213,11 +215,15 @@ describe('groupSlice — dismissFlaggedDuplicate', () => {
         existingDish: { name: 'A' } as RawExtractedDish,
         incomingDish: { name: 'A' } as RawExtractedDish,
         categoryName: null,
+        similarity: 1,
+        reasons: ['name 100% match'],
       },
       {
         existingDish: { name: 'B' } as RawExtractedDish,
         incomingDish: { name: 'B' } as RawExtractedDish,
         categoryName: null,
+        similarity: 1,
+        reasons: ['name 100% match'],
       },
     ];
     store.setState({ flaggedDuplicates: dups });
@@ -239,6 +245,8 @@ describe('groupSlice — groupFlaggedDuplicate', () => {
       existingDish: { name: 'Burger', price: 10 } as unknown as RawExtractedDish,
       incomingDish: { name: 'Burger' } as RawExtractedDish,
       categoryName: null,
+      similarity: 1,
+      reasons: ['name 100% match'],
     };
     store.setState({ flaggedDuplicates: [dup] });
 

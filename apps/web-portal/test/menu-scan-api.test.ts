@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { toEditableMenus } from '@/lib/menu-scan';
-import type { EnrichedResult, EnrichedDish } from '@/lib/menu-scan';
+import { toEditableMenus, mergeExtractionResults } from '@/lib/menu-scan';
+import type { EnrichedResult, EnrichedDish, RawExtractionResult } from '@/lib/menu-scan';
 
 // ---------------------------------------------------------------------------
 // Inline the updated Zod schema from route.ts to validate the contract.
@@ -187,5 +187,89 @@ describe('source_image_index propagation into EditableDish', () => {
     // parent is last in the flat list (children inserted first)
     const parent = editable[0].categories[0].dishes.find(d => d.is_parent);
     expect(parent?.source_image_index).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mergeExtractionResults — similarity + reasons on flagged duplicates
+// ---------------------------------------------------------------------------
+
+function makeRawResult(
+  dishes: { name: string; price: number | null; description?: string | null }[]
+): RawExtractionResult {
+  return {
+    menus: [
+      {
+        name: 'Food Menu',
+        menu_type: 'food',
+        categories: [
+          {
+            name: 'Mains',
+            dishes: dishes.map(d => ({
+              name: d.name,
+              price: d.price,
+              description: d.description ?? null,
+              raw_ingredients: null,
+              dietary_hints: [],
+              allergen_hints: [],
+              spice_level: null,
+              calories: null,
+              dish_category: null,
+              dish_kind: 'standard' as const,
+              is_parent: false,
+              confidence: 0.9,
+              serves: null,
+              display_price_prefix: 'exact' as const,
+              variants: null,
+            })),
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe('mergeExtractionResults — flagged duplicate similarity and reasons', () => {
+  it('populates similarity and "name N% match" reason on exact-name duplicate', () => {
+    const page1 = makeRawResult([{ name: 'Salmon Teriyaki', price: 150 }]);
+    const page2 = makeRawResult([{ name: 'Salmon Teriyaki', price: 200 }]);
+    const { flaggedDuplicates } = mergeExtractionResults([page1, page2]);
+    expect(flaggedDuplicates).toHaveLength(1);
+    const dup = flaggedDuplicates[0];
+    expect(dup.similarity).toBeCloseTo(1, 1);
+    expect(dup.reasons).toContain('name 100% match');
+  });
+
+  it('includes "same category" when both dishes share a category', () => {
+    const page1 = makeRawResult([{ name: 'Tuna Roll', price: 80 }]);
+    const page2 = makeRawResult([{ name: 'Tuna Roll', price: 120 }]);
+    const { flaggedDuplicates } = mergeExtractionResults([page1, page2]);
+    expect(flaggedDuplicates[0].reasons).toContain('same category');
+  });
+
+  it('includes "description overlap" when descriptions are similar enough', () => {
+    const desc = 'Fresh salmon with teriyaki glaze served with rice and vegetables';
+    const page1 = makeRawResult([{ name: 'Salmon Bowl', price: 130, description: desc }]);
+    const page2 = makeRawResult([{ name: 'Salmon Bowl', price: 160, description: desc }]);
+    const { flaggedDuplicates } = mergeExtractionResults([page1, page2]);
+    expect(flaggedDuplicates[0].reasons).toContain('description overlap');
+  });
+
+  it('omits "description overlap" when descriptions differ significantly', () => {
+    const page1 = makeRawResult([
+      { name: 'Chicken Rice', price: 90, description: 'Grilled chicken' },
+    ]);
+    const page2 = makeRawResult([
+      { name: 'Chicken Rice', price: 110, description: 'Fried beef tacos' },
+    ]);
+    const { flaggedDuplicates } = mergeExtractionResults([page1, page2]);
+    expect(flaggedDuplicates[0].reasons).not.toContain('description overlap');
+  });
+
+  it('does not flag same-name same-price dishes', () => {
+    const page1 = makeRawResult([{ name: 'Caesar Salad', price: 70 }]);
+    const page2 = makeRawResult([{ name: 'Caesar Salad', price: 70 }]);
+    const { flaggedDuplicates } = mergeExtractionResults([page1, page2]);
+    expect(flaggedDuplicates).toHaveLength(0);
   });
 });

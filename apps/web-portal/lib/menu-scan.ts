@@ -280,6 +280,36 @@ export interface FlaggedDuplicate {
   existingDish: RawExtractedDish;
   incomingDish: RawExtractedDish;
   categoryName: string | null;
+  /** Dice coefficient for the dish names (0–1). */
+  similarity: number;
+  /** Human-readable reasons, e.g. ["name 100% match", "same category"]. */
+  reasons: string[];
+}
+
+function computeDuplicateReasons(
+  existing: RawExtractedDish,
+  incoming: RawExtractedDish,
+  categoryName: string | null
+): { similarity: number; reasons: string[] } {
+  const reasons: string[] = [];
+
+  const similarity = compareTwoStrings(
+    existing.name.toLowerCase().trim(),
+    incoming.name.toLowerCase().trim()
+  );
+  reasons.push(`name ${Math.round(similarity * 100)}% match`);
+
+  if (categoryName) reasons.push('same category');
+
+  if (existing.description && incoming.description) {
+    const descSim = compareTwoStrings(
+      existing.description.toLowerCase().trim(),
+      incoming.description.toLowerCase().trim()
+    );
+    if (descSim > 0.4) reasons.push('description overlap');
+  }
+
+  return { similarity, reasons };
 }
 
 const COUNTRY_CURRENCY_MAP: Record<string, string> = {
@@ -769,10 +799,17 @@ export function mergeExtractionResults(results: RawExtractionResult[]): {
             dish.price != null
           ) {
             // Same name, different price → flag as potential variant
+            const { similarity, reasons } = computeDuplicateReasons(
+              existing,
+              dish,
+              existingCat.name
+            );
             flaggedDuplicates.push({
               existingDish: existing,
               incomingDish: dish,
               categoryName: existingCat.name,
+              similarity,
+              reasons,
             });
           }
           // Same name, same price → true duplicate, skip

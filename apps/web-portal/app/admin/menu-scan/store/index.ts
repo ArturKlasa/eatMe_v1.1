@@ -4,8 +4,14 @@ import { createProcessingSlice, ProcessingSlice } from './processingSlice';
 import { createReviewSlice, ReviewSlice } from './reviewSlice';
 import { createDraftSlice, DraftSlice } from './draftSlice';
 import { createGroupSlice, GroupSlice } from './groupSlice';
+import { createSavedMetaSlice, SavedMetaSlice } from './savedMetaSlice';
 
-export type ReviewStore = UploadSlice & ProcessingSlice & ReviewSlice & DraftSlice & GroupSlice;
+export type ReviewStore = UploadSlice &
+  ProcessingSlice &
+  ReviewSlice &
+  DraftSlice &
+  GroupSlice &
+  SavedMetaSlice;
 
 export const useReviewStore = create<ReviewStore>()((...a) => ({
   ...createUploadSlice(...a),
@@ -13,4 +19,5 @@ export const useReviewStore = create<ReviewStore>()((...a) => ({
   ...createReviewSlice(...a),
   ...createDraftSlice(...a),
   ...createGroupSlice(...a),
+  ...createSavedMetaSlice(...a),
 }));

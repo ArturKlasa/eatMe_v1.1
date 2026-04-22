@@ -619,12 +619,14 @@ export const createReviewSlice: StateCreator<any, [], [], ReviewSlice> = (set, g
 
       set({ savedCount: data.dishes_saved });
       previewUrls.forEach(url => URL.revokeObjectURL(url));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (get() as any).setLastSaved?.(jobId, data.dishes_saved);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (get() as any).clearDraft?.(jobId);
       toast.success(
         `${data.dishes_saved} dishes saved to ${selectedRestaurant?.name ?? 'restaurant'}!`
       );
       opts.onSaveSuccess?.();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (get() as any).resetAll?.();
     } catch (err: unknown) {
       console.error('[MenuScan] Save error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save');

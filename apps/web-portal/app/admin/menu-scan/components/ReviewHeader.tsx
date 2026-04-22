@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { computeMenuWarnings, extractionNotesToWarnings } from '@/lib/menu-scan-warnings';
 import { countDishes } from '@/lib/menu-scan';
 import { useReviewStore } from '../store';
+import { SavePreviewModal } from './SavePreviewModal';
 
 const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 } as const;
 const SEVERITY_CONFIG = {
@@ -31,7 +32,6 @@ export function ReviewHeader() {
   const saving = useReviewStore(s => s.saving);
   const extractionNotes = useReviewStore(s => s.extractionNotes);
   const setStep = useReviewStore(s => s.setStep);
-  const handleSave = useReviewStore(s => s.handleSave);
 
   const totalDishes = useMemo(() => countDishes(editableMenus), [editableMenus]);
   const menuWarnings = useMemo(
@@ -43,6 +43,7 @@ export function ReviewHeader() {
   );
 
   const [showWarnings, setShowWarnings] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const errorCount = menuWarnings.filter(w => w.severity === 'error').length;
   const warningCount = menuWarnings.filter(w => w.severity === 'warning').length;
@@ -71,7 +72,7 @@ export function ReviewHeader() {
             ← Re-scan
           </Button>
           <Button
-            onClick={() => handleSave()}
+            onClick={() => setShowSaveModal(true)}
             disabled={saving || totalDishes === 0}
             className="bg-brand-primary hover:bg-brand-primary/90 text-background"
           >
@@ -156,6 +157,8 @@ export function ReviewHeader() {
           )}
         </div>
       )}
+
+      <SavePreviewModal open={showSaveModal} onOpenChange={setShowSaveModal} />
     </div>
   );
 }

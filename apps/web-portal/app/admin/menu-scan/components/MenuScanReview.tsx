@@ -6,6 +6,7 @@ import { ReviewHeader } from './ReviewHeader';
 import { ReviewLeftPanel } from './ReviewLeftPanel';
 import { PageGroupedList } from './PageGroupedList';
 import { ImageZoomLightbox } from './ImageZoomLightbox';
+import { UndoToast } from './UndoToast';
 
 export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
   const addIngredientTarget = useReviewStore(s => s.addIngredientTarget);
@@ -50,6 +51,8 @@ export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
           onClose={() => setAddIngredientTarget(null)}
         />
       )}
+
+      <UndoToast />
     </div>
   );
 }

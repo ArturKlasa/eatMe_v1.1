@@ -118,6 +118,7 @@ function DishRow({ dish, pageIdx, mIdx, cIdx, dIdx, currency, isExpanded, onJump
 
   return (
     <div
+      data-dish-id={dish._id}
       className={cn(
         'rounded-lg border p-3 transition-colors',
         dish.confidence < 0.6
@@ -352,6 +353,7 @@ export function PageGroupedList() {
                     return (
                       <div
                         key={dish._id}
+                        data-dish-id={dish._id}
                         onFocus={e => {
                           if (
                             !(e.target as HTMLElement).closest(

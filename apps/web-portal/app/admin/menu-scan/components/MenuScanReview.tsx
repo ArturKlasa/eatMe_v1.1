@@ -1,14 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { AddIngredientPanel } from '@/components/admin/AddIngredientPanel';
 import { useReviewStore } from '../store';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { ReviewHeader } from './ReviewHeader';
 import { ReviewLeftPanel } from './ReviewLeftPanel';
 import { PageGroupedList } from './PageGroupedList';
 import { ImageZoomLightbox } from './ImageZoomLightbox';
+import { SavePreviewModal } from './SavePreviewModal';
 import { UndoToast } from './UndoToast';
 
 export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
+  const [showSaveModal, setShowSaveModal] = useState(false);
+
   const addIngredientTarget = useReviewStore(s => s.addIngredientTarget);
   const setAddIngredientTarget = useReviewStore(s => s.setAddIngredientTarget);
   const resolveIngredient = useReviewStore(s => s.resolveIngredient);
@@ -18,9 +23,11 @@ export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
   const currentImageIdx = useReviewStore(s => s.currentImageIdx);
   const setCurrentImageIdx = useReviewStore(s => s.setCurrentImageIdx);
 
+  useKeyboardShortcuts({ onOpenSaveModal: () => setShowSaveModal(true) });
+
   return (
     <div className="flex flex-col h-[calc(100vh-140px)]">
-      <ReviewHeader />
+      <ReviewHeader onOpenSaveModal={() => setShowSaveModal(true)} />
 
       <div className="flex gap-5 min-h-0 flex-1">
         <ReviewLeftPanel />
@@ -52,6 +59,7 @@ export function MenuScanReview({ jobId: _jobId }: { jobId: string }) {
         />
       )}
 
+      <SavePreviewModal open={showSaveModal} onOpenChange={setShowSaveModal} />
       <UndoToast />
     </div>
   );

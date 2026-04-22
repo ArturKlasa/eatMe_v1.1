@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useReviewStore } from '../store';
 import type { EditableDish, EditableMenu } from '@/lib/menu-scan';
 import type { BatchFilters } from '@/components/admin/menu-scan/BatchToolbar';
@@ -34,8 +33,6 @@ export function useGroupState(_deps: GroupDeps) {
   const acceptHighConfidence = useReviewStore(s => s.acceptHighConfidence);
   const acceptSelected = useReviewStore(s => s.acceptSelected);
   const rejectSelected = useReviewStore(s => s.rejectSelected);
-  const toggleExpand = useReviewStore(s => s.toggleExpand);
-
   // Derived counts (computed from store state)
   const reviewedGroupCount = editableMenus.reduce(
     (total, menu) =>
@@ -58,29 +55,8 @@ export function useGroupState(_deps: GroupDeps) {
     0
   );
 
-  // Keyboard shortcuts for focused group (A/R/E)
-  useEffect(() => {
-    if (step !== 'review' || !focusedGroupId) return;
-
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-      if (e.key === 'a' || e.key === 'A') {
-        e.preventDefault();
-        acceptGroup(focusedGroupId);
-      } else if (e.key === 'r' || e.key === 'R') {
-        e.preventDefault();
-        rejectGroup(focusedGroupId);
-      } else if (e.key === 'e' || e.key === 'E') {
-        e.preventDefault();
-        toggleExpand(focusedGroupId);
-      }
-    };
-
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [step, focusedGroupId, acceptGroup, rejectGroup, toggleExpand]);
+  // Keyboard shortcuts (A/R/E/N/Esc/Cmd+S) are handled centrally by
+  // useKeyboardShortcuts — no per-hook handler here to avoid duplicate dispatch.
 
   const getParentGroups = () => {
     const groups: Array<{

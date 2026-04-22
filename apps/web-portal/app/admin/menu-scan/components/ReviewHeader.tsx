@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Loader2,
   Utensils,
@@ -10,12 +10,18 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { computeMenuWarnings, extractionNotesToWarnings } from '@/lib/menu-scan-warnings';
+import type { MenuWarning } from '@/lib/menu-scan-warnings';
 import { countDishes } from '@/lib/menu-scan';
 import { useReviewStore } from '../store';
-import { SavePreviewModal } from './SavePreviewModal';
 
 const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 } as const;
 const SEVERITY_CONFIG = {
@@ -24,7 +30,53 @@ const SEVERITY_CONFIG = {
   info: { icon: Info, color: 'text-info', bg: 'bg-info/10', label: 'Info' },
 } as const;
 
-export function ReviewHeader() {
+const SHORTCUTS = [
+  { key: 'E', description: 'Expand / collapse all dishes' },
+  { key: 'N', description: 'Focus next flagged dish' },
+  { key: '⌘/Ctrl S', description: 'Open save dialog' },
+  { key: 'A', description: 'Accept focused group' },
+  { key: 'R', description: 'Reject focused group' },
+  { key: 'Esc', description: 'Close lightbox / deselect' },
+] as const;
+
+function KeyboardShortcutHelp() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1 px-2 text-muted-foreground"
+          aria-label="Keyboard shortcuts"
+        >
+          <Keyboard className="h-4 w-4" />
+          <span className="text-xs hidden sm:inline">Shortcuts</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64 p-3" data-testid="shortcuts-dropdown">
+        <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wide mb-2">
+          Keyboard Shortcuts
+        </p>
+        <div className="space-y-1.5">
+          {SHORTCUTS.map(s => (
+            <div key={s.key} className="flex items-center justify-between gap-4 text-xs">
+              <span className="text-muted-foreground">{s.description}</span>
+              <kbd className="shrink-0 px-1.5 py-0.5 bg-muted rounded font-mono text-[10px] text-foreground">
+                {s.key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+interface ReviewHeaderProps {
+  onOpenSaveModal: () => void;
+}
+
+export function ReviewHeader({ onOpenSaveModal }: ReviewHeaderProps) {
   const selectedRestaurant = useReviewStore(s => s.selectedRestaurant);
   const currency = useReviewStore(s => s.currency);
   const editableMenus = useReviewStore(s => s.editableMenus);
@@ -32,6 +84,7 @@ export function ReviewHeader() {
   const saving = useReviewStore(s => s.saving);
   const extractionNotes = useReviewStore(s => s.extractionNotes);
   const setStep = useReviewStore(s => s.setStep);
+  const setExpandedDishes = useReviewStore(s => s.setExpandedDishes);
 
   const totalDishes = useMemo(() => countDishes(editableMenus), [editableMenus]);
   const menuWarnings = useMemo(
@@ -43,7 +96,6 @@ export function ReviewHeader() {
   );
 
   const [showWarnings, setShowWarnings] = useState(false);
-  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const errorCount = menuWarnings.filter(w => w.severity === 'error').length;
   const warningCount = menuWarnings.filter(w => w.severity === 'warning').length;
@@ -51,6 +103,22 @@ export function ReviewHeader() {
 
   const sorted = [...menuWarnings].sort(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]
+  );
+
+  const handleWarningClick = useCallback(
+    (w: MenuWarning) => {
+      if (!w.dishId) return;
+      setExpandedDishes(prev => {
+        const next = new Set(prev);
+        next.add(w.dishId!);
+        return next;
+      });
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-dish-id="${w.dishId}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    },
+    [setExpandedDishes]
   );
 
   return (
@@ -68,11 +136,12 @@ export function ReviewHeader() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <KeyboardShortcutHelp />
           <Button variant="outline" onClick={() => setStep('upload')} disabled={saving}>
             ← Re-scan
           </Button>
           <Button
-            onClick={() => setShowSaveModal(true)}
+            onClick={onOpenSaveModal}
             disabled={saving || totalDishes === 0}
             className="bg-brand-primary hover:bg-brand-primary/90 text-background"
           >
@@ -127,8 +196,31 @@ export function ReviewHeader() {
                 const cfg = SEVERITY_CONFIG[w.severity];
                 const Icon = cfg.icon;
                 const isAi = w.source === 'ai';
+                const isClickable = Boolean(w.dishId);
                 return (
-                  <div key={i} className="flex items-start gap-2 px-4 py-2 text-xs">
+                  <div
+                    key={i}
+                    role={isClickable ? 'button' : undefined}
+                    tabIndex={isClickable ? 0 : undefined}
+                    onClick={isClickable ? () => handleWarningClick(w) : undefined}
+                    onKeyDown={
+                      isClickable
+                        ? e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleWarningClick(w);
+                            }
+                          }
+                        : undefined
+                    }
+                    className={`flex items-start gap-2 px-4 py-2 text-xs ${
+                      isClickable
+                        ? 'cursor-pointer hover:bg-muted/40 transition-colors focus:outline-none focus:ring-1 focus:ring-inset focus:ring-brand-primary/50'
+                        : ''
+                    }`}
+                    data-testid="warning-row"
+                    data-dish-id-target={w.dishId}
+                  >
                     <Icon className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${cfg.color}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-1.5">
@@ -149,6 +241,11 @@ export function ReviewHeader() {
                           Suggestion: {w.suggestion}
                         </p>
                       )}
+                      {isClickable && (
+                        <p className="mt-0.5 ml-4 text-brand-primary/70 text-[10px]">
+                          Click to jump to dish ↗
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
@@ -157,8 +254,6 @@ export function ReviewHeader() {
           )}
         </div>
       )}
-
-      <SavePreviewModal open={showSaveModal} onOpenChange={setShowSaveModal} />
     </div>
   );
 }

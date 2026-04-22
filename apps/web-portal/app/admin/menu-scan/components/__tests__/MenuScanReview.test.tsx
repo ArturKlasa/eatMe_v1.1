@@ -67,6 +67,18 @@ vi.mock('next/dynamic', () => ({
   },
 }));
 
+vi.mock('../../hooks/useKeyboardShortcuts', () => ({
+  useKeyboardShortcuts: vi.fn(),
+}));
+
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode; asChild?: boolean }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 describe('MenuScanReview', () => {
   beforeEach(() => {
     useReviewStore.setState({

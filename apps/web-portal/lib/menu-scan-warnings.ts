@@ -12,6 +12,8 @@ export interface MenuWarning {
   source?: WarningSource;
   /** Optional proposed fix from AI */
   suggestion?: string;
+  /** Dish _id when the warning is dish-scoped; used for click-to-scroll in ReviewHeader */
+  dishId?: string;
 }
 
 const SUSPICIOUS_PRICE_THRESHOLD = 500;
@@ -85,6 +87,7 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'error',
             message: 'Dish name is missing or too short',
             path: dishPath,
+            dishId: dish._id,
           });
         }
 
@@ -94,12 +97,14 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'error',
             message: 'Very low extraction confidence — review carefully',
             path: dishPath,
+            dishId: dish._id,
           });
         } else if (dish.confidence < 0.5) {
           warnings.push({
             severity: 'warning',
             message: 'Low extraction confidence (likely OCR issue)',
             path: dishPath,
+            dishId: dish._id,
           });
         }
 
@@ -109,6 +114,7 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'error',
             message: 'Dish has no price',
             path: dishPath,
+            dishId: dish._id,
           });
         }
 
@@ -118,6 +124,7 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'warning',
             message: `Price looks unusually high for ${currency} (${price})`,
             path: dishPath,
+            dishId: dish._id,
           });
         }
 
@@ -128,6 +135,7 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'warning',
             message: 'Duplicate dish name in this category',
             path: dishPath,
+            dishId: dish._id,
           });
         }
 
@@ -137,6 +145,7 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'info',
             message: 'No ingredients listed',
             path: dishPath,
+            dishId: dish._id,
           });
         }
 
@@ -147,6 +156,7 @@ export function computeMenuWarnings(menus: EditableMenu[], currency = 'USD'): Me
             severity: 'info',
             message: `${unmatched.length} unmatched ingredient${unmatched.length > 1 ? 's' : ''}`,
             path: dishPath,
+            dishId: dish._id,
           });
         }
       }

@@ -11,11 +11,17 @@ const schema = z.object({
 
 type FormState = { email: string; password: string };
 
-export function SignInForm({ redirectTo }: { redirectTo?: string }) {
+export function SignInForm({
+  redirectTo,
+  initialError,
+}: {
+  redirectTo?: string;
+  initialError?: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<FormState>({ email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string[]>>>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(initialError ?? null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

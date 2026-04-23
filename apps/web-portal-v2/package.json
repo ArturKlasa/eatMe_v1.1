@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@eatme/eslint-config-eatme": "workspace:*",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,6 +36,7 @@
     "tailwindcss": "^4",
     "tsx": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "zod": "^4.1.12"
   }
 }

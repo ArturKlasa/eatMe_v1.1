@@ -1,15 +1,34 @@
 # Ralph Orchestrator Configuration
-# Project: EatMe — Dish Ingestion & Menu-Scan Review Rework
-# Task:    Execute the 18-step implementation plan at
-#          .agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md
-# Pattern: builder → reviewer (loop per step) → LOOP_COMPLETE when all boxes ticked.
+# Project: EatMe — Web Portal v2 Rebuild
+# Task:    Execute the 28-step implementation plan at
+#          .agents/planning/2026-04-23-web-portal-v2/implementation/plan.md
+# Pattern: 5-hat pipeline derived from `code-assist`:
+#          planner → builder → critic → reviewer → finalizer
+#          - planner  picks the next unchecked step (handles human-gate boundary at 27/28)
+#          - builder  implements one step with tests + atomic commit
+#          - critic   fresh-eyes quality review (judgment, not gates)
+#          - reviewer independently re-runs backpressure gates
+#          - finalizer end-of-loop sweep + LOOP_COMPLETE
+#          Steps 27 (RLS tightening — the one-way door) and 28 (canary deploy
+#          + DNS cutover) are HUMAN-GATED and not auto-executed by this loop.
 # Mode:    FULL WRITE. Source edits allowed; atomic per-step commits expected.
 # Docs:    https://mikeyobrien.github.io/ralph-orchestrator/
 #
+# Event graph:
+#   impl.start ──► planner
+#   planner ──► plan.ready ──► builder
+#   planner ──► step.final_ready ──► finalizer (end-of-loop detection)
+#   builder ──► step.built ──► critic
+#   builder ──► step.blocked ──► finalizer (hard blocker escalation)
+#   critic  ──► critique.clean ──► reviewer
+#   critic  ──► critique.issues ──► builder (quality rework)
+#   reviewer ──► step.next ──► planner (loop)
+#   reviewer ──► step.rework ──► builder (gate failure rework)
+#   finalizer ──► LOOP_COMPLETE
+#
 # Alternative launch (no custom hats):
 #   ralph run -c ralph.yml -H builtin:code-assist
-# The custom hats below tailor the loop to our per-step-in-plan.md flow; the
-# builtin preset is a valid fallback if the custom shape feels too rigid.
+# The builtin preset is a valid fallback if our custom flow ever feels too rigid.
 
 cli:
   backend: "claude"
@@ -18,29 +37,52 @@ cli:
 event_loop:
   completion_promise: "LOOP_COMPLETE"
   starting_event: "impl.start"
-  max_iterations: 200          # 18 steps × multi-iteration per step
-  max_runtime_seconds: 28800   # 8 hours
+  max_iterations: 1000         # 26 steps × ~4 activations × rework cushion (planner/builder/critic/reviewer)
+  max_runtime_seconds: 57600   # 16 hours
   idle_timeout_secs: 1800
   checkpoint_interval: 3       # tight checkpoints — each step commits anyway
 
 core:
-  specs_dir: ".agents/planning/2026-04-22-ingestion-improvements/"
+  specs_dir: ".agents/planning/2026-04-23-web-portal-v2/"
   scratchpad: ".agent/scratchpad.md"
   guardrails:
-    - "AUTHORITATIVE SOURCES: PROMPT.md is the task brief. The design doc at `.agents/planning/2026-04-22-ingestion-improvements/design/detailed-design.md` is the spec. The plan at `.agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md` is the ordered step list with checklist. Always re-read all three on each activation — fresh context is reliability."
-    - "Work one step at a time, in the order given in plan.md. Do not skip or reorder steps. Each step is an atomic commit (or small set of commits if truly needed) that ticks its checkbox in plan.md when done."
+    - "AUTHORITATIVE SOURCES: PROMPT.md is the task brief. The design at `.agents/planning/2026-04-23-web-portal-v2/design/detailed-design.md` is the spec. The plan at `.agents/planning/2026-04-23-web-portal-v2/implementation/plan.md` is the ordered 28-step checklist. Research docs under `.agents/planning/2026-04-23-web-portal-v2/research/*.md` are supporting. Re-read PROMPT.md + plan.md on every activation — fresh context is reliability."
+
+    - "Work one step at a time, in the order given in plan.md. Do not skip or reorder steps. Each step is an atomic commit (or small set of commits if truly multi-part) that ticks its checkbox in plan.md when done."
+
+    - "PARALLEL TO v1 — SCOPE BOUNDARY: v2 code lives at `apps/web-portal-v2/` (owner) and `apps/admin/` (admin). Do NOT modify `apps/web-portal/` (v1) at all. Do NOT modify `apps/mobile/` except for the six mechanical `.eq('status', 'published')` patches listed in Step 13 (file:line references are explicit in plan.md and `research/frozen-surface.md`)."
+
+    - "ADDITIVE-ONLY SCHEMA: v2 never drops or renames an existing column or table. Migrations 116a, 116, 117, 116b, 118, 119, 120, 121, 122, 123 are additions to the existing schema. `dishes.status`, `menu_scan_jobs`, `@eatme/shared` exports, `@eatme/database` exports all keep their current shape — v2 adds siblings, never mutates."
+
+    - "HUMAN-GATED STEPS 27 AND 28. Step 27 (migration 123 — the RLS tightening one-way door) has six explicit human-verified preconditions (release-safety tests green, Phase 3 mobile in production ≥ 48 h, Playwright green within 24 h, 30-min baseline captured, observability dashboard pinned, on-call assigned). Step 28 (canary deploy to `v2.portal.eatme.app` + 7-day soak + DNS cutover ticket) is operational. **Planner** owns the boundary: when the next unchecked step is 27 or 28 (or all 1–26 are ticked), planner emits `step.final_ready` (not `plan.ready`). Finalizer converts that into `LOOP_COMPLETE` with a handoff note naming the gate."
+
     - "TDD: write tests alongside code in the same step. No 'add tests later' steps exist in the plan. If a step's test requirements aren't satisfied, the step is not done."
-    - "Run the relevant test suite before declaring a step complete. The minimum gate is: `turbo check-types` (whole repo) + `turbo test` (affected package) + the step's explicit demo criterion."
-    - "After implementing a step, update plan.md: change `- [ ]` to `- [x]` for the step's checklist entry. This is the signal of 'done for this step'."
-    - "Commits follow conventional-commit style matching existing repo history. Example: `feat(menu-scan): rename combo→bundle, add is_template column (step 1)`. Tie every commit back to the plan step number."
+
+    - "Run the relevant test suite before declaring a step complete. Minimum gate: `turbo check-types` (whole monorepo) + `turbo test --filter <affected workspace>` + the step's explicit demo criterion."
+
+    - "After implementing a step, update plan.md: change `- [ ]` to `- [x]` for the step's checklist entry. This is the signal of 'done'."
+
+    - "Commits follow conventional-commit style. Scopes: `v2` for new-app code, `db` for migrations, `edge` for Edge Function work, `mobile` for mobile patches, `shared` for `@eatme/*` packages, `plan` for plan.md checkbox updates, `ci` for ESLint / Playwright / CI workflow changes. Tie every commit to a plan step. Examples: `feat(v2): scaffold web-portal-v2 + admin apps + @eatme/ui (plan step 1)` / `feat(db): migrations 116+117 — add status columns (plan step 6)` / `chore(plan): tick step 6`."
+
     - "Never skip git hooks (--no-verify), never bypass signing (--no-gpg-sign), never force-push. If a hook fails, fix the underlying issue and retry."
-    - "Do not auto-apply migration 115 in this loop — it is operationally gated (runs after admin triage in production, see plan.md Step 6). Author it and test it locally; do not run it against a DB that still contains `experience` rows."
-    - "Keep the new review UI behind NO feature flag per Q9.2. This means intermediate commits may leave the live review page in an awkward half-rewritten state; accept this but prioritize keeping upload/processing functional at every commit."
-    - "For the Zustand migration (Steps 7–10), keep existing hook names as thin wrappers until the final cleanup in Step 18 — avoid breaking consumers mid-rewrite."
-    - "Mobile app changes (Step 17) can land in the same branch but mobile release is lagging 1–2 weeks — do not gate the web ship on a mobile build."
-    - "Monorepo commands use `pnpm` + `turbo`. Package-scoped installs use `pnpm add <pkg> --filter @eatme/<workspace>` (verify exact workspace name from package.json)."
-    - "Ingestion pipeline quirks: PostGIS POINT is `POINT(lng lat)`, RLS required on every new table with owner_id FK to auth.users, primary_protein is NOT NULL on dishes. Respect these — they are documented in CLAUDE.md."
-    - "If a step reveals the design is wrong (not just imprecise), STOP and add a note to `.agent/scratchpad.md` flagging the contradiction — do NOT silently deviate. The plan trusts the design to be consistent; an inconsistency is a signal to escalate."
+
+    - "NEXT.JS 16 CONVENTIONS: the middleware file is `proxy.ts`, NOT `middleware.ts`. Runs on Node runtime by default. `params` / `searchParams` / `cookies()` / `headers()` are async — always `await` them. `@supabase/ssr` is the canonical adapter; `auth-helpers-nextjs` is EOL. Parallel routes require `default.tsx` or the build fails."
+
+    - "ADMIN ROLE CHECK is `app_metadata.role === 'admin'` ONLY. Never `user_metadata.role` (user-writable → privilege escalation). Always through the `isAdmin()` helper in `@eatme/shared`."
+
+    - "AUTH WRAPPERS are mandatory. Every exported Server Action and Route Handler must be wrapped in `withAuth` / `withAdminAuth` / `withPublic` (or the `*Route` variants for Route Handlers). The custom ESLint rule `no-unwrapped-action` in `packages/eslint-config-eatme/` fails CI on bare exports. Session validation: `supabase.auth.getUser()` (remote, authoritative) inside wrappers; `supabase.auth.getClaims()` (local JWT verify, wrapped in React `cache()`) inside the DAL for repeated RSC reads."
+
+    - "NO ZUSTAND in v2 code. Server Components + TanStack Query + Server Actions cover the state model. 2026-04-22 shipped Zustand in v1's menu-scan review UI; it stays in v1. Some visual components are ported from v1 (e.g., `DishEditPanelV2`, `KindSelectorV2`, `CourseEditor`, `PageGroupedList`) — rewire their state to react-hook-form + Server Actions per plan Step 17."
+
+    - "MENU-SCAN AI: inherit the v1 integration pattern (`zodResponseFormat` + `strict: true` + temperature 0.1 + Vision `detail: 'high'` + multi-page merge) from `2026-04-06-menu-ingestion-enrichment`, but REWRITE the prompt text and `MenuExtractionSchema` for v2 per design §4.4. v2 drops allergen / dietary / ingredient extraction, pins `dish_kind` to the 5-value enum, pins `primary_protein` to the 11-value list, adds per-dish `suggested_category_name`, omits `is_template` and `calories`. Do NOT port the v1 prompt byte-for-byte. Model pinned to `gpt-4o-2024-11-20`; fallback `gpt-4o-mini` on 429 or `attempts >= 2`."
+
+    - "Monorepo uses `pnpm` + `turbo`. Workspace-scoped installs: `pnpm add <pkg> --filter @eatme/<workspace>` (names: `@eatme/shared`, `@eatme/database`, `@eatme/tokens`, `@eatme/ui`, `@eatme/eslint-config-eatme`). New apps: `apps/web-portal-v2/`, `apps/admin/`. Both list `@eatme/shared`, `@eatme/database`, `@eatme/tokens`, `@eatme/ui` in `next.config.ts` `transpilePackages`."
+
+    - "PROJECT PITFALLS (from CLAUDE.md): PostGIS `POINT(lng lat)` — not lat/lng. RLS required on every new table with `owner_id` FK to `auth.users`. `primary_protein` is NOT NULL on dishes. Allergen / dietary default `[]` not `null` (matches `@eatme/shared` non-nullable types). Storage buckets `menu-scan-uploads`, `restaurant-photos`, `dish-photos` are migration-tracked in 116a (previously dashboard-toggled)."
+
+    - "If a step reveals the design is wrong (not just imprecise), STOP: write a note to `.agent/scratchpad.md` with file:line cites and emit `step.blocked` (NOT `step.built` — blocked escalates to finalizer, which emits `LOOP_COMPLETE` with a `BLOCKED:` prefix for human resolution). Do NOT silently deviate."
+
+    - "EVIDENCE IN EVENT PAYLOADS (per Ralph's backpressure best practice): include specific evidence, not vague claims. Example good: `step.built` payload = `step 6: typecheck pass, test @eatme/database pass, supabase db reset round-trip pass, commit abc123`. Example bad: `step.built` payload = `step 6: done`."
 
 memories:
   enabled: true
@@ -53,105 +95,385 @@ tasks:
   enabled: true
 
 hats:
+  planner:
+    name: "Planner"
+    emoji: "🗂️"
+    description: "Picks the next unchecked step from plan.md. Detects the human-gate boundary at Steps 27/28 and routes the loop to finalizer when Steps 1–26 are all ticked or when the next unchecked step is 27 or 28."
+    instructions: |
+      You pick the next work item and decide whether the loop should continue
+      or wrap up. You do NOT write code, run tests, or commit.
+
+      On every activation:
+      1. Read `PROMPT.md` and
+         `.agents/planning/2026-04-23-web-portal-v2/implementation/plan.md`
+         (the top-level checklist is authoritative).
+      2. Read `.agent/scratchpad.md` for prior-iteration notes — especially
+         blockers or escalations from earlier attempts.
+      3. Scan plan.md's top-level checklist top-to-bottom. Identify the first
+         entry still marked `- [ ] Step N: <title>`.
+
+      === DISPATCH DECISION ===
+
+      **Case A — next unchecked is Step 1–26:**
+      - Emit `plan.ready` with the step number as payload:
+          ralph emit "plan.ready" "step N: <title>"
+      - Exit activation. Do NOT read code, do NOT commit, do NOT modify plan.md.
+
+      **Case B — next unchecked is Step 27 OR Step 28:**
+      - Append a one-line note to `.agent/scratchpad.md`:
+          `<ISO-date> planner reached human-gate boundary at step N — routing to finalizer`
+      - Emit `step.final_ready` with payload:
+          ralph emit "step.final_ready" "HUMAN_GATE at step N: Steps 1-26 complete; Step N has human-verified preconditions per plan.md. Route to finalizer."
+      - Exit activation.
+
+      **Case C — all Steps 1–26 are `- [x]` (e.g., after a late rework):**
+      - Emit `step.final_ready` with payload:
+          ralph emit "step.final_ready" "All Steps 1-26 complete. Route to finalizer for end-of-loop sweep."
+      - Exit activation.
+
+      === WHAT PLANNER DOES NOT DO ===
+      - Does not read source code (builder's job).
+      - Does not run gates (builder + reviewer).
+      - Does not review quality (critic).
+      - Does not tick checkboxes (builder).
+      - Does not run the final sweep (finalizer).
+
+      If plan.md seems inconsistent (e.g., Step N ticked but Step N−1 unchecked),
+      write a note to scratchpad and emit `step.final_ready` with a `BLOCKED:`
+      prefix so the finalizer escalates to the human.
+    triggers:
+      - "impl.start"
+      - "step.next"
+    publishes:
+      - "plan.ready"
+      - "step.final_ready"
+
   builder:
     name: "Builder"
     emoji: "🔨"
-    description: "Picks the next unchecked step from plan.md and implements it end-to-end with tests and an atomic commit"
+    description: "Implements one plan step end-to-end with tests and an atomic commit. Takes plan.ready from planner; takes step.rework from reviewer (gate failure) or critique.issues from critic (quality failure)."
     instructions: |
       You implement ONE step of the plan per activation.
 
       On every activation:
-      1. Read `PROMPT.md` (task brief) and
-         `.agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md`
-         (ordered checklist + step details).
-      2. Skim `.agents/planning/2026-04-22-ingestion-improvements/design/detailed-design.md`
-         for the section relevant to the next step (don't re-read top-to-bottom each time — use the §-numbers referenced in the plan).
-      3. Read `.agent/scratchpad.md` for any prior-iteration notes, especially design contradictions or blockers.
-      4. Identify the first unchecked step (`- [ ] Step N:`) in plan.md's checklist. THAT is your step.
-      5. Open the matching `## Step N:` section in plan.md — it has objective, implementation guidance, test requirements, integration, and demo criteria.
+      1. Read the triggering event payload. Extract the step number N.
+         - `plan.ready` = fresh implementation of Step N.
+         - `step.rework` = reviewer flagged a gate failure on Step N — re-read the failure note and fix.
+         - `critique.issues` = critic flagged quality concerns on Step N — re-read the concerns and address.
+      2. Read `PROMPT.md` and the Step N section of
+         `.agents/planning/2026-04-23-web-portal-v2/implementation/plan.md`
+         (Objective, Implementation guidance, Test requirements, Integration,
+         Demo, Commit convention).
+      3. Skim the design sections referenced in the step (use §-numbers;
+         don't re-read the whole design).
+      4. Read `.agent/scratchpad.md` for prior notes.
 
       Then execute:
-      a) Read the code files named in the step (pick a sensible subset — the step's "Implementation guidance" tells you where to look).
-      b) Implement the changes. Write tests per the step's "Test requirements" in the same commit — not later.
+      a) Read the code files named in the step's Implementation guidance.
+      b) Implement the changes. Write tests per "Test requirements" IN THE
+         SAME COMMIT — never defer tests.
       c) Run backpressure gates locally:
          - `turbo check-types` (monorepo) — must pass.
          - `turbo test --filter <affected workspace>` — must pass.
-         - For DB migrations: test against a local `supabase db reset` where relevant.
-         - For deploy-path sensitive changes (enrich-dish function, generate_candidates RPC): exercise or smoke-test before claiming done.
-      d) If a gate fails, fix and retry — do not commit red code.
+         - For DB migrations: `supabase db reset` on a scratch DB; apply
+           forward; run the reverse migration; re-apply forward. Schema
+           round-trip must be identical.
+         - For Edge Functions: verify the Deno bundle builds; exercise via
+           integration test with stubbed OpenAI.
+         - For Next.js apps: `turbo build --filter web-portal-v2` or
+           `--filter admin` — must build clean.
+         - The step's "Demo" criterion — exercise it.
+      d) If a gate fails, fix and retry. Do NOT commit red code.
       e) Commit with a conventional-commit message naming the plan step:
          `<type>(<scope>): <summary> (plan step N)`
-         Examples:
-           - `feat(db): add is_template + status, new course tables (plan step 1)`
-           - `refactor(menu-scan): port review state to Zustand (plan step 10)`
-           - `test(menu-scan): hook tests for reviewSlice (plan step 8)`
-      f) Tick the checkbox in plan.md: change `- [ ] Step N: <title>` to `- [x] Step N: <title>`. Commit this plan.md update in the same commit or a follow-up trivial commit (`chore(plan): tick step N`).
-      g) Emit `step.complete` with a short payload summarising what passed:
-         `ralph emit "step.complete" "step N: tests pass, typecheck pass, commit <sha>"`
+      f) Tick the checkbox in plan.md: change `- [ ] Step N: <title>` to
+         `- [x] Step N: <title>`. Include in the same commit or a follow-up
+         trivial commit: `chore(plan): tick step N`.
+      g) Emit `step.built` with SPECIFIC evidence:
+         ralph emit "step.built" "step N: typecheck pass, test <workspace> pass, demo verified, commit <sha>"
 
-      If you hit a genuine blocker (e.g. design contradicts itself, a dependency issue you can't resolve):
-      - Write a short note to `.agent/scratchpad.md` with the blocker, what you tried, and what you need.
-      - Emit `step.complete` anyway with the payload starting `BLOCKED:` so the reviewer can assess and decide next steps.
-      - Do NOT silently skip the step or move on — the reviewer will route back.
+      === REWORK PATHS ===
+
+      **`step.rework` (from reviewer) — a gate is red:**
+      - The payload names which gate failed (e.g., "test fails at file:line").
+      - Fix the issue. Re-run the gate. Keep plan.md's checkbox ticked
+        (don't un-tick — the work is still in progress on the same step).
+      - Commit the fix referencing the same step:
+        `fix(<scope>): <summary> (plan step N rework)`
+      - Emit `step.built` again with updated evidence.
+
+      **`critique.issues` (from critic) — quality concerns:**
+      - The payload names specific concerns (readability, missed edge case,
+        wrong abstraction, naming, etc.).
+      - Address each concern. Add tests if critic flagged an uncovered edge
+        case. Commit referencing the same step:
+        `refactor(<scope>): <summary> (plan step N critique)`
+      - Emit `step.built` with evidence naming what changed.
+
+      === HARD BLOCKER ===
+
+      If a step reveals the design is wrong (genuine contradiction, not
+      imprecision you can resolve):
+      - Write a note to `.agent/scratchpad.md` with file:line cites.
+      - Emit `step.blocked` (NOT `step.built`) with payload naming the
+        blocker:
+        ralph emit "step.blocked" "step N BLOCKED: <precise contradiction between design §X and plan step N test requirement Y>"
+      - Exit without committing. The finalizer will emit LOOP_COMPLETE with
+        the blocker so a human can resolve.
 
       Capture learnings as memories when useful:
-      - `ralph tools memory add "<rule>" -t pattern --tags menu-scan`
-      - `ralph tools memory add "<decision>" -t decision --tags ingestion`
-      - `ralph tools memory add "<fix>" -t fix --tags menu-scan`
-      Prefer small, specific memories over broad ones.
+      - `ralph tools memory add "<rule>" -t pattern --tags v2-web-portal`
+      - `ralph tools memory add "<decision>" -t decision --tags v2-web-portal`
+      - `ralph tools memory add "<fix>" -t fix --tags v2-web-portal`
 
-      You MAY update plan.md (tick boxes, annotate) and may add/remove code anywhere in the repo the step authorizes. You must NOT edit the design doc or PROMPT.md (those are locked inputs).
+      You MAY modify: plan.md checkboxes, any code under authorized paths
+      (new-app paths, migrations, Edge Functions, shared packages, mobile
+      Step 13 only), `.agent/scratchpad.md`.
+      You must NOT modify: `design/detailed-design.md`, `PROMPT.md`,
+      `apps/web-portal/` (v1), `apps/mobile/` outside Step 13's six listed
+      sites, or any research doc.
     triggers:
-      - "impl.start"
+      - "plan.ready"
       - "step.rework"
-      - "step.next"
+      - "critique.issues"
     publishes:
-      - "step.complete"
+      - "step.built"
+      - "step.blocked"
+
+  critic:
+    name: "Critic"
+    emoji: "🧐"
+    description: "Fresh-eyes quality review of the builder's most recent commit(s). Judgment, not verification — reads the code and the design for gaps the tests can't catch. Does not run gates (reviewer's job)."
+    instructions: |
+      You are a fresh-eyes quality reviewer. You read the code and the design;
+      you DO NOT run tests or check gates (reviewer does that).
+
+      Your job is to catch what the builder's own tests can't: wrong
+      abstractions, missed edge cases, unclear naming, hidden coupling,
+      inconsistency with the design's principles, premature optimization,
+      dead code, unhandled race conditions.
+
+      On every activation:
+      1. Read the `step.built` event payload. Extract step number N.
+      2. Read the Step N section in
+         `.agents/planning/2026-04-23-web-portal-v2/implementation/plan.md`
+         (Objective, Integration, Demo — especially the "no orphans"
+         expectation).
+      3. Read the design §-numbers the step references — skim for
+         principles or invariants the implementation must honor.
+      4. Identify the builder's commit(s) for Step N via
+         `git log --oneline -n 10` — find the commit(s) whose message
+         ends with `(plan step N)` or `(plan step N rework)` or
+         `(plan step N critique)`.
+      5. Read the diff: `git show <sha>` (for each relevant commit).
+      6. Read `.agent/scratchpad.md` for prior critique notes on this step
+         (avoid flagging the same concerns twice).
+
+      === QUALITY CHECKLIST ===
+
+      Work through these in order. Stop at the first category that yields
+      a real concern — cite file:line and emit `critique.issues`.
+
+      - **Design fidelity.** Does the implementation match design §X the
+        step cites? Any silent deviation?
+      - **Edge cases the tests miss.** Builder wrote tests for the happy
+        path. What's the unhappy path? Empty input, boundary values,
+        concurrent writes, nulls, races?
+      - **Authorization boundary** (steps 2, 7, 8, 9, 19, 21–25). Does
+        every new Server Action / Route Handler go through a wrapper?
+        Does every new Postgres function check `auth.uid()` or `is_admin()`
+        as its first executable statement? Any path that could bypass RLS?
+      - **Input validation boundary.** Server-side Zod re-validation on
+        every mutation path? `strict: true` on OpenAI Structured Outputs?
+        Zod `z.strictObject` vs `z.object` where extra keys should fail?
+      - **Naming clarity.** Identifiers + file names self-explanatory?
+        Any `data`, `tmp`, `x`? Does the name lie (e.g., `getUsers`
+        actually returns restaurants)?
+      - **Abstraction level.** Is this the right layer? Did builder repeat
+        logic already in `@eatme/shared`? Did builder inline what should
+        be a helper? Three similar lines is fine; a premature abstraction
+        is worse.
+      - **Dead code / orphan artifacts.** Anything introduced that
+        nothing downstream uses? Any `// TODO` or `any` that slipped in?
+      - **Consistency with codebase conventions.** Matches the patterns
+        used in nearby files? Respects `CLAUDE.md` pitfalls? Uses the
+        `isAdmin()` helper rather than inlining `user.app_metadata.role`?
+
+      === EMIT ===
+
+      **If clean:**
+      - Emit `critique.clean`:
+          ralph emit "critique.clean" "step N critique: design fidelity ok, edge cases covered, auth boundary intact, naming clear, no orphans"
+      - Optional: add a memory if a pattern worth preserving emerged.
+
+      **If you found real concerns** (not nits, not style preferences —
+      concerns that would bite in production or during maintenance):
+      - Write a short note to `.agent/scratchpad.md` with file:line cites.
+      - Emit `critique.issues`:
+          ralph emit "critique.issues" "step N critique: <specific concern 1>; <specific concern 2>; see scratchpad for details"
+      - The builder will re-activate on `critique.issues` and address.
+
+      === ANTI-PATTERNS ===
+
+      - Do NOT re-run tests. Reviewer does that.
+      - Do NOT rewrite code. Your output is feedback, not diffs.
+      - Do NOT flag style nits (whitespace, import order) — leave those
+        for the linter.
+      - Do NOT require test coverage beyond what the step's "Test
+        requirements" explicitly demand.
+      - Do NOT re-review the same commit twice with the same finding —
+        check scratchpad for prior critique notes.
+
+      You MAY modify `.agent/scratchpad.md` only. You must NOT modify
+      code, plan.md, design, PROMPT.md, or any research doc.
+    triggers:
+      - "step.built"
+    publishes:
+      - "critique.clean"
+      - "critique.issues"
 
   reviewer:
     name: "Reviewer"
     emoji: "🔍"
-    description: "Verifies the step's backpressure gates + demo criteria; either loops back for the next step or signals loop complete"
+    description: "Independent verification of backpressure gates after critic clears the work. Re-runs typecheck, tests, demo, and checks commit + plan.md + git status. Pure gate enforcement — does not judge quality (critic) or run the end-of-loop sweep (finalizer)."
     instructions: |
-      You verify the most recently completed step and decide what happens next.
+      You verify that the backpressure gates are truly green. Critic has
+      already OK'd quality; your job is the hard evidence.
 
       On every activation:
-      1. Read the last `step.complete` event payload to know which step the builder claims to have finished.
-      2. Re-read `.agents/planning/2026-04-22-ingestion-improvements/implementation/plan.md` — find that step's section and its demo criterion.
-      3. Independently re-run the backpressure gates:
-         - `turbo check-types` — must pass.
-         - `turbo test` (or `turbo test --filter <workspace>` if the step is narrow) — must pass.
-         - The step's "Demo" criterion — actually exercise it if automatable (curl a route, insert a test row, etc.). If it requires a manual demo, spot-check the code against the claim.
-      4. Verify the commit message references the plan step.
-      5. Verify `plan.md` has the checkbox ticked for this step.
-      6. Check git status / diff — any files modified that the step wasn't supposed to touch? Flag it.
+      1. Read the `critique.clean` event payload. Extract step number N.
+      2. Read the Step N section in
+         `.agents/planning/2026-04-23-web-portal-v2/implementation/plan.md`
+         (focus on Test requirements + Demo).
 
-      Then decide:
+      === RE-RUN GATES INDEPENDENTLY ===
+      Do not trust the builder's claimed evidence — re-run:
+      - `turbo check-types` (whole monorepo) — must pass.
+      - `turbo test` or `turbo test --filter <workspace>` scoped to the
+        step's affected workspace — must pass.
+      - The step's "Demo" criterion — actually exercise it if automatable
+        (SQL query, `curl`, Playwright scaffold, etc.). If manual-only,
+        spot-check the code against the claim.
+      - For DB migrations (Steps 5–10): re-run `supabase db reset` +
+        forward migration + reverse migration + forward migration.
+        Schema round-trip must be identical.
+      - For Edge Functions (Steps 11, 19): verify Deno build; exercise
+        handler with OpenAI stub.
 
-      **If the step passes all gates AND at least one `- [ ]` box remains in plan.md:**
-      - Emit `step.next` with a short confirmation:
-        `ralph emit "step.next" "step N verified: typecheck pass, tests pass, demo verified; N-1 steps remain"`
+      === STRUCTURAL CHECKS ===
+      - Commit message for the step references `(plan step N)`.
+      - plan.md has `- [x] Step N:` (not `- [ ]`).
+      - `git status` clean, or contains only intended staged/committed files.
+      - `git diff main..HEAD -- apps/web-portal/` is empty (v1 untouched).
+      - For Step 13 only: `git diff main..HEAD -- apps/mobile/` touches
+        only the six listed sites. For all other steps: `apps/mobile/` diff
+        is empty.
+      - No edits to `design/detailed-design.md`, `PROMPT.md`, or any
+        research doc.
 
-      **If the step passes AND every box is `- [x]`:**
-      - Do one final end-to-end pass: `turbo check-types && turbo test && turbo build && turbo lint`
-      - Verify no stray edits (run `git status` — the tree should be clean or contain only intended files).
-      - Run the manual verification checklist from `design/detailed-design.md` §7.5 — check each item against actual behavior.
-      - If all pass: emit `LOOP_COMPLETE` with a final summary.
-      - If any final-gate item fails: that's a new work item — open or extend the plan (add Step 18a, etc.) and emit `step.rework` routing back to the builder.
+      === DECIDE ===
 
-      **If the step fails (tests red, typecheck errors, demo doesn't work, box not ticked, off-scope edits, payload starts with `BLOCKED:`):**
-      - Write a short note to `.agent/scratchpad.md` naming the gap.
-      - If the builder reported `BLOCKED:`, record the blocker and decide: do we need a design fix first (escalate), or is this something the builder can still do with more context?
+      **Gates pass + no off-scope edits:**
+      - Emit `step.next` with specific evidence:
+          ralph emit "step.next" "step N verified: typecheck pass, tests pass, demo verified, structural checks ok; <X> steps remain"
+      - The planner re-activates and picks the next step.
+
+      **Any gate red, or off-scope edit found:**
+      - Write a note to `.agent/scratchpad.md` with file:line.
       - Emit `step.rework` with a precise failure reason:
-        `ralph emit "step.rework" "step N: failing test X at file:line — re-run after fixing"`
+          ralph emit "step.rework" "step N: <specific failure> at <file:line> — re-run after fixing"
+      - Builder re-activates on `step.rework` and fixes.
 
-      You MAY edit `.agent/scratchpad.md` and plan.md (to fix checklist drift). You must NOT edit code directly — that's the builder's job. You must NOT edit the design doc or PROMPT.md.
+      === ANTI-PATTERNS ===
+      - Do NOT re-judge quality — that was critic's job. Focus on gates.
+      - Do NOT re-review style / naming. If it's green + structural checks
+        pass, advance the loop.
+      - Do NOT run the final sweep (`turbo build && turbo lint` whole
+        repo) — that's finalizer's job. Stay scoped to the affected
+        workspace.
+
+      You MAY modify `.agent/scratchpad.md` and plan.md (for checklist
+      drift only — e.g., builder forgot to tick). You must NOT modify
+      code, design, PROMPT.md, or research docs.
     triggers:
-      - "step.complete"
+      - "critique.clean"
     publishes:
       - "step.next"
       - "step.rework"
+
+  finalizer:
+    name: "Finalizer"
+    emoji: "🎯"
+    description: "End-of-loop gate. Triggered by planner's step.final_ready (Steps 1-26 complete OR human-gate at 27/28) or builder's step.blocked (hard escalation). Runs the full monorepo sweep + release-safety suite, then emits LOOP_COMPLETE with a handoff summary."
+    instructions: |
+      You close the loop. Two entry paths:
+
+      1. **`step.final_ready`** — planner says Steps 1–26 are done OR the
+         next unchecked is a human-gated step (27 or 28). Run the end-of-
+         loop sweep and emit LOOP_COMPLETE.
+
+      2. **`step.blocked`** — builder hit a hard design contradiction. No
+         sweep to run; emit LOOP_COMPLETE with `BLOCKED:` prefix and the
+         scratchpad notes so a human can resolve.
+
+      === PATH 1 — END-OF-LOOP SWEEP (`step.final_ready`) ===
+
+      On activation:
+      1. Read the event payload to distinguish:
+         - `HUMAN_GATE at step 27` / `HUMAN_GATE at step 28` — boundary hit
+           before the sweep; mobile Step 13 preconditions still need
+           human verification.
+         - Normal completion (all 1–26 ticked) — full sweep.
+      2. Read `PROMPT.md`'s "Acceptance criteria (Steps 1–26)" section.
+
+      Run the full monorepo sweep:
+      - `turbo check-types` — all workspaces must pass.
+      - `turbo test` — all workspaces must pass.
+      - `turbo build` — all apps must build clean. Owner app first-load
+        bundle ≤ 250 KB gzip (design §2.5).
+      - `turbo lint` — `no-unwrapped-action` ESLint rule must be green.
+      - Release-safety suite: `turbo test --filter release-safety` (the
+        suite landed in Step 12 — drafts-never-visible + pre/post-Phase-4
+        parity).
+      - `git status` — clean or contains only intended commits.
+      - Verify no changes to `apps/web-portal/` via
+        `git diff main..HEAD -- apps/web-portal/` (empty expected).
+
+      **If all green:**
+      Emit LOOP_COMPLETE with a specific handoff:
+        ralph emit "LOOP_COMPLETE" "Steps 1-26 complete. End-of-loop sweep: typecheck pass, tests pass, build pass (owner bundle <X> KB gzip), lint pass, release-safety suite pass, git status clean, no v1 regressions. Step 27 (migration 123 RLS tightening — the one-way door) and Step 28 (canary deploy + DNS cutover) are human-gated per plan.md Step 27 preconditions."
+
+      **If any sweep item fails:**
+      Write a note to `.agent/scratchpad.md` naming the failure. Open a
+      rework step in plan.md (e.g., append Step 26a: "<what's broken>")
+      and emit `step.rework` routing back to builder — do NOT emit
+      LOOP_COMPLETE while the sweep is red.
+
+      === PATH 2 — BLOCKED ESCALATION (`step.blocked`) ===
+
+      On activation:
+      1. Read the payload for the blocker summary.
+      2. Read `.agent/scratchpad.md` for the full context written by builder.
+      3. Do NOT attempt to fix — you don't have that responsibility.
+      4. Emit LOOP_COMPLETE with `BLOCKED:` prefix:
+         ralph emit "LOOP_COMPLETE" "BLOCKED at step N: <builder's summary>. Full context in .agent/scratchpad.md. Human action required: resolve contradiction in design §X / plan step N, then re-run Ralph with impl.start."
+
+      === WHAT FINALIZER DOES NOT DO ===
+      - Does not implement code (builder).
+      - Does not review quality (critic).
+      - Does not re-run per-step gates (reviewer).
+      - Does not pick next work (planner).
+      - Does not auto-execute Step 27 or Step 28 — human-gated.
+
+      You MAY modify `.agent/scratchpad.md` and plan.md (only to append a
+      rework step when the sweep is red). You must NOT modify code, the
+      design, PROMPT.md, or research docs.
+    triggers:
+      - "step.final_ready"
+      - "step.blocked"
+    publishes:
       - "LOOP_COMPLETE"
+      - "step.rework"
 
 features:
   parallel: false

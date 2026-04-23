@@ -10,7 +10,7 @@ import { z } from 'npm:zod@3';
 // ── v2 MenuExtractionSchema (local bundle — Deno cannot import workspace packages) ──
 // Canonical source: packages/shared/src/validation/menuScan.ts
 
-const PRIMARY_PROTEINS = [
+export const PRIMARY_PROTEINS = [
   'chicken',
   'beef',
   'pork',

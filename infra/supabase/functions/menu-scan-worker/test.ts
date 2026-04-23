@@ -8,7 +8,8 @@ import {
   assertArrayIncludes,
 } from 'https://deno.land/std@0.168.0/testing/asserts.ts';
 import OpenAI from 'npm:openai@4';
-import { processJobs, WorkerDeps, ProcessResult, MAX_PER_TICK } from './index.ts';
+import { processJobs, WorkerDeps, ProcessResult, MAX_PER_TICK, PRIMARY_PROTEINS } from './index.ts';
+import { PRIMARY_PROTEINS as CANONICAL_PRIMARY_PROTEINS } from '../../../../packages/shared/src/logic/protein.ts';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -134,10 +135,14 @@ Deno.test('pending → processing → needs_review: job transitions correctly', 
   const job = makeJob('job-001');
   const completed: string[] = [];
   const failed: string[] = [];
+  let capturedResult: unknown;
 
   const supa = makeSupaMock({
     jobs: [job],
-    onComplete: id => completed.push(id),
+    onComplete: (id, result) => {
+      completed.push(id);
+      capturedResult = result;
+    },
     onFail: id => failed.push(id),
   });
 
@@ -150,6 +155,7 @@ Deno.test('pending → processing → needs_review: job transitions correctly', 
   assertEquals(result.errors.length, 0);
   assertArrayIncludes(completed, ['job-001']);
   assertEquals(failed.length, 0);
+  assertEquals(capturedResult, CANNED_RESULT);
 });
 
 Deno.test(
@@ -280,4 +286,9 @@ Deno.test('no jobs: returns empty result without error', async () => {
   const result = await processJobs({ supa, openai: makeOpenAIMock() });
   assertEquals(result.processed, []);
   assertEquals(result.errors, []);
+});
+
+Deno.test('PRIMARY_PROTEINS in index.ts is in sync with canonical protein.ts', () => {
+  // Guards against a new protein added to protein.ts silently breaking the worker schema.
+  assertEquals([...PRIMARY_PROTEINS].sort(), [...CANONICAL_PRIMARY_PROTEINS].sort());
 });

@@ -7,7 +7,7 @@
 - [x] Step 5: Migration 116a — storage buckets + policies (`menu-scan-uploads`, `restaurant-photos`, `dish-photos`)
 - [x] Step 6: Migrations 116+117 — `status` columns on `restaurants` and `menus` + indexes
 - [x] Step 7: Migrations 118+119 — extend `menu_scan_jobs`, enable RLS, add to Realtime publication
-- [ ] Step 8: Migration 120 — `publish_restaurant_draft` Postgres function
+- [x] Step 8: Migration 120 — `publish_restaurant_draft` Postgres function
 - [ ] Step 9: Migration 121 — `menu_scan_confirmations` side-table + `confirm_menu_scan` + worker helpers
 - [ ] Step 10: Migration 122 — `generate_candidates` + `get_group_candidates` status filters
 - [ ] Step 11: Patch `nearby-restaurants` + `feed` Edge Functions with `status='published'` filters

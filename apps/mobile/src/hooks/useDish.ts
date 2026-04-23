@@ -46,6 +46,7 @@ export function useDish(dishId: string | null): UseDishResult {
           restaurant:restaurants (*)
         `
         )
+        .eq('status', 'published')
         .eq('id', dishId)
         .single();
 

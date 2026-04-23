@@ -490,6 +490,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       const { data, error } = await supabase
         .from('dishes')
         .select('*, menu_categories!inner(restaurant_id)')
+        .eq('status', 'published')
         .eq('menu_categories.restaurant_id', restaurantId);
 
       if (error) throw error;

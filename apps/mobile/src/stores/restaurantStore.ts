@@ -136,6 +136,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           )
         `
         )
+        .eq('status', 'published')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -164,6 +165,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           restaurant:restaurants (*)
         `
         )
+        .eq('status', 'published')
         .eq('is_available', true)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -280,6 +282,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           )
         `
         )
+        .eq('status', 'published')
         .eq('id', id)
         .single();
 
@@ -327,6 +330,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           )
         `
         )
+        .eq('dishes.status', 'published')
         .eq('id', categoryId)
         .single();
 

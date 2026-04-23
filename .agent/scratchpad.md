@@ -109,3 +109,39 @@ Key decisions:
 - `location: { lat: 0, lng: 0 }` placeholder in initial draft insert (DB requires non-null).
 
 Gates: typecheck ✓, vitest 45/45 ✓, `turbo build --filter web-portal-v2` ✓ (route /restaurant/[id] in build output)
+
+## 2026-04-23 — Step 15 critic notes
+
+Two real concerns:
+
+**1. MAJOR: Invalid PostGIS location format in `createRestaurantDraft`**
+File: `apps/web-portal-v2/src/app/(app)/restaurant/[id]/actions/restaurant.ts:51`
+```ts
+location: { lat: 0, lng: 0 },
+```
+PostGIS geography columns require WKT string format (`'POINT(lng lat)'`) or GeoJSON (`{type:'Point', coordinates:[lng,lat]}`). The object `{lat:0, lng:0}` is neither. PostgreSQL will reject this with a parse error in production — `createRestaurantDraft` will always return `CREATE_FAILED` in production.
+
+CLAUDE.md pitfall #1 explicitly calls this out. v1 uses `formatLocationForSupabase(lat, lng)` from `apps/web-portal/lib/supabase.ts:36` which returns `"POINT(${lng} ${lat})"` (longitude first). The builder's scratchpad notes "DB requires non-null" but chose the wrong format. Tests pass because Supabase is mocked.
+
+Fix: replace `location: { lat: 0, lng: 0 }` with `location: 'POINT(0 0)'` — the WKT placeholder for null island. When Step 16 adds the Mapbox picker, use `"POINT(${lng} ${lat})"` with coordinates from the picker.
+
+**2. NOTEWORTHY: Inline schema duplication — divergence risk for Step 16+**
+The validation schema is copy-pasted identically between `actions/restaurant.ts` (as `updateBasicsSchema`) and `BasicInfoForm.tsx` (as `formSchema`). Step 16 factors each section into a colocated component and will need to add `location`, `operating_hours`, cuisines validation. Both files must be updated in sync — easy to miss. Builder documented the Zod v4 `.pick()` workaround rationale, but the shared `@eatme/shared` package should export a `restaurantDraftSchema` (partial, no location minimum) as the single source of truth for Step 16 to import. Not a blocker for Step 15 itself.
+
+## 2026-04-23 — Step 15 critique addressed (commit f9e0b6b)
+
+Two issues fixed:
+
+**1. MAJOR: PostGIS location format fixed**
+`apps/web-portal-v2/src/app/(app)/restaurant/[id]/actions/restaurant.ts:31`
+Changed `location: { lat: 0, lng: 0 }` → `location: 'POINT(0 0)'` (WKT string).
+Added assertion test: `expect(typeof insertCall.location).toBe('string')` + `expect(insertCall.location).toBe('POINT(0 0)')`.
+When Step 16 adds the Mapbox picker, use `"POINT(${lng} ${lat})"` (longitude first per CLAUDE.md pitfall #1).
+
+**2. NOTEWORTHY: Schema duplication eliminated**
+Added `restaurantBasicsSchema` to `packages/shared/src/validation/restaurant.ts` — exact basic-info subset with `cuisines: z.array(z.string()).optional()` (no `.default([])` to stay zodResolver-clean).
+Exported from `validation/index.ts` → available via `@eatme/shared`.
+Both `actions/restaurant.ts` and `BasicInfoForm.tsx` now import it; inline copies removed.
+Step 16 should extend or compose from `restaurantBasicsSchema` when adding location/hours fields.
+
+Gates: typecheck ✓, @eatme/shared 78/78 ✓, web-portal-v2 46/46 ✓, commit f9e0b6b

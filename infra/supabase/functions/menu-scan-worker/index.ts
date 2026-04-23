@@ -41,6 +41,13 @@ const MenuExtractionSchema = z.object({
 
 type MenuExtractionResult = z.infer<typeof MenuExtractionSchema>;
 
+// Thrown when a job's input has no images — treated as a permanent bad-request failure.
+export class NoImagesError extends Error {
+  constructor() {
+    super('Job has no images in input');
+  }
+}
+
 // ── Prompt ───────────────────────────────────────────────────────────────────
 
 const EXTRACTION_PROMPT = `You are a menu-extraction assistant. Extract every dish from the provided menu image(s).
@@ -180,7 +187,7 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
 
     try {
       const input = job.input as { images?: ImageRef[] } | null;
-      if (!input?.images?.length) throw new Error('Job has no images in input');
+      if (!input?.images?.length) throw new NoImagesError();
 
       // Download all images for this job
       const imageBase64List: string[] = [];
@@ -199,7 +206,7 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
       processed.push(job.id);
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      const isBadRequest = e instanceof OpenAI.BadRequestError;
+      const isBadRequest = e instanceof OpenAI.BadRequestError || e instanceof NoImagesError;
 
       console.error(`Job ${job.id} error (badRequest=${isBadRequest}):`, errMsg);
 
@@ -219,15 +226,18 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-Deno.serve(async _req => {
-  const supa = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
-  const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
-
+// Exported for unit-testing the auth check without a live Deno env.
+export async function handleRequest(
+  req: Request,
+  serviceRoleKey: string,
+  deps: WorkerDeps
+): Promise<Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (authHeader !== `Bearer ${serviceRoleKey}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
   try {
-    const result = await processJobs({ supa, openai });
+    const result = await processJobs(deps);
     return new Response(JSON.stringify(result), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -239,4 +249,11 @@ Deno.serve(async _req => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
+
+Deno.serve(async req => {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supa = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
+  const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY')! });
+  return handleRequest(req, serviceRoleKey, { supa, openai });
 });

@@ -8,7 +8,15 @@ import {
   assertArrayIncludes,
 } from 'https://deno.land/std@0.168.0/testing/asserts.ts';
 import OpenAI from 'npm:openai@4';
-import { processJobs, WorkerDeps, ProcessResult, MAX_PER_TICK, PRIMARY_PROTEINS } from './index.ts';
+import {
+  processJobs,
+  handleRequest,
+  NoImagesError,
+  WorkerDeps,
+  ProcessResult,
+  MAX_PER_TICK,
+  PRIMARY_PROTEINS,
+} from './index.ts';
 import { PRIMARY_PROTEINS as CANONICAL_PRIMARY_PROTEINS } from '../../../../packages/shared/src/logic/protein.ts';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -291,4 +299,74 @@ Deno.test('no jobs: returns empty result without error', async () => {
 Deno.test('PRIMARY_PROTEINS in index.ts is in sync with canonical protein.ts', () => {
   // Guards against a new protein added to protein.ts silently breaking the worker schema.
   assertEquals([...PRIMARY_PROTEINS].sort(), [...CANONICAL_PRIMARY_PROTEINS].sort());
+});
+
+// ── handleRequest auth guard tests ────────────────────────────────────────────
+
+Deno.test('handleRequest: missing Authorization header → 401', async () => {
+  const req = new Request('http://localhost/menu-scan-worker', { method: 'POST' });
+  const supa = makeSupaMock({ jobs: [] });
+  const res = await handleRequest(req, 'service-role-secret', { supa, openai: makeOpenAIMock() });
+  assertEquals(res.status, 401);
+});
+
+Deno.test('handleRequest: wrong Authorization token → 401', async () => {
+  const req = new Request('http://localhost/menu-scan-worker', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer anon-public-key' },
+  });
+  const supa = makeSupaMock({ jobs: [] });
+  const res = await handleRequest(req, 'service-role-secret', { supa, openai: makeOpenAIMock() });
+  assertEquals(res.status, 401);
+});
+
+Deno.test('handleRequest: correct service-role token → 200 and runs processJobs', async () => {
+  const req = new Request('http://localhost/menu-scan-worker', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer service-role-secret' },
+  });
+  const supa = makeSupaMock({ jobs: [] });
+  const res = await handleRequest(req, 'service-role-secret', { supa, openai: makeOpenAIMock() });
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.processed, []);
+  assertEquals(body.errors, []);
+});
+
+// ── Empty-images fast-fail tests ──────────────────────────────────────────────
+
+Deno.test('empty-images job: fast-fail with p_max_attempts=1 (not retried)', async () => {
+  const job = makeJob('job-empty-images', { input: { images: [] } });
+  const failedMaxAttempts: number[] = [];
+  const failedIds: string[] = [];
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    onFail: (id, _err, maxAttempts) => {
+      failedIds.push(id);
+      failedMaxAttempts.push(maxAttempts);
+    },
+  });
+
+  const result = await processJobs({ supa, openai: makeOpenAIMock() });
+
+  assertEquals(result.errors.length, 1);
+  assertEquals(result.errors[0].id, 'job-empty-images');
+  assertArrayIncludes(failedIds, ['job-empty-images']);
+  assertEquals(failedMaxAttempts[0], 1);
+});
+
+Deno.test('null-input job: fast-fail with p_max_attempts=1 (not retried)', async () => {
+  const job = makeJob('job-null-input', { input: null });
+  const failedMaxAttempts: number[] = [];
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    onFail: (_id, _err, maxAttempts) => failedMaxAttempts.push(maxAttempts),
+  });
+
+  const result = await processJobs({ supa, openai: makeOpenAIMock() });
+
+  assertEquals(result.errors.length, 1);
+  assertEquals(failedMaxAttempts[0], 1);
 });

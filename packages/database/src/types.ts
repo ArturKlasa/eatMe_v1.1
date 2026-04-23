@@ -990,6 +990,7 @@ export type Database = {
           name: string;
           restaurant_id: string;
           schedule_type: string;
+          status: 'draft' | 'published' | 'archived';
           updated_at: string | null;
         };
         Insert: {
@@ -1005,6 +1006,7 @@ export type Database = {
           name: string;
           restaurant_id: string;
           schedule_type?: string;
+          status?: 'draft' | 'published' | 'archived';
           updated_at?: string | null;
         };
         Update: {
@@ -1020,6 +1022,7 @@ export type Database = {
           name?: string;
           restaurant_id?: string;
           schedule_type?: string;
+          status?: 'draft' | 'published' | 'archived';
           updated_at?: string | null;
         };
         Relationships: [
@@ -1302,6 +1305,7 @@ export type Database = {
           service_speed: string | null;
           skip_menu_scan: boolean;
           state: string | null;
+          status: 'draft' | 'published' | 'archived';
           suspended_at: string | null;
           suspended_by: string | null;
           suspension_reason: string | null;
@@ -1338,6 +1342,7 @@ export type Database = {
           service_speed?: string | null;
           skip_menu_scan?: boolean;
           state?: string | null;
+          status?: 'draft' | 'published' | 'archived';
           suspended_at?: string | null;
           suspended_by?: string | null;
           suspension_reason?: string | null;
@@ -1374,6 +1379,7 @@ export type Database = {
           service_speed?: string | null;
           skip_menu_scan?: boolean;
           state?: string | null;
+          status?: 'draft' | 'published' | 'archived';
           suspended_at?: string | null;
           suspended_by?: string | null;
           suspension_reason?: string | null;

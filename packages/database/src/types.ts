@@ -912,6 +912,7 @@ export type Database = {
       };
       menu_scan_jobs: {
         Row: {
+          attempts: number;
           created_at: string | null;
           created_by: string | null;
           dishes_found: number | null;
@@ -921,13 +922,17 @@ export type Database = {
           image_count: number;
           image_filenames: string[] | null;
           image_storage_paths: string[] | null;
+          input: Json | null;
+          last_error: string | null;
+          locked_until: string | null;
           processing_ms: number | null;
           restaurant_id: string;
           result_json: Json | null;
-          status: string;
+          status: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
           updated_at: string | null;
         };
         Insert: {
+          attempts?: number;
           created_at?: string | null;
           created_by?: string | null;
           dishes_found?: number | null;
@@ -937,13 +942,17 @@ export type Database = {
           image_count?: number;
           image_filenames?: string[] | null;
           image_storage_paths?: string[] | null;
+          input?: Json | null;
+          last_error?: string | null;
+          locked_until?: string | null;
           processing_ms?: number | null;
           restaurant_id: string;
           result_json?: Json | null;
-          status?: string;
+          status?: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
           updated_at?: string | null;
         };
         Update: {
+          attempts?: number;
           created_at?: string | null;
           created_by?: string | null;
           dishes_found?: number | null;
@@ -953,10 +962,13 @@ export type Database = {
           image_count?: number;
           image_filenames?: string[] | null;
           image_storage_paths?: string[] | null;
+          input?: Json | null;
+          last_error?: string | null;
+          locked_until?: string | null;
           processing_ms?: number | null;
           restaurant_id?: string;
           result_json?: Json | null;
-          status?: string;
+          status?: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
           updated_at?: string | null;
         };
         Relationships: [

@@ -5,7 +5,7 @@
 - [x] Step 3: Shared Zod schemas, types, and helpers in `@eatme/shared` for v2
 - [x] Step 4: Per-app `proxy.ts` via `createAuthProxy` factory, Supabase client helpers, Providers shell
 - [x] Step 5: Migration 116a — storage buckets + policies (`menu-scan-uploads`, `restaurant-photos`, `dish-photos`)
-- [ ] Step 6: Migrations 116+117 — `status` columns on `restaurants` and `menus` + indexes
+- [x] Step 6: Migrations 116+117 — `status` columns on `restaurants` and `menus` + indexes
 - [ ] Step 7: Migrations 118+119 — extend `menu_scan_jobs`, enable RLS, add to Realtime publication
 - [ ] Step 8: Migration 120 — `publish_restaurant_draft` Postgres function
 - [ ] Step 9: Migration 121 — `menu_scan_confirmations` side-table + `confirm_menu_scan` + worker helpers

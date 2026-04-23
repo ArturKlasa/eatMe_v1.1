@@ -4,6 +4,7 @@ export {
   dishSchema,
   menuSchema,
   restaurantDataSchema,
+  restaurantBasicsSchema,
   restaurantDraftSchema,
   restaurantPublishableSchema,
 } from './restaurant';
@@ -14,6 +15,7 @@ export type {
   DishFormData,
   MenuFormData,
   RestaurantDataFormData,
+  RestaurantBasicsInput,
   RestaurantDraftFormData,
   RestaurantPublishableFormData,
 } from './restaurant';

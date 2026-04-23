@@ -3,33 +3,13 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { withAuth, type ActionResult } from '@/lib/auth/wrappers';
+import { restaurantBasicsSchema, type RestaurantBasicsInput } from '@eatme/shared';
 
-// Inline schema for basic-info fields to avoid Zod v4 .pick() inference issues.
-// Validation rules mirror the corresponding fields in @eatme/shared restaurantDraftSchema.
-const updateBasicsSchema = z.object({
-  name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
-  description: z.string().optional().or(z.literal('')),
-  restaurant_type: z.string().optional().or(z.literal('')),
-  country: z.string().optional().or(z.literal('')),
-  city: z.string().optional().or(z.literal('')),
-  postal_code: z.string().optional().or(z.literal('')),
-  neighbourhood: z.string().optional().or(z.literal('')),
-  state: z.string().optional().or(z.literal('')),
-  address: z.string().optional().or(z.literal('')),
-  phone: z
-    .string()
-    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number')
-    .optional()
-    .or(z.literal('')),
-  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  cuisines: z.array(z.string()).optional(),
-});
+export type UpdateBasicsInput = RestaurantBasicsInput;
 
 const createDraftSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
 });
-
-export type UpdateBasicsInput = z.infer<typeof updateBasicsSchema>;
 
 export const createRestaurantDraft = withAuth(
   async (ctx, input: { name: string }): Promise<ActionResult<{ id: string }>> => {
@@ -48,7 +28,7 @@ export const createRestaurantDraft = withAuth(
         status: 'draft',
         owner_id: ctx.userId,
         address: '',
-        location: { lat: 0, lng: 0 },
+        location: 'POINT(0 0)',
       })
       .select('id')
       .single();
@@ -64,7 +44,7 @@ export const createRestaurantDraft = withAuth(
 
 export const updateRestaurantBasics = withAuth(
   async (ctx, id: string, input: UpdateBasicsInput): Promise<ActionResult<void>> => {
-    const parsed = updateBasicsSchema.safeParse(input);
+    const parsed = restaurantBasicsSchema.safeParse(input);
     if (!parsed.success) {
       return {
         ok: false,

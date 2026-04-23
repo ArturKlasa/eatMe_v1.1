@@ -135,6 +135,29 @@ export type DishFormData = z.input<typeof dishSchema>;
 export type MenuFormData = z.infer<typeof menuSchema>;
 export type RestaurantDataFormData = z.infer<typeof restaurantDataSchema>;
 
+/** Basic-info step schema — shared by the Server Action and BasicInfoForm.
+ *  No .default() on any field so zodResolver + useForm<z.infer<>> stays type-clean. */
+export const restaurantBasicsSchema = z.object({
+  name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
+  description: z.string().optional().or(z.literal('')),
+  restaurant_type: z.string().optional().or(z.literal('')),
+  country: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  postal_code: z.string().optional().or(z.literal('')),
+  neighbourhood: z.string().optional().or(z.literal('')),
+  state: z.string().optional().or(z.literal('')),
+  address: z.string().optional().or(z.literal('')),
+  phone: z
+    .string()
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  cuisines: z.array(z.string()).optional(),
+});
+
+export type RestaurantBasicsInput = z.infer<typeof restaurantBasicsSchema>;
+
 /** Draft-state CRUD schema: name required; all other fields optional but validated when present. */
 export const restaurantDraftSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),

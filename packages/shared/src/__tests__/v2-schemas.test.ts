@@ -4,7 +4,11 @@ import { isAdmin } from '../logic/role';
 import { publishPayloadSchema } from '../validation/publish';
 import { menuScanJobInputSchema, confirmMenuScanPayloadSchema } from '../validation/menuScan';
 import { dishSchemaV2 } from '../validation/dish';
-import { restaurantDraftSchema, restaurantPublishableSchema } from '../validation/restaurant';
+import {
+  restaurantBasicsSchema,
+  restaurantDraftSchema,
+  restaurantPublishableSchema,
+} from '../validation/restaurant';
 
 // ── isDiscoverable ────────────────────────────────────────────────────────────
 
@@ -335,5 +339,45 @@ describe('restaurantPublishableSchema', () => {
     const { address: _, ...rest } = validPublishable;
     const result = restaurantPublishableSchema.safeParse(rest);
     expect(result.success).toBe(false);
+  });
+});
+
+// ── restaurantBasicsSchema ────────────────────────────────────────────────────
+
+describe('restaurantBasicsSchema', () => {
+  it('accepts name only (minimum valid input)', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe' });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects name shorter than 2 characters', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'X' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid phone format', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe', phone: 'not-a-phone' });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts valid international phone', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe', phone: '+12125551234' });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts empty string for phone (optional cleared field)', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe', phone: '' });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid website URL', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe', website: 'not-a-url' });
+    expect(result.success).toBe(false);
+  });
+
+  it('cuisines is optional — omitting it succeeds', () => {
+    const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.cuisines).toBeUndefined();
   });
 });

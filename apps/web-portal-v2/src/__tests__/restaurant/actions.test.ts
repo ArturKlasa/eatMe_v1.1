@@ -80,6 +80,18 @@ describe('createRestaurantDraft', () => {
     const result = await createRestaurantDraft({ name: 'Test Cafe' });
     expect(result).toEqual({ ok: false, formError: 'CREATE_FAILED' });
   });
+
+  it('inserts location as WKT string not an object (PostGIS pitfall)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    const supabase = makeSupabase({ data: { id: 'rest-wkt' }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(supabase as any);
+
+    await createRestaurantDraft({ name: 'WKT Test Cafe' });
+
+    const insertCall = (supabase._chain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(typeof insertCall.location).toBe('string');
+    expect(insertCall.location).toBe('POINT(0 0)');
+  });
 });
 
 // ─── updateRestaurantBasics ───────────────────────────────────────────────────

@@ -3,31 +3,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { restaurantBasicsSchema, type RestaurantBasicsInput } from '@eatme/shared';
 import { updateRestaurantBasics } from '@/app/(app)/restaurant/[id]/actions/restaurant';
 
-// Inline schema for basic info fields — mirrors the corresponding fields in
-// @eatme/shared restaurantDraftSchema; avoids Zod v4 .pick() inference issues.
-const formSchema = z.object({
-  name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
-  description: z.string().optional().or(z.literal('')),
-  restaurant_type: z.string().optional().or(z.literal('')),
-  country: z.string().optional().or(z.literal('')),
-  city: z.string().optional().or(z.literal('')),
-  postal_code: z.string().optional().or(z.literal('')),
-  neighbourhood: z.string().optional().or(z.literal('')),
-  state: z.string().optional().or(z.literal('')),
-  address: z.string().optional().or(z.literal('')),
-  phone: z
-    .string()
-    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number')
-    .optional()
-    .or(z.literal('')),
-  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  cuisines: z.array(z.string()).optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = RestaurantBasicsInput;
 
 type RestaurantSnapshot = {
   id: string;
@@ -90,7 +69,7 @@ export function BasicInfoForm({ initial }: Props) {
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(restaurantBasicsSchema),
     defaultValues: {
       name: initial.name,
       description: initial.description ?? '',

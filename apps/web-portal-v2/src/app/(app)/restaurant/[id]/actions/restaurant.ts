@@ -194,3 +194,44 @@ export const updateRestaurantPhoto = withAuth(
     return { ok: true, data: undefined };
   }
 );
+
+export const publishRestaurant = withAuth(async (ctx, id: string): Promise<ActionResult<void>> => {
+  const { error } = await ctx.supabase.rpc('publish_restaurant_draft', {
+    p_restaurant_id: id,
+  });
+
+  if (error) {
+    if (error.code === 'insufficient_privilege') {
+      return { ok: false, formError: 'FORBIDDEN' };
+    }
+    if (error.code === 'NO_DATA_FOUND') {
+      return { ok: false, formError: 'NOT_FOUND' };
+    }
+    if (error.code?.startsWith('23')) {
+      return { ok: false, formError: 'VALIDATION' };
+    }
+    console.error('[publishRestaurant] unexpected error', {
+      restaurantId: id,
+      code: error.code,
+      message: error.message,
+    });
+    return { ok: false, formError: 'UNKNOWN_ERROR' };
+  }
+
+  // Non-fatal cross-tab broadcast so other open tabs refresh automatically.
+  try {
+    const ch = ctx.supabase.channel(`user-${ctx.userId}`);
+    await ch.send({
+      type: 'broadcast',
+      event: 'restaurant.published',
+      payload: { restaurantId: id },
+    });
+    await ctx.supabase.removeChannel(ch);
+  } catch {
+    // Intentionally swallowed — revalidatePath covers the submitting tab.
+  }
+
+  revalidatePath(`/restaurant/${id}`, 'page');
+  revalidatePath('/onboard', 'page');
+  return { ok: true, data: undefined };
+});

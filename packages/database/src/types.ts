@@ -2565,6 +2565,10 @@ export type Database = {
       };
       postgis_version: { Args: never; Returns: string };
       postgis_wagyu_version: { Args: never; Returns: string };
+      publish_restaurant_draft: {
+        Args: { p_restaurant_id: string };
+        Returns: undefined;
+      };
       recalculate_all_profiles: { Args: never; Returns: number };
       recalculate_user_profile: {
         Args: { p_user_id: string };

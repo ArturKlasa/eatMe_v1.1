@@ -8,8 +8,13 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { createServerActionClient } from '@/lib/supabase/server';
 
-const { createRestaurantDraft, updateRestaurantBasics, archiveRestaurant, unpublishRestaurant } =
-  await import('@/app/(app)/restaurant/[id]/actions/restaurant');
+const {
+  createRestaurantDraft,
+  updateRestaurantBasics,
+  archiveRestaurant,
+  unpublishRestaurant,
+  publishRestaurant,
+} = await import('@/app/(app)/restaurant/[id]/actions/restaurant');
 
 const mockGetUser = vi.fn();
 
@@ -213,5 +218,99 @@ describe('unpublishRestaurant', () => {
 
     const result = await unpublishRestaurant('foreign-rest');
     expect(result).toEqual({ ok: false, formError: 'NOT_FOUND' });
+  });
+});
+
+// ─── publishRestaurant ────────────────────────────────────────────────────────
+
+function makeRpcSupabase(rpcResult: { data: unknown; error: unknown }) {
+  const mockRpc = vi.fn().mockResolvedValue(rpcResult);
+  const mockChannel = {
+    send: vi.fn().mockResolvedValue('ok'),
+  };
+  const mockRemoveChannel = vi.fn().mockResolvedValue(undefined);
+  return {
+    auth: { getUser: mockGetUser },
+    from: vi.fn(),
+    rpc: mockRpc,
+    channel: vi.fn().mockReturnValue(mockChannel),
+    removeChannel: mockRemoveChannel,
+    _rpc: mockRpc,
+  };
+}
+
+describe('publishRestaurant', () => {
+  it('returns UNAUTHENTICATED when no user', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(
+      makeRpcSupabase({ data: null, error: null }) as any
+    );
+
+    const result = await publishRestaurant('rest-123');
+    expect(result).toEqual({ ok: false, formError: 'UNAUTHENTICATED' });
+  });
+
+  it('maps insufficient_privilege → FORBIDDEN', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(
+      makeRpcSupabase({
+        data: null,
+        error: { code: 'insufficient_privilege', message: 'Forbidden: not owner or admin' },
+      }) as any
+    );
+
+    const result = await publishRestaurant('rest-123');
+    expect(result).toEqual({ ok: false, formError: 'FORBIDDEN' });
+  });
+
+  it('maps NO_DATA_FOUND → NOT_FOUND', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(
+      makeRpcSupabase({
+        data: null,
+        error: { code: 'NO_DATA_FOUND', message: 'Restaurant not found' },
+      }) as any
+    );
+
+    const result = await publishRestaurant('rest-123');
+    expect(result).toEqual({ ok: false, formError: 'NOT_FOUND' });
+  });
+
+  it('maps CHECK constraint violation → VALIDATION', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(
+      makeRpcSupabase({
+        data: null,
+        error: { code: '23514', message: 'violates check constraint' },
+      }) as any
+    );
+
+    const result = await publishRestaurant('rest-123');
+    expect(result).toEqual({ ok: false, formError: 'VALIDATION' });
+  });
+
+  it('maps unknown DB error → UNKNOWN_ERROR', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(
+      makeRpcSupabase({
+        data: null,
+        error: { code: '58000', message: 'system error' },
+      }) as any
+    );
+
+    const result = await publishRestaurant('rest-123');
+    expect(result).toEqual({ ok: false, formError: 'UNKNOWN_ERROR' });
+  });
+
+  it('returns {ok:true} and calls publish_restaurant_draft RPC on success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    const supabase = makeRpcSupabase({ data: null, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(supabase as any);
+
+    const result = await publishRestaurant('rest-123');
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(supabase._rpc).toHaveBeenCalledWith('publish_restaurant_draft', {
+      p_restaurant_id: 'rest-123',
+    });
   });
 });

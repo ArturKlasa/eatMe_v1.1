@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { verifySession, getRestaurant } from '@/lib/auth/dal';
 import { BasicInfoSection } from '@/components/restaurant/BasicInfoSection';
@@ -5,6 +6,7 @@ import { LocationSection } from '@/components/restaurant/LocationSection';
 import { HoursSection } from '@/components/restaurant/HoursSection';
 import { CuisinesSection } from '@/components/restaurant/CuisinesSection';
 import { PhotosSection } from '@/components/restaurant/PhotosSection';
+import { PublishButton } from '@/components/restaurant/PublishButton';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,8 +36,33 @@ export default async function RestaurantPage({ params }: Props) {
     }
   }
 
+  // Determine publishability server-side: name, address, location, and at least one cuisine required.
+  const hasValidAddress = (restaurant.address?.length ?? 0) >= 5;
+  const hasValidLocation = initialLat !== undefined && initialLng !== undefined;
+  const hasCuisines = (restaurant.cuisine_types?.length ?? 0) >= 1;
+  const isPublishable = hasValidAddress && hasValidLocation && hasCuisines;
+
+  const status = (restaurant.status as string) ?? 'draft';
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-12">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">{restaurant.name}</h1>
+        <div className="flex items-center gap-4">
+          <PublishButton
+            restaurantId={restaurant.id}
+            status={status}
+            isPublishable={isPublishable}
+          />
+          <Link
+            href={`/restaurant/${restaurant.id}/settings`}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Settings
+          </Link>
+        </div>
+      </div>
+
       <BasicInfoSection initial={restaurant} mode="edit" />
 
       <div className="border-t border-border pt-8">

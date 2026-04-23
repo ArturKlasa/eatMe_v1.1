@@ -1,7 +1,8 @@
 import { verifySession } from '@/lib/auth/dal';
+import { RealtimeStatusListener } from '@/components/restaurant/RealtimeStatusListener';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  await verifySession();
+  const { userId } = await verifySession();
   return (
     <div className="flex min-h-screen">
       <aside className="w-64 border-r bg-background flex flex-col p-4">
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>
+      <RealtimeStatusListener userId={userId} />
     </div>
   );
 }

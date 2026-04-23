@@ -910,6 +910,35 @@ export type Database = {
           },
         ];
       };
+      menu_scan_confirmations: {
+        Row: {
+          created_at: string;
+          idempotency_key: string;
+          job_id: string;
+          result: Json;
+        };
+        Insert: {
+          created_at?: string;
+          idempotency_key: string;
+          job_id: string;
+          result: Json;
+        };
+        Update: {
+          created_at?: string;
+          idempotency_key?: string;
+          job_id?: string;
+          result?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'menu_scan_confirmations_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'menu_scan_jobs';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       menu_scan_jobs: {
         Row: {
           attempts: number;
@@ -928,6 +957,8 @@ export type Database = {
           processing_ms: number | null;
           restaurant_id: string;
           result_json: Json | null;
+          saved_at: string | null;
+          saved_dish_ids: Json | null;
           status: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
           updated_at: string | null;
         };
@@ -948,6 +979,8 @@ export type Database = {
           processing_ms?: number | null;
           restaurant_id: string;
           result_json?: Json | null;
+          saved_at?: string | null;
+          saved_dish_ids?: Json | null;
           status?: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
           updated_at?: string | null;
         };
@@ -968,6 +1001,8 @@ export type Database = {
           processing_ms?: number | null;
           restaurant_id?: string;
           result_json?: Json | null;
+          saved_at?: string | null;
+          saved_dish_ids?: Json | null;
           status?: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
           updated_at?: string | null;
         };

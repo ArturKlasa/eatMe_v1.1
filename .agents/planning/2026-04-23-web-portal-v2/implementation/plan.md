@@ -13,7 +13,7 @@
 - [x] Step 11: Patch `nearby-restaurants` + `feed` Edge Functions with `status='published'` filters
 - [x] Step 12: Release-safety CI tests — drafts-never-visible + pre/post-Phase-4 parity
 - [x] Step 13: Mobile defense-in-depth `.eq('status','published')` patches (6 sites, 3 files)
-- [ ] Step 14: Owner app auth pages, sign-in/sign-up, DAL wire-up, `/onboard` skeleton
+- [x] Step 14: Owner app auth pages, sign-in/sign-up, DAL wire-up, `/onboard` skeleton
 - [ ] Step 15: Restaurant draft CRUD Server Actions + `/restaurant/[id]` basic-info form
 - [ ] Step 16: Onboarding stepper overlay + Location + Hours + Cuisines + Photos steps
 - [ ] Step 17: Menu + category + dish CRUD (5-kind dish form, discriminated-union validation)

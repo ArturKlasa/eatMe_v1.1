@@ -7,6 +7,8 @@ export {
   restaurantBasicsSchema,
   restaurantDraftSchema,
   restaurantPublishableSchema,
+  restaurantLocationSchema,
+  restaurantHoursSchema,
 } from './restaurant';
 
 export type {
@@ -18,6 +20,8 @@ export type {
   RestaurantBasicsInput,
   RestaurantDraftFormData,
   RestaurantPublishableFormData,
+  RestaurantLocationInput,
+  RestaurantHoursInput,
 } from './restaurant';
 
 export { publishPayloadSchema } from './publish';

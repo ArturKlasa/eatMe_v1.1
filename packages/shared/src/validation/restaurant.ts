@@ -205,3 +205,34 @@ export type RestaurantDraftFormData = z.infer<typeof restaurantDraftSchema>;
 export const restaurantPublishableSchema = basicInfoSchema.merge(operationsSchema);
 
 export type RestaurantPublishableFormData = z.infer<typeof restaurantPublishableSchema>;
+
+// ─── Step 16: Location + Hours schemas ──────────────────────────────────────
+
+export const restaurantLocationSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  address: z.string().min(5, 'Please enter a valid address'),
+});
+export type RestaurantLocationInput = z.infer<typeof restaurantLocationSchema>;
+
+const dayHoursSchema = z.object({
+  open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time (HH:MM)'),
+  close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time (HH:MM)'),
+});
+
+export const restaurantHoursSchema = z.object({
+  operating_hours: z.object({
+    monday: dayHoursSchema.optional(),
+    tuesday: dayHoursSchema.optional(),
+    wednesday: dayHoursSchema.optional(),
+    thursday: dayHoursSchema.optional(),
+    friday: dayHoursSchema.optional(),
+    saturday: dayHoursSchema.optional(),
+    sunday: dayHoursSchema.optional(),
+  }),
+  delivery_available: z.boolean(),
+  takeout_available: z.boolean(),
+  dine_in_available: z.boolean(),
+  accepts_reservations: z.boolean(),
+});
+export type RestaurantHoursInput = z.infer<typeof restaurantHoursSchema>;

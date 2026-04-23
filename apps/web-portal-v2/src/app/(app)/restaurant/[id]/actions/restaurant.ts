@@ -3,7 +3,14 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { withAuth, type ActionResult } from '@/lib/auth/wrappers';
-import { restaurantBasicsSchema, type RestaurantBasicsInput } from '@eatme/shared';
+import {
+  restaurantBasicsSchema,
+  restaurantLocationSchema,
+  restaurantHoursSchema,
+  type RestaurantBasicsInput,
+  type RestaurantLocationInput,
+  type RestaurantHoursInput,
+} from '@eatme/shared';
 
 export type UpdateBasicsInput = RestaurantBasicsInput;
 
@@ -116,6 +123,73 @@ export const unpublishRestaurant = withAuth(
       return { ok: false, formError: 'NOT_FOUND' };
     }
 
+    revalidatePath(`/restaurant/${id}`, 'page');
+    return { ok: true, data: undefined };
+  }
+);
+
+export const updateRestaurantLocation = withAuth(
+  async (ctx, id: string, input: RestaurantLocationInput): Promise<ActionResult<void>> => {
+    const parsed = restaurantLocationSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+    const { lat, lng, address } = parsed.data;
+    const { data, error } = await ctx.supabase
+      .from('restaurants')
+      .update({ location: `POINT(${lng} ${lat})`, address })
+      .eq('id', id)
+      .eq('owner_id', ctx.userId)
+      .select('id')
+      .maybeSingle();
+    if (error || !data) return { ok: false, formError: 'NOT_FOUND' };
+    revalidatePath(`/restaurant/${id}`, 'page');
+    return { ok: true, data: undefined };
+  }
+);
+
+export const updateRestaurantHours = withAuth(
+  async (ctx, id: string, input: RestaurantHoursInput): Promise<ActionResult<void>> => {
+    const parsed = restaurantHoursSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+    const d = parsed.data;
+    const { data, error } = await ctx.supabase
+      .from('restaurants')
+      .update({
+        open_hours: d.operating_hours,
+        delivery_available: d.delivery_available,
+        takeout_available: d.takeout_available,
+        dine_in_available: d.dine_in_available,
+        accepts_reservations: d.accepts_reservations,
+      })
+      .eq('id', id)
+      .eq('owner_id', ctx.userId)
+      .select('id')
+      .maybeSingle();
+    if (error || !data) return { ok: false, formError: 'NOT_FOUND' };
+    revalidatePath(`/restaurant/${id}`, 'page');
+    return { ok: true, data: undefined };
+  }
+);
+
+export const updateRestaurantPhoto = withAuth(
+  async (ctx, id: string, photoPath: string): Promise<ActionResult<void>> => {
+    const { data, error } = await ctx.supabase
+      .from('restaurants')
+      .update({ image_url: photoPath })
+      .eq('id', id)
+      .eq('owner_id', ctx.userId)
+      .select('id')
+      .maybeSingle();
+    if (error || !data) return { ok: false, formError: 'NOT_FOUND' };
     revalidatePath(`/restaurant/${id}`, 'page');
     return { ok: true, data: undefined };
   }

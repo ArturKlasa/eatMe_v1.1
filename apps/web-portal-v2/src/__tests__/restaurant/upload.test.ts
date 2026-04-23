@@ -20,6 +20,67 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe('compressImage', () => {
+  it('compresses with correct options', async () => {
+    const original = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+    const compressed = new File(['compressed'], 'photo.jpg', { type: 'image/jpeg' });
+    vi.mocked(imageCompression).mockResolvedValue(compressed as unknown as File);
+
+    const { compressImage } = await import('@/lib/upload');
+    const result = await compressImage(original);
+
+    expect(imageCompression).toHaveBeenCalledWith(original, {
+      maxSizeMB: 2,
+      maxWidthOrHeight: 2048,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: 0.85,
+    });
+    expect(result).toBe(compressed);
+  });
+});
+
+describe('uploadCompressedRestaurantPhoto', () => {
+  it('uploads to restaurant-photos/<restaurantId>/hero.jpg', async () => {
+    const compressed = new File(['c'], 'photo.jpg', { type: 'image/jpeg' });
+    mockUpload.mockResolvedValue({ error: null });
+
+    const { uploadCompressedRestaurantPhoto } = await import('@/lib/upload');
+    const path = await uploadCompressedRestaurantPhoto(
+      'rest-abc',
+      compressed,
+      makeSupabase() as any
+    );
+
+    expect(mockFrom).toHaveBeenCalledWith('restaurant-photos');
+    expect(mockUpload).toHaveBeenCalledWith('restaurant-photos/rest-abc/hero.jpg', compressed, {
+      contentType: 'image/jpeg',
+      upsert: true,
+    });
+    expect(path).toBe('restaurant-photos/rest-abc/hero.jpg');
+  });
+
+  it('throws when storage upload returns an error', async () => {
+    const compressed = new File(['c'], 'photo.jpg', { type: 'image/jpeg' });
+    mockUpload.mockResolvedValue({ error: new Error('storage error') });
+
+    const { uploadCompressedRestaurantPhoto } = await import('@/lib/upload');
+    await expect(
+      uploadCompressedRestaurantPhoto('rest-abc', compressed, makeSupabase() as any)
+    ).rejects.toThrow('storage error');
+  });
+
+  it('does NOT call imageCompression', async () => {
+    const compressed = new File(['c'], 'photo.jpg', { type: 'image/jpeg' });
+    mockUpload.mockResolvedValue({ error: null });
+
+    const { uploadCompressedRestaurantPhoto } = await import('@/lib/upload');
+    await uploadCompressedRestaurantPhoto('rest-xyz', compressed, makeSupabase() as any);
+
+    expect(imageCompression).not.toHaveBeenCalled();
+  });
+});
+
 describe('uploadRestaurantPhoto', () => {
   it('compresses the image with correct options', async () => {
     const original = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
@@ -81,7 +142,6 @@ describe('uploadRestaurantPhoto', () => {
     const { uploadRestaurantPhoto } = await import('@/lib/upload');
     await uploadRestaurantPhoto('rest-xyz', original, makeSupabase() as any);
 
-    // Verify that the compressed file (not original) was uploaded
     const uploadedFile = mockUpload.mock.calls[0][1] as File;
     expect(uploadedFile).toBe(compressed);
     expect(uploadedFile).not.toBe(original);

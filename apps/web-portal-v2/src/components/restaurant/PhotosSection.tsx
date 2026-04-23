@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { createBrowserClient } from '@eatme/database/web';
-import { uploadRestaurantPhoto } from '@/lib/upload';
+import { compressImage, uploadCompressedRestaurantPhoto } from '@/lib/upload';
 import { updateRestaurantPhoto } from '@/app/(app)/restaurant/[id]/actions/restaurant';
 
 interface Props {
@@ -25,18 +25,22 @@ export function PhotosSection({ restaurantId, initialImageUrl, onValidChange }: 
     if (!file) return;
 
     setErrorMsg(null);
+
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     setUploadState('compressing');
     setProgress('Compressing image...');
 
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      // First await: React 18 flushes the 'compressing' state here — user sees it during compression
+      const compressed = await compressImage(file);
 
       setUploadState('uploading');
       setProgress('Uploading...');
-      const path = await uploadRestaurantPhoto(restaurantId, file, supabase);
+      const path = await uploadCompressedRestaurantPhoto(restaurantId, compressed, supabase);
 
       setUploadState('saving');
       setProgress('Saving...');

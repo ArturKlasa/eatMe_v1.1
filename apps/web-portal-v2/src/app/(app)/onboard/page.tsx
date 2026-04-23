@@ -71,8 +71,8 @@ export default async function OnboardPage() {
         )
         .eq('owner_id', userId)
         .limit(1);
-      if (fallback?.[0]?.status !== 'draft') {
-        redirect(`/restaurant/${fallback?.[0]?.id}`);
+      if (fallback?.[0] && fallback[0].status !== 'draft') {
+        redirect(`/restaurant/${fallback[0].id}`);
       }
       restaurant = fallback?.[0] ?? null;
     } else {

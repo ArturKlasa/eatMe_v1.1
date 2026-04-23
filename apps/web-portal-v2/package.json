@@ -29,6 +29,7 @@
     "server-only": "*"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@eatme/eslint-config-eatme": "workspace:*",
     "@playwright/test": "^1.59.1",
     "@types/node": "^20",

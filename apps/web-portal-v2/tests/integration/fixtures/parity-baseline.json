@@ -1,0 +1,7 @@
+{
+  "_note": "Placeholder baseline — run with UPDATE_BASELINE=1 against staging to populate.",
+  "nearby_restaurants": { "restaurants": [] },
+  "feed": { "dishes": [], "restaurants": [] },
+  "group_candidates": [],
+  "candidates": []
+}

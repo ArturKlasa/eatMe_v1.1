@@ -9,7 +9,8 @@
     "lint": "eslint",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "audit:auth": "tsx scripts/check-auth-wrappers.ts"
+    "audit:auth": "tsx scripts/check-auth-wrappers.ts",
+    "release-safety": "vitest run --reporter=verbose tests/integration/"
   },
   "dependencies": {
     "@eatme/database": "workspace:*",

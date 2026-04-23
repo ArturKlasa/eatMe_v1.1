@@ -23,6 +23,10 @@
     "audit": {
       "dependsOn": ["^build"],
       "cache": false
+    },
+    "release-safety": {
+      "dependsOn": ["^build"],
+      "cache": false
     }
   }
 }

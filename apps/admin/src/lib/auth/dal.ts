@@ -5,13 +5,13 @@ import { createServerClient } from '@/lib/supabase/server';
 
 export const verifySession = cache(async () => {
   const supabase = await createServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) redirect('/signin');
-  return { userId: data.user!.id, user: data.user! };
+  const { data, error } = await supabase.auth.getClaims();
+  if (error || !data) redirect('/signin');
+  return { userId: data!.claims.sub, claims: data!.claims };
 });
 
 export const verifyAdminSession = cache(async () => {
   const session = await verifySession();
-  if (session.user.app_metadata?.role !== 'admin') redirect('/signin?forbidden=1');
+  if (session.claims.app_metadata?.role !== 'admin') redirect('/signin?forbidden=1');
   return session;
 });

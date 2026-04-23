@@ -1,3 +1,16 @@
+// Next.js App Router segment config exports — these are not handlers and must not be wrapped.
+const SEGMENT_CONFIG_NAMES = new Set([
+  'runtime',
+  'dynamic',
+  'dynamicParams',
+  'revalidate',
+  'fetchCache',
+  'preferredRegion',
+  'maxDuration',
+  'experimental_ppr',
+  'config',
+]);
+
 /** @type {import('eslint').Rule.RuleModule} */
 export const noUnwrappedAction = {
   meta: {
@@ -48,6 +61,7 @@ export const noUnwrappedAction = {
     }
 
     function checkExport(exportedName, initNode, reportNode) {
+      if (SEGMENT_CONFIG_NAMES.has(exportedName)) return;
       const calleeName = getCalleeName(initNode);
       if (!wrappers.includes(calleeName)) {
         context.report({

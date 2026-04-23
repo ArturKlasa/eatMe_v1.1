@@ -41,6 +41,14 @@ describe('no-unwrapped-action', () => {
         {
           code: `export { savedAction } from './saved';`,
         },
+        // Next.js segment config exports are exempt
+        { code: `export const runtime = 'edge';` },
+        { code: `export const dynamic = 'force-dynamic';` },
+        { code: `export const revalidate = 60;` },
+        { code: `export const fetchCache = 'force-no-store';` },
+        { code: `export const preferredRegion = 'auto';` },
+        { code: `export const maxDuration = 30;` },
+        { code: `export const config = { runtime: 'edge' };` },
       ],
       invalid: [
         // Bare async function export
@@ -56,11 +64,6 @@ describe('no-unwrapped-action', () => {
         // Wrapped with unknown function
         {
           code: `export const saveRestaurant = someOtherWrapper(async (ctx, input) => {});`,
-          errors: [{ messageId: 'notWrapped' }],
-        },
-        // Export const with plain object
-        {
-          code: `export const config = { runtime: 'edge' };`,
           errors: [{ messageId: 'notWrapped' }],
         },
       ],

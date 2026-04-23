@@ -10,7 +10,7 @@
 - [x] Step 8: Migration 120 — `publish_restaurant_draft` Postgres function
 - [x] Step 9: Migration 121 — `menu_scan_confirmations` side-table + `confirm_menu_scan` + worker helpers
 - [x] Step 10: Migration 122 — `generate_candidates` + `get_group_candidates` status filters
-- [ ] Step 11: Patch `nearby-restaurants` + `feed` Edge Functions with `status='published'` filters
+- [x] Step 11: Patch `nearby-restaurants` + `feed` Edge Functions with `status='published'` filters
 - [ ] Step 12: Release-safety CI tests — drafts-never-visible + pre/post-Phase-4 parity
 - [ ] Step 13: Mobile defense-in-depth `.eq('status','published')` patches (6 sites, 3 files)
 - [ ] Step 14: Owner app auth pages, sign-in/sign-up, DAL wire-up, `/onboard` skeleton

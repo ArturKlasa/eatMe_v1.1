@@ -28,9 +28,23 @@ When creating new tables, always enable RLS and add appropriate policies.
 
 Location stored as `geography(POINT, 4326)`. Format: `POINT(longitude latitude)` — note the order. Proximity queries use `ST_DWithin` with distance in meters.
 
+## Storage Buckets
+
+Supabase Storage buckets are **migration-tracked** as of v2 (migration `116a_storage_buckets.sql`). Do not create buckets via the Supabase dashboard — add them via migration to keep environments in sync.
+
+Three v2 buckets exist:
+
+| Bucket | Public | Owner path prefix | Notes |
+|---|---|---|---|
+| `menu-scan-uploads` | No | `<restaurant_id>/...` | Owner INSERT + SELECT; admin SELECT. Never expose to anon. |
+| `restaurant-photos` | Yes | `<restaurant_id>/...` | Owner INSERT; anon SELECT (mobile rendering). |
+| `dish-photos` | Yes | `<restaurant_id>/...` | Owner INSERT; anon SELECT (mobile rendering). |
+
+RLS policies on `storage.objects` use `split_part(name, '/', 1)` to extract the restaurant-id path segment and verify via `EXISTS (SELECT 1 FROM public.restaurants WHERE id::text = ... AND owner_id = auth.uid())`.
+
 ## Migrations
 
-Migration files in `infra/supabase/migrations/` with timestamp prefixes. Use `supabase migration new <name>` to create new migrations.
+Migration files in `supabase/migrations/` with numeric prefixes. Use `supabase migration new <name>` to create new migrations. Reverse migrations are named `<number>_REVERSE_ONLY_<name>.sql` and must be pre-written alongside every forward migration.
 
 ## Ingredient System
 

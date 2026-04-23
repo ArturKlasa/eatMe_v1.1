@@ -241,6 +241,47 @@ test.describe('Onboarding happy path', () => {
     await expect(completedDots).toHaveCount(3);
   });
 
+  test('step 5 (Photos) — Finish button redirects to /restaurant/:id', async ({ page }) => {
+    await mockMapbox(page);
+    await mockStorage(page);
+    await signUpAndLandOnOnboard(page, uniqueEmail(), PASSWORD);
+
+    // Complete steps 1–4
+    await page.getByLabel('Restaurant name').fill('Finish Test Diner');
+    await page.keyboard.press('Tab');
+    await expect(page.getByText('Draft saved.')).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await page.getByLabel('Address search').fill('1 Finish Ave');
+    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('listitem').first().getByRole('button').click();
+    await expect(page.getByText('Location saved.')).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await page.getByLabel('Monday').check();
+    await expect(page.getByText('Hours saved.')).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await page.getByRole('button', { name: 'American', exact: true }).click();
+    await expect(page.getByText('Cuisines saved.')).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    // Step 5: Photos — upload then Finish
+    await expect(page.getByText('Step 5: Hero Photo')).toBeVisible();
+    const fileInput = page.locator('input[type="file"]');
+    await fileInput.setInputFiles({
+      name: 'test.png',
+      mimeType: 'image/png',
+      buffer: TINY_PNG,
+    });
+    await expect(page.getByText('Photo uploaded.')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: 'Finish' }).click();
+
+    // Must redirect to the restaurant detail page (UUID in path)
+    await expect(page).toHaveURL(/\/restaurant\/[0-9a-f-]{36}$/, { timeout: 10_000 });
+  });
+
   test('accessibility — no critical axe-core violations on stepper page', async ({ page }) => {
     await signUpAndLandOnOnboard(page, uniqueEmail(), PASSWORD);
     await expect(page.getByTestId('onboarding-stepper')).toBeVisible();

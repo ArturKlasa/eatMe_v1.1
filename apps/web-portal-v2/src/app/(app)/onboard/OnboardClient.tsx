@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { OnboardingStepper } from '@eatme/ui';
 import {
   BasicInfoSection,
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function OnboardClient({ restaurant, initialStep = 0 }: Props) {
+  const router = useRouter();
   const [stepValidity, setStepValidity] = useState<Array<boolean | undefined>>(
     Array(STEPS.length).fill(undefined)
   );
@@ -70,7 +72,7 @@ export function OnboardClient({ restaurant, initialStep = 0 }: Props) {
       steps={STEPS}
       initialStep={initialStep}
       stepValidity={stepValidity}
-      onStepChange={() => {}}
+      onFinish={() => router.push(`/restaurant/${restaurant.id}`)}
     >
       {[
         <BasicInfoSection

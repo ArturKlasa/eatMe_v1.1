@@ -14,6 +14,8 @@ export interface OnboardingStepperProps {
   /** Per-step validity. Undefined = valid (Next enabled). False = invalid (Next disabled). */
   stepValidity?: Array<boolean | undefined>;
   onStepChange?: (step: number) => void;
+  /** Called when the user clicks Finish on the last step. */
+  onFinish?: () => void;
 }
 
 export function OnboardingStepper({
@@ -22,6 +24,7 @@ export function OnboardingStepper({
   children,
   stepValidity = [],
   onStepChange,
+  onFinish,
 }: OnboardingStepperProps) {
   const [current, setCurrent] = useState(Math.min(initialStep, steps.length - 1));
 
@@ -98,7 +101,7 @@ export function OnboardingStepper({
         ) : (
           <button
             type="button"
-            onClick={() => go(current + 1)}
+            onClick={() => onFinish?.()}
             disabled={isNextDisabled}
             className="px-4 py-2 rounded-md bg-green-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-green-700 transition-colors"
           >

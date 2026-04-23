@@ -32,3 +32,16 @@ export type { MenuScanJobInput, ConfirmMenuScanPayload } from './menuScan';
 
 export { dishSchemaV2 } from './dish';
 export type { DishV2Input, DishV2Output } from './dish';
+
+export {
+  menuCreateSchemaV2,
+  menuUpdateSchemaV2,
+  menuCategoryCreateSchemaV2,
+  menuCategoryUpdateSchemaV2,
+} from './menu';
+export type {
+  MenuCreateInput,
+  MenuUpdateInput,
+  MenuCategoryCreateInput,
+  MenuCategoryUpdateInput,
+} from './menu';

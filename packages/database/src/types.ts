@@ -288,6 +288,60 @@ export type Database = {
           },
         ];
       };
+      dish_course_items: {
+        Row: {
+          course_id: string;
+          id: string;
+          links_to_dish_id: string | null;
+          option_label: string;
+          price_delta: number;
+          sort_order: number;
+        };
+        Insert: {
+          course_id: string;
+          id?: string;
+          links_to_dish_id?: string | null;
+          option_label: string;
+          price_delta?: number;
+          sort_order?: number;
+        };
+        Update: {
+          course_id?: string;
+          id?: string;
+          links_to_dish_id?: string | null;
+          option_label?: string;
+          price_delta?: number;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      dish_courses: {
+        Row: {
+          choice_type: string;
+          course_name: string | null;
+          course_number: number;
+          dish_id: string;
+          id: string;
+          required_count: number;
+        };
+        Insert: {
+          choice_type: string;
+          course_name?: string | null;
+          course_number: number;
+          dish_id: string;
+          id?: string;
+          required_count?: number;
+        };
+        Update: {
+          choice_type?: string;
+          course_name?: string | null;
+          course_number?: number;
+          dish_id?: string;
+          id?: string;
+          required_count?: number;
+        };
+        Relationships: [];
+      };
       dish_ingredients: {
         Row: {
           created_at: string | null;
@@ -447,6 +501,7 @@ export type Database = {
           ingredients_visibility: string;
           is_available: boolean | null;
           is_parent: boolean;
+          is_template: boolean;
           menu_category_id: string | null;
           name: string;
           parent_dish_id: string | null;
@@ -457,7 +512,10 @@ export type Database = {
           protein_families: string[] | null;
           restaurant_id: string | null;
           serves: number;
+          source_image_index: number | null;
+          source_region: Json | null;
           spice_level: string | null;
+          status: string;
           updated_at: string | null;
         };
         Insert: {
@@ -483,6 +541,7 @@ export type Database = {
           ingredients_visibility?: string;
           is_available?: boolean | null;
           is_parent?: boolean;
+          is_template?: boolean;
           menu_category_id?: string | null;
           name?: string;
           parent_dish_id?: string | null;
@@ -493,7 +552,10 @@ export type Database = {
           protein_families?: string[] | null;
           restaurant_id?: string | null;
           serves?: number;
+          source_image_index?: number | null;
+          source_region?: Json | null;
           spice_level?: string | null;
+          status?: string;
           updated_at?: string | null;
         };
         Update: {
@@ -519,6 +581,7 @@ export type Database = {
           ingredients_visibility?: string;
           is_available?: boolean | null;
           is_parent?: boolean;
+          is_template?: boolean;
           menu_category_id?: string | null;
           name?: string;
           parent_dish_id?: string | null;
@@ -529,7 +592,10 @@ export type Database = {
           protein_families?: string[] | null;
           restaurant_id?: string | null;
           serves?: number;
+          source_image_index?: number | null;
+          source_region?: Json | null;
           spice_level?: string | null;
+          status?: string;
           updated_at?: string | null;
         };
         Relationships: [

@@ -147,3 +147,69 @@ describe('uploadRestaurantPhoto', () => {
     expect(uploadedFile).not.toBe(original);
   });
 });
+
+// ─── uploadCompressedDishPhoto ────────────────────────────────────────────────
+
+describe('uploadCompressedDishPhoto', () => {
+  it('uploads to dish-photos/<dishId>/hero.jpg', async () => {
+    const compressed = new File(['c'], 'photo.jpg', { type: 'image/jpeg' });
+    mockUpload.mockResolvedValue({ error: null });
+
+    const { uploadCompressedDishPhoto } = await import('@/lib/upload');
+    const path = await uploadCompressedDishPhoto('dish-abc', compressed, makeSupabase() as never);
+
+    expect(mockFrom).toHaveBeenCalledWith('dish-photos');
+    expect(mockUpload).toHaveBeenCalledWith('dish-photos/dish-abc/hero.jpg', compressed, {
+      contentType: 'image/jpeg',
+      upsert: true,
+    });
+    expect(path).toBe('dish-photos/dish-abc/hero.jpg');
+  });
+
+  it('throws when storage upload returns an error', async () => {
+    const compressed = new File(['c'], 'photo.jpg', { type: 'image/jpeg' });
+    mockUpload.mockResolvedValue({ error: new Error('storage error') });
+
+    const { uploadCompressedDishPhoto } = await import('@/lib/upload');
+    await expect(
+      uploadCompressedDishPhoto('dish-abc', compressed, makeSupabase() as never)
+    ).rejects.toThrow('storage error');
+  });
+});
+
+// ─── uploadDishPhoto ──────────────────────────────────────────────────────────
+
+describe('uploadDishPhoto', () => {
+  it('compresses and uploads to dish-photos/<dishId>/hero.jpg', async () => {
+    const original = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+    const compressed = new File(['compressed'], 'photo.jpg', { type: 'image/jpeg' });
+
+    vi.mocked(imageCompression).mockResolvedValue(compressed as unknown as File);
+    mockUpload.mockResolvedValue({ error: null });
+
+    const { uploadDishPhoto } = await import('@/lib/upload');
+    const path = await uploadDishPhoto('dish-123', original, makeSupabase() as never);
+
+    expect(imageCompression).toHaveBeenCalledWith(original, {
+      maxSizeMB: 2,
+      maxWidthOrHeight: 2048,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: 0.85,
+    });
+    expect(mockFrom).toHaveBeenCalledWith('dish-photos');
+    expect(path).toBe('dish-photos/dish-123/hero.jpg');
+  });
+
+  it('throws when storage upload fails', async () => {
+    const original = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+    const compressed = new File(['c'], 'photo.jpg', { type: 'image/jpeg' });
+    vi.mocked(imageCompression).mockResolvedValue(compressed as unknown as File);
+    mockUpload.mockResolvedValue({ error: new Error('storage error') });
+
+    const { uploadDishPhoto } = await import('@/lib/upload');
+    await expect(uploadDishPhoto('dish-xyz', original, makeSupabase() as never)).rejects.toThrow(
+      'storage error'
+    );
+  });
+});

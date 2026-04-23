@@ -145,3 +145,182 @@ Both `actions/restaurant.ts` and `BasicInfoForm.tsx` now import it; inline copie
 Step 16 should extend or compose from `restaurantBasicsSchema` when adding location/hours fields.
 
 Gates: typecheck ✓, @eatme/shared 78/78 ✓, web-portal-v2 46/46 ✓, commit f9e0b6b
+
+## 2026-04-23 — Step 16 critic notes
+
+Three real concerns found:
+
+**1. E2E Playwright test is a stub, not the filled 5-step spec the plan requires**
+File: `apps/web-portal-v2/tests/e2e/onboarding-happy-path.spec.ts`
+
+The plan says: "full walk through the five steps with autosave verified on each. Close tab after step 3, reopen, assert resumed at step 3 with the first three sections pre-filled." Plus: "Accessibility check via axe-core on the stepper page: no critical violations."
+
+What was delivered (38 lines, single test):
+- Signs up, fills restaurant name, presses Tab, navigates away and back, asserts name is pre-filled.
+- Missing: Steps 2-5 interaction (Location search+select, Hours toggles, Cuisines chip selection, Photo upload).
+- Missing: Close-tab-after-step-3 → reopen → assert resume AT step 3 (not step 1).
+- Missing: axe-core accessibility check entirely.
+
+The test verifies a single autosave (name blur on step 1) but not the "close-tab-resume" invariant at step 3, which is the core acceptance criterion for this step (design §2.1 states cross-device resume as a first-class requirement). Step was gated "test: 62/62 pass" but the E2E spec is incomplete vs. the plan's stated test requirements.
+
+**2. `onboard/page.tsx:71` — fallback redirect can produce `/restaurant/undefined`**
+File: `apps/web-portal-v2/src/app/(app)/onboard/page.tsx:64-73`
+
+```ts
+const { data: fallback } = await supabase
+  .from('restaurants')
+  .select(...)
+  .eq('owner_id', userId)
+  .limit(1);                          // No .eq('status', 'draft')
+if (fallback?.[0]?.status !== 'draft') {
+  redirect(`/restaurant/${fallback?.[0]?.id}`);  // BUG: /restaurant/undefined if empty
+}
+restaurant = fallback?.[0] ?? null;
+```
+
+When the insert fails for a real DB error (not a race condition), `fallback` returns empty. Then:
+- `fallback?.[0]?.status` → `undefined`
+- `undefined !== 'draft'` → `true` → enters the redirect branch
+- `fallback?.[0]?.id` → `undefined`
+- `redirect('/restaurant/undefined')` — broken URL; user lands on a 404 instead of "Something went wrong"
+
+Fix: add a guard so the redirect only fires when a non-draft restaurant exists:
+```ts
+if (fallback?.[0] && fallback[0].status !== 'draft') {
+  redirect(`/restaurant/${fallback[0].id}`);
+}
+```
+
+**3. `PhotosSection.tsx:18-24` — "Compressing image..." state is silently swallowed by React 18 batching**
+File: `apps/web-portal-v2/src/components/restaurant/PhotosSection.tsx:18-24`
+
+```ts
+setUploadState('compressing');       // state update A
+setProgress('Compressing image...');  // state update B
+
+try {
+  const supabase = createBrowserClient(...);  // sync — no await
+
+  setUploadState('uploading');        // state update C — overwrites A
+  setProgress('Uploading...');        // state update D — overwrites B
+  const path = await uploadRestaurantPhoto(restaurantId, file, supabase); // first await: React flushes batch
+```
+
+React 18 automatic batching: A+B+C+D are all queued synchronously before the first `await`. The batch flushes at `await uploadRestaurantPhoto(...)` showing `uploading` state — the user NEVER sees "Compressing image..." because `'compressing'` is overwritten before the browser paints.
+
+`uploadRestaurantPhoto` performs the actual compression inside (`compressImage(file)` before any storage call). For a 10 MB raw photo this takes 1-4 seconds on a mobile CPU. The button shows "Uploading..." for the entire duration while actually compressing — the progress labels are misleading.
+
+Fix: move `setUploadState('uploading')` to AFTER compression completes, or pass a progress callback into `uploadRestaurantPhoto`:
+```ts
+setUploadState('compressing');
+setProgress('Compressing image...');
+await new Promise(r => setTimeout(r, 0)); // flush paint — or restructure the function
+const path = await uploadRestaurantPhoto(restaurantId, file, supabase);
+setUploadState('saving');
+setProgress('Saving...');
+const result = await updateRestaurantPhoto(...);
+```
+Proper fix: split `uploadRestaurantPhoto` into `compressImage` + `uploadCompressed` so the caller can set state between steps.
+
+## 2026-04-23 — Step 16 critique addressed (commit fd6a106)
+
+Three issues fixed:
+
+**1. E2E Playwright spec — fully filled**
+`apps/web-portal-v2/tests/e2e/onboarding-happy-path.spec.ts` replaced with a 6-test suite:
+- One test per step (Basics, Location, Hours, Cuisines, Photos) with autosave assertion
+- `mockMapbox()` intercepts `**/geocoding/v5/mapbox.places/**` so geocoding never hits real API
+- `mockStorage()` intercepts `**/storage/v1/object/**` for the photo step
+- `TINY_PNG` buffer + `page.setInputFiles()` for photo upload
+- Close-tab-resume test: complete steps 1–3, navigate away + back, assert "Step 4: Cuisines" heading visible and 3 completed indicators (✓)
+- axe-core test: `@axe-core/playwright` v4.11.2 added to devDependencies; scoped to `[data-testid="onboarding-stepper"]`, asserts zero critical violations
+
+**2. `onboard/page.tsx:74` — undefined redirect guard**
+`if (fallback?.[0]?.status !== 'draft')` → `if (fallback?.[0] && fallback[0].status !== 'draft')`
+Empty fallback array no longer triggers the redirect branch.
+
+**3. `PhotosSection.tsx` + `upload.ts` — React 18 batching fix**
+Exported `compressImage` and `uploadCompressedRestaurantPhoto` from upload.ts.
+PhotosSection.tsx now calls them as separate awaits: `createBrowserClient` moves before state sets so the first await is `compressImage` — React 18 flushes the 'compressing' state at that point, user sees it for the full duration of compression.
+Added 4 new tests for the exported functions (8 total in upload.test.ts).
+
+Gates: turbo check-types ✓, web-portal-v2 66/66 unit tests ✓, commit fd6a106
+
+## 2026-04-23 — Step 16 second critique (post-fd6a106)
+
+Prior three concerns are confirmed fixed. One new concern found:
+
+**`packages/ui/src/compose/OnboardingStepper.tsx:99-107` — Finish button goes out-of-bounds**
+
+```tsx
+// current === steps.length - 1 (= 4 for 5-step stepper)
+<button onClick={() => go(current + 1)}>Finish</button>
+```
+
+`go(5)` → `setCurrent(5)` → `children[5]` = `undefined` → content area renders blank.
+There is no `onFinish` prop, no `useRouter`, no redirect after clicking Finish.
+`OnboardClient` passes `onStepChange={() => {}}` (no-op), so there is no escape hatch.
+
+Observable path: a user who has uploaded their hero photo (step 4 complete, `deriveResumeStep`
+returns 4) and clicks "Finish" → blank stepper with Back button only → stranded.
+This hits every owner who successfully completes all 5 onboarding steps.
+
+Not covered by E2E tests — step 5 test stops at `expect(page.getByText('Photo uploaded.'))`.
+No test clicks "Finish".
+
+Fix: add `onFinish?: () => void` to `OnboardingStepperProps`; call it instead of
+`go(current + 1)` in the Finish handler. `OnboardClient` passes
+`onFinish={() => router.push('/restaurant/<id>')}` using `useRouter()`.
+(The restaurant ID is in the `restaurant` prop passed to `OnboardClient`.)
+
+## 2026-04-23 — Step 16 second critique addressed (commit 68f926c)
+
+**`OnboardingStepper` Finish out-of-bounds fixed**
+
+- `packages/ui/src/compose/OnboardingStepper.tsx`: added `onFinish?: () => void` to props; Finish button now calls `onFinish?.()` instead of `go(current + 1)` — no more `current=5 → children[5]=undefined` blank screen.
+- `apps/web-portal-v2/src/app/(app)/onboard/OnboardClient.tsx`: added `useRouter`; passes `onFinish={() => router.push('/restaurant/${restaurant.id}')}` to `OnboardingStepper`; removed no-op `onStepChange={() => {}}`.
+- `packages/ui/src/__tests__/OnboardingStepper.test.ts`: 2 new type-level tests verify `onFinish` is accepted as a prop and can be omitted (7 total, all pass).
+- `apps/web-portal-v2/tests/e2e/onboarding-happy-path.spec.ts`: new test completes all 5 steps, clicks Finish, asserts URL matches `/restaurant/[uuid]`.
+
+Gates: turbo check-types ✓ (3 packages), @eatme/ui 7/7 ✓, web-portal-v2 66/66 unit ✓, commit 68f926c
+
+## 2026-04-23 — Step 16 reviewer pass
+
+Gates re-run independently:
+- `turbo check-types`: 3 packages pass (web-portal-v2, admin, @eatme/ui) — PASS
+- `turbo test --filter web-portal-v2`: 66/66 unit tests pass, 9 integration skipped (need real DB) — PASS
+- `turbo test --filter @eatme/ui`: 7/7 pass — PASS
+- plan.md: `- [x] Step 16` confirmed at line 18
+- `git diff main..HEAD -- apps/web-portal/`: empty (v1 untouched) — PASS
+- `git diff main..HEAD -- apps/mobile/`: empty (no mobile changes in step 16) — PASS
+- design/PROMPT.md: untouched — PASS
+- Commits: 89a097c, fd400ee, 085f5f4, fd6a106, 68f926c — all reference `(plan step 16)` or `(plan step 16 critique)`
+- Spot-check: `OnboardingStepper.tsx` Finish button calls `onFinish?.()` not `go(current+1)` ✓
+- E2E test includes Finish-button-to-/restaurant/:id assertion ✓
+- critique.clean event confirmed no new concerns from 68f926c
+
+Advancing to step 17. 10 steps remain (17–26; 27–28 are human-gated).
+
+## 2026-04-23 — Step 17 complete
+
+Menu + category + dish CRUD with 5-kind discriminated-union dish form.
+
+Changes:
+- `packages/shared/src/validation/menu.ts`: added menuCreateSchemaV2/Update, menuCategoryCreate/Update schemas. `MenuCreateInput` uses `z.input<>` (not `z.infer<>`) so `.default('food')` keeps `menu_type` optional in the input type.
+- `packages/ui/src/compose/PageGroupedList.tsx`: generic grouped list component (no Zustand, pure props). Exported from `packages/ui/src/index.ts`.
+- `apps/web-portal-v2/src/app/(app)/restaurant/[id]/actions/menu.ts`: createMenu/updateMenu/archiveMenu wrapped in `withAuth`.
+- `apps/web-portal-v2/src/app/(app)/restaurant/[id]/actions/category.ts`: createCategory/updateCategory/deleteCategory wrapped in `withAuth`.
+- `apps/web-portal-v2/src/app/(app)/restaurant/[id]/actions/dish.ts`: createDish/updateDish/archiveDish/unpublishDish/updateDishPhotoPath + internal upsertSlots/upsertCourses. `option_group_id` (not `group_id`) for options insert.
+- `apps/web-portal-v2/src/lib/auth/dal.ts`: added `getMenusWithCategoriesAndDishes`.
+- `apps/web-portal-v2/src/lib/upload.ts`: added `uploadCompressedDishPhoto`, `uploadDishPhoto`.
+- `apps/web-portal-v2/src/components/menu/`: KindSelector, BundleItemsSection (watch/setValue — not useFieldArray, which requires object arrays), ConfigurableSlotsSection, CourseEditorSection, DishForm (FormProvider wrapping BundleItemsSection uses useFormContext), MenuManager.
+- `apps/web-portal-v2/src/app/(app)/restaurant/[id]/menu/page.tsx`: RSC page.
+- `packages/database/src/types.ts`: added missing columns (is_template, status, source_image_index, source_region to dishes) and missing tables (dish_courses, dish_course_items) from migration 114.
+
+Key fixes during implementation:
+- `useFieldArray` requires object arrays — `bundle_items: string[]` must use `watch`/`setValue` instead.
+- Removed unused `@ts-expect-error` directives once DB types were patched.
+- `CategoryWithDishes.display_order: number | null` (DB column is nullable).
+- `options` table FK column is `option_group_id`, not `group_id`.
+
+Gates: turbo check-types ✓, vitest 106/106 ✓, turbo build ✓ (/restaurant/[id]/menu in build output)

@@ -16,7 +16,7 @@
 - [x] Step 14: Owner app auth pages, sign-in/sign-up, DAL wire-up, `/onboard` skeleton
 - [x] Step 15: Restaurant draft CRUD Server Actions + `/restaurant/[id]` basic-info form
 - [x] Step 16: Onboarding stepper overlay + Location + Hours + Cuisines + Photos steps
-- [ ] Step 17: Menu + category + dish CRUD (5-kind dish form, discriminated-union validation)
+- [x] Step 17: Menu + category + dish CRUD (5-kind dish form, discriminated-union validation)
 - [ ] Step 18: Publish flow — `publish_restaurant_draft` call + Realtime broadcast + unpublish/archive
 - [ ] Step 19: `menu-scan-worker` Edge Function + `pg_cron` schedule + OpenAI integration
 - [ ] Step 20: Owner menu-scan upload UI — `browser-image-compression` + direct Storage upload + job insert

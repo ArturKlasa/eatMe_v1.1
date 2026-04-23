@@ -44,3 +44,25 @@ export async function uploadRestaurantPhoto(
   const compressed = await compressImage(file);
   return uploadCompressedRestaurantPhoto(restaurantId, compressed, supabase);
 }
+
+export async function uploadCompressedDishPhoto(
+  dishId: string,
+  compressed: File,
+  supabase: StorageClient
+): Promise<string> {
+  const path = `dish-photos/${dishId}/hero.jpg`;
+  const { error } = await supabase.storage
+    .from('dish-photos')
+    .upload(path, compressed, { contentType: 'image/jpeg', upsert: true });
+  if (error) throw error;
+  return path;
+}
+
+export async function uploadDishPhoto(
+  dishId: string,
+  file: File,
+  supabase: StorageClient
+): Promise<string> {
+  const compressed = await compressImage(file);
+  return uploadCompressedDishPhoto(dishId, compressed, supabase);
+}

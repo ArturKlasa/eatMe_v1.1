@@ -22,3 +22,83 @@ export async function getRestaurant(id: string, userId: string) {
     .maybeSingle();
   return data;
 }
+
+export async function getMenusWithCategoriesAndDishes(restaurantId: string, userId: string) {
+  const supabase = await createServerClient();
+
+  // Verify ownership first
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('id')
+    .eq('id', restaurantId)
+    .eq('owner_id', userId)
+    .maybeSingle();
+
+  if (!restaurant) return null;
+
+  const { data: menus } = await supabase
+    .from('menus')
+    .select('id, name, description, menu_type, status, display_order')
+    .eq('restaurant_id', restaurantId)
+    .neq('status', 'archived')
+    .order('display_order', { ascending: true });
+
+  if (!menus) return [];
+
+  const menuIds = menus.map(m => m.id);
+  if (menuIds.length === 0) return menus.map(m => ({ ...m, categories: [] }));
+
+  const { data: categories } = await supabase
+    .from('menu_categories')
+    .select('id, menu_id, name, description, display_order')
+    .in('menu_id', menuIds)
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+
+  const categoryIds = (categories ?? []).map(c => c.id);
+  const { data: dishes } =
+    categoryIds.length > 0
+      ? await supabase
+          .from('dishes')
+          .select(
+            'id, name, description, price, dish_kind, primary_protein, status, is_available, is_template, image_url, menu_category_id, dish_category_id, display_price_prefix, serves'
+          )
+          .in('menu_category_id', categoryIds)
+          .neq('status', 'archived')
+          .eq('is_parent', false)
+          .order('name', { ascending: true })
+      : { data: [] };
+
+  type CategoryRow = NonNullable<typeof categories>[number];
+  type DishRow = NonNullable<typeof dishes>[number];
+
+  const dishesByCategory = ((dishes ?? []) as DishRow[]).reduce(
+    (acc, dish) => {
+      const key = dish.menu_category_id as string;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(dish);
+      return acc;
+    },
+    {} as Record<string, DishRow[]>
+  );
+
+  const categoriesWithDishes = ((categories ?? []) as CategoryRow[]).map(cat => ({
+    ...cat,
+    dishes: dishesByCategory[cat.id] ?? [],
+  }));
+
+  const categoriesByMenu = categoriesWithDishes.reduce(
+    (acc, cat) => {
+      const key = cat.menu_id as string;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(cat);
+      return acc;
+    },
+    {} as Record<string, typeof categoriesWithDishes>
+  );
+
+  return menus.map(menu => ({
+    ...menu,
+    categories: categoriesByMenu[menu.id] ?? [],
+  }));
+}

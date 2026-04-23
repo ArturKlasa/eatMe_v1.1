@@ -1,3 +1,12 @@
+/** Publishing / curation state for a restaurant or menu. */
+export type RestaurantStatus = 'draft' | 'published' | 'archived';
+
+/** Alias of RestaurantStatus — menus use the same state machine. */
+export type MenuStatus = RestaurantStatus;
+
+/** Processing state for a menu-scan job. */
+export type MenuScanJobStatus = 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
+
 /** Geographic coordinate pair. Matches the PostGIS POINT(lng lat) layout used in Supabase. */
 export interface Location {
   lat: number;

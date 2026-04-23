@@ -515,6 +515,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@supabase/ssr':
+        specifier: ^0.8.0
+        version: 0.8.0(@supabase/supabase-js@2.104.1)
       zod:
         specifier: ^3.0.0
         version: 3.25.76
@@ -10465,6 +10468,11 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@supabase/ssr@0.8.0(@supabase/supabase-js@2.104.1)':
+    dependencies:
+      '@supabase/supabase-js': 2.104.1
+      cookie: 1.1.1
 
   '@supabase/ssr@0.8.0(@supabase/supabase-js@2.91.1)':
     dependencies:

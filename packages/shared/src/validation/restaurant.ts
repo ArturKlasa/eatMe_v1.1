@@ -134,3 +134,51 @@ export type OperationsFormData = z.infer<typeof operationsSchema>;
 export type DishFormData = z.input<typeof dishSchema>;
 export type MenuFormData = z.infer<typeof menuSchema>;
 export type RestaurantDataFormData = z.infer<typeof restaurantDataSchema>;
+
+/** Draft-state CRUD schema: name required; all other fields optional but validated when present. */
+export const restaurantDraftSchema = z.object({
+  name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
+  description: z.string().optional().or(z.literal('')),
+  restaurant_type: z.string().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
+  postal_code: z.string().optional(),
+  neighbourhood: z.string().optional(),
+  state: z.string().optional(),
+  address: z.string().optional().or(z.literal('')),
+  location: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    })
+    .optional(),
+  phone: z
+    .string()
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  cuisines: z.array(z.string()).default([]),
+  operating_hours: z
+    .object({
+      monday: z.object({ open: z.string(), close: z.string() }).optional(),
+      tuesday: z.object({ open: z.string(), close: z.string() }).optional(),
+      wednesday: z.object({ open: z.string(), close: z.string() }).optional(),
+      thursday: z.object({ open: z.string(), close: z.string() }).optional(),
+      friday: z.object({ open: z.string(), close: z.string() }).optional(),
+      saturday: z.object({ open: z.string(), close: z.string() }).optional(),
+      sunday: z.object({ open: z.string(), close: z.string() }).optional(),
+    })
+    .optional(),
+  delivery_available: z.boolean().default(false),
+  takeout_available: z.boolean().default(false),
+  dine_in_available: z.boolean().default(false),
+  accepts_reservations: z.boolean().default(false),
+});
+
+export type RestaurantDraftFormData = z.infer<typeof restaurantDraftSchema>;
+
+/** Stricter schema for publish-ready restaurants — all required fields must be present. */
+export const restaurantPublishableSchema = basicInfoSchema.merge(operationsSchema);
+
+export type RestaurantPublishableFormData = z.infer<typeof restaurantPublishableSchema>;

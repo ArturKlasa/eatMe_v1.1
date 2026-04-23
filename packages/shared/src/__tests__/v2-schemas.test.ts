@@ -1,0 +1,306 @@
+import { describe, it, expect } from 'vitest';
+import { isDiscoverable } from '../logic/discoverability';
+import { isAdmin } from '../logic/role';
+import { publishPayloadSchema } from '../validation/publish';
+import { menuScanJobInputSchema, confirmMenuScanPayloadSchema } from '../validation/menuScan';
+import { dishSchemaV2 } from '../validation/dish';
+import { restaurantDraftSchema, restaurantPublishableSchema } from '../validation/restaurant';
+
+// ── isDiscoverable ────────────────────────────────────────────────────────────
+
+describe('isDiscoverable', () => {
+  it('returns true when active and published', () => {
+    expect(isDiscoverable({ is_active: true, status: 'published' })).toBe(true);
+  });
+
+  it('returns false when inactive (even if published)', () => {
+    expect(isDiscoverable({ is_active: false, status: 'published' })).toBe(false);
+  });
+
+  it('returns false when draft (even if active)', () => {
+    expect(isDiscoverable({ is_active: true, status: 'draft' })).toBe(false);
+  });
+
+  it('returns false when inactive and draft', () => {
+    expect(isDiscoverable({ is_active: false, status: 'draft' })).toBe(false);
+  });
+});
+
+// ── isAdmin ───────────────────────────────────────────────────────────────────
+
+describe('isAdmin', () => {
+  it('returns true when app_metadata.role is admin', () => {
+    expect(isAdmin({ app_metadata: { role: 'admin' } })).toBe(true);
+  });
+
+  it('returns false when user_metadata.role is admin (wrong field)', () => {
+    expect(isAdmin({ app_metadata: {} } as never)).toBe(false);
+  });
+
+  it('returns false when app_metadata is missing', () => {
+    expect(isAdmin({})).toBe(false);
+  });
+
+  it('returns false for null user', () => {
+    expect(isAdmin(null)).toBe(false);
+  });
+
+  it('returns false for undefined user', () => {
+    expect(isAdmin(undefined)).toBe(false);
+  });
+});
+
+// ── publishPayloadSchema ──────────────────────────────────────────────────────
+
+describe('publishPayloadSchema', () => {
+  it('accepts a valid UUID', () => {
+    const id = '123e4567-e89b-12d3-a456-426614174000';
+    const result = publishPayloadSchema.safeParse({ restaurant_id: id });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a non-UUID string', () => {
+    const result = publishPayloadSchema.safeParse({ restaurant_id: 'not-a-uuid' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing restaurant_id', () => {
+    const result = publishPayloadSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── menuScanJobInputSchema ────────────────────────────────────────────────────
+
+describe('menuScanJobInputSchema', () => {
+  const validImage = { bucket: 'menu-scan-uploads', path: 'owner/menu.jpg', page: 1 };
+
+  it('accepts a single valid image', () => {
+    const result = menuScanJobInputSchema.safeParse({ images: [validImage] });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty images array', () => {
+    const result = menuScanJobInputSchema.safeParse({ images: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects more than 20 images', () => {
+    const images = Array.from({ length: 21 }, (_, i) => ({ ...validImage, page: i + 1 }));
+    const result = menuScanJobInputSchema.safeParse({ images });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects page numbers below 1', () => {
+    const result = menuScanJobInputSchema.safeParse({ images: [{ ...validImage, page: 0 }] });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── confirmMenuScanPayloadSchema ──────────────────────────────────────────────
+
+const validDish = {
+  menu_category_id: '123e4567-e89b-12d3-a456-426614174000',
+  name: 'Margherita Pizza',
+  price: 12.5,
+  dish_kind: 'standard' as const,
+  primary_protein: 'vegetarian',
+  is_template: false,
+};
+
+describe('confirmMenuScanPayloadSchema', () => {
+  it('accepts a valid payload', () => {
+    const result = confirmMenuScanPayloadSchema.safeParse({
+      job_id: '123e4567-e89b-12d3-a456-426614174000',
+      idempotency_key: 'abcdefghij',
+      dishes: [validDish],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects idempotency_key shorter than 10 chars', () => {
+    const result = confirmMenuScanPayloadSchema.safeParse({
+      job_id: '123e4567-e89b-12d3-a456-426614174000',
+      idempotency_key: 'short',
+      dishes: [validDish],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects legacy dish_kind "template"', () => {
+    const result = confirmMenuScanPayloadSchema.safeParse({
+      job_id: '123e4567-e89b-12d3-a456-426614174000',
+      idempotency_key: 'abcdefghij',
+      dishes: [{ ...validDish, dish_kind: 'template' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects legacy dish_kind "combo"', () => {
+    const result = confirmMenuScanPayloadSchema.safeParse({
+      job_id: '123e4567-e89b-12d3-a456-426614174000',
+      idempotency_key: 'abcdefghij',
+      dishes: [{ ...validDish, dish_kind: 'combo' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects legacy dish_kind "experience"', () => {
+    const result = confirmMenuScanPayloadSchema.safeParse({
+      job_id: '123e4567-e89b-12d3-a456-426614174000',
+      idempotency_key: 'abcdefghij',
+      dishes: [{ ...validDish, dish_kind: 'experience' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts all 5 valid dish_kind values', () => {
+    const kinds = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
+    for (const dish_kind of kinds) {
+      const result = confirmMenuScanPayloadSchema.safeParse({
+        job_id: '123e4567-e89b-12d3-a456-426614174000',
+        idempotency_key: 'abcdefghij',
+        dishes: [{ ...validDish, dish_kind }],
+      });
+      expect(result.success, `dish_kind "${dish_kind}" should be valid`).toBe(true);
+    }
+  });
+});
+
+// ── dishSchemaV2 discriminated union ─────────────────────────────────────────
+
+const baseDishInput = {
+  name: 'Grilled Chicken',
+  price: 18,
+  primary_protein: 'chicken' as const,
+};
+
+describe('dishSchemaV2 discriminated union', () => {
+  it('standard narrows correctly', () => {
+    const result = dishSchemaV2.safeParse({ ...baseDishInput, dish_kind: 'standard' });
+    expect(result.success).toBe(true);
+  });
+
+  it('configurable narrows to include slots property', () => {
+    const result = dishSchemaV2.safeParse({
+      ...baseDishInput,
+      dish_kind: 'configurable',
+      is_template: false,
+      slots: [],
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.dish_kind === 'configurable') {
+      // TypeScript narrows: result.data.slots is accessible here
+      expect(Array.isArray(result.data.slots)).toBe(true);
+    }
+  });
+
+  it('buffet does not include slots property', () => {
+    const result = dishSchemaV2.safeParse({ ...baseDishInput, dish_kind: 'buffet' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('slots' in result.data).toBe(false);
+    }
+  });
+
+  it('bundle requires bundle_items', () => {
+    const result = dishSchemaV2.safeParse({
+      ...baseDishInput,
+      dish_kind: 'bundle',
+      bundle_items: ['123e4567-e89b-12d3-a456-426614174000'],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('course_menu includes courses', () => {
+    const result = dishSchemaV2.safeParse({
+      ...baseDishInput,
+      dish_kind: 'course_menu',
+      courses: [
+        {
+          course_number: 1,
+          choice_type: 'fixed',
+          items: [{ option_label: 'Soup of the day', price_delta: 0, sort_order: 0 }],
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('defaults dietary_tags and allergens to []', () => {
+    const result = dishSchemaV2.safeParse({ ...baseDishInput, dish_kind: 'standard' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dietary_tags).toEqual([]);
+      expect(result.data.allergens).toEqual([]);
+    }
+  });
+
+  it('rejects invalid primary_protein', () => {
+    const result = dishSchemaV2.safeParse({
+      ...baseDishInput,
+      dish_kind: 'standard',
+      primary_protein: 'bacon',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── restaurantDraftSchema ─────────────────────────────────────────────────────
+
+describe('restaurantDraftSchema', () => {
+  it('accepts name only (minimum valid draft)', () => {
+    const result = restaurantDraftSchema.safeParse({ name: 'My Draft Restaurant' });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects name shorter than 2 characters', () => {
+    const result = restaurantDraftSchema.safeParse({ name: 'A' });
+    expect(result.success).toBe(false);
+  });
+
+  it('allows address to be omitted', () => {
+    const result = restaurantDraftSchema.safeParse({ name: 'Draft' });
+    expect(result.success).toBe(true);
+  });
+
+  it('defaults cuisines to empty array', () => {
+    const result = restaurantDraftSchema.safeParse({ name: 'Draft' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cuisines).toEqual([]);
+    }
+  });
+});
+
+// ── restaurantPublishableSchema ───────────────────────────────────────────────
+
+describe('restaurantPublishableSchema', () => {
+  const validPublishable = {
+    name: 'My Restaurant',
+    address: '123 Main St',
+    location: { lat: 52.2297, lng: 21.0122 },
+    cuisines: ['italian'],
+    operating_hours: {},
+    delivery_available: false,
+    takeout_available: true,
+    dine_in_available: true,
+    accepts_reservations: false,
+  };
+
+  it('accepts a fully specified restaurant', () => {
+    const result = restaurantPublishableSchema.safeParse(validPublishable);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects missing cuisines', () => {
+    const result = restaurantPublishableSchema.safeParse({ ...validPublishable, cuisines: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing address', () => {
+    const { address: _, ...rest } = validPublishable;
+    const result = restaurantPublishableSchema.safeParse(rest);
+    expect(result.success).toBe(false);
+  });
+});

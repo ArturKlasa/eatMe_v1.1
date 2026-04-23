@@ -94,7 +94,9 @@ export function createAuthProxy(config: AuthProxyConfig) {
       return NextResponse.redirect(new URL(forbiddenPath, req.url));
     }
 
-    if (authRoutes.some(r => pathname.startsWith(r)) && user) {
+    const rawQuery = req.url.split('?')[1] ?? '';
+    const qp = new URLSearchParams(rawQuery);
+    if (authRoutes.some(r => pathname.startsWith(r)) && user && !qp.has('forbidden')) {
       return NextResponse.redirect(new URL(postAuthPath, req.url));
     }
 

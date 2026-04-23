@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { PRIMARY_PROTEINS } from '../logic/protein';
+import { PRIMARY_PROTEINS, PrimaryProtein } from '../logic/protein';
 
 const primaryProteinEnum = z.enum(
-  PRIMARY_PROTEINS as readonly [string, ...string[]] as [string, ...string[]]
+  PRIMARY_PROTEINS as unknown as [PrimaryProtein, ...PrimaryProtein[]]
 );
 
 export const menuScanJobInputSchema = z.object({

@@ -5,11 +5,12 @@ import type { AuthProxyConfig, AuthProxyRequest, NextResponseFactory } from '../
 const BASE_URL = 'https://app.example.com';
 
 function makeRequest(
-  pathname: string,
+  pathAndQuery: string,
   cookies: Array<{ name: string; value: string }> = []
 ): AuthProxyRequest {
+  const [pathname] = pathAndQuery.split('?');
   return {
-    url: BASE_URL + pathname,
+    url: BASE_URL + pathAndQuery,
     nextUrl: { pathname },
     cookies: { getAll: () => cookies },
     headers: new Headers(),
@@ -128,6 +129,19 @@ describe('createAuthProxy — custom redirect paths', () => {
     const location = res.headers.get('Location') ?? '';
     expect(location).toContain('/restaurants');
     expect(location).not.toContain('/restaurant\b');
+  });
+
+  it('authenticated non-admin on forbiddenPath (/signin?forbidden=1) passes through — no redirect loop', async () => {
+    mockCreateServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { app_metadata: { role: 'owner' } } } }),
+      },
+    });
+    const NR = makeNextResponse();
+    const config = makeConfig({ NextResponse: NR });
+    const handler = createAuthProxy(config);
+    await handler(makeRequest('/signin?forbidden=1'));
+    expect(NR.redirect).not.toHaveBeenCalled();
   });
 
   it('admin user passes through adminOnly route', async () => {

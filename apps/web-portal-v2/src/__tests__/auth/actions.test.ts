@@ -63,6 +63,30 @@ describe('signInWithPassword', () => {
     });
   });
 
+  it('falls back to /restaurant when redirect param is an absolute URL', async () => {
+    const fd = makeFormData({
+      email: 'owner@example.com',
+      password: 'secret123',
+      redirect: 'https://evil.com/phish',
+    });
+    await expect(signInWithPassword(fd)).rejects.toMatchObject({
+      digest: expect.stringContaining('/restaurant'),
+    });
+    expect(mockRedirect).toHaveBeenCalledWith('/restaurant');
+  });
+
+  it('falls back to /restaurant when redirect param is protocol-relative', async () => {
+    const fd = makeFormData({
+      email: 'owner@example.com',
+      password: 'secret123',
+      redirect: '//evil.com',
+    });
+    await expect(signInWithPassword(fd)).rejects.toMatchObject({
+      digest: expect.stringContaining('/restaurant'),
+    });
+    expect(mockRedirect).toHaveBeenCalledWith('/restaurant');
+  });
+
   it('returns formError when Supabase rejects credentials', async () => {
     authState.signInResult = { data: null, error: { message: 'Invalid login credentials' } };
     const fd = makeFormData({ email: 'owner@example.com', password: 'wrongpass' });

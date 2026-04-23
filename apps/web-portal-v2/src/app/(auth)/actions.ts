@@ -23,7 +23,8 @@ export const signInWithPassword = withPublic(async ({ supabase }, formData: Form
     return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const redirectTo = (formData.get('redirect') as string | null) ?? '/restaurant';
+  const raw = formData.get('redirect') as string | null;
+  const redirectTo = raw?.startsWith('/') && !raw.startsWith('//') ? raw : '/restaurant';
 
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { ok: false as const, formError: error.message };

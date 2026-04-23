@@ -1,7 +1,7 @@
 # EatMe Web Portal v2 — Implementation Plan
 
 - [x] Step 1: Scaffold `apps/web-portal-v2/` and `apps/admin/` Next.js 16 projects + `@eatme/ui` shared package
-- [ ] Step 2: Auth wrappers, DAL, `no-unwrapped-action` ESLint rule, `@eatme/database/web` factories
+- [x] Step 2: Auth wrappers, DAL, `no-unwrapped-action` ESLint rule, `@eatme/database/web` factories
 - [ ] Step 3: Shared Zod schemas, types, and helpers in `@eatme/shared` for v2
 - [ ] Step 4: Per-app `proxy.ts` via `createAuthProxy` factory, Supabase client helpers, Providers shell
 - [ ] Step 5: Migration 116a — storage buckets + policies (`menu-scan-uploads`, `restaurant-photos`, `dish-photos`)

@@ -1,0 +1,23 @@
+{
+  "name": "@eatme/eslint-config-eatme",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint"
+  },
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "typescript": "^5",
+    "vitest": "^4.1.4"
+  }
+}

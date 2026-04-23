@@ -198,6 +198,7 @@ serve(async req => {
         )
       `
       )
+      .eq('status', 'published')
       .order('created_at', { ascending: false });
 
     // Apply cuisine filter if provided

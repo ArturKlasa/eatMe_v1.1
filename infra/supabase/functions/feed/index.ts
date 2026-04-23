@@ -693,6 +693,7 @@ serve(async (req: Request) => {
       const { data: hourRows } = await supabase
         .from('restaurants')
         .select('id, open_hours')
+        .eq('status', 'published')
         .in('id', allRids);
       for (const row of hourRows ?? []) {
         openHoursMap.set(row.id, row.open_hours ?? null);

@@ -165,6 +165,39 @@ describe('confirmMenuScanPayloadSchema', () => {
       expect(result.success, `dish_kind "${dish_kind}" should be valid`).toBe(true);
     }
   });
+
+  it('rejects invalid primary_protein in dish', () => {
+    const result = confirmMenuScanPayloadSchema.safeParse({
+      job_id: '123e4567-e89b-12d3-a456-426614174000',
+      idempotency_key: 'abcdefghij',
+      dishes: [{ ...validDish, primary_protein: 'bacon' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts all 11 valid primary_protein values', () => {
+    const proteins = [
+      'chicken',
+      'beef',
+      'pork',
+      'lamb',
+      'duck',
+      'other_meat',
+      'fish',
+      'shellfish',
+      'eggs',
+      'vegetarian',
+      'vegan',
+    ] as const;
+    for (const primary_protein of proteins) {
+      const result = confirmMenuScanPayloadSchema.safeParse({
+        job_id: '123e4567-e89b-12d3-a456-426614174000',
+        idempotency_key: 'abcdefghij',
+        dishes: [{ ...validDish, primary_protein }],
+      });
+      expect(result.success, `primary_protein "${primary_protein}" should be valid`).toBe(true);
+    }
+  });
 });
 
 // ── dishSchemaV2 discriminated union ─────────────────────────────────────────

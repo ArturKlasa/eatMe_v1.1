@@ -30,8 +30,14 @@ export interface AuthProxyConfig {
   appRoutes: string[];
   /** Login/signup paths — authenticated visitors are redirected away. */
   authRoutes: string[];
-  /** Paths requiring admin role — non-admins are redirected to /signin?forbidden=1. */
+  /** Paths requiring admin role — non-admins are redirected to forbiddenPath. */
   adminOnly?: string[];
+  /** Sign-in page path. Unauthenticated appRoute visitors get `signinPath?redirect=<pathname>`. Defaults to '/signin'. */
+  signinPath?: string;
+  /** Redirect target for non-admin visitors hitting adminOnly routes. Defaults to '/signin?forbidden=1'. */
+  forbiddenPath?: string;
+  /** Post-auth redirect for authenticated visitors hitting authRoutes. Defaults to '/restaurant'. */
+  postAuthPath?: string;
   /** NextResponse factory from `next/server` — injected to avoid a `next` peer dependency. */
   NextResponse: NextResponseFactory;
 }
@@ -39,12 +45,22 @@ export interface AuthProxyConfig {
 /**
  * Shared auth proxy factory. Returns a proxy handler that:
  * 1. Refreshes the Supabase session cookie.
- * 2. Redirects unauthenticated requests for appRoutes to /signin.
- * 3. Redirects authenticated requests for authRoutes away to /restaurant.
- * 4. Redirects non-admin requests for adminOnly routes to /signin?forbidden=1.
+ * 2. Redirects unauthenticated requests for appRoutes to signinPath.
+ * 3. Redirects authenticated requests for authRoutes away to postAuthPath.
+ * 4. Redirects non-admin requests for adminOnly routes to forbiddenPath.
  */
 export function createAuthProxy(config: AuthProxyConfig) {
-  const { url, anonKey, appRoutes, authRoutes, adminOnly = [], NextResponse } = config;
+  const {
+    url,
+    anonKey,
+    appRoutes,
+    authRoutes,
+    adminOnly = [],
+    signinPath = '/signin',
+    forbiddenPath = '/signin?forbidden=1',
+    postAuthPath = '/restaurant',
+    NextResponse,
+  } = config;
 
   return async (req: AuthProxyRequest): Promise<Response> => {
     const supabaseResponse = NextResponse.next({ request: { headers: req.headers } });
@@ -70,16 +86,16 @@ export function createAuthProxy(config: AuthProxyConfig) {
 
     if (appRoutes.some(r => pathname.startsWith(r)) && !user) {
       return NextResponse.redirect(
-        new URL('/signin?redirect=' + encodeURIComponent(pathname), req.url)
+        new URL(signinPath + '?redirect=' + encodeURIComponent(pathname), req.url)
       );
     }
 
     if (adminOnly.some(r => pathname.startsWith(r)) && user?.app_metadata?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/signin?forbidden=1', req.url));
+      return NextResponse.redirect(new URL(forbiddenPath, req.url));
     }
 
     if (authRoutes.some(r => pathname.startsWith(r)) && user) {
-      return NextResponse.redirect(new URL('/restaurant', req.url));
+      return NextResponse.redirect(new URL(postAuthPath, req.url));
     }
 
     return supabaseResponse;

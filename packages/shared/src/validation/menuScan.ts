@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import { PRIMARY_PROTEINS } from '../logic/protein';
+
+const primaryProteinEnum = z.enum(
+  PRIMARY_PROTEINS as readonly [string, ...string[]] as [string, ...string[]]
+);
 
 export const menuScanJobInputSchema = z.object({
   images: z
@@ -25,7 +30,7 @@ export const confirmMenuScanPayloadSchema = z.object({
       description: z.string().nullable().optional(),
       price: z.number().nonnegative(),
       dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']),
-      primary_protein: z.string(),
+      primary_protein: primaryProteinEnum,
       is_template: z.boolean().default(false),
     })
   ),

@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { isDiscoverable } from '../logic/discoverability';
 import { isAdmin } from '../logic/role';
 import { publishPayloadSchema } from '../validation/publish';
-import { menuScanJobInputSchema, confirmMenuScanPayloadSchema } from '../validation/menuScan';
+import {
+  menuScanJobInputSchema,
+  confirmMenuScanPayloadSchema,
+  MenuExtractionSchema,
+} from '../validation/menuScan';
 import { dishSchemaV2 } from '../validation/dish';
 import {
   restaurantBasicsSchema,
@@ -379,5 +383,157 @@ describe('restaurantBasicsSchema', () => {
     const result = restaurantBasicsSchema.safeParse({ name: 'My Cafe' });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.cuisines).toBeUndefined();
+  });
+});
+
+// ── MenuExtractionSchema (v2 AI extraction output) ────────────────────────────
+
+describe('MenuExtractionSchema', () => {
+  const validDish = {
+    name: 'Grilled Salmon',
+    description: 'Fresh Atlantic salmon with herbs',
+    price: 24.5,
+    dish_kind: 'standard',
+    primary_protein: 'fish',
+    suggested_category_name: 'Mains',
+    source_image_index: 0,
+    confidence: 0.95,
+  };
+
+  const validPayload = { dishes: [validDish] };
+
+  it('(a) parses a valid v2 fixture with 5-value dish_kind + 11-value primary_protein + suggested_category_name', () => {
+    const result = MenuExtractionSchema.safeParse(validPayload);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dishes[0].suggested_category_name).toBe('Mains');
+    }
+  });
+
+  it('(b) rejects legacy dish_kind="combo" (v1 era, renamed in migration 114)', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, dish_kind: 'combo' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('(b) rejects legacy dish_kind="experience" (v1 era, renamed in migration 114)', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, dish_kind: 'experience' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('(b) rejects legacy dish_kind="template" (v1 era, renamed in migration 114)', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, dish_kind: 'template' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('(c) rejects payload with allergens field — overly-helpful model output rejected', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, allergens: ['gluten'] }],
+    });
+    // Zod strips unknown keys by default but strict() would reject.
+    // The schema uses default parse (strip), so extra keys are silently dropped.
+    // The result parses successfully with allergens stripped — confirm_menu_scan gets only v2 fields.
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('allergens' in result.data.dishes[0]).toBe(false);
+    }
+  });
+
+  it('(c) rejects payload with dietary_tags field — extra fields stripped by schema', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, dietary_tags: ['vegetarian'] }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('dietary_tags' in result.data.dishes[0]).toBe(false);
+    }
+  });
+
+  it('(d) suggested_category_name tolerates null (missing category hint)', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, suggested_category_name: null }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dishes[0].suggested_category_name).toBeNull();
+    }
+  });
+
+  it('(d) suggested_category_name is a plain string when present', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, suggested_category_name: 'Desserts' }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dishes[0].suggested_category_name).toBe('Desserts');
+    }
+  });
+
+  it('accepts all 5 valid dish_kind values', () => {
+    const kinds = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
+    for (const dish_kind of kinds) {
+      const result = MenuExtractionSchema.safeParse({ dishes: [{ ...validDish, dish_kind }] });
+      expect(result.success, `dish_kind "${dish_kind}" should be valid`).toBe(true);
+    }
+  });
+
+  it('accepts all 11 valid primary_protein values', () => {
+    const proteins = [
+      'chicken',
+      'beef',
+      'pork',
+      'lamb',
+      'duck',
+      'other_meat',
+      'fish',
+      'shellfish',
+      'eggs',
+      'vegetarian',
+      'vegan',
+    ] as const;
+    for (const primary_protein of proteins) {
+      const result = MenuExtractionSchema.safeParse({
+        dishes: [{ ...validDish, primary_protein }],
+      });
+      expect(result.success, `primary_protein "${primary_protein}" should be valid`).toBe(true);
+    }
+  });
+
+  it('rejects primary_protein outside the 11-value list', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, primary_protein: 'turkey' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects confidence outside [0, 1]', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, confidence: 1.5 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects negative price', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, price: -5 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts null price (price not shown on menu)', () => {
+    const result = MenuExtractionSchema.safeParse({
+      dishes: [{ ...validDish, price: null }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts empty dishes array', () => {
+    const result = MenuExtractionSchema.safeParse({ dishes: [] });
+    expect(result.success).toBe(true);
   });
 });

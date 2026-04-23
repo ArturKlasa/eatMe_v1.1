@@ -37,3 +37,28 @@ export const confirmMenuScanPayloadSchema = z.object({
 });
 
 export type ConfirmMenuScanPayload = z.infer<typeof confirmMenuScanPayloadSchema>;
+
+// ── v2 MenuExtractionSchema ──────────────────────────────────────────────────
+// Used by menu-scan-worker Edge Function via zodResponseFormat(MenuExtractionSchema, 'menu_extraction').
+// v2-specific: drops allergen/dietary/ingredient extraction, pins dish_kind to the
+// 5-value enum and primary_protein to the 11-value list, adds suggested_category_name.
+// NOTE: a matching local copy lives in supabase/functions/menu-scan-worker/index.ts
+// because the Edge Function (Deno) cannot import from the workspace package.
+
+const menuExtractionDishSchema = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+  price: z.number().nonnegative().nullable(),
+  dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']),
+  primary_protein: primaryProteinEnum,
+  suggested_category_name: z.string().nullable(),
+  source_image_index: z.number().int().min(0),
+  confidence: z.number().min(0).max(1),
+});
+
+export const MenuExtractionSchema = z.object({
+  dishes: z.array(menuExtractionDishSchema),
+});
+
+export type MenuExtractionResult = z.infer<typeof MenuExtractionSchema>;
+export type MenuExtractionDish = z.infer<typeof menuExtractionDishSchema>;

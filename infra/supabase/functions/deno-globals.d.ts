@@ -30,3 +30,34 @@ declare module 'https://esm.sh/@upstash/redis@latest' {
     del(key: string): Promise<unknown>;
   }
 }
+
+declare module 'npm:@supabase/supabase-js@2' {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  export function createClient(url: string, key: string, options?: any): any;
+}
+
+declare module 'npm:openai@4' {
+  export default class OpenAI {
+    constructor(opts: { apiKey: string });
+    beta: {
+      chat: {
+        completions: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          parse(params: any): Promise<any>;
+        };
+      };
+    };
+    static RateLimitError: new (...args: any[]) => Error & { status: number };
+    static BadRequestError: new (...args: any[]) => Error & { status: number };
+  }
+}
+
+declare module 'npm:openai@4/helpers/zod' {
+  import { z } from 'npm:zod@3';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  export function zodResponseFormat(schema: z.ZodType<any>, name: string): any;
+}
+
+declare module 'npm:zod@3' {
+  export * from 'zod';
+}

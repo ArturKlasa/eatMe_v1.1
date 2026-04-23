@@ -27,8 +27,17 @@ export type {
 export { publishPayloadSchema } from './publish';
 export type { PublishPayload } from './publish';
 
-export { menuScanJobInputSchema, confirmMenuScanPayloadSchema } from './menuScan';
-export type { MenuScanJobInput, ConfirmMenuScanPayload } from './menuScan';
+export {
+  menuScanJobInputSchema,
+  confirmMenuScanPayloadSchema,
+  MenuExtractionSchema,
+} from './menuScan';
+export type {
+  MenuScanJobInput,
+  ConfirmMenuScanPayload,
+  MenuExtractionResult,
+  MenuExtractionDish,
+} from './menuScan';
 
 export { dishSchemaV2 } from './dish';
 export type { DishV2Input, DishV2Output } from './dish';

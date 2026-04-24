@@ -260,3 +260,56 @@ export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
   if (error || !data) return [];
   return data as RestaurantOption[];
 }
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+
+export type AdminAuditLogRow = {
+  id: string;
+  admin_id: string;
+  admin_email: string;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  old_data: unknown;
+  new_data: unknown;
+  created_at: string;
+};
+
+export async function getAdminAuditLog(params: {
+  actorEmail?: string;
+  action?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ rows: AdminAuditLogRow[]; total: number }> {
+  const supabase = createAdminServiceClient();
+  const { actorEmail, action, dateFrom, dateTo, page = 1, limit = 50 } = params;
+  const offset = (page - 1) * limit;
+
+  let query = supabase
+    .from('admin_audit_log')
+    .select(
+      'id, admin_id, admin_email, action, resource_type, resource_id, old_data, new_data, created_at',
+      {
+        count: 'exact',
+      }
+    )
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (actorEmail) query = query.eq('admin_email', actorEmail);
+  if (action) query = query.eq('action', action);
+  if (dateFrom) query = query.gte('created_at', dateFrom);
+  if (dateTo) {
+    // inclusive end: add one day so that dateTo is included
+    const endDate = new Date(dateTo);
+    endDate.setDate(endDate.getDate() + 1);
+    query = query.lt('created_at', endDate.toISOString());
+  }
+
+  const { data, error, count } = await query;
+  if (error || !data) return { rows: [], total: 0 };
+
+  return { rows: data as AdminAuditLogRow[], total: count ?? 0 };
+}

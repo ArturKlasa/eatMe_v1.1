@@ -23,7 +23,7 @@
 - [x] Step 21: Owner menu-scan review + confirm — Realtime subscription + category assignment + `confirm_menu_scan`
 - [x] Step 22: Admin app auth shell, proxy, restaurant browse + search
 - [x] Step 23: Admin restaurant edit (admin-only fields: `is_active`, suspension) + audit log writes
-- [ ] Step 24: Admin menu-scan power tool — batch upload, raw prompt/response inspector, replay
+- [x] Step 24: Admin menu-scan power tool — batch upload, raw prompt/response inspector, replay
 - [ ] Step 25: Admin bulk import — CSV + Google Places + `admin_audit_log` viewer
 - [ ] Step 26: Playwright gold paths — signup/onboard, menu-scan, publish Realtime, admin CSV
 - [ ] Step 27: Migration 123 — RLS tightening (the one-way door)

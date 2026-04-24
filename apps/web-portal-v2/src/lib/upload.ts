@@ -66,3 +66,19 @@ export async function uploadDishPhoto(
   const compressed = await compressImage(file);
   return uploadCompressedDishPhoto(dishId, compressed, supabase);
 }
+
+export async function uploadMenuScanPage(
+  restaurantId: string,
+  file: File,
+  pageNumber: number,
+  supabase: StorageClient
+): Promise<{ bucket: string; path: string; page: number }> {
+  const compressed = await compressImage(file);
+  const uuid = crypto.randomUUID();
+  const storagePath = `${restaurantId}/${uuid}.jpg`;
+  const { error } = await supabase.storage
+    .from('menu-scan-uploads')
+    .upload(storagePath, compressed, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  return { bucket: 'menu-scan-uploads', path: storagePath, page: pageNumber };
+}

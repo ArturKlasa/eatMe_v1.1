@@ -213,3 +213,71 @@ describe('uploadDishPhoto', () => {
     );
   });
 });
+
+// ─── uploadMenuScanPage ───────────────────────────────────────────────────────
+
+describe('uploadMenuScanPage', () => {
+  const FIXED_UUID = 'aaaabbbb-cccc-dddd-eeee-ffffffffffff';
+
+  it('compresses the image and uploads to menu-scan-uploads/<restaurantId>/<uuid>.jpg', async () => {
+    const original = new File(['data'], 'menu.jpg', { type: 'image/jpeg' });
+    const compressed = new File(['compressed'], 'menu.jpg', { type: 'image/jpeg' });
+    vi.mocked(imageCompression).mockResolvedValue(compressed as unknown as File);
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
+      FIXED_UUID as `${string}-${string}-${string}-${string}-${string}`
+    );
+    mockUpload.mockResolvedValue({ error: null });
+
+    const { uploadMenuScanPage } = await import('@/lib/upload');
+    const result = await uploadMenuScanPage('rest-123', original, 1, makeSupabase() as never);
+
+    expect(imageCompression).toHaveBeenCalledWith(original, {
+      maxSizeMB: 2,
+      maxWidthOrHeight: 2048,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: 0.85,
+    });
+    expect(mockFrom).toHaveBeenCalledWith('menu-scan-uploads');
+    expect(mockUpload).toHaveBeenCalledWith(`rest-123/${FIXED_UUID}.jpg`, compressed, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+    expect(result).toEqual({
+      bucket: 'menu-scan-uploads',
+      path: `rest-123/${FIXED_UUID}.jpg`,
+      page: 1,
+    });
+  });
+
+  it('passes page number through to the returned object', async () => {
+    const original = new File(['data'], 'menu.jpg', { type: 'image/jpeg' });
+    const compressed = new File(['c'], 'menu.jpg', { type: 'image/jpeg' });
+    vi.mocked(imageCompression).mockResolvedValue(compressed as unknown as File);
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
+      FIXED_UUID as `${string}-${string}-${string}-${string}-${string}`
+    );
+    mockUpload.mockResolvedValue({ error: null });
+
+    const { uploadMenuScanPage } = await import('@/lib/upload');
+    const result = await uploadMenuScanPage('rest-xyz', original, 3, makeSupabase() as never);
+
+    expect(result.page).toBe(3);
+    expect(result.bucket).toBe('menu-scan-uploads');
+  });
+
+  it('throws when storage upload returns an error', async () => {
+    const original = new File(['data'], 'menu.jpg', { type: 'image/jpeg' });
+    const compressed = new File(['c'], 'menu.jpg', { type: 'image/jpeg' });
+    vi.mocked(imageCompression).mockResolvedValue(compressed as unknown as File);
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
+      FIXED_UUID as `${string}-${string}-${string}-${string}-${string}`
+    );
+    mockUpload.mockResolvedValue({ error: new Error('upload failed') });
+
+    const { uploadMenuScanPage } = await import('@/lib/upload');
+    await expect(
+      uploadMenuScanPage('rest-abc', original, 2, makeSupabase() as never)
+    ).rejects.toThrow('upload failed');
+  });
+});

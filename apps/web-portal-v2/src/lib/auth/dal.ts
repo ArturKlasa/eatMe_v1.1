@@ -102,3 +102,24 @@ export async function getMenusWithCategoriesAndDishes(restaurantId: string, user
     categories: categoriesByMenu[menu.id] ?? [],
   }));
 }
+
+export async function getMenuScanJobs(restaurantId: string, userId: string) {
+  const supabase = await createServerClient();
+
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('id')
+    .eq('id', restaurantId)
+    .eq('owner_id', userId)
+    .maybeSingle();
+
+  if (!restaurant) return null;
+
+  const { data } = await supabase
+    .from('menu_scan_jobs')
+    .select('id, status, created_at, attempts')
+    .eq('restaurant_id', restaurantId)
+    .order('created_at', { ascending: false });
+
+  return data ?? [];
+}

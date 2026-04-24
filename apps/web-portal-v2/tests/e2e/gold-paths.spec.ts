@@ -64,11 +64,20 @@ async function mockMapbox(page: Page) {
 }
 
 async function mockStorage(page: Page) {
-  await page.route('**/storage/v1/object/**', route =>
+  // Only mock restaurant-photos and dish-photos — menu-scan-uploads must reach
+  // real storage so the server-side worker can download the file.
+  await page.route('**/storage/v1/object/restaurant-photos/**', route =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ Key: 'restaurant-photos/test/hero.jpg' }),
+    })
+  );
+  await page.route('**/storage/v1/object/dish-photos/**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ Key: 'dish-photos/test/hero.jpg' }),
     })
   );
 }

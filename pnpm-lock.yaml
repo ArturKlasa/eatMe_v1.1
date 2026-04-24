@@ -68,6 +68,9 @@ importers:
       server-only:
         specifier: '*'
         version: 0.0.1
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
     devDependencies:
       '@eatme/eslint-config-eatme':
         specifier: workspace:*

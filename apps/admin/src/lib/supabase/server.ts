@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers';
 import { createServerClient as _cs, createServerActionClient as _csa } from '@eatme/database/web';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@eatme/database';
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -27,3 +29,9 @@ export async function createServerActionClient() {
 }
 
 export const createRouteHandlerClient = createServerActionClient;
+
+export function createAdminServiceClient() {
+  return createClient<Database>(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}

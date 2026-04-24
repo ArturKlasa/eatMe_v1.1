@@ -11,7 +11,7 @@ export async function compressImage(file: File): Promise<File> {
   });
 }
 
-type StorageClient = {
+export type StorageClient = {
   storage: {
     from: (bucket: string) => {
       upload: (
@@ -72,7 +72,7 @@ export async function uploadMenuScanPage(
   file: File,
   pageNumber: number,
   supabase: StorageClient
-): Promise<{ bucket: string; path: string; page: number }> {
+): Promise<{ bucket: 'menu-scan-uploads'; path: string; page: number }> {
   const compressed = await compressImage(file);
   const uuid = crypto.randomUUID();
   const storagePath = `${restaurantId}/${uuid}.jpg`;

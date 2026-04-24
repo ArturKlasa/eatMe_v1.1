@@ -9,7 +9,7 @@ export const menuScanJobInputSchema = z.object({
   images: z
     .array(
       z.object({
-        bucket: z.string(),
+        bucket: z.literal('menu-scan-uploads'),
         path: z.string(),
         page: z.number().int().min(1),
       })

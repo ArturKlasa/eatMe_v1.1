@@ -47,7 +47,7 @@ beforeEach(() => {
 const authedUser = { id: 'user-abc', app_metadata: {}, user_metadata: {} } as never;
 
 const validInput = {
-  images: [{ bucket: 'menu-scan-uploads', path: 'rest-123/uuid.jpg', page: 1 }],
+  images: [{ bucket: 'menu-scan-uploads' as const, path: 'rest-123/uuid.jpg', page: 1 }],
 };
 
 // ─── createMenuScanJob ────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ describe('createMenuScanJob', () => {
     );
 
     const tooMany = Array.from({ length: 21 }, (_, i) => ({
-      bucket: 'menu-scan-uploads',
+      bucket: 'menu-scan-uploads' as const,
       path: `rest-123/img-${i}.jpg`,
       page: i + 1,
     }));
@@ -122,6 +122,19 @@ describe('createMenuScanJob', () => {
 
     const result = await createMenuScanJob('rest-123', validInput);
     expect(result).toEqual({ ok: false, formError: 'CREATE_FAILED' });
+  });
+
+  it('rejects images with bucket !== menu-scan-uploads', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
+    vi.mocked(createServerActionClient).mockResolvedValue(
+      makeSupabase({ data: { id: 'rest-123' }, error: null }, { data: null, error: null }) as never
+    );
+
+    // cast as never: testing runtime Zod rejection of an invalid bucket value
+    const result = await createMenuScanJob('rest-123', {
+      images: [{ bucket: 'dish-photos', path: 'rest-123/uuid.jpg', page: 1 }],
+    } as never);
+    expect(result).toMatchObject({ ok: false, fieldErrors: expect.any(Object) });
   });
 
   it('inserts status=pending and correct restaurant_id + created_by', async () => {

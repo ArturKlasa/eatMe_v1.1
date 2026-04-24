@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/browser';
-import { uploadMenuScanPage } from '@/lib/upload';
+import { uploadMenuScanPage, type StorageClient } from '@/lib/upload';
 import { createMenuScanJob } from '../actions/menuScan';
 
 interface Props {
@@ -65,11 +65,21 @@ export function MenuScanUploadForm({ restaurantId }: Props) {
     setPhase('uploading');
     setErrorMessage(null);
 
-    try {
-      const images: { bucket: string; path: string; page: number }[] = [];
+    const images: { bucket: 'menu-scan-uploads'; path: string; page: number }[] = [];
 
+    const cleanupUploaded = async () => {
+      if (images.length === 0) return;
+      await supabase.storage.from('menu-scan-uploads').remove(images.map(img => img.path));
+    };
+
+    try {
       for (let i = 0; i < files.length; i++) {
-        const result = await uploadMenuScanPage(restaurantId, files[i], i + 1, supabase as never);
+        const result = await uploadMenuScanPage(
+          restaurantId,
+          files[i],
+          i + 1,
+          supabase as unknown as StorageClient
+        );
         images.push(result);
       }
 
@@ -77,6 +87,7 @@ export function MenuScanUploadForm({ restaurantId }: Props) {
       const result = await createMenuScanJob(restaurantId, { images });
 
       if (!result.ok) {
+        await cleanupUploaded();
         setErrorMessage(result.formError ?? 'Failed to create scan job');
         setPhase('error');
         return;
@@ -84,6 +95,7 @@ export function MenuScanUploadForm({ restaurantId }: Props) {
 
       router.push(`/restaurant/${restaurantId}/menu-scan/${result.data.jobId}`);
     } catch (err) {
+      await cleanupUploaded();
       setErrorMessage(err instanceof Error ? err.message : 'Upload failed');
       setPhase('error');
     }

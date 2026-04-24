@@ -123,3 +123,46 @@ export async function getMenuScanJobs(restaurantId: string, userId: string) {
 
   return data ?? [];
 }
+
+export async function getMenuScanJob(jobId: string, userId: string) {
+  const supabase = await createServerClient();
+  const { data } = await supabase
+    .from('menu_scan_jobs')
+    .select('id, restaurant_id, status, result_json, attempts, created_at, last_error')
+    .eq('id', jobId)
+    .eq('created_by', userId)
+    .maybeSingle();
+  return data;
+}
+
+export async function getRestaurantMenuCategories(restaurantId: string, userId: string) {
+  const supabase = await createServerClient();
+
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('id')
+    .eq('id', restaurantId)
+    .eq('owner_id', userId)
+    .maybeSingle();
+
+  if (!restaurant) return null;
+
+  const { data: menus } = await supabase
+    .from('menus')
+    .select('id, name')
+    .eq('restaurant_id', restaurantId)
+    .neq('status', 'archived')
+    .order('display_order', { ascending: true });
+
+  const menuIds = (menus ?? []).map(m => m.id);
+  if (menuIds.length === 0) return { menus: menus ?? [], categories: [] };
+
+  const { data: categories } = await supabase
+    .from('menu_categories')
+    .select('id, name, menu_id')
+    .in('menu_id', menuIds)
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  return { menus: menus ?? [], categories: categories ?? [] };
+}

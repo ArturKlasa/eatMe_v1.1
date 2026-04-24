@@ -87,7 +87,7 @@ export function MenuScanUploadForm({ restaurantId }: Props) {
       const result = await createMenuScanJob(restaurantId, { images });
 
       if (!result.ok) {
-        await cleanupUploaded();
+        await cleanupUploaded().catch(() => {});
         setErrorMessage(result.formError ?? 'Failed to create scan job');
         setPhase('error');
         return;
@@ -95,7 +95,7 @@ export function MenuScanUploadForm({ restaurantId }: Props) {
 
       router.push(`/restaurant/${restaurantId}/menu-scan/${result.data.jobId}`);
     } catch (err) {
-      await cleanupUploaded();
+      await cleanupUploaded().catch(() => {});
       setErrorMessage(err instanceof Error ? err.message : 'Upload failed');
       setPhase('error');
     }

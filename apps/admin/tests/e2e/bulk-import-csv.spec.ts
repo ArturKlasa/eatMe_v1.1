@@ -2,16 +2,20 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { E2E_TAG } from './fixtures/index.js';
 
 const SKIP = !process.env.E2E_SERVICE_ROLE_KEY;
 
-// Generates a minimal 10-row CSV for test
+// Generates a minimal 10-row CSV for test.
+// Names are prefixed with E2E_TAG so globalTeardown's resetAdminDb() can
+// delete them — prevents accumulation across CI runs that would inflate the
+// Suite 4 search result set and push it past the 3-second latency budget.
 function buildTestCsv(): string {
   const header = 'name,address,city,lat,lng,phone,website,google_place_id,cuisine_types';
   const rows = Array.from(
     { length: 10 },
     (_, i) =>
-      `"Test Restaurant ${i + 1}","${i + 1} Main St","Chicago","41.878${i}","-87.629${i}","","","","American"`
+      `"${E2E_TAG}-Restaurant-${i + 1}","${i + 1} Main St","Chicago","41.878${i}","-87.629${i}","","","","American"`
   );
   return [header, ...rows].join('\n');
 }
@@ -52,7 +56,7 @@ test.describe('Admin bulk import — CSV happy path', () => {
 
       // Navigate to restaurants and verify draft rows appear
       await page.goto('/restaurants');
-      await page.fill('input[placeholder="Search restaurants…"]', 'Test Restaurant 1');
+      await page.fill('input[placeholder="Search restaurants…"]', `${E2E_TAG}-Restaurant-1`);
       await expect(page.getByText('draft')).toBeVisible({ timeout: 10_000 });
 
       // Verify audit trail within the same test — eliminates ordering dependency.

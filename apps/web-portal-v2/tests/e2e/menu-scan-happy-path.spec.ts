@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Menu-scan happy-path E2E tests (Steps 20 & 21).
  *

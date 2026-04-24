@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { verifyAdminSession, getAdminMenuScanJobById } from '@/lib/auth/dal';
 import { AdminJobShell } from './AdminJobShell';
 
@@ -17,9 +18,9 @@ export default async function MenuScanJobPage({ params }: { params: Promise<{ jo
           <h1 className="text-xl font-semibold">Menu Scan Job</h1>
           <p className="text-xs font-mono text-muted-foreground mt-1">{job.id}</p>
         </div>
-        <a href="/menu-scan" className="text-sm text-primary hover:underline">
+        <Link href="/menu-scan" className="text-sm text-primary hover:underline">
           ← All jobs
-        </a>
+        </Link>
       </div>
 
       <AdminJobShell job={job} />

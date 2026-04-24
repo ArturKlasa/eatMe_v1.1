@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Release-safety Test B: Published-data parity across all consumer endpoints.
  *

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { fetchGooglePlaces } from './actions/places';
 import type { GooglePlacesResult } from './actions/places';
 
@@ -147,9 +148,9 @@ export function PlacesImportTab() {
             {result.total_fetched} fetched · {result.total_inserted} inserted ·{' '}
             {result.total_skipped} skipped (duplicates)
           </p>
-          <a href="/restaurants" className="text-green-700 underline text-xs">
+          <Link href="/restaurants" className="text-green-700 underline text-xs">
             View restaurants →
-          </a>
+          </Link>
         </div>
       )}
     </div>

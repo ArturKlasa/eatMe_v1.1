@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Release-safety Test A: Drafts are never visible to consumers.
  *

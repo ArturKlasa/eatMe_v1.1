@@ -148,3 +148,115 @@ export async function getAdminRestaurantById(id: string): Promise<AdminRestauran
   if (error || !data) return null;
   return data as unknown as AdminRestaurantDetail;
 }
+
+// ── Menu Scan Jobs ─────────────────────────────────────────────────────────────
+
+export type AdminMenuScanJobRow = {
+  id: string;
+  restaurant_id: string;
+  restaurant_name: string | null;
+  created_by: string;
+  status: string;
+  attempts: number;
+  last_error: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type AdminMenuScanJobDetail = AdminMenuScanJobRow & {
+  input: unknown;
+  result_json: unknown;
+  locked_until: string | null;
+  saved_dish_ids: unknown;
+  saved_at: string | null;
+};
+
+export async function getAdminMenuScanJobs(params: {
+  restaurantId?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ rows: AdminMenuScanJobRow[]; total: number }> {
+  const supabase = createAdminServiceClient();
+  const { restaurantId, status, page = 1, limit = 50 } = params;
+  const offset = (page - 1) * limit;
+
+  let query = supabase
+    .from('menu_scan_jobs')
+    .select(
+      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, restaurants!left(name)',
+      { count: 'exact' }
+    )
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (restaurantId) query = query.eq('restaurant_id', restaurantId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (status) query = query.eq('status', status as any);
+
+  const { data, error, count } = await query;
+  if (error || !data) return { rows: [], total: 0 };
+
+  const rows: AdminMenuScanJobRow[] = data.map((row: Record<string, unknown>) => {
+    const restaurant = row.restaurants as { name: string } | null;
+    return {
+      id: row.id as string,
+      restaurant_id: row.restaurant_id as string,
+      restaurant_name: restaurant?.name ?? null,
+      created_by: row.created_by as string,
+      status: row.status as string,
+      attempts: row.attempts as number,
+      last_error: (row.last_error as string | null) ?? null,
+      created_at: (row.created_at as string | null) ?? null,
+      updated_at: (row.updated_at as string | null) ?? null,
+    };
+  });
+
+  return { rows, total: count ?? 0 };
+}
+
+export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScanJobDetail | null> {
+  const supabase = createAdminServiceClient();
+  const { data, error } = await supabase
+    .from('menu_scan_jobs')
+    .select(
+      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name)'
+    )
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as Record<string, unknown>;
+  const restaurant = row.restaurants as { name: string } | null;
+
+  return {
+    id: row.id as string,
+    restaurant_id: row.restaurant_id as string,
+    restaurant_name: restaurant?.name ?? null,
+    created_by: row.created_by as string,
+    status: row.status as string,
+    attempts: row.attempts as number,
+    last_error: (row.last_error as string | null) ?? null,
+    created_at: (row.created_at as string | null) ?? null,
+    updated_at: (row.updated_at as string | null) ?? null,
+    input: row.input,
+    result_json: row.result_json,
+    locked_until: (row.locked_until as string | null) ?? null,
+    saved_dish_ids: row.saved_dish_ids,
+    saved_at: (row.saved_at as string | null) ?? null,
+  };
+}
+
+export type RestaurantOption = { id: string; name: string };
+
+export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
+  const supabase = createAdminServiceClient();
+  const { data, error } = await supabase
+    .from('restaurants')
+    .select('id, name')
+    .order('name')
+    .limit(200);
+  if (error || !data) return [];
+  return data as RestaurantOption[];
+}

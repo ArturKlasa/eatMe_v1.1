@@ -27,6 +27,22 @@
     "release-safety": {
       "dependsOn": ["^build"],
       "cache": false
+    },
+    "test:e2e": {
+      "cache": false,
+      "env": [
+        "E2E_BASE_URL",
+        "E2E_SERVICE_ROLE_KEY",
+        "E2E_ADMIN_EMAIL",
+        "E2E_ADMIN_PASSWORD",
+        "E2E_OWNER_EMAIL",
+        "E2E_OWNER_PASSWORD",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "TEST_RUN_ID",
+        "CI",
+        "CI_SHARD",
+        "CI_TOTAL_SHARDS"
+      ]
     }
   }
 }

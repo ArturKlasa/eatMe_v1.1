@@ -168,25 +168,19 @@ test.describe('Suite 2 — menu scan E2E', () => {
   test('upload → needs_review → confirm → dishes appear within 120 s (90 s + 30 s tolerance)', async ({
     page,
   }) => {
+    await mockMapbox(page);
     await mockStorage(page);
 
     const email = taggedEmail('s2-scan');
     await signUp(page, email, PASSWORD);
 
-    // Create a restaurant first (step 1 only)
-    await page.getByLabel('Restaurant name').fill('Suite2 Scan Diner');
-    await page.keyboard.press('Tab');
-    await expect(page.getByText('Draft saved.')).toBeVisible({ timeout: 8_000 });
+    // Complete full onboarding to obtain a valid restaurant ID from the URL.
+    // The /onboard URL never exposes the restaurant ID — only the post-finish
+    // /restaurant/<id> URL does. completeOnboarding() waits for that redirect.
+    const restaurantId = await completeOnboarding(page, 'Suite2 Scan Diner');
+    expect(restaurantId, 'restaurant ID must be non-empty after onboarding').toBeTruthy();
 
-    const restaurantId = page.url().match(/\/restaurant\/([0-9a-f-]{36})/)?.[1];
-    if (!restaurantId) {
-      // Navigate to onboard page to get the ID after step 1
-      const urlMatch = page.url().match(/\/onboard/);
-      test.skip(!urlMatch, 'Could not determine restaurant ID');
-      return;
-    }
-
-    // Upload a menu image
+    // Navigate to the menu-scan upload page
     await page.goto(`/restaurant/${restaurantId}/menu-scan`);
     await expect(page.getByText('Menu Scan')).toBeVisible({ timeout: 8_000 });
 
@@ -198,7 +192,12 @@ test.describe('Suite 2 — menu scan E2E', () => {
       buffer: TINY_PNG,
     });
     await page.getByRole('button', { name: /scan 1 image/i }).click();
+
+    // Review URL contains the job ID — capture it before navigating away on confirm.
     await expect(page).toHaveURL(/\/menu-scan\/[0-9a-f-]{36}/, { timeout: 30_000 });
+    const reviewUrlMatch = page.url().match(/\/menu-scan\/([0-9a-f-]{36})/);
+    expect(reviewUrlMatch, 'job ID must be present in the review page URL').toBeTruthy();
+    const jobId = reviewUrlMatch![1];
 
     // Wait for needs_review (Realtime or polling, up to 120 s per design §2.5 + tolerance)
     const confirmButton = page.getByRole('button', { name: /confirm/i });
@@ -224,11 +223,7 @@ test.describe('Suite 2 — menu scan E2E', () => {
     await confirmButton.click();
     await expect(page).toHaveURL(/\/restaurant\/[0-9a-f-]{36}\/menu$/, { timeout: 15_000 });
 
-    // Verify no-duplicate idempotency via DB (service-role)
-    const jobId = page
-      .url()
-      .replace(/\/menu$/, '')
-      .match(/not-applicable/)?.[1]; // URL is /menu at this point — verify via separate query
+    // Verify dishes and idempotency via DB (service-role)
     if (process.env.E2E_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       const adminClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -240,16 +235,16 @@ test.describe('Suite 2 — menu scan E2E', () => {
       const rowCount = await rows.count();
       expect(rowCount, 'Expected at least one dish after scan confirm').toBeGreaterThan(0);
 
-      // Idempotency: scan_confirmations has exactly one record per job
-      // We extract the jobId from the menu page context via a data attribute if present
-      const jobAttr = await page.locator('[data-job-id]').getAttribute('data-job-id');
-      if (jobAttr) {
-        const { data: confirmations } = await adminClient
-          .from('menu_scan_confirmations')
-          .select('id')
-          .eq('job_id', jobAttr);
-        expect((confirmations ?? []).length).toBe(1);
-      }
+      // Idempotency: scan_confirmations must have exactly one record for this job.
+      // jobId was captured from the review URL before confirm navigated away.
+      const { data: confirmations } = await adminClient
+        .from('menu_scan_confirmations')
+        .select('id')
+        .eq('job_id', jobId);
+      expect(
+        (confirmations ?? []).length,
+        'Idempotency violation: expected exactly one confirmation record'
+      ).toBe(1);
     }
   });
 });
@@ -287,9 +282,10 @@ test.describe('Suite 3 — publish + Realtime broadcast', () => {
     await pageB.goto(`/restaurant/${restaurantId}`);
     await expect(pageB.getByTestId('status-chip')).toHaveText('Draft', { timeout: 8_000 });
 
-    // Context A publishes
+    // Context A publishes — after completeOnboarding the button must be enabled.
+    // A disabled button here is a product bug (precondition check wrong), not an env gap.
     const publishBtn = pageA.getByTestId('publish-button');
-    test.skip(await publishBtn.isDisabled(), 'restaurant not fully configured in this env');
+    await expect(publishBtn).toBeEnabled({ timeout: 8_000 });
     await publishBtn.click();
     await expect(pageA.getByTestId('status-chip')).toHaveText('Live', { timeout: 8_000 });
 

@@ -5,3 +5,5 @@ export { OnboardingStepper } from './compose/OnboardingStepper';
 export type { OnboardingStepperProps, StepConfig } from './compose/OnboardingStepper';
 export { PageGroupedList } from './compose/PageGroupedList';
 export type { PageGroupedListProps, PageGroupedListGroup } from './compose/PageGroupedList';
+export { SearchFilterBar } from './compose/SearchFilterBar';
+export type { SearchFilterBarProps } from './compose/SearchFilterBar';

@@ -1,14 +1,9 @@
 import { notFound } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { verifyAdminSession } from '@/lib/auth/dal';
 import { getAdminRestaurantById } from '@/lib/auth/dal';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
-
-const RestaurantInspector = dynamic(
-  () => import('./RestaurantInspector').then(m => m.RestaurantInspector),
-  { ssr: false }
-);
+import { RestaurantInspector } from './RestaurantInspector';
 
 interface Props {
   params: Promise<{ id: string }>;

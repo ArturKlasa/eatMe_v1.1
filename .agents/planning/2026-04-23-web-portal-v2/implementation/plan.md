@@ -24,7 +24,7 @@
 - [x] Step 22: Admin app auth shell, proxy, restaurant browse + search
 - [x] Step 23: Admin restaurant edit (admin-only fields: `is_active`, suspension) + audit log writes
 - [x] Step 24: Admin menu-scan power tool — batch upload, raw prompt/response inspector, replay
-- [ ] Step 25: Admin bulk import — CSV + Google Places + `admin_audit_log` viewer
+- [x] Step 25: Admin bulk import — CSV + Google Places + `admin_audit_log` viewer
 - [ ] Step 26: Playwright gold paths — signup/onboard, menu-scan, publish Realtime, admin CSV
 - [ ] Step 27: Migration 123 — RLS tightening (the one-way door)
 - [ ] Step 28: Canary deploy to `v2.portal.eatme.app` + admin subdomain + 7-day soak + DNS cutover ticket

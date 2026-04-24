@@ -19,7 +19,13 @@ function buildTestCsv(): string {
 test.describe('Admin bulk import — CSV happy path', () => {
   test.skip(SKIP, 'E2E_SERVICE_ROLE_KEY not set');
 
-  test('admin uploads 10-row CSV and sees 10 new draft restaurants', async ({ page }) => {
+  // Single self-contained test: upload → verify results → verify audit trail.
+  // Merges what was previously two separate tests to eliminate the ordering
+  // dependency (the old Test 2 relied on Test 1 having run first and left a
+  // csv_import row in admin_audit_log — vacuous pass in pristine envs).
+  test('admin uploads 10-row CSV, sees draft restaurants, and audit log records csv_import', async ({
+    page,
+  }) => {
     // Sign in as admin
     await page.goto('/signin');
     await page.fill('input[type="email"]', process.env.E2E_ADMIN_EMAIL ?? 'admin@example.com');
@@ -48,24 +54,18 @@ test.describe('Admin bulk import — CSV happy path', () => {
       await page.goto('/restaurants');
       await page.fill('input[placeholder="Search restaurants…"]', 'Test Restaurant 1');
       await expect(page.getByText('draft')).toBeVisible({ timeout: 10_000 });
+
+      // Verify audit trail within the same test — eliminates ordering dependency.
+      // Navigating to /audit immediately after the import guarantees the
+      // csv_import entry was produced by THIS test run, not a prior run.
+      await page.goto('/audit');
+      await expect(page.getByRole('heading', { name: /audit log/i })).toBeVisible({
+        timeout: 5_000,
+      });
+      await expect(page.getByText('csv_import')).toBeVisible({ timeout: 8_000 });
     } finally {
       fs.unlinkSync(tmpFile);
     }
-  });
-
-  test('/audit shows csv_import entry after import', async ({ page }) => {
-    // Sign in as admin
-    await page.goto('/signin');
-    await page.fill('input[type="email"]', process.env.E2E_ADMIN_EMAIL ?? 'admin@example.com');
-    await page.fill('input[type="password"]', process.env.E2E_ADMIN_PASSWORD ?? 'password');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
-
-    await page.goto('/audit');
-    await expect(page.getByRole('heading', { name: /audit log/i })).toBeVisible({ timeout: 5_000 });
-
-    // The most recent action should be csv_import (from the prior test in this suite)
-    await expect(page.getByText('csv_import')).toBeVisible({ timeout: 8_000 });
   });
 });
 

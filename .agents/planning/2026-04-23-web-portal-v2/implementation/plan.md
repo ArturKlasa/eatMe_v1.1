@@ -20,7 +20,7 @@
 - [x] Step 18: Publish flow — `publish_restaurant_draft` call + Realtime broadcast + unpublish/archive
 - [x] Step 19: `menu-scan-worker` Edge Function + `pg_cron` schedule + OpenAI integration
 - [x] Step 20: Owner menu-scan upload UI — `browser-image-compression` + direct Storage upload + job insert
-- [ ] Step 21: Owner menu-scan review + confirm — Realtime subscription + category assignment + `confirm_menu_scan`
+- [x] Step 21: Owner menu-scan review + confirm — Realtime subscription + category assignment + `confirm_menu_scan`
 - [ ] Step 22: Admin app auth shell, proxy, restaurant browse + search
 - [ ] Step 23: Admin restaurant edit (admin-only fields: `is_active`, suspension) + audit log writes
 - [ ] Step 24: Admin menu-scan power tool — batch upload, raw prompt/response inspector, replay

@@ -45,6 +45,12 @@ const menuExtractionDishSchema = z.object({
   // section), so it's stored on the per-restaurant menu_category row, not on
   // the canonical taxonomy.
   suggested_category_description: z.string().nullable(),
+  // Free-text dish-classification name (e.g. "Hot Dog", "Bánh Mì",
+  // "Cheeseburger", "Pad Thai"). Maps to the global dish_categories taxonomy
+  // (~800 seeded entries) which drives mobile filtering/recommendation.
+  // Server fuzzy-matches this against dish_categories.name. Null if the AI
+  // can't classify — admin will pick from the dropdown.
+  suggested_dish_category: z.string().nullable(),
   source_image_index: z.number().int().min(0),
   confidence: z.number().min(0).max(1),
 });
@@ -102,6 +108,12 @@ For each dish output exactly these fields:
     extract it verbatim in the source language. Null if no section description is shown.
     Use the SAME description for every dish that belongs to the same section — admins will
     deduplicate per category.
+- suggested_dish_category: a short English noun naming the dish's class — what KIND of food
+    this is, in standard culinary terminology (e.g. "Hot Dog", "Cheeseburger", "Bánh Mì",
+    "Pad Thai", "Ceviche", "Pierogi", "Pizza", "Caesar Salad"). Use the singular form. This
+    is independent of menu section: the same "Hot Dog" classification applies whether the
+    menu lists it under "Sandwiches", "Hot Dogs", or "Snacks". Null only when the dish
+    truly defies classification.
 - source_image_index: 0-based index of the image this dish was found in
 - confidence: 0.0–1.0 indicating your extraction confidence for this dish
 

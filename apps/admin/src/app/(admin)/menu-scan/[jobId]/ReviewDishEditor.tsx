@@ -10,8 +10,14 @@ import {
   DEFAULT_LANGUAGE,
   type SupportedLanguage,
 } from '@eatme/shared';
-import type { RestaurantCategoryOption, CanonicalCategoryOption } from '@/lib/auth/dal';
+import type {
+  RestaurantCategoryOption,
+  CanonicalCategoryOption,
+  DishCategoryOption,
+  DishCategoryMatch,
+} from '@/lib/auth/dal';
 import { adminConfirmMenuScan } from '../actions/menuScan';
+import { adminCreateDishCategory } from '../actions/dishCategory';
 
 type DishKind = keyof typeof DISH_KIND_META;
 type Protein = (typeof PRIMARY_PROTEINS)[number];
@@ -25,6 +31,7 @@ export type ExtractedDish = {
   suggested_category_name: string | null;
   canonical_category_slug: string | null;
   suggested_category_description: string | null;
+  suggested_dish_category: string | null;
   source_image_index: number;
   confidence: number;
 };
@@ -38,6 +45,11 @@ type EditableDish = ExtractedDish & {
   categoryExistingId: string | null;
   categoryCanonicalSlug: string | null;
   categoryCustomName: string;
+  // Global filtering taxonomy (dish_categories table). Null = unmatched.
+  dishCategoryId: string | null;
+  // True when AI provided a suggestion but fuzzy match didn't clear the
+  // 0.7 threshold — drives the "needs admin attention" badge in the UI.
+  dishCategoryUnmatched: boolean;
 };
 
 interface Props {
@@ -47,6 +59,8 @@ interface Props {
   detectedLanguage: string | null;
   existingCategories: RestaurantCategoryOption[];
   canonicalCategories: CanonicalCategoryOption[];
+  dishCategories: DishCategoryOption[];
+  dishCategoryMatches: DishCategoryMatch[];
 }
 
 const DISH_KIND_VALUES = Object.keys(DISH_KIND_META) as DishKind[];
@@ -55,7 +69,12 @@ function pickName(dict: Record<string, string>, lang: SupportedLanguage, fallbac
   return dict[lang] ?? dict[DEFAULT_LANGUAGE] ?? fallback;
 }
 
-function asEditable(d: ExtractedDish, i: number, canonicalSlugSet: Set<string>): EditableDish {
+function asEditable(
+  d: ExtractedDish,
+  i: number,
+  canonicalSlugSet: Set<string>,
+  matchByQuery: Map<string, DishCategoryMatch>
+): EditableDish {
   let categoryMode: CategoryMode = 'none';
   let categoryCanonicalSlug: string | null = null;
   let categoryCustomName = '';
@@ -68,6 +87,19 @@ function asEditable(d: ExtractedDish, i: number, canonicalSlugSet: Set<string>):
     categoryCustomName = d.suggested_category_name.trim();
   }
 
+  let dishCategoryId: string | null = null;
+  let dishCategoryUnmatched = false;
+  const sdc = d.suggested_dish_category?.trim();
+  if (sdc) {
+    const match = matchByQuery.get(sdc);
+    if (match?.matched_id) {
+      dishCategoryId = match.matched_id;
+    } else {
+      // AI suggested but fuzzy didn't clear threshold — flag it.
+      dishCategoryUnmatched = true;
+    }
+  }
+
   return {
     ...d,
     _id: `dish-${i}`,
@@ -76,6 +108,8 @@ function asEditable(d: ExtractedDish, i: number, canonicalSlugSet: Set<string>):
     categoryExistingId: null,
     categoryCanonicalSlug,
     categoryCustomName,
+    dishCategoryId,
+    dishCategoryUnmatched,
   };
 }
 
@@ -148,6 +182,8 @@ export function ReviewDishEditor({
   detectedLanguage,
   existingCategories,
   canonicalCategories,
+  dishCategories: initialDishCategories,
+  dishCategoryMatches,
 }: Props) {
   const canonicalSlugSet = useMemo(
     () => new Set(canonicalCategories.map(c => c.slug)),
@@ -162,12 +198,33 @@ export function ReviewDishEditor({
     [existingCategories]
   );
 
+  const matchByQuery = useMemo(
+    () => new Map(dishCategoryMatches.map(m => [m.query, m])),
+    [dishCategoryMatches]
+  );
+
+  // Local state so newly-created categories from the inline form append without
+  // needing a full page reload.
+  const [dishCategories, setDishCategories] = useState<DishCategoryOption[]>(initialDishCategories);
+  const dishCategoryById = useMemo(
+    () => new Map(dishCategories.map(c => [c.id, c])),
+    [dishCategories]
+  );
+
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
 
   const [dishes, setDishes] = useState<EditableDish[]>(() =>
-    initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet))
+    initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery))
   );
+
+  // Per-dish "create new dish_category" inline form state.
+  // Keyed by dish _id; null means form is closed.
+  const [creatingDishCategoryFor, setCreatingDishCategoryFor] = useState<string | null>(null);
+  const [newDishCategoryName, setNewDishCategoryName] = useState('');
+  const [newDishCategoryIsDrink, setNewDishCategoryIsDrink] = useState(false);
+  const [creatingDishCategory, setCreatingDishCategory] = useState(false);
+  const [createDishCategoryError, setCreateDishCategoryError] = useState<string | null>(null);
 
   // Per-group description state (admin-editable). Keyed by group key.
   // Initial values: existing-cat description (if non-empty) → AI suggestion → empty.
@@ -281,6 +338,42 @@ export function ReviewDishEditor({
     });
   };
 
+  const handleCreateDishCategory = async (dishId: string) => {
+    setCreateDishCategoryError(null);
+    const name = newDishCategoryName.trim();
+    if (!name) {
+      setCreateDishCategoryError('Name is required.');
+      return;
+    }
+    setCreatingDishCategory(true);
+    try {
+      const result = await adminCreateDishCategory({
+        name,
+        is_drink: newDishCategoryIsDrink,
+      });
+      if (!result.ok) {
+        setCreateDishCategoryError(result.formError ?? 'Create failed');
+        return;
+      }
+      // Append to local list (or no-op if already present from a prior create)
+      setDishCategories(prev =>
+        prev.some(c => c.id === result.data.id)
+          ? prev
+          : [
+              ...prev,
+              { id: result.data.id, name: result.data.name, is_drink: result.data.is_drink },
+            ]
+      );
+      // Auto-assign to the dish that triggered the create
+      update(dishId, { dishCategoryId: result.data.id, dishCategoryUnmatched: false });
+      setCreatingDishCategoryFor(null);
+      setNewDishCategoryName('');
+      setNewDishCategoryIsDrink(false);
+    } finally {
+      setCreatingDishCategory(false);
+    }
+  };
+
   const handleSave = async () => {
     setError(null);
     if (activeDishes.length === 0) {
@@ -341,6 +434,7 @@ export function ReviewDishEditor({
           category_existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
           category_canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
           category_custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
+          dish_category_id: d.dishCategoryId,
         })),
       };
       const result = await adminConfirmMenuScan(jobId, payload);
@@ -633,6 +727,131 @@ export function ReviewDishEditor({
                         placeholder={`Type a custom category name (in ${sourceLanguage})`}
                         className="mt-1 rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
                       />
+                    )}
+                  </div>
+
+                  {/* Dish category (global filtering taxonomy — invisible to consumers,
+                      drives mobile recommendations + drink/dessert exclusion). */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-medium">
+                        Dish category
+                        <span
+                          className="ml-1 text-[10px] text-muted-foreground italic font-normal"
+                          title="Used by mobile recommendations + filters; not shown to consumers"
+                        >
+                          (filter taxonomy)
+                        </span>
+                      </span>
+                      {d.suggested_dish_category && (
+                        <span
+                          className="text-[10px] text-muted-foreground italic"
+                          title="Free-text classification from the AI"
+                        >
+                          AI suggested: &ldquo;{d.suggested_dish_category}&rdquo;
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={d.dishCategoryId ?? ''}
+                        onChange={e =>
+                          update(d._id, {
+                            dishCategoryId: e.target.value || null,
+                            // Clearing the unmatched flag once admin makes a deliberate pick
+                            dishCategoryUnmatched: false,
+                          })
+                        }
+                        disabled={d._deleted || saving}
+                        className={[
+                          'flex-1 rounded border bg-background px-2 py-1.5 text-sm disabled:opacity-50',
+                          d.dishCategoryUnmatched
+                            ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                            : 'border-border',
+                        ].join(' ')}
+                      >
+                        <option value="">— None —</option>
+                        {dishCategories.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                            {c.is_drink ? ' (drink)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreatingDishCategoryFor(d._id);
+                          setNewDishCategoryName(d.suggested_dish_category ?? '');
+                          setNewDishCategoryIsDrink(false);
+                          setCreateDishCategoryError(null);
+                        }}
+                        disabled={d._deleted || saving}
+                        className="shrink-0 rounded border border-border px-2 py-1.5 text-xs hover:bg-muted disabled:opacity-50"
+                      >
+                        + New
+                      </button>
+                    </div>
+                    {d.dishCategoryUnmatched && (
+                      <p className="text-[11px] text-yellow-800 dark:text-yellow-400">
+                        ⚠ AI suggested &ldquo;{d.suggested_dish_category}&rdquo; but no close match
+                        was found. Pick from the dropdown or create a new one.
+                      </p>
+                    )}
+                    {!d.dishCategoryUnmatched && d.dishCategoryId && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Resolved to:{' '}
+                        <span className="text-foreground">
+                          {dishCategoryById.get(d.dishCategoryId)?.name ?? '(unknown)'}
+                        </span>
+                      </p>
+                    )}
+
+                    {creatingDishCategoryFor === d._id && (
+                      <div className="mt-1 rounded border border-border bg-muted/30 p-2 space-y-2">
+                        <input
+                          aria-label="New dish category name"
+                          value={newDishCategoryName}
+                          onChange={e => setNewDishCategoryName(e.target.value)}
+                          disabled={creatingDishCategory}
+                          placeholder="e.g. Pad See Ew"
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
+                        />
+                        <label className="flex items-center gap-1.5 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={newDishCategoryIsDrink}
+                            onChange={e => setNewDishCategoryIsDrink(e.target.checked)}
+                            disabled={creatingDishCategory}
+                          />
+                          Drink (excluded from food feed)
+                        </label>
+                        {createDishCategoryError && (
+                          <p className="text-xs text-destructive">{createDishCategoryError}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void handleCreateDishCategory(d._id)}
+                            disabled={creatingDishCategory}
+                            className="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                          >
+                            {creatingDishCategory ? 'Creating…' : 'Create'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreatingDishCategoryFor(null);
+                              setNewDishCategoryName('');
+                              setCreateDishCategoryError(null);
+                            }}
+                            disabled={creatingDishCategory}
+                            className="rounded border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </li>

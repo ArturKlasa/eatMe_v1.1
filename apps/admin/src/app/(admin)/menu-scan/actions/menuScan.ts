@@ -18,6 +18,10 @@ const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet
 // Per-dish category resolution. Exactly one of the three category_* fields is
 // expected to be set (or all null for "no category"). Validation below enforces
 // that — the admin UI dropdown produces this shape directly.
+//
+// dish_category_id is independent of the menu_category fields above:
+// menu_category drives the consumer-facing menu UI grouping, dish_category
+// drives the global filtering/recommendation engine on mobile.
 const reviewedDishSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(2000).nullable(),
@@ -28,6 +32,7 @@ const reviewedDishSchema = z.object({
   category_existing_id: z.string().uuid().nullable(),
   category_canonical_slug: z.string().min(1).max(100).nullable(),
   category_custom_name: z.string().min(1).max(200).nullable(),
+  dish_category_id: z.string().uuid().nullable(),
 });
 
 // One per unique category referenced by dishes in this scan. Carries the
@@ -317,6 +322,23 @@ export const adminConfirmMenuScan = withAdminAuth(
       }
     }
 
+    // ── (5b) Validate dish_category_id values exist in dish_categories ─────
+    const dishCategoryIds = Array.from(
+      new Set(parsed.data.dishes.map(d => d.dish_category_id).filter((id): id is string => !!id))
+    );
+    if (dishCategoryIds.length > 0) {
+      const { data: validRows, error } = await service
+        .from('dish_categories')
+        .select('id')
+        .in('id', dishCategoryIds);
+      if (error) return { ok: false, formError: error.message };
+      const validSet = new Set((validRows ?? []).map(r => (r as { id: string }).id));
+      const invalid = dishCategoryIds.filter(id => !validSet.has(id));
+      if (invalid.length > 0) {
+        return { ok: false, formError: `INVALID_DISH_CATEGORY_IDS:${invalid.join(',')}` };
+      }
+    }
+
     // ── (6) Dedupe + upsert menu_categories ────────────────────────────────
     // Build the unique set of "needed" categories. Key shape:
     //   `c:<canonical_slug>` for canonical-linked
@@ -538,6 +560,7 @@ export const adminConfirmMenuScan = withAdminAuth(
       return {
         restaurant_id: restaurantId,
         menu_category_id: menuCategoryId,
+        dish_category_id: d.dish_category_id,
         name: d.name,
         description: d.description,
         price: d.price,

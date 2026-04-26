@@ -4,7 +4,11 @@ import { useEffect, useReducer } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/browser';
 import { replayMenuScan, adminUpdateJobStatus } from '../actions/menuScan';
-import type { AdminMenuScanJobDetail, MenuScanReviewContext } from '@/lib/auth/dal';
+import type {
+  AdminMenuScanJobDetail,
+  MenuScanReviewContext,
+  DishCategoryMatch,
+} from '@/lib/auth/dal';
 import { ReviewDishEditor, type ExtractedDish } from './ReviewDishEditor';
 
 type ReplayModel = 'gpt-4o-2024-11-20' | 'gpt-4o-mini';
@@ -95,9 +99,10 @@ function reducer(state: State, action: Action): State {
 interface Props {
   job: AdminMenuScanJobDetail;
   reviewContext: MenuScanReviewContext | null;
+  dishCategoryMatches: DishCategoryMatch[];
 }
 
-export function AdminJobShell({ job: initialJob, reviewContext }: Props) {
+export function AdminJobShell({ job: initialJob, reviewContext, dishCategoryMatches }: Props) {
   const [state, dispatch] = useReducer(reducer, {
     job: initialJob,
     selectedModel: 'gpt-4o-2024-11-20',
@@ -257,6 +262,8 @@ export function AdminJobShell({ job: initialJob, reviewContext }: Props) {
             detectedLanguage={detectedLanguage}
             existingCategories={reviewContext.existingCategories}
             canonicalCategories={reviewContext.canonicalCategories}
+            dishCategories={reviewContext.dishCategories}
+            dishCategoryMatches={dishCategoryMatches}
           />
         </div>
       )}

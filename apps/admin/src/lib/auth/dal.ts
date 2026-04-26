@@ -187,9 +187,26 @@ export type RestaurantCategoryOption = {
   description_translations: Record<string, string>;
 };
 
+export type DishCategoryOption = {
+  id: string;
+  name: string;
+  is_drink: boolean;
+};
+
 export type MenuScanReviewContext = {
   existingCategories: RestaurantCategoryOption[];
   canonicalCategories: CanonicalCategoryOption[];
+  dishCategories: DishCategoryOption[];
+};
+
+// Per-input fuzzy-match result. score is null when no match cleared the
+// 0.7 threshold — caller treats as "AI suggested but unmatched" and surfaces
+// it in the review UI.
+export type DishCategoryMatch = {
+  query: string;
+  matched_id: string | null;
+  matched_name: string | null;
+  score: number | null;
 };
 
 export async function getAdminMenuScanJobs(params: {
@@ -282,7 +299,7 @@ export async function getMenuScanReviewContext(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const svc = createAdminServiceClient() as any;
 
-  const [existingRes, canonicalRes] = await Promise.all([
+  const [existingRes, canonicalRes, dishCategoriesRes] = await Promise.all([
     svc
       .from('menu_categories')
       .select(
@@ -296,6 +313,11 @@ export async function getMenuScanReviewContext(
       .select('id, slug, names')
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
+    svc
+      .from('dish_categories')
+      .select('id, name, is_drink')
+      .eq('is_active', true)
+      .order('name', { ascending: true }),
   ]);
 
   const existingCategories: RestaurantCategoryOption[] = (existingRes.data ?? []).map(
@@ -317,7 +339,45 @@ export async function getMenuScanReviewContext(
     })
   );
 
-  return { existingCategories, canonicalCategories };
+  const dishCategories: DishCategoryOption[] = (dishCategoriesRes.data ?? []).map(
+    (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      name: r.name as string,
+      is_drink: (r.is_drink as boolean | null) ?? false,
+    })
+  );
+
+  return { existingCategories, canonicalCategories, dishCategories };
+}
+
+// Resolves a list of free-text dish-category suggestions (from the worker's
+// suggested_dish_category field) to dish_categories rows via the
+// fuzzy_match_dish_category RPC. One RPC call per unique query — typical scans
+// have ~10-30 unique values, so the round-trip cost is small.
+export async function fuzzyMatchDishCategories(queries: string[]): Promise<DishCategoryMatch[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const svc = createAdminServiceClient() as any;
+
+  const unique = Array.from(new Set(queries.map(q => q.trim()).filter(Boolean)));
+  if (unique.length === 0) return [];
+
+  const matches = await Promise.all(
+    unique.map(async query => {
+      const { data, error } = await svc.rpc('fuzzy_match_dish_category', { p_query: query });
+      if (error || !data || data.length === 0) {
+        return { query, matched_id: null, matched_name: null, score: null };
+      }
+      const row = data[0] as { id: string; name: string; score: number };
+      return {
+        query,
+        matched_id: row.id,
+        matched_name: row.name,
+        score: row.score,
+      };
+    })
+  );
+
+  return matches;
 }
 
 export type RestaurantOption = { id: string; name: string; city: string | null };

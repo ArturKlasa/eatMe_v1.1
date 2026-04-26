@@ -6,6 +6,90 @@ import { withAdminAuth, type ActionResult } from '@/lib/auth/wrappers';
 import { logAdminAction } from '@/lib/audit';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 
+// adminPublishRestaurant: admin-side counterpart to publish_restaurant_draft.
+//
+// publish_restaurant_draft (migration 120) is SECURITY DEFINER but its auth
+// check (auth.uid() = owner_id OR is_admin()) reads the JWT, which is empty
+// under the service-role client we use everywhere in admin. So admin replicates
+// the same multi-table flip directly via service-role UPDATEs and audit-logs it.
+//
+// Idempotent: WHERE status = 'draft' so a second call is a no-op once the
+// restaurant is already published.
+export const adminPublishRestaurant = withAdminAuth(
+  async (
+    ctx,
+    restaurantId: string
+  ): Promise<
+    ActionResult<{
+      restaurantPublished: boolean;
+      menusPublished: number;
+      dishesPublished: number;
+    }>
+  > => {
+    const service = createAdminServiceClient();
+
+    const { data: current } = await service
+      .from('restaurants')
+      .select('id, status')
+      .eq('id', restaurantId)
+      .maybeSingle();
+
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+    const wasDraft = (current as Record<string, unknown>).status === 'draft';
+
+    // Restaurant
+    if (wasDraft) {
+      const { error } = await service
+        .from('restaurants')
+        .update({ status: 'published', updated_at: new Date().toISOString() })
+        .eq('id', restaurantId)
+        .eq('status', 'draft');
+      if (error) return { ok: false, formError: error.message };
+    }
+
+    // Menus
+    const { data: menusUpdated, error: menusErr } = await service
+      .from('menus')
+      .update({ status: 'published', updated_at: new Date().toISOString() })
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'draft')
+      .select('id');
+    if (menusErr) return { ok: false, formError: menusErr.message };
+    const menusPublished = (menusUpdated ?? []).length;
+
+    // Dishes
+    const { data: dishesUpdated, error: dishesErr } = await service
+      .from('dishes')
+      .update({ status: 'published', updated_at: new Date().toISOString() })
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'draft')
+      .select('id');
+    if (dishesErr) return { ok: false, formError: dishesErr.message };
+    const dishesPublished = (dishesUpdated ?? []).length;
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'publish_restaurant',
+      'restaurant',
+      restaurantId,
+      { status: (current as Record<string, unknown>).status as string },
+      {
+        status: 'published',
+        menus_published: menusPublished,
+        dishes_published: dishesPublished,
+      }
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    revalidatePath('/restaurants', 'page');
+    return {
+      ok: true,
+      data: { restaurantPublished: wasDraft, menusPublished, dishesPublished },
+    };
+  }
+);
+
 const suspendSchema = z
   .object({
     is_active: z.boolean(),

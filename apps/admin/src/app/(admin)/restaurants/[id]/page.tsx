@@ -2,8 +2,27 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { verifyAdminSession } from '@/lib/auth/dal';
 import { getAdminRestaurantById } from '@/lib/auth/dal';
+import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
+import { PublishSection } from './PublishSection';
 import { RestaurantInspector } from './RestaurantInspector';
+
+async function getDraftCounts(restaurantId: string): Promise<{ menus: number; dishes: number }> {
+  const service = createAdminServiceClient();
+  const [menusRes, dishesRes] = await Promise.all([
+    service
+      .from('menus')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'draft'),
+    service
+      .from('dishes')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'draft'),
+  ]);
+  return { menus: menusRes.count ?? 0, dishes: dishesRes.count ?? 0 };
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -29,6 +48,8 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
   const { id } = await params;
   const restaurant = await getAdminRestaurantById(id);
   if (!restaurant) notFound();
+
+  const draftCounts = await getDraftCounts(restaurant.id);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -70,6 +91,14 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
           value={restaurant.created_at ? new Date(restaurant.created_at).toLocaleString() : null}
         />
       </section>
+
+      {/* Publication / draft → published flow */}
+      <PublishSection
+        restaurantId={restaurant.id}
+        status={restaurant.status}
+        draftMenusCount={draftCounts.menus}
+        draftDishesCount={draftCounts.dishes}
+      />
 
       {/* Admin-only suspension section */}
       <AdminSuspensionSection

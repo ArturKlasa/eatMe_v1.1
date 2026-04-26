@@ -53,6 +53,15 @@ function resolveCategoryName(category: MenuCategoryWithCanonical, locale: string
   );
 }
 
+// Description follows the same COALESCE pattern (no canonical fallback —
+// descriptions are restaurant-specific by design, not on the canonical taxonomy).
+function resolveCategoryDescription(
+  category: MenuCategoryWithCanonical,
+  locale: string
+): string | null {
+  return category.description_translations?.[locale] ?? category.description ?? null;
+}
+
 export function FoodTab({
   restaurant,
   categoryDishes,
@@ -92,6 +101,21 @@ export function FoodTab({
               <View key={category.id} style={styles.menuCategory}>
                 <TouchableOpacity onPress={() => loadCategoryDishes(category.id)} activeOpacity={1}>
                   <Text style={styles.categoryName}>{resolveCategoryName(category, locale)}</Text>
+                  {(() => {
+                    const desc = resolveCategoryDescription(category, locale);
+                    return desc ? (
+                      <Text
+                        style={{
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                          fontStyle: 'italic',
+                          marginTop: 2,
+                        }}
+                      >
+                        {desc}
+                      </Text>
+                    ) : null;
+                  })()}
                 </TouchableOpacity>
                 {categoryState === 'loading' && (
                   <ActivityIndicator

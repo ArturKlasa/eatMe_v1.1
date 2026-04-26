@@ -99,9 +99,13 @@ export interface CanonicalMenuCategoryRef {
  * Per-restaurant menu_categories row enriched with translation fields and the
  * canonical join (added by migration 124). Display name should be resolved via
  * COALESCE: name_translations[locale] → canonical.names[locale] → name.
+ *
+ * description_translations (added by migration 125) follows the same shape:
+ * description_translations[locale] → description.
  */
 export type MenuCategoryWithCanonical = MenuCategory & {
   name_translations?: Record<string, string> | null;
+  description_translations?: Record<string, string> | null;
   canonical?: CanonicalMenuCategoryRef | null;
 };
 

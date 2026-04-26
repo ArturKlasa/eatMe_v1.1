@@ -24,6 +24,7 @@ export type ExtractedDish = {
   primary_protein: Protein;
   suggested_category_name: string | null;
   canonical_category_slug: string | null;
+  suggested_category_description: string | null;
   source_image_index: number;
   confidence: number;
 };
@@ -55,10 +56,6 @@ function pickName(dict: Record<string, string>, lang: SupportedLanguage, fallbac
 }
 
 function asEditable(d: ExtractedDish, i: number, canonicalSlugSet: Set<string>): EditableDish {
-  // Initial category resolution from AI hints:
-  //   canonical match (validated against our seed) → 'canonical'
-  //   else suggested_category_name (verbatim source text) → 'custom'
-  //   else 'none'
   let categoryMode: CategoryMode = 'none';
   let categoryCanonicalSlug: string | null = null;
   let categoryCustomName = '';
@@ -88,7 +85,24 @@ function confidenceTone(c: number): string {
   return 'bg-red-100 text-red-800 border-red-200';
 }
 
-// Encode the category state into a single <select> value.
+// Group key for a dish — same shape the server action uses to dedupe categories.
+// 'none' for ungrouped; 'e:<id>' / 'c:<slug>' / 'n:<lower(name)>' for the others.
+function getGroupKey(d: EditableDish): string {
+  switch (d.categoryMode) {
+    case 'existing':
+      return d.categoryExistingId ? `e:${d.categoryExistingId}` : 'none';
+    case 'canonical':
+      return d.categoryCanonicalSlug ? `c:${d.categoryCanonicalSlug}` : 'none';
+    case 'custom': {
+      const trimmed = d.categoryCustomName.trim();
+      return trimmed ? `n:${trimmed.toLowerCase()}` : 'none';
+    }
+    case 'none':
+    default:
+      return 'none';
+  }
+}
+
 function encodeCategoryValue(d: EditableDish): string {
   switch (d.categoryMode) {
     case 'existing':
@@ -105,18 +119,10 @@ function encodeCategoryValue(d: EditableDish): string {
 
 function decodeCategoryValue(value: string): Partial<EditableDish> {
   if (value === '') {
-    return {
-      categoryMode: 'none',
-      categoryExistingId: null,
-      categoryCanonicalSlug: null,
-    };
+    return { categoryMode: 'none', categoryExistingId: null, categoryCanonicalSlug: null };
   }
   if (value === 'custom') {
-    return {
-      categoryMode: 'custom',
-      categoryExistingId: null,
-      categoryCanonicalSlug: null,
-    };
+    return { categoryMode: 'custom', categoryExistingId: null, categoryCanonicalSlug: null };
   }
   if (value.startsWith('existing:')) {
     return {
@@ -147,26 +153,116 @@ export function ReviewDishEditor({
     () => new Set(canonicalCategories.map(c => c.slug)),
     [canonicalCategories]
   );
+  const canonicalBySlug = useMemo(
+    () => new Map(canonicalCategories.map(c => [c.slug, c])),
+    [canonicalCategories]
+  );
+  const existingById = useMemo(
+    () => new Map(existingCategories.map(c => [c.id, c])),
+    [existingCategories]
+  );
 
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
-
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
 
   const [dishes, setDishes] = useState<EditableDish[]>(() =>
     initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet))
   );
+
+  // Per-group description state (admin-editable). Keyed by group key.
+  // Initial values: existing-cat description (if non-empty) → AI suggestion → empty.
+  const [categoryDescriptions, setCategoryDescriptions] = useState<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    const seen = new Set<string>();
+    for (const d of dishes) {
+      const key = getGroupKey(d);
+      if (key === 'none' || seen.has(key)) continue;
+      seen.add(key);
+      // Existing-cat path: prefer the stored description from props
+      if (key.startsWith('e:')) {
+        const id = key.slice(2);
+        const ex = existingById.get(id);
+        if (ex?.description?.trim()) {
+          map.set(key, ex.description);
+          continue;
+        }
+      }
+      // Otherwise use the AI suggestion from the first dish in the group
+      if (d.suggested_category_description?.trim()) {
+        map.set(key, d.suggested_category_description.trim());
+      }
+    }
+    return map;
+  });
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const activeDishes = useMemo(() => dishes.filter(d => !d._deleted), [dishes]);
   const deletedCount = dishes.length - activeDishes.length;
 
-  // Language mismatch warning: only meaningful if AI detected a language AND
-  // it differs from country-derived AND the user hasn't already switched.
   const detectedDiffers =
     !!detectedLanguage &&
     detectedLanguage !== sourceLanguage &&
     detectedLanguage !== countryDerivedLang;
+
+  // Build ordered groups from current dish state. Order: encounter order across
+  // active + deleted dishes (so removing a dish doesn't reorder groups). 'none'
+  // group is always rendered last.
+  const groups = useMemo(() => {
+    const order: string[] = [];
+    const seen = new Set<string>();
+    for (const d of dishes) {
+      const key = getGroupKey(d);
+      if (!seen.has(key)) {
+        seen.add(key);
+        order.push(key);
+      }
+    }
+    // Move 'none' to end if present
+    const noneIdx = order.indexOf('none');
+    if (noneIdx !== -1) {
+      order.splice(noneIdx, 1);
+      order.push('none');
+    }
+    return order.map(key => ({
+      key,
+      dishes: dishes.filter(d => getGroupKey(d) === key),
+    }));
+  }, [dishes]);
+
+  // Display name + description-locked state for a group key.
+  function getGroupMeta(key: string): {
+    displayName: string;
+    descriptionLocked: boolean;
+    badge: string | null;
+  } {
+    if (key === 'none') {
+      return { displayName: '(no category)', descriptionLocked: true, badge: null };
+    }
+    if (key.startsWith('e:')) {
+      const id = key.slice(2);
+      const ex = existingById.get(id);
+      const name = ex
+        ? pickName(ex.name_translations, sourceLanguage, ex.name)
+        : '(unknown existing)';
+      const locked = !!ex?.description?.trim();
+      return { displayName: name, descriptionLocked: locked, badge: 'Existing' };
+    }
+    if (key.startsWith('c:')) {
+      const slug = key.slice(2);
+      const canon = canonicalBySlug.get(slug);
+      const name = canon ? pickName(canon.names, sourceLanguage, canon.slug) : slug;
+      return { displayName: name, descriptionLocked: false, badge: 'Canonical' };
+    }
+    if (key.startsWith('n:')) {
+      // For custom, use the custom name from the first dish in the group
+      const firstDish = dishes.find(d => getGroupKey(d) === key);
+      const name = firstDish?.categoryCustomName.trim() || key.slice(2);
+      return { displayName: name, descriptionLocked: false, badge: 'Custom' };
+    }
+    return { displayName: key, descriptionLocked: false, badge: null };
+  }
 
   const update = (id: string, patch: Partial<EditableDish>) => {
     setDishes(prev => prev.map(d => (d._id === id ? { ...d, ...patch } : d)));
@@ -174,6 +270,15 @@ export function ReviewDishEditor({
 
   const toggleDelete = (id: string) => {
     setDishes(prev => prev.map(d => (d._id === id ? { ...d, _deleted: !d._deleted } : d)));
+  };
+
+  const updateGroupDescription = (key: string, value: string) => {
+    setCategoryDescriptions(prev => {
+      const next = new Map(prev);
+      if (value.trim() === '') next.delete(key);
+      else next.set(key, value);
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -197,8 +302,35 @@ export function ReviewDishEditor({
 
     setSaving(true);
     try {
+      // Build category_descriptions array — one entry per unique key referenced
+      // by an active dish. Existing-cat with locked description → skip (server
+      // wouldn't overwrite anyway, no point sending).
+      const seenKeys = new Set<string>();
+      const categoryDescriptionsPayload: Array<{
+        canonical_slug: string | null;
+        custom_name: string | null;
+        existing_id: string | null;
+        description: string | null;
+      }> = [];
+      for (const d of activeDishes) {
+        const key = getGroupKey(d);
+        if (key === 'none' || seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        const desc = categoryDescriptions.get(key)?.trim() || null;
+        if (!desc) continue;
+        const meta = getGroupMeta(key);
+        if (meta.descriptionLocked) continue;
+        categoryDescriptionsPayload.push({
+          canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
+          custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
+          existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
+          description: desc,
+        });
+      }
+
       const payload = {
         source_language_code: sourceLanguage,
+        category_descriptions: categoryDescriptionsPayload,
         dishes: activeDishes.map(d => ({
           name: d.name.trim(),
           description: d.description?.trim() || null,
@@ -224,12 +356,12 @@ export function ReviewDishEditor({
 
   return (
     <div className="space-y-4">
-      {/* Header + save action */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold">Extracted Dishes</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {activeDishes.length} to import
+            {activeDishes.length} to import · {groups.length} categor
+            {groups.length === 1 ? 'y' : 'ies'}
             {deletedCount > 0 && ` · ${deletedCount} removed`}
           </p>
         </div>
@@ -255,9 +387,7 @@ export function ReviewDishEditor({
             id="source-language"
             value={sourceLanguage}
             onChange={e => {
-              if (isSupportedLanguage(e.target.value)) {
-                setSourceLanguage(e.target.value);
-              }
+              if (isSupportedLanguage(e.target.value)) setSourceLanguage(e.target.value);
             }}
             disabled={saving}
             className="rounded border border-border bg-background px-2 py-1 text-xs"
@@ -302,166 +432,215 @@ export function ReviewDishEditor({
         </p>
       )}
 
-      {/* Dish list */}
-      <ul className="space-y-3">
-        {dishes.map(d => (
-          <li
-            key={d._id}
-            className={[
-              'rounded-lg border p-4 space-y-3 transition-opacity',
-              d._deleted ? 'border-dashed border-border opacity-50' : 'border-border bg-card',
-            ].join(' ')}
-          >
-            {/* Name + badges + remove */}
-            <div className="flex items-start gap-2">
-              <input
-                aria-label="Dish name"
-                value={d.name}
-                onChange={e => update(d._id, { name: e.target.value })}
-                disabled={d._deleted || saving}
-                placeholder="Dish name"
-                className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm font-medium disabled:opacity-50"
-              />
-              <span
-                className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${confidenceTone(d.confidence)}`}
-                title="AI extraction confidence"
-              >
-                {(d.confidence * 100).toFixed(0)}%
-              </span>
-              <span
-                className="shrink-0 inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                title="Source image index"
-              >
-                pg {d.source_image_index + 1}
-              </span>
-              <button
-                type="button"
-                onClick={() => toggleDelete(d._id)}
-                disabled={saving}
-                className="shrink-0 rounded border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
-              >
-                {d._deleted ? 'Restore' : 'Remove'}
-              </button>
-            </div>
-
-            <textarea
-              aria-label="Description"
-              value={d.description ?? ''}
-              onChange={e => update(d._id, { description: e.target.value || null })}
-              disabled={d._deleted || saving}
-              placeholder="Description (optional)"
-              rows={2}
-              className="w-full rounded border border-border bg-background px-3 py-2 text-sm disabled:opacity-50 resize-y"
-            />
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <label className="flex flex-col gap-1 text-xs">
-                <span className="text-muted-foreground">Price</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={d.price ?? ''}
-                  onChange={e =>
-                    update(d._id, {
-                      price: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                  disabled={d._deleted || saving}
-                  placeholder="—"
-                  className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1 text-xs">
-                <span className="text-muted-foreground">Kind</span>
-                <select
-                  value={d.dish_kind}
-                  onChange={e => update(d._id, { dish_kind: e.target.value as DishKind })}
-                  disabled={d._deleted || saving}
-                  className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-                >
-                  {DISH_KIND_VALUES.map(k => (
-                    <option key={k} value={k}>
-                      {DISH_KIND_META[k].icon} {DISH_KIND_META[k].label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1 text-xs">
-                <span className="text-muted-foreground">Primary protein</span>
-                <select
-                  value={d.primary_protein}
-                  onChange={e => update(d._id, { primary_protein: e.target.value as Protein })}
-                  disabled={d._deleted || saving}
-                  className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-                >
-                  {PRIMARY_PROTEINS.map(p => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {/* Category resolution */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">Menu category</span>
-                {d.suggested_category_name && (
-                  <span
-                    className="text-[10px] text-muted-foreground italic"
-                    title="Verbatim section text from the menu image"
-                  >
-                    AI saw: &ldquo;{d.suggested_category_name}&rdquo;
-                  </span>
-                )}
+      {/* Grouped layout: one section per category */}
+      {groups.map(group => {
+        const meta = getGroupMeta(group.key);
+        const desc = categoryDescriptions.get(group.key) ?? '';
+        return (
+          <section key={group.key} className="rounded-lg border border-border bg-muted/10">
+            {/* Category heading */}
+            <header className="border-b border-border px-4 py-3 space-y-2">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold">{meta.displayName}</h3>
+                  {meta.badge && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">
+                      {meta.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {group.dishes.filter(d => !d._deleted).length} dish
+                  {group.dishes.filter(d => !d._deleted).length === 1 ? '' : 'es'}
+                </span>
               </div>
-              <select
-                value={encodeCategoryValue(d)}
-                onChange={e => update(d._id, decodeCategoryValue(e.target.value))}
-                disabled={d._deleted || saving}
-                className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-              >
-                <option value="">— No category —</option>
+              {group.key !== 'none' &&
+                (meta.descriptionLocked ? (
+                  desc && (
+                    <p className="text-xs text-muted-foreground italic">
+                      {desc}{' '}
+                      <span className="not-italic text-[10px]">
+                        (existing description — edit on the restaurant page)
+                      </span>
+                    </p>
+                  )
+                ) : (
+                  <textarea
+                    aria-label={`${meta.displayName} description`}
+                    value={desc}
+                    onChange={e => updateGroupDescription(group.key, e.target.value)}
+                    disabled={saving}
+                    placeholder={`Section description (in ${sourceLanguage}, optional)`}
+                    rows={2}
+                    className="w-full rounded border border-border bg-background px-3 py-2 text-xs disabled:opacity-50 resize-y"
+                  />
+                ))}
+            </header>
 
-                {existingCategories.length > 0 && (
-                  <optgroup label="Existing for this restaurant">
-                    {existingCategories.map(c => (
-                      <option key={c.id} value={`existing:${c.id}`}>
-                        {pickName(c.name_translations, sourceLanguage, c.name)}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
+            {/* Dishes in this group */}
+            <ul className="space-y-3 p-3">
+              {group.dishes.map(d => (
+                <li
+                  key={d._id}
+                  className={[
+                    'rounded border p-3 space-y-2 transition-opacity',
+                    d._deleted ? 'border-dashed border-border opacity-50' : 'border-border bg-card',
+                  ].join(' ')}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      aria-label="Dish name"
+                      value={d.name}
+                      onChange={e => update(d._id, { name: e.target.value })}
+                      disabled={d._deleted || saving}
+                      placeholder="Dish name"
+                      className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm font-medium disabled:opacity-50"
+                    />
+                    <span
+                      className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${confidenceTone(d.confidence)}`}
+                      title="AI extraction confidence"
+                    >
+                      {(d.confidence * 100).toFixed(0)}%
+                    </span>
+                    <span
+                      className="shrink-0 inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                      title="Source image index"
+                    >
+                      pg {d.source_image_index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleDelete(d._id)}
+                      disabled={saving}
+                      className="shrink-0 rounded border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                    >
+                      {d._deleted ? 'Restore' : 'Remove'}
+                    </button>
+                  </div>
 
-                <optgroup label="Canonical taxonomy">
-                  {canonicalCategories.map(c => (
-                    <option key={c.slug} value={`canonical:${c.slug}`}>
-                      {pickName(c.names, sourceLanguage, c.slug)}
-                    </option>
-                  ))}
-                </optgroup>
+                  <textarea
+                    aria-label="Dish description"
+                    value={d.description ?? ''}
+                    onChange={e => update(d._id, { description: e.target.value || null })}
+                    disabled={d._deleted || saving}
+                    placeholder="Description (optional)"
+                    rows={2}
+                    className="w-full rounded border border-border bg-background px-3 py-2 text-sm disabled:opacity-50 resize-y"
+                  />
 
-                <option value="custom">+ Custom name…</option>
-              </select>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <label className="flex flex-col gap-1 text-xs">
+                      <span className="text-muted-foreground">Price</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={d.price ?? ''}
+                        onChange={e =>
+                          update(d._id, {
+                            price: e.target.value === '' ? null : Number(e.target.value),
+                          })
+                        }
+                        disabled={d._deleted || saving}
+                        placeholder="—"
+                        className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      />
+                    </label>
 
-              {d.categoryMode === 'custom' && (
-                <input
-                  aria-label="Custom category name"
-                  value={d.categoryCustomName}
-                  onChange={e => update(d._id, { categoryCustomName: e.target.value })}
-                  disabled={d._deleted || saving}
-                  placeholder={`Type a custom category name (in ${sourceLanguage})`}
-                  className="mt-1 rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-                />
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+                    <label className="flex flex-col gap-1 text-xs">
+                      <span className="text-muted-foreground">Kind</span>
+                      <select
+                        value={d.dish_kind}
+                        onChange={e => update(d._id, { dish_kind: e.target.value as DishKind })}
+                        disabled={d._deleted || saving}
+                        className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      >
+                        {DISH_KIND_VALUES.map(k => (
+                          <option key={k} value={k}>
+                            {DISH_KIND_META[k].icon} {DISH_KIND_META[k].label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs">
+                      <span className="text-muted-foreground">Primary protein</span>
+                      <select
+                        value={d.primary_protein}
+                        onChange={e =>
+                          update(d._id, { primary_protein: e.target.value as Protein })
+                        }
+                        disabled={d._deleted || saving}
+                        className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      >
+                        {PRIMARY_PROTEINS.map(p => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  {/* Per-dish category override (lets the user move a dish to another group) */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-medium">Menu category</span>
+                      {d.suggested_category_name && (
+                        <span
+                          className="text-[10px] text-muted-foreground italic"
+                          title="Verbatim section text from the menu image"
+                        >
+                          AI saw: &ldquo;{d.suggested_category_name}&rdquo;
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={encodeCategoryValue(d)}
+                      onChange={e => update(d._id, decodeCategoryValue(e.target.value))}
+                      disabled={d._deleted || saving}
+                      className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                    >
+                      <option value="">— No category —</option>
+
+                      {existingCategories.length > 0 && (
+                        <optgroup label="Existing for this restaurant">
+                          {existingCategories.map(c => (
+                            <option key={c.id} value={`existing:${c.id}`}>
+                              {pickName(c.name_translations, sourceLanguage, c.name)}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+
+                      <optgroup label="Canonical taxonomy">
+                        {canonicalCategories.map(c => (
+                          <option key={c.slug} value={`canonical:${c.slug}`}>
+                            {pickName(c.names, sourceLanguage, c.slug)}
+                          </option>
+                        ))}
+                      </optgroup>
+
+                      <option value="custom">+ Custom name…</option>
+                    </select>
+
+                    {d.categoryMode === 'custom' && (
+                      <input
+                        aria-label="Custom category name"
+                        value={d.categoryCustomName}
+                        onChange={e => update(d._id, { categoryCustomName: e.target.value })}
+                        disabled={d._deleted || saving}
+                        placeholder={`Type a custom category name (in ${sourceLanguage})`}
+                        className="mt-1 rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      />
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }

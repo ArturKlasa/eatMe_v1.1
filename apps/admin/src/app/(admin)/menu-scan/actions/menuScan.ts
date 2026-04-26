@@ -30,12 +30,25 @@ const reviewedDishSchema = z.object({
   category_custom_name: z.string().min(1).max(200).nullable(),
 });
 
+// One per unique category referenced by dishes in this scan. Carries the
+// admin-edited section description (in source language). Exactly one of
+// canonical_slug / custom_name / existing_id must match a category referenced
+// by at least one dish in the same payload.
+const reviewedCategoryDescriptionSchema = z.object({
+  canonical_slug: z.string().min(1).max(100).nullable(),
+  custom_name: z.string().min(1).max(200).nullable(),
+  existing_id: z.string().uuid().nullable(),
+  description: z.string().max(2000).nullable(),
+});
+
 const confirmPayloadSchema = z.object({
   dishes: z.array(reviewedDishSchema).min(1).max(200),
   // Source language for any custom categories created in this scan. Admin sets
   // this in the review UI based on the language banner (country-derived default,
   // overridable when AI-detected language differs).
   source_language_code: z.string().min(2).max(10).nullable(),
+  // Optional descriptions per unique category. Empty/missing entries are skipped.
+  category_descriptions: z.array(reviewedCategoryDescriptionSchema).max(200).optional(),
 });
 
 const VALID_REPLAY_MODELS = ['gpt-4o-2024-11-20', 'gpt-4o-mini'] as const;
@@ -308,7 +321,8 @@ export const adminConfirmMenuScan = withAdminAuth(
     // Build the unique set of "needed" categories. Key shape:
     //   `c:<canonical_slug>` for canonical-linked
     //   `n:<lower(custom_name)>` for custom-named
-    // Existing IDs need no upsert — already valid menu_categories rows.
+    //   `e:<existing_id>`     for admin-selected existing rows (no upsert; only
+    //                          considered for fill-if-empty description writes)
     type NeededCategory = { kind: 'canonical'; slug: string } | { kind: 'custom'; name: string };
 
     const neededByKey = new Map<string, NeededCategory>();
@@ -326,6 +340,22 @@ export const adminConfirmMenuScan = withAdminAuth(
       }
     }
 
+    // Build the description lookup keyed by the same tuple shape. Skip blank
+    // descriptions entirely so we never overwrite a real value with empty.
+    const descriptionByKey = new Map<string, string>();
+    for (const c of parsed.data.category_descriptions ?? []) {
+      const desc = c.description?.trim();
+      if (!desc) continue;
+      const key = c.canonical_slug
+        ? `c:${c.canonical_slug}`
+        : c.custom_name
+          ? `n:${c.custom_name.toLowerCase()}`
+          : c.existing_id
+            ? `e:${c.existing_id}`
+            : null;
+      if (key) descriptionByKey.set(key, desc);
+    }
+
     // Resolve each unique tuple → menu_category_id. Use SELECT-then-INSERT
     // (ON CONFLICT DO NOTHING + re-SELECT) to handle the race where the row
     // already exists from a prior partial run.
@@ -336,14 +366,19 @@ export const adminConfirmMenuScan = withAdminAuth(
     for (const [key, need] of neededByKey) {
       let row: { id: string } | null = null;
 
+      const desc = descriptionByKey.get(key) ?? null;
+
       // All lookups are scoped to (restaurant_id, menu_id) — matches the
       // partial unique indexes on menu_categories. A category in a different
       // menu of the same restaurant is treated as distinct.
+      let existingDescription: string | null = null;
+      let wasJustCreated = false;
+
       if (need.kind === 'canonical') {
         const canon = canonicalBySlug.get(need.slug)!;
         const { data: existing } = await svc
           .from('menu_categories')
-          .select('id')
+          .select('id, description')
           .eq('restaurant_id', restaurantId)
           .eq('menu_id', menuId)
           .eq('canonical_category_id', canon.id)
@@ -351,6 +386,7 @@ export const adminConfirmMenuScan = withAdminAuth(
 
         if (existing) {
           row = existing as { id: string };
+          existingDescription = (existing as { description: string | null }).description ?? null;
         } else {
           // Snapshot canonical name in source language (fall back to en)
           const displayName =
@@ -364,6 +400,12 @@ export const adminConfirmMenuScan = withAdminAuth(
               canonical_category_id: canon.id,
               source_language_code: sourceLanguage,
               is_active: true,
+              ...(desc
+                ? {
+                    description: desc,
+                    description_translations: { [sourceLanguage]: desc },
+                  }
+                : {}),
             })
             .select('id')
             .single();
@@ -372,7 +414,7 @@ export const adminConfirmMenuScan = withAdminAuth(
             // Re-SELECT and continue.
             const { data: refetched } = await svc
               .from('menu_categories')
-              .select('id')
+              .select('id, description')
               .eq('restaurant_id', restaurantId)
               .eq('menu_id', menuId)
               .eq('canonical_category_id', canon.id)
@@ -381,9 +423,11 @@ export const adminConfirmMenuScan = withAdminAuth(
               return { ok: false, formError: createErr?.message ?? 'CATEGORY_UPSERT_FAILED' };
             }
             row = refetched as { id: string };
+            existingDescription = (refetched as { description: string | null }).description ?? null;
           } else {
             row = created as { id: string };
             categoriesCreated++;
+            wasJustCreated = true;
           }
         }
         categoriesLinked++;
@@ -391,7 +435,7 @@ export const adminConfirmMenuScan = withAdminAuth(
         // Custom: dedupe by lower(name) within (restaurant, menu).
         const { data: existing } = await svc
           .from('menu_categories')
-          .select('id')
+          .select('id, description')
           .eq('restaurant_id', restaurantId)
           .eq('menu_id', menuId)
           .is('canonical_category_id', null)
@@ -400,6 +444,7 @@ export const adminConfirmMenuScan = withAdminAuth(
 
         if (existing) {
           row = existing as { id: string };
+          existingDescription = (existing as { description: string | null }).description ?? null;
         } else {
           const { data: created, error: createErr } = await svc
             .from('menu_categories')
@@ -411,13 +456,19 @@ export const adminConfirmMenuScan = withAdminAuth(
               source_language_code: sourceLanguage,
               name_translations: { [sourceLanguage]: need.name },
               is_active: true,
+              ...(desc
+                ? {
+                    description: desc,
+                    description_translations: { [sourceLanguage]: desc },
+                  }
+                : {}),
             })
             .select('id')
             .single();
           if (createErr || !created) {
             const { data: refetched } = await svc
               .from('menu_categories')
-              .select('id')
+              .select('id, description')
               .eq('restaurant_id', restaurantId)
               .eq('menu_id', menuId)
               .is('canonical_category_id', null)
@@ -427,14 +478,49 @@ export const adminConfirmMenuScan = withAdminAuth(
               return { ok: false, formError: createErr?.message ?? 'CATEGORY_UPSERT_FAILED' };
             }
             row = refetched as { id: string };
+            existingDescription = (refetched as { description: string | null }).description ?? null;
           } else {
             row = created as { id: string };
             categoriesCreated++;
+            wasJustCreated = true;
           }
         }
       }
 
+      // Fill-if-empty: never overwrite an admin's manual description with one
+      // from a re-scan. Only update when the existing row had nothing.
+      if (!wasJustCreated && desc && (!existingDescription || existingDescription.trim() === '')) {
+        await svc
+          .from('menu_categories')
+          .update({
+            description: desc,
+            description_translations: { [sourceLanguage]: desc },
+          })
+          .eq('id', row.id);
+      }
+
       tupleToMenuCategoryId.set(key, row.id);
+    }
+
+    // Fill-if-empty for existing-id categories selected by the admin (these
+    // weren't part of the upsert loop). Same rule: only fill when empty.
+    for (const existingId of existingIds) {
+      const desc = descriptionByKey.get(`e:${existingId}`);
+      if (!desc) continue;
+      const { data: row } = await svc
+        .from('menu_categories')
+        .select('description')
+        .eq('id', existingId)
+        .maybeSingle();
+      const current = (row as { description: string | null } | null)?.description ?? null;
+      if (current && current.trim() !== '') continue;
+      await svc
+        .from('menu_categories')
+        .update({
+          description: desc,
+          description_translations: { [sourceLanguage]: desc },
+        })
+        .eq('id', existingId);
     }
 
     // ── (7) Insert dishes with resolved menu_category_id ───────────────────

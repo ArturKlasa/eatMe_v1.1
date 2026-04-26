@@ -38,6 +38,13 @@ const menuExtractionDishSchema = z.object({
   // clean match — admin will create a custom menu_category from
   // suggested_category_name in that case.
   canonical_category_slug: z.string().nullable(),
+  // Verbatim section description from the menu, in the source language.
+  // E.g. "Hot Dogs" header followed by "2 hot dogs de salchicha de pavo con
+  // papas" → that subtitle. Null if the section has no description.
+  // Restaurant-specific (describes what THIS restaurant serves under that
+  // section), so it's stored on the per-restaurant menu_category row, not on
+  // the canonical taxonomy.
+  suggested_category_description: z.string().nullable(),
   source_image_index: z.number().int().min(0),
   confidence: z.number().min(0).max(1),
 });
@@ -90,6 +97,11 @@ For each dish output exactly these fields:
     below, output that slug exactly. Otherwise output null. Match conservatively — when
     uncertain, prefer null. The slug list is in English but the menu may be in any language;
     match by meaning, not by spelling.
+- suggested_category_description: if the section has a brief subtitle / description on the
+    menu (e.g. under a "Hot Dogs" header you see "2 hot dogs de salchicha de pavo con papas"),
+    extract it verbatim in the source language. Null if no section description is shown.
+    Use the SAME description for every dish that belongs to the same section — admins will
+    deduplicate per category.
 - source_image_index: 0-based index of the image this dish was found in
 - confidence: 0.0–1.0 indicating your extraction confidence for this dish
 

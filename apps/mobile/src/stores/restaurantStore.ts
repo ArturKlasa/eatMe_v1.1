@@ -281,6 +281,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
             id, name, description, display_order, is_active, menu_type, schedule_type,
             menu_categories (
               id, name, description, display_order, is_active, name_translations,
+              description_translations,
               canonical:canonical_menu_categories (slug, names)
             )
           )

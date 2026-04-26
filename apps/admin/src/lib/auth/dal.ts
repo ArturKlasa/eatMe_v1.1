@@ -181,8 +181,10 @@ export type CanonicalCategoryOption = {
 export type RestaurantCategoryOption = {
   id: string;
   name: string;
+  description: string | null;
   canonical_category_id: string | null;
   name_translations: Record<string, string>;
+  description_translations: Record<string, string>;
 };
 
 export type MenuScanReviewContext = {
@@ -283,7 +285,9 @@ export async function getMenuScanReviewContext(
   const [existingRes, canonicalRes] = await Promise.all([
     svc
       .from('menu_categories')
-      .select('id, name, canonical_category_id, name_translations')
+      .select(
+        'id, name, description, canonical_category_id, name_translations, description_translations'
+      )
       .eq('restaurant_id', restaurantId)
       .eq('is_active', true)
       .order('display_order', { ascending: true }),
@@ -298,8 +302,10 @@ export async function getMenuScanReviewContext(
     (r: Record<string, unknown>) => ({
       id: r.id as string,
       name: r.name as string,
+      description: (r.description as string | null) ?? null,
       canonical_category_id: (r.canonical_category_id as string | null) ?? null,
       name_translations: (r.name_translations as Record<string, string> | null) ?? {},
+      description_translations: (r.description_translations as Record<string, string> | null) ?? {},
     })
   );
 

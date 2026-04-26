@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { verifyAdminSession, getAdminMenuScanJobById } from '@/lib/auth/dal';
+import {
+  verifyAdminSession,
+  getAdminMenuScanJobById,
+  getMenuScanReviewContext,
+} from '@/lib/auth/dal';
 import { AdminJobShell } from './AdminJobShell';
 
 export default async function MenuScanJobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -10,6 +14,11 @@ export default async function MenuScanJobPage({ params }: { params: Promise<{ jo
   const job = await getAdminMenuScanJobById(jobId);
 
   if (!job) notFound();
+
+  // Only the review UI needs the category context — skip the fetch otherwise
+  // (avoids two extra queries on completed/failed/processing jobs).
+  const reviewContext =
+    job.status === 'needs_review' ? await getMenuScanReviewContext(job.restaurant_id) : null;
 
   return (
     <div className="space-y-6">
@@ -23,7 +32,7 @@ export default async function MenuScanJobPage({ params }: { params: Promise<{ jo
         </Link>
       </div>
 
-      <AdminJobShell job={job} />
+      <AdminJobShell job={job} reviewContext={reviewContext} />
     </div>
   );
 }

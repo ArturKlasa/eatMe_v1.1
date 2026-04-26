@@ -4,3 +4,4 @@ export * from './validation';
 export * from './logic/protein';
 export * from './logic/discoverability';
 export * from './logic/role';
+export * from './logic/locale';

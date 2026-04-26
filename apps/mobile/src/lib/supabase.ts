@@ -89,11 +89,27 @@ export interface DishWithVariants extends Dish {
   variants: Array<Dish & { option_groups?: OptionGroup[] }>;
 }
 
+/** Joined canonical menu category — translations live in `names` JSONB keyed by language. */
+export interface CanonicalMenuCategoryRef {
+  slug: string;
+  names: Record<string, string>;
+}
+
+/**
+ * Per-restaurant menu_categories row enriched with translation fields and the
+ * canonical join (added by migration 124). Display name should be resolved via
+ * COALESCE: name_translations[locale] → canonical.names[locale] → name.
+ */
+export type MenuCategoryWithCanonical = MenuCategory & {
+  name_translations?: Record<string, string> | null;
+  canonical?: CanonicalMenuCategoryRef | null;
+};
+
 export interface RestaurantWithMenus extends Restaurant {
   menus: Array<
     Menu & {
       menu_categories: Array<
-        MenuCategory & {
+        MenuCategoryWithCanonical & {
           /** Dishes are loaded lazily per-category; absent until fetched. */
           dishes?: Array<
             Dish & {

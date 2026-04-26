@@ -131,6 +131,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
             *,
             menu_categories (
               *,
+              canonical:canonical_menu_categories (slug, names),
               dishes (*)
             )
           )
@@ -142,7 +143,9 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
       if (error) throw error;
 
       set({
-        restaurants: (data as RestaurantWithMenus[]) || [],
+        // Double-cast: canonical_menu_categories FK isn't yet in the generated
+        // Database types — regenerate after applying migration 124.
+        restaurants: (data as unknown as RestaurantWithMenus[]) || [],
         loading: false,
       });
     } catch (err) {
@@ -277,7 +280,8 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           menus (
             id, name, description, display_order, is_active, menu_type, schedule_type,
             menu_categories (
-              id, name, description, display_order, is_active
+              id, name, description, display_order, is_active, name_translations,
+              canonical:canonical_menu_categories (slug, names)
             )
           )
         `

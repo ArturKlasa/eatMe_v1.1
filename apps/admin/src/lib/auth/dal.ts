@@ -169,6 +169,25 @@ export type AdminMenuScanJobDetail = AdminMenuScanJobRow & {
   locked_until: string | null;
   saved_dish_ids: unknown;
   saved_at: string | null;
+  restaurant_country_code: string | null;
+};
+
+export type CanonicalCategoryOption = {
+  id: string;
+  slug: string;
+  names: Record<string, string>;
+};
+
+export type RestaurantCategoryOption = {
+  id: string;
+  name: string;
+  canonical_category_id: string | null;
+  name_translations: Record<string, string>;
+};
+
+export type MenuScanReviewContext = {
+  existingCategories: RestaurantCategoryOption[];
+  canonicalCategories: CanonicalCategoryOption[];
 };
 
 export async function getAdminMenuScanJobs(params: {
@@ -220,7 +239,7 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
   const { data, error } = await supabase
     .from('menu_scan_jobs')
     .select(
-      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name)'
+      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name, country_code)'
     )
     .eq('id', id)
     .maybeSingle();
@@ -228,12 +247,13 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
   if (error || !data) return null;
 
   const row = data as Record<string, unknown>;
-  const restaurant = row.restaurants as { name: string } | null;
+  const restaurant = row.restaurants as { name: string; country_code: string | null } | null;
 
   return {
     id: row.id as string,
     restaurant_id: row.restaurant_id as string,
     restaurant_name: restaurant?.name ?? null,
+    restaurant_country_code: restaurant?.country_code ?? null,
     created_by: row.created_by as string,
     status: row.status as string,
     attempts: row.attempts as number,
@@ -248,13 +268,60 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
   };
 }
 
-export type RestaurantOption = { id: string; name: string };
+// Loads everything the review UI needs for category resolution: this restaurant's
+// existing menu_categories + the full active canonical_menu_categories taxonomy.
+//
+// canonical_menu_categories + new menu_categories columns aren't yet in the
+// generated Database types — regenerate after applying migration 124. Cast to
+// `any` here so the loose-typed queries don't break the rest of the file.
+export async function getMenuScanReviewContext(
+  restaurantId: string
+): Promise<MenuScanReviewContext> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const svc = createAdminServiceClient() as any;
+
+  const [existingRes, canonicalRes] = await Promise.all([
+    svc
+      .from('menu_categories')
+      .select('id, name, canonical_category_id, name_translations')
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
+    svc
+      .from('canonical_menu_categories')
+      .select('id, slug, names')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+  ]);
+
+  const existingCategories: RestaurantCategoryOption[] = (existingRes.data ?? []).map(
+    (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      name: r.name as string,
+      canonical_category_id: (r.canonical_category_id as string | null) ?? null,
+      name_translations: (r.name_translations as Record<string, string> | null) ?? {},
+    })
+  );
+
+  const canonicalCategories: CanonicalCategoryOption[] = (canonicalRes.data ?? []).map(
+    (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      slug: r.slug as string,
+      names: (r.names as Record<string, string> | null) ?? {},
+    })
+  );
+
+  return { existingCategories, canonicalCategories };
+}
+
+export type RestaurantOption = { id: string; name: string; city: string | null };
 
 export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
   const supabase = createAdminServiceClient();
   const { data, error } = await supabase
     .from('restaurants')
-    .select('id, name')
+    .select('id, name, city')
+    .eq('skip_menu_scan', false)
     .order('name')
     .limit(200);
   if (error || !data) return [];

@@ -3,12 +3,17 @@
 import { useState, useRef, useCallback, useReducer } from 'react';
 import { supabase } from '@/lib/supabase/browser';
 import { uploadMenuScanPage, type StorageClient } from '@/lib/upload';
-import { adminCreateMenuScanJob } from './actions/menuScan';
+import { adminCreateMenuScanJob, skipMenuScanRestaurant } from './actions/menuScan';
 
-export type RestaurantOption = { id: string; name: string };
+export type RestaurantOption = { id: string; name: string; city: string | null };
 
 interface Props {
   restaurantOptions: RestaurantOption[];
+}
+
+function mapsUrlFor(r: RestaurantOption): string {
+  const q = [r.name, r.city].filter(Boolean).join(' ');
+  return `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
 }
 
 type FileEntry = {
@@ -21,6 +26,7 @@ type JobStatus = { jobId: string; status: 'pending' | 'done' | 'error'; error?: 
 type State = {
   entries: FileEntry[];
   defaultRestaurantId: string;
+  options: RestaurantOption[];
   phase: 'idle' | 'uploading' | 'creating' | 'done' | 'error';
   jobStatuses: JobStatus[];
   errorMessage: string | null;
@@ -28,6 +34,7 @@ type State = {
 
 type Action =
   | { type: 'SET_DEFAULT_RESTAURANT'; restaurantId: string }
+  | { type: 'REMOVE_OPTION'; restaurantId: string }
   | { type: 'ADD_FILES'; files: File[]; defaultRestaurantId: string }
   | { type: 'REMOVE_ENTRY'; index: number }
   | { type: 'SET_ENTRY_RESTAURANT'; index: number; restaurantId: string }
@@ -41,6 +48,22 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_DEFAULT_RESTAURANT':
       return { ...state, defaultRestaurantId: action.restaurantId };
+    case 'REMOVE_OPTION': {
+      const nextOptions = state.options.filter(o => o.id !== action.restaurantId);
+      const nextDefault =
+        state.defaultRestaurantId === action.restaurantId
+          ? (nextOptions[0]?.id ?? '')
+          : state.defaultRestaurantId;
+      const nextEntries = state.entries.map(e =>
+        e.restaurantId === action.restaurantId ? { ...e, restaurantId: nextDefault } : e
+      );
+      return {
+        ...state,
+        options: nextOptions,
+        defaultRestaurantId: nextDefault,
+        entries: nextEntries,
+      };
+    }
     case 'ADD_FILES': {
       const newEntries = action.files.map(f => ({
         file: f,
@@ -133,12 +156,35 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
   const [state, dispatch] = useReducer(reducer, {
     entries: [],
     defaultRestaurantId: initialRestaurantId,
+    options: restaurantOptions,
     phase: 'idle',
     jobStatuses: [],
     errorMessage: null,
   });
 
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+
+  const defaultRestaurant = state.options.find(r => r.id === state.defaultRestaurantId) ?? null;
+
+  const handleSkipDefault = useCallback(async () => {
+    if (!defaultRestaurant) return;
+    const confirmed = window.confirm(
+      `Mark "${defaultRestaurant.name}" as not needing a menu scan? It will be removed from the list.`
+    );
+    if (!confirmed) return;
+    setSkipping(true);
+    try {
+      const result = await skipMenuScanRestaurant(defaultRestaurant.id);
+      if (!result.ok) {
+        dispatch({ type: 'SET_ERROR', message: result.formError ?? 'Failed to skip restaurant' });
+        return;
+      }
+      dispatch({ type: 'REMOVE_OPTION', restaurantId: defaultRestaurant.id });
+    } finally {
+      setSkipping(false);
+    }
+  }, [defaultRestaurant]);
 
   const handleFiles = useCallback(
     async (incoming: FileList | null) => {
@@ -250,24 +296,51 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
       <h2 className="text-base font-semibold">Batch Upload Menu Scan</h2>
 
       {/* Default restaurant picker */}
-      <div className="flex items-center gap-3">
-        <label htmlFor="default-restaurant" className="text-sm font-medium shrink-0">
-          Default restaurant
-        </label>
-        <select
-          id="default-restaurant"
-          value={state.defaultRestaurantId}
-          onChange={e => dispatch({ type: 'SET_DEFAULT_RESTAURANT', restaurantId: e.target.value })}
-          className="flex-1 rounded border border-border px-2 py-1.5 text-sm bg-background"
-          disabled={isProcessing}
-        >
-          <option value="">-- select --</option>
-          {restaurantOptions.map(r => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <label htmlFor="default-restaurant" className="text-sm font-medium shrink-0">
+            Default restaurant
+          </label>
+          <select
+            id="default-restaurant"
+            value={state.defaultRestaurantId}
+            onChange={e =>
+              dispatch({ type: 'SET_DEFAULT_RESTAURANT', restaurantId: e.target.value })
+            }
+            className="flex-1 rounded border border-border px-2 py-1.5 text-sm bg-background"
+            disabled={isProcessing}
+          >
+            <option value="">-- select --</option>
+            {state.options.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+                {r.city ? ` — ${r.city}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        {defaultRestaurant && (
+          <div className="flex items-center gap-4 pl-[calc(theme(spacing.3)+10ch)] -mt-1 text-xs">
+            <a
+              href={mapsUrlFor(defaultRestaurant)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground underline underline-offset-2"
+              title="View on Google Maps"
+            >
+              Google Maps ↗
+            </a>
+            <button
+              type="button"
+              onClick={() => void handleSkipDefault()}
+              disabled={skipping || isProcessing}
+              className="text-muted-foreground hover:text-destructive underline underline-offset-2 disabled:opacity-50"
+              title="This restaurant doesn't need a menu — remove it from the list"
+            >
+              {skipping ? 'Skipping…' : 'Skip'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Drop zone */}
@@ -330,9 +403,10 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
                 className="flex-1 rounded border border-border px-1.5 py-1 text-xs bg-background"
                 disabled={isProcessing}
               >
-                {restaurantOptions.map(r => (
+                {state.options.map(r => (
                   <option key={r.id} value={r.id}>
                     {r.name}
+                    {r.city ? ` — ${r.city}` : ''}
                   </option>
                 ))}
               </select>

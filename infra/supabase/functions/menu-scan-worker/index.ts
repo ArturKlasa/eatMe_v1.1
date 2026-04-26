@@ -30,13 +30,24 @@ const menuExtractionDishSchema = z.object({
   price: z.number().nonnegative().nullable(),
   dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']),
   primary_protein: z.enum(PRIMARY_PROTEINS),
+  // Verbatim section text from the menu, in the source language. Kept for v2
+  // owner-portal back-compat; also doubles as the custom-category name when
+  // canonical_category_slug is null.
   suggested_category_name: z.string().nullable(),
+  // AI's match against the seeded canonical taxonomy (slug). Null when no
+  // clean match — admin will create a custom menu_category from
+  // suggested_category_name in that case.
+  canonical_category_slug: z.string().nullable(),
   source_image_index: z.number().int().min(0),
   confidence: z.number().min(0).max(1),
 });
 
 const MenuExtractionSchema = z.object({
   dishes: z.array(menuExtractionDishSchema),
+  // ISO-639-1 code (en/es/pl/fr/it/de/...) detected from menu text. Null if
+  // mixed/uncertain. Used by admin review to flag mismatch with country-derived
+  // source language.
+  detected_language: z.string().nullable(),
 });
 
 type MenuExtractionResult = z.infer<typeof MenuExtractionSchema>;
@@ -50,7 +61,15 @@ export class NoImagesError extends Error {
 
 // ── Prompt ───────────────────────────────────────────────────────────────────
 
-const EXTRACTION_PROMPT = `You are a menu-extraction assistant. Extract every dish from the provided menu image(s).
+interface CanonicalSlug {
+  slug: string;
+  english_name: string;
+}
+
+function buildExtractionPrompt(canonicalSlugs: CanonicalSlug[]): string {
+  const slugList = canonicalSlugs.map(c => `  - ${c.slug} (${c.english_name})`).join('\n');
+
+  return `You are a menu-extraction assistant. Extract every dish from the provided menu image(s).
 
 For each dish output exactly these fields:
 - name: dish name exactly as written on the menu
@@ -65,12 +84,26 @@ For each dish output exactly these fields:
 - primary_protein: the main protein source — exactly one of:
     chicken | beef | pork | lamb | duck | other_meat | fish | shellfish | eggs | vegetarian | vegan
     Use "vegetarian" for plant-based dishes, "vegan" only when the dish is fully vegan.
-- suggested_category_name: the menu section this dish belongs to (e.g. "Appetizers", "Mains",
-    "Desserts", "Drinks", "Specials"), null if not clear from context
+- suggested_category_name: the menu section this dish belongs to, written exactly as it appears
+    on the menu (verbatim, in the source language). Null if no section header is shown.
+- canonical_category_slug: if the section maps cleanly to one of the canonical slugs listed
+    below, output that slug exactly. Otherwise output null. Match conservatively — when
+    uncertain, prefer null. The slug list is in English but the menu may be in any language;
+    match by meaning, not by spelling.
 - source_image_index: 0-based index of the image this dish was found in
 - confidence: 0.0–1.0 indicating your extraction confidence for this dish
 
-Do NOT include allergens, dietary tags, ingredients, calorie counts, is_template, or any fields beyond those listed above.`;
+After extracting all dishes, also output:
+- detected_language: ISO-639-1 code of the menu's primary language (e.g. "en", "es", "pl",
+    "fr", "it", "de", "pt", "ja", "zh"). Use null if the menu mixes languages or the language
+    is unclear from the text.
+
+Canonical menu-category slugs:
+${slugList}
+
+Do NOT include allergens, dietary tags, ingredients, calorie counts, is_template, or any
+fields beyond those listed above.`;
+}
 
 // ── Image helpers ─────────────────────────────────────────────────────────────
 
@@ -101,7 +134,8 @@ const FALLBACK_MODEL = 'gpt-4o-mini';
 async function callExtraction(
   openai: OpenAI,
   model: string,
-  imageBase64List: string[]
+  imageBase64List: string[],
+  prompt: string
 ): Promise<MenuExtractionResult> {
   const completion = await openai.beta.chat.completions.parse({
     model,
@@ -109,7 +143,7 @@ async function callExtraction(
       {
         role: 'user',
         content: [
-          { type: 'text', text: EXTRACTION_PROMPT },
+          { type: 'text', text: prompt },
           ...imageBase64List.map(b64 => ({
             type: 'image_url' as const,
             image_url: {
@@ -132,25 +166,43 @@ async function callExtraction(
 async function runExtraction(
   openai: OpenAI,
   jobAttempts: number,
-  imageBase64List: string[]
+  imageBase64List: string[],
+  prompt: string
 ): Promise<MenuExtractionResult> {
   // Use fallback model when already on second+ attempt or on 429 from primary.
   const primaryModel = jobAttempts >= 2 ? FALLBACK_MODEL : PRIMARY_MODEL;
 
   if (primaryModel === PRIMARY_MODEL) {
     try {
-      return await callExtraction(openai, PRIMARY_MODEL, imageBase64List);
+      return await callExtraction(openai, PRIMARY_MODEL, imageBase64List, prompt);
     } catch (e) {
       if (e instanceof OpenAI.RateLimitError) {
         // 429 on primary → immediately retry with fallback
         console.warn('Primary model rate-limited; falling back to gpt-4o-mini');
-        return await callExtraction(openai, FALLBACK_MODEL, imageBase64List);
+        return await callExtraction(openai, FALLBACK_MODEL, imageBase64List, prompt);
       }
       throw e;
     }
   } else {
-    return await callExtraction(openai, FALLBACK_MODEL, imageBase64List);
+    return await callExtraction(openai, FALLBACK_MODEL, imageBase64List, prompt);
   }
+}
+
+// deno-lint-ignore no-explicit-any
+async function fetchCanonicalSlugs(supa: any): Promise<CanonicalSlug[]> {
+  const { data, error } = await supa
+    .from('canonical_menu_categories')
+    .select('slug, names')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  if (error) {
+    console.warn('fetchCanonicalSlugs failed; falling back to empty list:', error.message);
+    return [];
+  }
+  return (data ?? []).map((r: { slug: string; names: Record<string, string> }) => ({
+    slug: r.slug,
+    english_name: r.names?.en ?? r.slug,
+  }));
 }
 
 // ── Core worker logic ─────────────────────────────────────────────────────────
@@ -172,6 +224,11 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
   const { supa, openai } = deps;
   const processed: string[] = [];
   const errors: Array<{ id: string; error: string }> = [];
+
+  // Fetch canonical-category slugs once per tick — they're injected into the
+  // prompt so the AI can match menu sections against the seeded taxonomy.
+  const canonicalSlugs = await fetchCanonicalSlugs(supa);
+  const prompt = buildExtractionPrompt(canonicalSlugs);
 
   for (let i = 0; i < MAX_PER_TICK; i++) {
     const { data: job, error: claimError } = await supa.rpc('claim_menu_scan_job', {
@@ -195,7 +252,7 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
         imageBase64List.push(await downloadImageAsBase64(supa, imgRef));
       }
 
-      const result = await runExtraction(openai, job.attempts, imageBase64List);
+      const result = await runExtraction(openai, job.attempts, imageBase64List, prompt);
 
       const { error: completeError } = await supa.rpc('complete_menu_scan_job', {
         p_id: job.id,

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useReducer } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/browser';
 import { replayMenuScan, adminUpdateJobStatus } from '../actions/menuScan';
-import type { AdminMenuScanJobDetail } from '@/lib/auth/dal';
+import type { AdminMenuScanJobDetail, MenuScanReviewContext } from '@/lib/auth/dal';
+import { ReviewDishEditor, type ExtractedDish } from './ReviewDishEditor';
 
 type ReplayModel = 'gpt-4o-2024-11-20' | 'gpt-4o-mini';
 
@@ -30,6 +32,7 @@ type JobRow = {
   id: string;
   restaurant_id: string;
   restaurant_name: string | null;
+  restaurant_country_code: string | null;
   status: string;
   attempts: number;
   last_error: string | null;
@@ -91,9 +94,10 @@ function reducer(state: State, action: Action): State {
 
 interface Props {
   job: AdminMenuScanJobDetail;
+  reviewContext: MenuScanReviewContext | null;
 }
 
-export function AdminJobShell({ job: initialJob }: Props) {
+export function AdminJobShell({ job: initialJob, reviewContext }: Props) {
   const [state, dispatch] = useReducer(reducer, {
     job: initialJob,
     selectedModel: 'gpt-4o-2024-11-20',
@@ -153,8 +157,15 @@ export function AdminJobShell({ job: initialJob }: Props) {
   };
 
   // Parse result_json for dish count and confidence
-  const resultJson = job.result_json as { dishes?: Array<{ confidence?: number }> } | null;
+  const resultJson = job.result_json as {
+    dishes?: ExtractedDish[];
+    detected_language?: string | null;
+  } | null;
   const dishes = resultJson?.dishes ?? null;
+  const detectedLanguage = resultJson?.detected_language ?? null;
+  const savedDishIds = Array.isArray(job.saved_dish_ids) ? (job.saved_dish_ids as string[]) : null;
+  const showEditor =
+    job.status === 'needs_review' && dishes !== null && dishes.length > 0 && reviewContext !== null;
 
   return (
     <div className="space-y-6">
@@ -236,47 +247,88 @@ export function AdminJobShell({ job: initialJob }: Props) {
         )}
       </div>
 
-      {/* Raw JSON inspector */}
-      <div className="rounded-lg border border-border p-6 space-y-4">
-        <h2 className="text-sm font-semibold">Raw JSON Inspector</h2>
+      {/* Review editor */}
+      {showEditor && dishes && reviewContext && (
+        <div className="rounded-lg border border-border p-6">
+          <ReviewDishEditor
+            jobId={job.id}
+            initialDishes={dishes}
+            countryCode={job.restaurant_country_code}
+            detectedLanguage={detectedLanguage}
+            existingCategories={reviewContext.existingCategories}
+            canonicalCategories={reviewContext.canonicalCategories}
+          />
+        </div>
+      )}
 
-        {dishes !== null && (
-          <div className="flex gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground text-xs">Dishes extracted: </span>
-              <span className="font-semibold">{dishes.length}</span>
-            </div>
-            {dishes.length > 0 && (
-              <div>
-                <span className="text-muted-foreground text-xs">Avg confidence: </span>
-                <span className="font-semibold">
-                  {(
-                    dishes.reduce((sum, d) => sum + (d.confidence ?? 0), 0) / dishes.length
-                  ).toFixed(2)}
-                </span>
-              </div>
+      {/* Completed summary */}
+      {job.status === 'completed' && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-6 space-y-2 dark:border-green-900/40 dark:bg-green-900/10">
+          <h2 className="text-sm font-semibold text-green-900 dark:text-green-200">
+            Imported successfully
+          </h2>
+          <p className="text-sm text-green-900/80 dark:text-green-200/80">
+            {savedDishIds
+              ? `${savedDishIds.length} dish${savedDishIds.length === 1 ? '' : 'es'}`
+              : 'Dishes'}{' '}
+            saved as drafts
+            {job.saved_at && ` on ${new Date(job.saved_at).toLocaleString()}`}
+            {job.restaurant_id && (
+              <>
+                {' '}
+                — see them in{' '}
+                <Link href={`/restaurants/${job.restaurant_id}`} className="underline font-medium">
+                  the restaurant
+                </Link>
+                .
+              </>
             )}
+          </p>
+        </div>
+      )}
+
+      {/* Raw JSON (debug) */}
+      <details className="rounded-lg border border-border p-4">
+        <summary className="text-sm font-semibold cursor-pointer select-none text-muted-foreground hover:text-foreground">
+          Raw JSON (debug)
+        </summary>
+        <div className="mt-4 space-y-4">
+          {dishes !== null && (
+            <div className="flex gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">Dishes extracted: </span>
+                <span className="font-semibold">{dishes.length}</span>
+              </div>
+              {dishes.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Avg confidence: </span>
+                  <span className="font-semibold">
+                    {(
+                      dishes.reduce((sum, d) => sum + (d.confidence ?? 0), 0) / dishes.length
+                    ).toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">result_json</p>
+            <pre className="text-xs bg-muted/30 rounded border border-border p-4 overflow-auto max-h-96 whitespace-pre-wrap break-all">
+              {job.result_json !== null && job.result_json !== undefined
+                ? JSON.stringify(job.result_json, null, 2)
+                : 'null'}
+            </pre>
           </div>
-        )}
-
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">result_json</p>
-          <pre className="text-xs bg-muted/30 rounded border border-border p-4 overflow-auto max-h-96 whitespace-pre-wrap break-all">
-            {job.result_json !== null && job.result_json !== undefined
-              ? JSON.stringify(job.result_json, null, 2)
-              : 'null'}
-          </pre>
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">input</p>
+            <pre className="text-xs bg-muted/30 rounded border border-border p-4 overflow-auto max-h-48 whitespace-pre-wrap break-all">
+              {job.input !== null && job.input !== undefined
+                ? JSON.stringify(job.input, null, 2)
+                : 'null'}
+            </pre>
+          </div>
         </div>
-
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">input</p>
-          <pre className="text-xs bg-muted/30 rounded border border-border p-4 overflow-auto max-h-48 whitespace-pre-wrap break-all">
-            {job.input !== null && job.input !== undefined
-              ? JSON.stringify(job.input, null, 2)
-              : 'null'}
-          </pre>
-        </div>
-      </div>
+      </details>
 
       {/* Replay panel */}
       <div className="rounded-lg border border-border p-6 space-y-4">

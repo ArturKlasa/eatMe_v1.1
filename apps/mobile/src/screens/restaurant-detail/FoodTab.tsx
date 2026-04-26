@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing } from '@/styles/theme';
 import { useTranslation } from 'react-i18next';
-import { type RestaurantWithMenus } from '../../lib/supabase';
+import { type RestaurantWithMenus, type MenuCategoryWithCanonical } from '../../lib/supabase';
 import { type PermanentFilters, type IngredientToAvoid } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { groupDishesByParent, type DishWithGroups } from './DishGrouping';
@@ -42,6 +42,17 @@ function sortedDishes(
   return sortDishesByFilter(classified);
 }
 
+// Display name resolution for menu_categories rows.
+// Order: name_translations[locale] → canonical.names[locale] → canonical.names.en → name (source language).
+function resolveCategoryName(category: MenuCategoryWithCanonical, locale: string): string {
+  return (
+    category.name_translations?.[locale] ??
+    category.canonical?.names?.[locale] ??
+    category.canonical?.names?.en ??
+    category.name
+  );
+}
+
 export function FoodTab({
   restaurant,
   categoryDishes,
@@ -51,8 +62,9 @@ export function FoodTab({
   loadCategoryDishes,
   onDishPress,
 }: FoodTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const locale = i18n.language;
 
   const [pickerGroup, setPickerGroup] = useState<{
     parent: DishWithGroups;
@@ -79,7 +91,7 @@ export function FoodTab({
             return (
               <View key={category.id} style={styles.menuCategory}>
                 <TouchableOpacity onPress={() => loadCategoryDishes(category.id)} activeOpacity={1}>
-                  <Text style={styles.categoryName}>{category.name}</Text>
+                  <Text style={styles.categoryName}>{resolveCategoryName(category, locale)}</Text>
                 </TouchableOpacity>
                 {categoryState === 'loading' && (
                   <ActivityIndicator

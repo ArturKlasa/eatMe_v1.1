@@ -12,7 +12,7 @@ export type Database = {
         Row: {
           action: string;
           admin_email: string;
-          admin_id: string;
+          admin_id: string | null;
           created_at: string;
           id: string;
           ip_address: unknown;
@@ -25,7 +25,7 @@ export type Database = {
         Insert: {
           action: string;
           admin_email: string;
-          admin_id: string;
+          admin_id?: string | null;
           created_at?: string;
           id?: string;
           ip_address?: unknown;
@@ -38,7 +38,7 @@ export type Database = {
         Update: {
           action?: string;
           admin_email?: string;
-          admin_id?: string;
+          admin_id?: string | null;
           created_at?: string;
           id?: string;
           ip_address?: unknown;
@@ -170,6 +170,68 @@ export type Database = {
         };
         Relationships: [];
       };
+      canonical_menu_categories: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          names: Json;
+          slug: string;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          names?: Json;
+          slug: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          names?: Json;
+          slug?: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      concept_translations: {
+        Row: {
+          concept_id: string;
+          created_at: string;
+          language: string;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          concept_id: string;
+          created_at?: string;
+          language: string;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          concept_id?: string;
+          created_at?: string;
+          language?: string;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'concept_translations_concept_id_fkey';
+            columns: ['concept_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_concepts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       dietary_tags: {
         Row: {
           category: string | null;
@@ -291,6 +353,7 @@ export type Database = {
       dish_course_items: {
         Row: {
           course_id: string;
+          created_at: string | null;
           id: string;
           links_to_dish_id: string | null;
           option_label: string;
@@ -299,6 +362,7 @@ export type Database = {
         };
         Insert: {
           course_id: string;
+          created_at?: string | null;
           id?: string;
           links_to_dish_id?: string | null;
           option_label: string;
@@ -307,61 +371,101 @@ export type Database = {
         };
         Update: {
           course_id?: string;
+          created_at?: string | null;
           id?: string;
           links_to_dish_id?: string | null;
           option_label?: string;
           price_delta?: number;
           sort_order?: number;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'dish_course_items_course_id_fkey';
+            columns: ['course_id'];
+            isOneToOne: false;
+            referencedRelation: 'dish_courses';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dish_course_items_links_to_dish_id_fkey';
+            columns: ['links_to_dish_id'];
+            isOneToOne: false;
+            referencedRelation: 'dishes';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       dish_courses: {
         Row: {
           choice_type: string;
           course_name: string | null;
           course_number: number;
-          dish_id: string;
+          created_at: string | null;
           id: string;
+          parent_dish_id: string;
           required_count: number;
         };
         Insert: {
           choice_type: string;
           course_name?: string | null;
           course_number: number;
-          dish_id: string;
+          created_at?: string | null;
           id?: string;
+          parent_dish_id: string;
           required_count?: number;
         };
         Update: {
           choice_type?: string;
           course_name?: string | null;
           course_number?: number;
-          dish_id?: string;
+          created_at?: string | null;
           id?: string;
+          parent_dish_id?: string;
           required_count?: number;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'dish_courses_parent_dish_id_fkey';
+            columns: ['parent_dish_id'];
+            isOneToOne: false;
+            referencedRelation: 'dishes';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       dish_ingredients: {
         Row: {
+          concept_id: string;
           created_at: string | null;
           dish_id: string;
           ingredient_id: string;
           quantity: string | null;
+          variant_id: string | null;
         };
         Insert: {
+          concept_id: string;
           created_at?: string | null;
           dish_id: string;
           ingredient_id: string;
           quantity?: string | null;
+          variant_id?: string | null;
         };
         Update: {
+          concept_id?: string;
           created_at?: string | null;
           dish_id?: string;
           ingredient_id?: string;
           quantity?: string | null;
+          variant_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'dish_ingredients_concept_id_fkey';
+            columns: ['concept_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_concepts';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'dish_ingredients_dish_id_fkey';
             columns: ['dish_id'];
@@ -374,6 +478,13 @@ export type Database = {
             columns: ['ingredient_id'];
             isOneToOne: false;
             referencedRelation: 'canonical_ingredients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'dish_ingredients_variant_id_fkey';
+            columns: ['variant_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_variants';
             referencedColumns: ['id'];
           },
         ];
@@ -389,7 +500,7 @@ export type Database = {
           source: string | null;
           tags: string[] | null;
           updated_at: string | null;
-          user_id: string;
+          user_id: string | null;
           visit_id: string | null;
         };
         Insert: {
@@ -402,7 +513,7 @@ export type Database = {
           source?: string | null;
           tags?: string[] | null;
           updated_at?: string | null;
-          user_id: string;
+          user_id?: string | null;
           visit_id?: string | null;
         };
         Update: {
@@ -415,7 +526,7 @@ export type Database = {
           source?: string | null;
           tags?: string[] | null;
           updated_at?: string | null;
-          user_id?: string;
+          user_id?: string | null;
           visit_id?: string | null;
         };
         Relationships: [
@@ -449,7 +560,7 @@ export type Database = {
           id: string;
           photo_url: string;
           updated_at: string | null;
-          user_id: string;
+          user_id: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -457,7 +568,7 @@ export type Database = {
           id?: string;
           photo_url: string;
           updated_at?: string | null;
-          user_id: string;
+          user_id?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -465,7 +576,7 @@ export type Database = {
           id?: string;
           photo_url?: string;
           updated_at?: string | null;
-          user_id?: string;
+          user_id?: string | null;
         };
         Relationships: [
           {
@@ -494,6 +605,7 @@ export type Database = {
           embedding_input: string | null;
           enrichment_confidence: string | null;
           enrichment_payload: Json | null;
+          enrichment_review_status: string | null;
           enrichment_source: string;
           enrichment_status: string;
           id: string;
@@ -534,6 +646,7 @@ export type Database = {
           embedding_input?: string | null;
           enrichment_confidence?: string | null;
           enrichment_payload?: Json | null;
+          enrichment_review_status?: string | null;
           enrichment_source?: string;
           enrichment_status?: string;
           id?: string;
@@ -574,6 +687,7 @@ export type Database = {
           embedding_input?: string | null;
           enrichment_confidence?: string | null;
           enrichment_payload?: Json | null;
+          enrichment_review_status?: string | null;
           enrichment_source?: string;
           enrichment_status?: string;
           id?: string;
@@ -624,8 +738,8 @@ export type Database = {
             foreignKeyName: 'dishes_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'dishes_restaurant_id_fkey';
@@ -713,8 +827,8 @@ export type Database = {
             foreignKeyName: 'eat_together_recommendations_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'eat_together_recommendations_restaurant_id_fkey';
@@ -771,8 +885,8 @@ export type Database = {
             foreignKeyName: 'eat_together_sessions_selected_restaurant_id_fkey';
             columns: ['selected_restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'eat_together_sessions_selected_restaurant_id_fkey';
@@ -810,8 +924,8 @@ export type Database = {
             foreignKeyName: 'eat_together_votes_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'eat_together_votes_restaurant_id_fkey';
@@ -915,8 +1029,140 @@ export type Database = {
           },
         ];
       };
+      ingredient_aliases_v2: {
+        Row: {
+          alias_text: string;
+          concept_id: string;
+          created_at: string;
+          id: string;
+          language: string;
+          variant_id: string | null;
+        };
+        Insert: {
+          alias_text: string;
+          concept_id: string;
+          created_at?: string;
+          id?: string;
+          language: string;
+          variant_id?: string | null;
+        };
+        Update: {
+          alias_text?: string;
+          concept_id?: string;
+          created_at?: string;
+          id?: string;
+          language?: string;
+          variant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ingredient_aliases_v2_concept_id_fkey';
+            columns: ['concept_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_concepts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ingredient_aliases_v2_variant_id_fkey';
+            columns: ['variant_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_variants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ingredient_aliases_v2_variant_matches_concept';
+            columns: ['concept_id', 'variant_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_variants';
+            referencedColumns: ['concept_id', 'id'];
+          },
+        ];
+      };
+      ingredient_concepts: {
+        Row: {
+          allergens: string[];
+          created_at: string;
+          family: string;
+          id: string;
+          is_vegan: boolean;
+          is_vegetarian: boolean;
+          legacy_canonical_id: string | null;
+          slug: string;
+          updated_at: string;
+        };
+        Insert: {
+          allergens?: string[];
+          created_at?: string;
+          family?: string;
+          id?: string;
+          is_vegan?: boolean;
+          is_vegetarian?: boolean;
+          legacy_canonical_id?: string | null;
+          slug: string;
+          updated_at?: string;
+        };
+        Update: {
+          allergens?: string[];
+          created_at?: string;
+          family?: string;
+          id?: string;
+          is_vegan?: boolean;
+          is_vegetarian?: boolean;
+          legacy_canonical_id?: string | null;
+          slug?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ingredient_concepts_legacy_canonical_id_fkey';
+            columns: ['legacy_canonical_id'];
+            isOneToOne: false;
+            referencedRelation: 'canonical_ingredients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ingredient_variants: {
+        Row: {
+          concept_id: string;
+          created_at: string;
+          id: string;
+          is_default: boolean;
+          modifier: string | null;
+          needs_review: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          concept_id: string;
+          created_at?: string;
+          id?: string;
+          is_default?: boolean;
+          modifier?: string | null;
+          needs_review?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          concept_id?: string;
+          created_at?: string;
+          id?: string;
+          is_default?: boolean;
+          modifier?: string | null;
+          needs_review?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ingredient_variants_concept_id_fkey';
+            columns: ['concept_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_concepts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       menu_categories: {
         Row: {
+          canonical_category_id: string | null;
           created_at: string | null;
           description: string | null;
           display_order: number | null;
@@ -924,11 +1170,14 @@ export type Database = {
           is_active: boolean | null;
           menu_id: string | null;
           name: string;
+          name_translations: Json;
           restaurant_id: string | null;
+          source_language_code: string | null;
           type: string | null;
           updated_at: string | null;
         };
         Insert: {
+          canonical_category_id?: string | null;
           created_at?: string | null;
           description?: string | null;
           display_order?: number | null;
@@ -936,11 +1185,14 @@ export type Database = {
           is_active?: boolean | null;
           menu_id?: string | null;
           name?: string;
+          name_translations?: Json;
           restaurant_id?: string | null;
+          source_language_code?: string | null;
           type?: string | null;
           updated_at?: string | null;
         };
         Update: {
+          canonical_category_id?: string | null;
           created_at?: string | null;
           description?: string | null;
           display_order?: number | null;
@@ -948,11 +1200,20 @@ export type Database = {
           is_active?: boolean | null;
           menu_id?: string | null;
           name?: string;
+          name_translations?: Json;
           restaurant_id?: string | null;
+          source_language_code?: string | null;
           type?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'menu_categories_canonical_category_id_fkey';
+            columns: ['canonical_category_id'];
+            isOneToOne: false;
+            referencedRelation: 'canonical_menu_categories';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'menu_categories_menu_id_fkey';
             columns: ['menu_id'];
@@ -964,8 +1225,8 @@ export type Database = {
             foreignKeyName: 'menus_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'menus_restaurant_id_fkey';
@@ -1013,6 +1274,9 @@ export type Database = {
           dishes_found: number | null;
           dishes_saved: number | null;
           error_message: string | null;
+          extraction_completion_tokens: number | null;
+          extraction_model: string | null;
+          extraction_prompt_tokens: number | null;
           id: string;
           image_count: number;
           image_filenames: string[] | null;
@@ -1025,7 +1289,7 @@ export type Database = {
           result_json: Json | null;
           saved_at: string | null;
           saved_dish_ids: Json | null;
-          status: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
+          status: string;
           updated_at: string | null;
         };
         Insert: {
@@ -1035,6 +1299,9 @@ export type Database = {
           dishes_found?: number | null;
           dishes_saved?: number | null;
           error_message?: string | null;
+          extraction_completion_tokens?: number | null;
+          extraction_model?: string | null;
+          extraction_prompt_tokens?: number | null;
           id?: string;
           image_count?: number;
           image_filenames?: string[] | null;
@@ -1047,7 +1314,7 @@ export type Database = {
           result_json?: Json | null;
           saved_at?: string | null;
           saved_dish_ids?: Json | null;
-          status?: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
+          status?: string;
           updated_at?: string | null;
         };
         Update: {
@@ -1057,6 +1324,9 @@ export type Database = {
           dishes_found?: number | null;
           dishes_saved?: number | null;
           error_message?: string | null;
+          extraction_completion_tokens?: number | null;
+          extraction_model?: string | null;
+          extraction_prompt_tokens?: number | null;
           id?: string;
           image_count?: number;
           image_filenames?: string[] | null;
@@ -1069,7 +1339,7 @@ export type Database = {
           result_json?: Json | null;
           saved_at?: string | null;
           saved_dish_ids?: Json | null;
-          status?: 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed';
+          status?: string;
           updated_at?: string | null;
         };
         Relationships: [
@@ -1077,8 +1347,8 @@ export type Database = {
             foreignKeyName: 'menu_scan_jobs_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'menu_scan_jobs_restaurant_id_fkey';
@@ -1103,7 +1373,7 @@ export type Database = {
           name: string;
           restaurant_id: string;
           schedule_type: string;
-          status: 'draft' | 'published' | 'archived';
+          status: string;
           updated_at: string | null;
         };
         Insert: {
@@ -1119,7 +1389,7 @@ export type Database = {
           name: string;
           restaurant_id: string;
           schedule_type?: string;
-          status?: 'draft' | 'published' | 'archived';
+          status?: string;
           updated_at?: string | null;
         };
         Update: {
@@ -1135,7 +1405,7 @@ export type Database = {
           name?: string;
           restaurant_id?: string;
           schedule_type?: string;
-          status?: 'draft' | 'published' | 'archived';
+          status?: string;
           updated_at?: string | null;
         };
         Relationships: [
@@ -1143,8 +1413,8 @@ export type Database = {
             foreignKeyName: 'menus_new_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'menus_new_restaurant_id_fkey';
@@ -1210,8 +1480,8 @@ export type Database = {
             foreignKeyName: 'option_groups_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'option_groups_restaurant_id_fkey';
@@ -1286,7 +1556,7 @@ export type Database = {
           question_type: string;
           response: boolean;
           restaurant_id: string;
-          user_id: string;
+          user_id: string | null;
           visit_id: string | null;
         };
         Insert: {
@@ -1295,7 +1565,7 @@ export type Database = {
           question_type: string;
           response: boolean;
           restaurant_id: string;
-          user_id: string;
+          user_id?: string | null;
           visit_id?: string | null;
         };
         Update: {
@@ -1304,7 +1574,7 @@ export type Database = {
           question_type?: string;
           response?: boolean;
           restaurant_id?: string;
-          user_id?: string;
+          user_id?: string | null;
           visit_id?: string | null;
         };
         Relationships: [
@@ -1312,8 +1582,8 @@ export type Database = {
             foreignKeyName: 'restaurant_experience_responses_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'restaurant_experience_responses_restaurant_id_fkey';
@@ -1418,7 +1688,7 @@ export type Database = {
           service_speed: string | null;
           skip_menu_scan: boolean;
           state: string | null;
-          status: 'draft' | 'published' | 'archived';
+          status: string;
           suspended_at: string | null;
           suspended_by: string | null;
           suspension_reason: string | null;
@@ -1455,7 +1725,7 @@ export type Database = {
           service_speed?: string | null;
           skip_menu_scan?: boolean;
           state?: string | null;
-          status?: 'draft' | 'published' | 'archived';
+          status?: string;
           suspended_at?: string | null;
           suspended_by?: string | null;
           suspension_reason?: string | null;
@@ -1492,7 +1762,7 @@ export type Database = {
           service_speed?: string | null;
           skip_menu_scan?: boolean;
           state?: string | null;
-          status?: 'draft' | 'published' | 'archived';
+          status?: string;
           suspended_at?: string | null;
           suspended_by?: string | null;
           suspension_reason?: string | null;
@@ -1585,6 +1855,27 @@ export type Database = {
           proj4text?: string | null;
           srid?: number;
           srtext?: string | null;
+        };
+        Relationships: [];
+      };
+      user_badges: {
+        Row: {
+          badge_type: string;
+          earned_at: string | null;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          badge_type: string;
+          earned_at?: string | null;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          badge_type?: string;
+          earned_at?: string | null;
+          id?: string;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -1718,6 +2009,7 @@ export type Database = {
           meal_times: Json | null;
           onboarding_completed: boolean | null;
           onboarding_completed_at: string | null;
+          primary_protein: string | null;
           protein_preferences: Json | null;
           religious_restrictions: string[] | null;
           service_preferences: Json | null;
@@ -1738,6 +2030,7 @@ export type Database = {
           meal_times?: Json | null;
           onboarding_completed?: boolean | null;
           onboarding_completed_at?: string | null;
+          primary_protein?: string | null;
           protein_preferences?: Json | null;
           religious_restrictions?: string[] | null;
           service_preferences?: Json | null;
@@ -1758,6 +2051,7 @@ export type Database = {
           meal_times?: Json | null;
           onboarding_completed?: boolean | null;
           onboarding_completed_at?: string | null;
+          primary_protein?: string | null;
           protein_preferences?: Json | null;
           religious_restrictions?: string[] | null;
           service_preferences?: Json | null;
@@ -1790,6 +2084,36 @@ export type Database = {
           id?: string;
           is_active?: boolean | null;
           started_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      user_streaks: {
+        Row: {
+          created_at: string | null;
+          current_streak: number | null;
+          id: string;
+          last_rating_week: string | null;
+          longest_streak: number | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          current_streak?: number | null;
+          id?: string;
+          last_rating_week?: string | null;
+          longest_streak?: number | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          current_streak?: number | null;
+          id?: string;
+          last_rating_week?: string | null;
+          longest_streak?: number | null;
+          updated_at?: string | null;
           user_id?: string;
         };
         Relationships: [];
@@ -1830,8 +2154,8 @@ export type Database = {
             foreignKeyName: 'user_visits_restaurant_id_fkey';
             columns: ['restaurant_id'];
             isOneToOne: false;
-            referencedRelation: 'restaurant_ratings_summary';
-            referencedColumns: ['restaurant_id'];
+            referencedRelation: 'recent_viewed_restaurants';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'user_visits_restaurant_id_fkey';
@@ -1845,73 +2169,6 @@ export type Database = {
             columns: ['session_id'];
             isOneToOne: false;
             referencedRelation: 'user_sessions';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      user_badges: {
-        Row: {
-          badge_type: string;
-          earned_at: string | null;
-          id: string;
-          user_id: string;
-        };
-        Insert: {
-          badge_type: string;
-          earned_at?: string | null;
-          id?: string;
-          user_id: string;
-        };
-        Update: {
-          badge_type?: string;
-          earned_at?: string | null;
-          id?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'user_badges_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      user_streaks: {
-        Row: {
-          created_at: string | null;
-          current_streak: number | null;
-          id: string;
-          last_rating_week: string | null;
-          longest_streak: number | null;
-          updated_at: string | null;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          current_streak?: number | null;
-          id?: string;
-          last_rating_week?: string | null;
-          longest_streak?: number | null;
-          updated_at?: string | null;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string | null;
-          current_streak?: number | null;
-          id?: string;
-          last_rating_week?: string | null;
-          longest_streak?: number | null;
-          updated_at?: string | null;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'user_streaks_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: true;
-            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
@@ -1948,6 +2205,38 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [];
+      };
+      variant_translations: {
+        Row: {
+          created_at: string;
+          language: string;
+          name: string;
+          updated_at: string;
+          variant_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          language: string;
+          name: string;
+          updated_at?: string;
+          variant_id: string;
+        };
+        Update: {
+          created_at?: string;
+          language?: string;
+          name?: string;
+          updated_at?: string;
+          variant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'variant_translations_variant_id_fkey';
+            columns: ['variant_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredient_variants';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: {
@@ -2025,6 +2314,19 @@ export type Database = {
           f_table_schema?: unknown;
           srid?: number | null;
           type?: string | null;
+        };
+        Relationships: [];
+      };
+      recent_viewed_restaurants: {
+        Row: {
+          address: string | null;
+          cuisine_types: string[] | null;
+          id: string | null;
+          image_url: string | null;
+          name: string | null;
+          rating: number | null;
+          user_id: string | null;
+          viewed_at: string | null;
         };
         Relationships: [];
       };
@@ -2210,9 +2512,56 @@ export type Database = {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number };
         Returns: number;
       };
+      claim_menu_scan_job: {
+        Args: { p_lock_seconds?: number };
+        Returns: {
+          attempts: number;
+          created_at: string | null;
+          created_by: string | null;
+          dishes_found: number | null;
+          dishes_saved: number | null;
+          error_message: string | null;
+          extraction_completion_tokens: number | null;
+          extraction_model: string | null;
+          extraction_prompt_tokens: number | null;
+          id: string;
+          image_count: number;
+          image_filenames: string[] | null;
+          image_storage_paths: string[] | null;
+          input: Json | null;
+          last_error: string | null;
+          locked_until: string | null;
+          processing_ms: number | null;
+          restaurant_id: string;
+          result_json: Json | null;
+          saved_at: string | null;
+          saved_dish_ids: Json | null;
+          status: string;
+          updated_at: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'menu_scan_jobs';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      complete_menu_scan_job: {
+        Args: { p_id: string; p_result: Json };
+        Returns: undefined;
+      };
+      compute_dish_allergens: { Args: { p_dish_id: string }; Returns: string[] };
+      compute_dish_dietary_tags: {
+        Args: { p_dish_id: string };
+        Returns: string[];
+      };
       compute_dish_protein_families: {
         Args: { p_dish_id: string };
         Returns: undefined;
+      };
+      confirm_menu_scan: {
+        Args: { p_idempotency_key: string; p_job_id: string; p_payload: Json };
+        Returns: Json;
       };
       disablelongtransactions: { Args: never; Returns: string };
       dishes_within_radius: {
@@ -2265,6 +2614,10 @@ export type Database = {
       enablelongtransactions: { Args: never; Returns: string };
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean };
       expire_old_sessions: { Args: never; Returns: number };
+      fail_menu_scan_job: {
+        Args: { p_error: string; p_id: string; p_max_attempts?: number };
+        Returns: undefined;
+      };
       generate_candidates: {
         Args: {
           p_allergens?: string[];
@@ -2300,6 +2653,7 @@ export type Database = {
           popularity_score: number;
           price: number;
           price_per_person: number;
+          primary_protein: string;
           protein_canonical_names: string[];
           protein_families: string[];
           restaurant_cuisines: string[];
@@ -2416,6 +2770,27 @@ export type Database = {
         Args: { p_session_id: string };
         Returns: number;
       };
+      get_admin_restaurants: {
+        Args: {
+          p_city?: string;
+          p_is_active?: boolean;
+          p_limit?: number;
+          p_offset?: number;
+          p_search?: string;
+          p_status?: string;
+        };
+        Returns: {
+          city: string;
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          name: string;
+          owner_email: string;
+          owner_id: string;
+          status: string;
+          total_count: number;
+        }[];
+      };
       get_admin_user_counts: { Args: never; Returns: Record<string, unknown> };
       get_group_candidates: {
         Args: {
@@ -2502,14 +2877,20 @@ export type Database = {
       get_vote_results: {
         Args: { p_session_id: string };
         Returns: {
-          percentage: number;
+          cuisine_types: string[];
+          restaurant_address: string;
           restaurant_id: string;
-          total_voters: number;
+          restaurant_name: string;
           vote_count: number;
+          voters: string[];
         }[];
       };
       gettransactionid: { Args: never; Returns: unknown };
       is_admin: { Args: never; Returns: boolean };
+      is_restaurant_open_now: {
+        Args: { p_now?: string; p_open_hours: Json };
+        Returns: boolean;
+      };
       is_session_host: {
         Args: { p_session_id: string; p_user_id: string };
         Returns: boolean;
@@ -2574,6 +2955,7 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: undefined;
       };
+      refresh_dish_dietary: { Args: { p_dish_id: string }; Returns: undefined };
       refresh_dish_ratings_summary: { Args: never; Returns: undefined };
       refresh_materialized_views: { Args: never; Returns: undefined };
       refresh_restaurant_ratings_summary: { Args: never; Returns: undefined };
@@ -2588,6 +2970,8 @@ export type Database = {
         }[];
       };
       run_analyze_dishes: { Args: never; Returns: undefined };
+      show_limit: { Args: never; Returns: number };
+      show_trgm: { Args: { '': string }; Returns: string[] };
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown };
         Returns: unknown;
@@ -3193,6 +3577,7 @@ export type Database = {
         };
         Returns: boolean;
       };
+      validate_allergen_codes: { Args: { codes: string[] }; Returns: boolean };
     };
     Enums: {
       location_mode: 'host_location' | 'midpoint' | 'max_radius';

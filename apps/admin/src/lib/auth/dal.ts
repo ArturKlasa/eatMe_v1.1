@@ -398,6 +398,169 @@ export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
   return data as RestaurantOption[];
 }
 
+// ── Restaurant Menus (admin verifier view) ────────────────────────────────────
+
+export type AdminMenuDish = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  status: string;
+  is_available: boolean | null;
+  is_template: boolean;
+  dish_kind: string;
+  primary_protein: string | null;
+  menu_category_id: string | null;
+  dish_category_id: string | null;
+  dish_category_name: string | null;
+  source_image_index: number | null;
+  serves: number | null;
+};
+
+export type AdminMenuCategory = {
+  id: string;
+  menu_id: string | null;
+  name: string;
+  description: string | null;
+  display_order: number | null;
+  is_active: boolean;
+  canonical_category_id: string | null;
+  source_language_code: string | null;
+  name_translations: Record<string, string>;
+  description_translations: Record<string, string>;
+  dishes: AdminMenuDish[];
+};
+
+export type AdminMenu = {
+  id: string;
+  name: string;
+  description: string | null;
+  menu_type: string;
+  status: string;
+  is_active: boolean;
+  display_order: number | null;
+  categories: AdminMenuCategory[];
+};
+
+export type AdminRestaurantMenus = {
+  menus: AdminMenu[];
+  // Dishes whose menu_category_id is NULL — they have no link to any menu in
+  // the schema, so we surface them as a top-level orphan list rather than
+  // attaching them to an arbitrary menu (which would mislead the admin).
+  uncategorizedDishes: AdminMenuDish[];
+};
+
+// Loads the full menus → categories → dishes hierarchy for the admin verifier
+// view. Unlike the owner-portal fetcher, this includes draft/archived rows and
+// is_active=false rows — admins need to see the full state, not just what
+// consumers see.
+export async function getAdminRestaurantMenus(restaurantId: string): Promise<AdminRestaurantMenus> {
+  // canonical_menu_categories columns + status on menus aren't always in the
+  // generated Database types depending on when they were last regenerated.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const svc = createAdminServiceClient() as any;
+
+  // Three independent queries; cheaper to issue in parallel than to nest.
+  const [menusRes, categoriesRes, dishesRes] = await Promise.all([
+    svc
+      .from('menus')
+      .select('id, name, description, menu_type, status, is_active, display_order')
+      .eq('restaurant_id', restaurantId)
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true }),
+    svc
+      .from('menu_categories')
+      .select(
+        'id, menu_id, name, description, display_order, is_active, canonical_category_id, source_language_code, name_translations, description_translations'
+      )
+      .eq('restaurant_id', restaurantId)
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true }),
+    svc
+      .from('dishes')
+      .select(
+        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, dish_categories!left(id, name)'
+      )
+      .eq('restaurant_id', restaurantId)
+      // is_parent=false skips the legacy v1 parent/variant tree's parent rows
+      // (variants render under their own row in admin scan). Children
+      // (parent_dish_id IS NOT NULL) still appear; admin can verify them.
+      .eq('is_parent', false)
+      .order('name', { ascending: true }),
+  ]);
+
+  const dishRows: AdminMenuDish[] = (dishesRes.data ?? []).map((r: Record<string, unknown>) => {
+    const dc = r.dish_categories as { id: string; name: string } | null;
+    return {
+      id: r.id as string,
+      name: r.name as string,
+      description: (r.description as string | null) ?? null,
+      price: (r.price as number | null) ?? null,
+      status: r.status as string,
+      is_available: (r.is_available as boolean | null) ?? null,
+      is_template: (r.is_template as boolean | null) ?? false,
+      dish_kind: r.dish_kind as string,
+      primary_protein: (r.primary_protein as string | null) ?? null,
+      menu_category_id: (r.menu_category_id as string | null) ?? null,
+      dish_category_id: (r.dish_category_id as string | null) ?? null,
+      dish_category_name: dc?.name ?? null,
+      source_image_index: (r.source_image_index as number | null) ?? null,
+      serves: (r.serves as number | null) ?? null,
+    };
+  });
+
+  // Bucket dishes by menu_category_id; orphans (NULL) go to a separate list.
+  const dishesByCategory = new Map<string, AdminMenuDish[]>();
+  const uncategorizedDishes: AdminMenuDish[] = [];
+  for (const d of dishRows) {
+    if (d.menu_category_id == null) {
+      uncategorizedDishes.push(d);
+    } else {
+      const arr = dishesByCategory.get(d.menu_category_id) ?? [];
+      arr.push(d);
+      dishesByCategory.set(d.menu_category_id, arr);
+    }
+  }
+
+  const categoryRows: AdminMenuCategory[] = (categoriesRes.data ?? []).map(
+    (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      menu_id: (r.menu_id as string | null) ?? null,
+      name: r.name as string,
+      description: (r.description as string | null) ?? null,
+      display_order: (r.display_order as number | null) ?? null,
+      is_active: (r.is_active as boolean | null) ?? true,
+      canonical_category_id: (r.canonical_category_id as string | null) ?? null,
+      source_language_code: (r.source_language_code as string | null) ?? null,
+      name_translations: (r.name_translations as Record<string, string> | null) ?? {},
+      description_translations: (r.description_translations as Record<string, string> | null) ?? {},
+      dishes: dishesByCategory.get(r.id as string) ?? [],
+    })
+  );
+
+  // Bucket categories by menu_id.
+  const categoriesByMenu = new Map<string, AdminMenuCategory[]>();
+  for (const c of categoryRows) {
+    if (c.menu_id == null) continue;
+    const arr = categoriesByMenu.get(c.menu_id) ?? [];
+    arr.push(c);
+    categoriesByMenu.set(c.menu_id, arr);
+  }
+
+  const menus: AdminMenu[] = (menusRes.data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    name: r.name as string,
+    description: (r.description as string | null) ?? null,
+    menu_type: r.menu_type as string,
+    status: r.status as string,
+    is_active: (r.is_active as boolean | null) ?? true,
+    display_order: (r.display_order as number | null) ?? null,
+    categories: categoriesByMenu.get(r.id as string) ?? [],
+  }));
+
+  return { menus, uncategorizedDishes };
+}
+
 // ── Audit Log ─────────────────────────────────────────────────────────────────
 
 export type AdminAuditLogRow = {

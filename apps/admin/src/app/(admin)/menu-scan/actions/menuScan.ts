@@ -265,6 +265,9 @@ export const adminConfirmMenuScan = withAdminAuth(
     if (existingMenus && existingMenus.length > 0) {
       menuId = (existingMenus[0] as { id: string }).id;
     } else {
+      // Explicit status='draft'. menus.status defaults to 'published' (migration
+      // 117) which would make adminPublishRestaurant report "0 menus" because
+      // the menu was already live the moment it was created.
       const { data: newMenu, error: menuError } = await service
         .from('menus')
         .insert({
@@ -273,6 +276,7 @@ export const adminConfirmMenuScan = withAdminAuth(
           menu_type: 'food',
           display_order: 0,
           is_active: true,
+          status: 'draft',
         })
         .select('id')
         .single();

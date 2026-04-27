@@ -71,7 +71,11 @@ export async function getAdminRestaurants(params: {
     }
   );
 
-  if (error || !data) return { rows: [], total: 0 };
+  if (error) {
+    console.error('[getAdminRestaurants] RPC error:', error);
+    return { rows: [], total: 0 };
+  }
+  if (!data) return { rows: [], total: 0 };
   const total = Number(data[0]?.total_count ?? 0);
   return { rows: data, total };
 }

@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { verifyAdminSession } from '@/lib/auth/dal';
-import { getAdminRestaurantById } from '@/lib/auth/dal';
+import { getAdminRestaurantById, getAdminRestaurantMenus } from '@/lib/auth/dal';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
+import { MenusSection } from './MenusSection';
 import { PublishSection } from './PublishSection';
 import { RestaurantInspector } from './RestaurantInspector';
 
@@ -49,7 +50,10 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
   const restaurant = await getAdminRestaurantById(id);
   if (!restaurant) notFound();
 
-  const draftCounts = await getDraftCounts(restaurant.id);
+  const [draftCounts, menusData] = await Promise.all([
+    getDraftCounts(restaurant.id),
+    getAdminRestaurantMenus(restaurant.id),
+  ]);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -99,6 +103,9 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         draftMenusCount={draftCounts.menus}
         draftDishesCount={draftCounts.dishes}
       />
+
+      {/* Menu hierarchy (read-only verifier view) */}
+      <MenusSection menus={menusData.menus} uncategorizedDishes={menusData.uncategorizedDishes} />
 
       {/* Admin-only suspension section */}
       <AdminSuspensionSection

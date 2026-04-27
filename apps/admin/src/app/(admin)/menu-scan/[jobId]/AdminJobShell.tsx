@@ -200,7 +200,12 @@ export function AdminJobShell({ job: initialJob, reviewContext, dishCategoryMatc
           {job.created_at && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Created</p>
-              <p className="text-xs">{new Date(job.created_at).toLocaleString()}</p>
+              {/* SSR uses system locale, client uses browser locale — same Date,
+                  different display. suppressHydrationWarning is the documented
+                  React fix for this. */}
+              <p className="text-xs" suppressHydrationWarning>
+                {new Date(job.created_at).toLocaleString()}
+              </p>
             </div>
           )}
           {job.locked_until && (
@@ -274,7 +279,7 @@ export function AdminJobShell({ job: initialJob, reviewContext, dishCategoryMatc
           <h2 className="text-sm font-semibold text-green-900 dark:text-green-200">
             Imported successfully
           </h2>
-          <p className="text-sm text-green-900/80 dark:text-green-200/80">
+          <p className="text-sm text-green-900/80 dark:text-green-200/80" suppressHydrationWarning>
             {savedDishIds
               ? `${savedDishIds.length} dish${savedDishIds.length === 1 ? '' : 'es'}`
               : 'Dishes'}{' '}

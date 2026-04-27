@@ -128,7 +128,7 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
                 <td className="px-4 py-2 text-muted-foreground text-xs truncate max-w-48">
                   {row.owner_email || row.owner_id || '—'}
                 </td>
-                <td className="px-4 py-2 text-muted-foreground text-xs">
+                <td className="px-4 py-2 text-muted-foreground text-xs" suppressHydrationWarning>
                   {row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}
                 </td>
               </tr>

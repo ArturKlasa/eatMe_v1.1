@@ -73,7 +73,9 @@ export function AdminSuspensionSection({
           {suspendedAt && (
             <p>
               Suspended:{' '}
-              <span className="text-foreground">{new Date(suspendedAt).toLocaleString()}</span>
+              <span className="text-foreground" suppressHydrationWarning>
+                {new Date(suspendedAt).toLocaleString()}
+              </span>
             </p>
           )}
           {suspendedBy && (

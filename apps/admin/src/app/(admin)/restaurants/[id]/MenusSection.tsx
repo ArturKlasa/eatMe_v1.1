@@ -9,18 +9,13 @@ import type {
 } from '@/lib/auth/dal';
 import { CategoryRowEditor } from './CategoryRowEditor';
 import { DishRowEditor } from './DishRowEditor';
+import { MenuRowEditor } from './MenuRowEditor';
 
 interface Props {
   restaurantId: string;
   menus: AdminMenu[];
   uncategorizedDishes: AdminMenuDish[];
   dishCategoryOptions: DishCategoryOption[];
-}
-
-function statusBadgeClass(status: string) {
-  if (status === 'published') return 'bg-green-100 text-green-800';
-  if (status === 'draft') return 'bg-yellow-100 text-yellow-800';
-  return 'bg-gray-100 text-gray-600';
 }
 
 function CategoryBlock({
@@ -72,6 +67,7 @@ function MenuBlock({
   dishCategoryOptions,
   onDishUpdated,
   onCategoryUpdated,
+  onMenuUpdated,
 }: {
   menu: AdminMenu;
   restaurantId: string;
@@ -79,33 +75,17 @@ function MenuBlock({
   dishCategoryOptions: DishCategoryOption[];
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
+  onMenuUpdated: (next: AdminMenu) => void;
 }) {
   const dishCount = menu.categories.reduce((acc, c) => acc + c.dishes.length, 0);
   return (
     <div className="rounded-lg border border-border p-3 space-y-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <h3 className="font-semibold text-sm">{menu.name}</h3>
-        <span
-          className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${statusBadgeClass(menu.status)}`}
-        >
-          {menu.status}
-        </span>
-        <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-          {menu.menu_type}
-        </span>
-        {!menu.is_active && (
-          <span className="inline-block rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
-            Inactive
-          </span>
-        )}
-        <span className="text-xs text-muted-foreground">
-          {menu.categories.length} categor{menu.categories.length === 1 ? 'y' : 'ies'} · {dishCount}{' '}
-          dish{dishCount === 1 ? '' : 'es'}
-        </span>
-      </div>
-      {menu.description && (
-        <p className="text-xs italic text-muted-foreground">{menu.description}</p>
-      )}
+      <MenuRowEditor
+        menu={menu}
+        restaurantId={restaurantId}
+        dishCount={dishCount}
+        onUpdated={onMenuUpdated}
+      />
       {menu.categories.length > 0 ? (
         <div className="space-y-2">
           {menu.categories.map(c => (
@@ -199,6 +179,11 @@ export function MenusSection({
     );
   }
 
+  // Update an edited menu in place (preserves categories inside).
+  function handleMenuUpdated(next: AdminMenu) {
+    setMenus(prev => prev.map(m => (m.id === next.id ? { ...next, categories: m.categories } : m)));
+  }
+
   const totalCategories = menus.reduce((acc, m) => acc + m.categories.length, 0);
   const totalDishesInMenus = menus.reduce(
     (acc, m) => acc + m.categories.reduce((a, c) => a + c.dishes.length, 0),
@@ -258,6 +243,7 @@ export function MenusSection({
             dishCategoryOptions={dishCategoryOptions}
             onDishUpdated={handleDishUpdated}
             onCategoryUpdated={handleCategoryUpdated}
+            onMenuUpdated={handleMenuUpdated}
           />
         ))
       ) : (

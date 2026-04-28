@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { verifyAdminSession } from '@/lib/auth/dal';
-import { getAdminRestaurantById, getAdminRestaurantMenus } from '@/lib/auth/dal';
+import {
+  getAdminRestaurantById,
+  getAdminRestaurantMenus,
+  getAllDishCategoryOptions,
+} from '@/lib/auth/dal';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
 import { MenusSection } from './MenusSection';
@@ -50,9 +54,10 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
   const restaurant = await getAdminRestaurantById(id);
   if (!restaurant) notFound();
 
-  const [draftCounts, menusData] = await Promise.all([
+  const [draftCounts, menusData, dishCategoryOptions] = await Promise.all([
     getDraftCounts(restaurant.id),
     getAdminRestaurantMenus(restaurant.id),
+    getAllDishCategoryOptions(),
   ]);
 
   return (
@@ -105,7 +110,12 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
       />
 
       {/* Menu hierarchy (read-only verifier view) */}
-      <MenusSection menus={menusData.menus} uncategorizedDishes={menusData.uncategorizedDishes} />
+      <MenusSection
+        restaurantId={restaurant.id}
+        menus={menusData.menus}
+        uncategorizedDishes={menusData.uncategorizedDishes}
+        dishCategoryOptions={dishCategoryOptions}
+      />
 
       {/* Admin-only suspension section */}
       <AdminSuspensionSection

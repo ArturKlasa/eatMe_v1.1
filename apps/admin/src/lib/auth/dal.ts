@@ -561,6 +561,24 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
   return { menus, uncategorizedDishes };
 }
 
+// All dish_categories for the global filter taxonomy. Used to populate the
+// dish-category dropdown in the admin menu editor. Returns active rows only —
+// inactive categories aren't valid choices for an edit.
+export async function getAllDishCategoryOptions(): Promise<DishCategoryOption[]> {
+  const supabase = createAdminServiceClient();
+  const { data, error } = await supabase
+    .from('dish_categories')
+    .select('id, name, is_drink')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+  if (error || !data) return [];
+  return data.map(r => ({
+    id: r.id as string,
+    name: r.name as string,
+    is_drink: (r.is_drink as boolean | null) ?? false,
+  }));
+}
+
 // ── Audit Log ─────────────────────────────────────────────────────────────────
 
 export type AdminAuditLogRow = {

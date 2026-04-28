@@ -81,3 +81,93 @@ export const adminUpdateMenu = withAdminAuth(
     return { ok: true, data: undefined };
   }
 );
+
+// adminDeleteMenu: soft-delete by default — sets status='archived'. Children
+// (categories + dishes) are NOT cascaded; admin handles them separately. The
+// returned counts are informational so the confirm dialog can warn the admin
+// about what stays alive.
+export const adminDeleteMenu = withAdminAuth(
+  async (
+    ctx,
+    menuId: string,
+    restaurantId: string,
+    opts: { hard: boolean }
+  ): Promise<ActionResult<{ categoriesRemaining: number; dishesRemaining: number }>> => {
+    const service = createAdminServiceClient();
+
+    const { data: current } = await service
+      .from('menus')
+      .select('id, restaurant_id, name, status')
+      .eq('id', menuId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+
+    const { count: categoriesRemaining } = await service
+      .from('menu_categories')
+      .select('id', { count: 'exact', head: true })
+      .eq('menu_id', menuId)
+      .eq('restaurant_id', restaurantId);
+
+    const { data: catIds } = await service
+      .from('menu_categories')
+      .select('id')
+      .eq('menu_id', menuId)
+      .eq('restaurant_id', restaurantId);
+    let dishesRemaining = 0;
+    if (catIds && catIds.length > 0) {
+      const ids = (catIds as Array<{ id: string }>).map(r => r.id);
+      const { count } = await service
+        .from('dishes')
+        .select('id', { count: 'exact', head: true })
+        .in('menu_category_id', ids);
+      dishesRemaining = count ?? 0;
+    }
+
+    if (opts.hard) {
+      const { error } = await service
+        .from('menus')
+        .delete()
+        .eq('id', menuId)
+        .eq('restaurant_id', restaurantId);
+      if (error) return { ok: false, formError: error.message };
+    } else {
+      const { error } = await service
+        .from('menus')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update({ status: 'archived' } as any)
+        .eq('id', menuId)
+        .eq('restaurant_id', restaurantId);
+      if (error) return { ok: false, formError: error.message };
+    }
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      opts.hard ? 'delete_menu' : 'archive_menu',
+      'menu',
+      menuId,
+      current as Record<string, unknown>,
+      opts.hard
+        ? {
+            deleted: true,
+            categories_remaining: categoriesRemaining ?? 0,
+            dishes_remaining: dishesRemaining,
+          }
+        : {
+            status: 'archived',
+            categories_remaining: categoriesRemaining ?? 0,
+            dishes_remaining: dishesRemaining,
+          }
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return {
+      ok: true,
+      data: {
+        categoriesRemaining: categoriesRemaining ?? 0,
+        dishesRemaining,
+      },
+    };
+  }
+);

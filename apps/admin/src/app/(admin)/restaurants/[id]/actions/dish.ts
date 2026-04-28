@@ -113,3 +113,60 @@ export const adminUpdateDish = withAdminAuth(
     return { ok: true, data: undefined };
   }
 );
+
+// adminDeleteDish: soft-delete by default — sets status='archived' and
+// is_available=false so the dish disappears from the consumer feed but
+// rows referencing it (dish_analytics, dish_opinions, dish_photos,
+// user_dish_interactions, etc — most of which are no-cascade FKs per
+// database_schema.sql) stay intact.
+//
+// hard: true does a real DELETE. The current admin UI never sets it; the
+// flag is reserved for a future force-delete affordance gated behind a
+// typed-confirm modal.
+export const adminDeleteDish = withAdminAuth(
+  async (
+    ctx,
+    dishId: string,
+    restaurantId: string,
+    opts: { hard: boolean }
+  ): Promise<ActionResult<void>> => {
+    const service = createAdminServiceClient();
+
+    const { data: current } = await service
+      .from('dishes')
+      .select('id, restaurant_id, name, status, is_available')
+      .eq('id', dishId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+
+    if (opts.hard) {
+      const { error } = await service
+        .from('dishes')
+        .delete()
+        .eq('id', dishId)
+        .eq('restaurant_id', restaurantId);
+      if (error) return { ok: false, formError: error.message };
+    } else {
+      const { error } = await service
+        .from('dishes')
+        .update({ status: 'archived', is_available: false })
+        .eq('id', dishId)
+        .eq('restaurant_id', restaurantId);
+      if (error) return { ok: false, formError: error.message };
+    }
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      opts.hard ? 'delete_dish' : 'archive_dish',
+      'dish',
+      dishId,
+      current as Record<string, unknown>,
+      opts.hard ? { deleted: true } : { status: 'archived', is_available: false }
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: undefined };
+  }
+);

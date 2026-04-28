@@ -128,3 +128,65 @@ export const adminUpdateMenuCategory = withAdminAuth(
     return { ok: true, data: undefined };
   }
 );
+
+// adminDeleteMenuCategory: soft-delete by default — flips is_active=false.
+// menu_categories has no `status` column (per schema), so we use the existing
+// is_active boolean to mean "hidden". Dishes still pointing at it keep their
+// menu_category_id intact; nothing breaks. Hard delete is reserved.
+export const adminDeleteMenuCategory = withAdminAuth(
+  async (
+    ctx,
+    categoryId: string,
+    restaurantId: string,
+    opts: { hard: boolean }
+  ): Promise<ActionResult<{ dishesAffected: number }>> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const svc = createAdminServiceClient() as any;
+
+    const { data: current } = await svc
+      .from('menu_categories')
+      .select('id, restaurant_id, name, is_active')
+      .eq('id', categoryId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+
+    // Count dishes that currently reference this category (informational).
+    const { count: dishesAffected } = await svc
+      .from('dishes')
+      .select('id', { count: 'exact', head: true })
+      .eq('menu_category_id', categoryId)
+      .eq('restaurant_id', restaurantId);
+
+    if (opts.hard) {
+      const { error } = await svc
+        .from('menu_categories')
+        .delete()
+        .eq('id', categoryId)
+        .eq('restaurant_id', restaurantId);
+      if (error) return { ok: false, formError: error.message };
+    } else {
+      const { error } = await svc
+        .from('menu_categories')
+        .update({ is_active: false })
+        .eq('id', categoryId)
+        .eq('restaurant_id', restaurantId);
+      if (error) return { ok: false, formError: error.message };
+    }
+
+    await logAdminAction(
+      svc,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      opts.hard ? 'delete_menu_category' : 'archive_menu_category',
+      'menu_category',
+      categoryId,
+      current as Record<string, unknown>,
+      opts.hard
+        ? { deleted: true, dishes_affected: dishesAffected ?? 0 }
+        : { is_active: false, dishes_affected: dishesAffected ?? 0 }
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: { dishesAffected: dishesAffected ?? 0 } };
+  }
+);

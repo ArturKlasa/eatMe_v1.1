@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import type { AdminMenuCategory } from '@/lib/auth/dal';
-import { adminUpdateMenuCategory } from './actions/menuCategory';
+import { adminDeleteMenuCategory, adminUpdateMenuCategory } from './actions/menuCategory';
 
 interface Props {
   category: AdminMenuCategory;
@@ -22,10 +22,27 @@ export function CategoryRowEditor({ category, restaurantId, onUpdated }: Props) 
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [draftName, setDraftName] = useState(category.name);
   const [draftDescription, setDraftDescription] = useState<string>(category.description ?? '');
   const [draftIsActive, setDraftIsActive] = useState(category.is_active);
+
+  function handleDelete() {
+    setServerError('');
+    startTransition(async () => {
+      const result = await adminDeleteMenuCategory(category.id, restaurantId, { hard: false });
+      if (!result.ok) {
+        setServerError(friendlyError(result.formError ?? 'Archive failed'));
+        return;
+      }
+      // Soft delete flips is_active=false. Dishes inside keep their
+      // menu_category_id so they don't become orphans.
+      onUpdated({ ...category, is_active: false });
+      setShowDeleteConfirm(false);
+      setIsEditing(false);
+    });
+  }
 
   function openEdit() {
     setDraftName(category.name);
@@ -153,24 +170,61 @@ export function CategoryRowEditor({ category, restaurantId, onUpdated }: Props) 
 
       {serverError && <p className="text-destructive text-xs">{serverError}</p>}
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isPending}
-          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          type="button"
-          onClick={cancelEdit}
-          disabled={isPending}
-          className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
-        >
-          Cancel
-        </button>
-      </div>
+      {showDeleteConfirm ? (
+        <div className="rounded border border-destructive/40 bg-destructive/5 p-2 space-y-2">
+          <p className="text-xs">
+            Archive this category? It will be hidden from consumers (is_active=false). Its{' '}
+            {category.dishes.length} dish{category.dishes.length === 1 ? '' : 'es'} will keep their
+            category link but inherit the hidden state. You can restore by editing the Active
+            checkbox.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isPending}
+              className="rounded-md bg-destructive px-3 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              {isPending ? 'Archiving…' : 'Confirm archive'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isPending}
+              className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
+            >
+              Keep
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isPending}
+            className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isPending ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            disabled={isPending}
+            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isPending}
+            className="ml-auto rounded-md border border-destructive px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            Archive
+          </button>
+        </div>
+      )}
     </div>
   );
 }

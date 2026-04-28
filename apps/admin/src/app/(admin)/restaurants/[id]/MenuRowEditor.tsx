@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import type { AdminMenu } from '@/lib/auth/dal';
-import { adminUpdateMenu } from './actions/menu';
+import { adminDeleteMenu, adminUpdateMenu } from './actions/menu';
 
 const MENU_TYPES = ['food', 'drink'] as const;
 const MENU_STATUSES = ['draft', 'published', 'archived'] as const;
@@ -24,12 +24,29 @@ export function MenuRowEditor({ menu, restaurantId, dishCount, onUpdated }: Prop
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [draftName, setDraftName] = useState(menu.name);
   const [draftDescription, setDraftDescription] = useState<string>(menu.description ?? '');
   const [draftMenuType, setDraftMenuType] = useState(menu.menu_type);
   const [draftStatus, setDraftStatus] = useState(menu.status);
   const [draftIsActive, setDraftIsActive] = useState(menu.is_active);
+
+  function handleDelete() {
+    setServerError('');
+    startTransition(async () => {
+      const result = await adminDeleteMenu(menu.id, restaurantId, { hard: false });
+      if (!result.ok) {
+        setServerError(result.formError ?? 'Archive failed');
+        return;
+      }
+      // Soft delete sets status='archived'. Children (categories + dishes)
+      // are NOT cascaded; admin handles them separately if needed.
+      onUpdated({ ...menu, status: 'archived' });
+      setShowDeleteConfirm(false);
+      setIsEditing(false);
+    });
+  }
 
   function openEdit() {
     setDraftName(menu.name);
@@ -177,24 +194,61 @@ export function MenuRowEditor({ menu, restaurantId, dishCount, onUpdated }: Prop
 
       {serverError && <p className="text-destructive text-xs">{serverError}</p>}
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isPending}
-          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          type="button"
-          onClick={cancelEdit}
-          disabled={isPending}
-          className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
-        >
-          Cancel
-        </button>
-      </div>
+      {showDeleteConfirm ? (
+        <div className="rounded border border-destructive/40 bg-destructive/5 p-2 space-y-2">
+          <p className="text-xs">
+            Archive this menu? It will be marked status=archived. Its {menu.categories.length}{' '}
+            categor{menu.categories.length === 1 ? 'y' : 'ies'} and {dishCount} dish
+            {dishCount === 1 ? '' : 'es'} inside remain unchanged — manage them separately if
+            needed. You can restore by editing the status.
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isPending}
+              className="rounded-md bg-destructive px-3 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              {isPending ? 'Archiving…' : 'Confirm archive'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isPending}
+              className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
+            >
+              Keep
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isPending}
+            className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isPending ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            disabled={isPending}
+            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isPending}
+            className="ml-auto rounded-md border border-destructive px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            Archive
+          </button>
+        </div>
+      )}
     </div>
   );
 }

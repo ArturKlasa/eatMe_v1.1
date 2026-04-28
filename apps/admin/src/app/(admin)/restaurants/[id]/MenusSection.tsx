@@ -7,6 +7,7 @@ import type {
   AdminMenuDish,
   DishCategoryOption,
 } from '@/lib/auth/dal';
+import { CategoryRowEditor } from './CategoryRowEditor';
 import { DishRowEditor } from './DishRowEditor';
 
 interface Props {
@@ -28,33 +29,22 @@ function CategoryBlock({
   menus,
   dishCategoryOptions,
   onDishUpdated,
+  onCategoryUpdated,
 }: {
   category: AdminMenuCategory;
   restaurantId: string;
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
+  onCategoryUpdated: (next: AdminMenuCategory) => void;
 }) {
-  const isCanonical = category.canonical_category_id != null;
   return (
     <div className="rounded-md border border-border/60 p-3 space-y-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        <h4 className="font-medium text-sm">{category.name}</h4>
-        <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          {isCanonical ? 'Canonical' : 'Custom'}
-        </span>
-        {!category.is_active && (
-          <span className="inline-block rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
-            Inactive
-          </span>
-        )}
-        <span className="text-xs text-muted-foreground">
-          {category.dishes.length} dish{category.dishes.length === 1 ? '' : 'es'}
-        </span>
-      </div>
-      {category.description && (
-        <p className="text-xs italic text-muted-foreground">{category.description}</p>
-      )}
+      <CategoryRowEditor
+        category={category}
+        restaurantId={restaurantId}
+        onUpdated={onCategoryUpdated}
+      />
       {category.dishes.length > 0 ? (
         <ul className="divide-y divide-border/40">
           {category.dishes.map(d => (
@@ -81,12 +71,14 @@ function MenuBlock({
   menus,
   dishCategoryOptions,
   onDishUpdated,
+  onCategoryUpdated,
 }: {
   menu: AdminMenu;
   restaurantId: string;
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
+  onCategoryUpdated: (next: AdminMenuCategory) => void;
 }) {
   const dishCount = menu.categories.reduce((acc, c) => acc + c.dishes.length, 0);
   return (
@@ -124,6 +116,7 @@ function MenuBlock({
               menus={menus}
               dishCategoryOptions={dishCategoryOptions}
               onDishUpdated={onDishUpdated}
+              onCategoryUpdated={onCategoryUpdated}
             />
           ))}
         </div>
@@ -196,6 +189,16 @@ export function MenusSection({
     setUncategorizedDishes(strippedUncat);
   }
 
+  // Update an edited category in place (preserves dishes inside).
+  function handleCategoryUpdated(next: AdminMenuCategory) {
+    setMenus(prev =>
+      prev.map(m => ({
+        ...m,
+        categories: m.categories.map(c => (c.id === next.id ? { ...next, dishes: c.dishes } : c)),
+      }))
+    );
+  }
+
   const totalCategories = menus.reduce((acc, m) => acc + m.categories.length, 0);
   const totalDishesInMenus = menus.reduce(
     (acc, m) => acc + m.categories.reduce((a, c) => a + c.dishes.length, 0),
@@ -254,6 +257,7 @@ export function MenusSection({
             menus={menus}
             dishCategoryOptions={dishCategoryOptions}
             onDishUpdated={handleDishUpdated}
+            onCategoryUpdated={handleCategoryUpdated}
           />
         ))
       ) : (

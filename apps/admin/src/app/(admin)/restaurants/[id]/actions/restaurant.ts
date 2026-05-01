@@ -220,3 +220,102 @@ export const updateAdminRestaurantBasics = withAdminAuth(
     return { ok: true, data: undefined };
   }
 );
+
+// adminDeleteRestaurant: hard delete. Cascade is performed by the
+// admin_delete_restaurant(uuid) Postgres function (migration 130) so the whole
+// thing is one transaction. After the row is gone we best-effort clean the
+// menu-scan-uploads bucket; the photos bucket (dish_photos.photo_url etc.)
+// is NOT cleaned — those files use user-scoped paths and become orphans.
+//
+// Confirmation: the caller must pass the restaurant's exact name. We re-check
+// it server-side as defense in depth on top of the modal's typed-confirm.
+export type AdminDeleteRestaurantCounts = {
+  dishes_deleted: number;
+  menu_categories_deleted: number;
+  menus_deleted: number;
+  opinions_deleted: number;
+  photos_deleted: number;
+  visits_deleted: number;
+  favorites_deleted: number;
+  scan_jobs_deleted: number;
+  option_groups_deleted: number;
+  options_deleted: number;
+  analytics_deleted: number;
+  interactions_deleted: number;
+  session_views_deleted: number;
+  sessions_unset: number;
+  recommendations_deleted: number;
+  votes_deleted: number;
+  responses_deleted: number;
+  storage_paths: string[];
+};
+
+type AdminDeleteRestaurantRpc = {
+  rpc: (
+    name: 'admin_delete_restaurant',
+    args: { p_restaurant_id: string }
+  ) => Promise<{ data: AdminDeleteRestaurantCounts | null; error: unknown }>;
+};
+
+export const adminDeleteRestaurant = withAdminAuth(
+  async (
+    ctx,
+    restaurantId: string,
+    opts: { confirmName: string }
+  ): Promise<ActionResult<AdminDeleteRestaurantCounts>> => {
+    const service = createAdminServiceClient();
+
+    const { data: current } = await service
+      .from('restaurants')
+      .select('id, name, status')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+
+    const currentRow = current as { id: string; name: string; status: string };
+    if (currentRow.name !== opts.confirmName) {
+      return { ok: false, formError: 'CONFIRM_MISMATCH' };
+    }
+
+    const { data, error } = await (service as unknown as AdminDeleteRestaurantRpc).rpc(
+      'admin_delete_restaurant',
+      { p_restaurant_id: restaurantId }
+    );
+    if (error) {
+      const msg = (error as { message?: string }).message ?? 'DELETE_FAILED';
+      return { ok: false, formError: msg };
+    }
+    if (!data) return { ok: false, formError: 'DELETE_FAILED' };
+
+    // Best-effort storage cleanup. Failures here don't roll back the DB delete.
+    try {
+      const paths = data.storage_paths ?? [];
+      if (paths.length > 0) {
+        await service.storage.from('menu-scan-uploads').remove(paths);
+      }
+      const { data: leftovers } = await service.storage
+        .from('menu-scan-uploads')
+        .list(restaurantId);
+      if (leftovers && leftovers.length > 0) {
+        await service.storage
+          .from('menu-scan-uploads')
+          .remove(leftovers.map(f => `${restaurantId}/${f.name}`));
+      }
+    } catch (e) {
+      console.error('[adminDeleteRestaurant] storage cleanup failed:', e);
+    }
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'delete_restaurant',
+      'restaurant',
+      restaurantId,
+      { name: currentRow.name, status: currentRow.status },
+      data as unknown as Record<string, unknown>
+    );
+
+    revalidatePath('/restaurants', 'page');
+    return { ok: true, data };
+  }
+);

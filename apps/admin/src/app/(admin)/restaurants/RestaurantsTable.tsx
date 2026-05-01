@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SearchFilterBar } from '@eatme/ui';
 import type { AdminRestaurantRow } from '@/lib/auth/dal';
+import { DeleteRestaurantButton } from './DeleteRestaurantButton';
 
 interface Filters {
   q: string;
@@ -100,6 +101,7 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
               <th className="px-4 py-2 text-left font-medium w-24">Active</th>
               <th className="px-4 py-2 text-left font-medium">Owner</th>
               <th className="px-4 py-2 text-left font-medium w-28">Created</th>
+              <th className="px-4 py-2 text-left font-medium w-20"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -131,11 +133,14 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
                 <td className="px-4 py-2 text-muted-foreground text-xs" suppressHydrationWarning>
                   {row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}
                 </td>
+                <td className="px-4 py-2">
+                  <DeleteRestaurantButton restaurantId={row.id} restaurantName={row.name} />
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                   No restaurants found.
                 </td>
               </tr>

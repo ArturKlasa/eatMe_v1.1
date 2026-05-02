@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {
   verifyAdminSession,
   getAdminMenuScanJobById,
+  getMenuScanJobImageUrls,
   getMenuScanReviewContext,
   fuzzyMatchDishCategories,
   type DishCategoryMatch,
@@ -13,7 +14,10 @@ export default async function MenuScanJobPage({ params }: { params: Promise<{ jo
   await verifyAdminSession();
 
   const { jobId } = await params;
-  const job = await getAdminMenuScanJobById(jobId);
+  const [job, imageUrls] = await Promise.all([
+    getAdminMenuScanJobById(jobId),
+    getMenuScanJobImageUrls(jobId),
+  ]);
 
   if (!job) notFound();
 
@@ -55,6 +59,7 @@ export default async function MenuScanJobPage({ params }: { params: Promise<{ jo
         job={job}
         reviewContext={reviewContext}
         dishCategoryMatches={dishCategoryMatches}
+        imageUrls={imageUrls}
       />
     </div>
   );

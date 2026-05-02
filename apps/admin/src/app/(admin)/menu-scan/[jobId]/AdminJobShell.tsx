@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useReducer } from 'react';
+import { useEffect, useMemo, useReducer } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/browser';
 import { replayMenuScan, adminUpdateJobStatus } from '../actions/menuScan';
 import type {
   AdminMenuScanJobDetail,
+  MenuScanImageUrl,
   MenuScanReviewContext,
   DishCategoryMatch,
 } from '@/lib/auth/dal';
 import { ReviewDishEditor, type ExtractedDish } from './ReviewDishEditor';
+import { SourceImageStrip } from './SourceImageStrip';
 
 type ReplayModel = 'gpt-4o-2024-11-20' | 'gpt-4o-mini';
 
@@ -100,9 +102,15 @@ interface Props {
   job: AdminMenuScanJobDetail;
   reviewContext: MenuScanReviewContext | null;
   dishCategoryMatches: DishCategoryMatch[];
+  imageUrls: MenuScanImageUrl[];
 }
 
-export function AdminJobShell({ job: initialJob, reviewContext, dishCategoryMatches }: Props) {
+export function AdminJobShell({
+  job: initialJob,
+  reviewContext,
+  dishCategoryMatches,
+  imageUrls,
+}: Props) {
   const [state, dispatch] = useReducer(reducer, {
     job: initialJob,
     selectedModel: 'gpt-4o-2024-11-20',
@@ -168,6 +176,20 @@ export function AdminJobShell({ job: initialJob, reviewContext, dishCategoryMatc
   } | null;
   const dishes = resultJson?.dishes ?? null;
   const detectedLanguage = resultJson?.detected_language ?? null;
+
+  // Per-page dish counts keyed by source_image_index (0-based array position
+  // in input.images, matches what the worker passes to the AI). Drives the
+  // green/yellow badge on the source-image strip — yellow == 0 dishes, the
+  // diagnostic that flags partial-extraction failures.
+  const dishCountsByIndex = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const d of dishes ?? []) {
+      const idx = d.source_image_index;
+      if (typeof idx !== 'number') continue;
+      map.set(idx, (map.get(idx) ?? 0) + 1);
+    }
+    return map;
+  }, [dishes]);
   const savedDishIds = Array.isArray(job.saved_dish_ids) ? (job.saved_dish_ids as string[]) : null;
   const showEditor =
     job.status === 'needs_review' && dishes !== null && dishes.length > 0 && reviewContext !== null;
@@ -255,6 +277,19 @@ export function AdminJobShell({ job: initialJob, reviewContext, dishCategoryMatc
         {state.statusUpdateError && (
           <p className="text-xs text-destructive">{state.statusUpdateError}</p>
         )}
+      </div>
+
+      {/* Source-image strip — visible for all statuses so admin can see what
+          was scanned (and which pages came back empty). Sits above the review
+          editor so the diagnostic context is established before the work. */}
+      <div className="rounded-lg border border-border p-6 space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold">Source images</h2>
+          <span className="text-xs text-muted-foreground">
+            {imageUrls.length} page{imageUrls.length === 1 ? '' : 's'} uploaded
+          </span>
+        </div>
+        <SourceImageStrip images={imageUrls} dishCountsByIndex={dishCountsByIndex} />
       </div>
 
       {/* Review editor */}

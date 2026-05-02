@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
+import { menuScanJobInputSchema } from '@eatme/shared';
 import { createServerClient, createAdminServiceClient } from '@/lib/supabase/server';
 
 export const verifySession = cache(async () => {
@@ -352,6 +353,51 @@ export async function getMenuScanReviewContext(
   );
 
   return { existingCategories, canonicalCategories, dishCategories };
+}
+
+// getMenuScanJobImageUrls: signs the storage paths for a job's input.images
+// so the admin review UI can show thumbnails of what was actually scanned.
+// Used both for needs_review jobs (diagnose what the AI saw) and for
+// completed/failed/processing jobs (post-mortem on partial extractions).
+//
+// 1h TTL is plenty for a review session. URLs aren't broadcast over Realtime
+// — if admin leaves the page open past expiry, a hard refresh re-signs them.
+//
+// Returns [] if the job has no recorded input (pre-mig-118 rows or rows
+// where input failed to validate against the schema).
+export type MenuScanImageUrl = {
+  page: number;
+  url: string;
+  path: string;
+};
+
+export async function getMenuScanJobImageUrls(jobId: string): Promise<MenuScanImageUrl[]> {
+  const svc = createAdminServiceClient();
+
+  const { data: job } = await svc
+    .from('menu_scan_jobs')
+    .select('input')
+    .eq('id', jobId)
+    .maybeSingle();
+
+  if (!job) return [];
+  const parsed = menuScanJobInputSchema.safeParse((job as { input: unknown }).input);
+  if (!parsed.success) return [];
+
+  // Sign in parallel — for a typical job (≤20 pages, UI cap in
+  // AdminBatchUploadForm) this stays comfortably under one round-trip's
+  // worth of latency. Drop any image we can't sign rather than failing the
+  // whole strip.
+  const settled = await Promise.all(
+    parsed.data.images.map(async img => {
+      const { data, error } = await svc.storage.from(img.bucket).createSignedUrl(img.path, 3600);
+      if (error || !data) return null;
+      return { page: img.page, url: data.signedUrl, path: img.path };
+    })
+  );
+  const results = settled.filter((r): r is MenuScanImageUrl => r !== null);
+  results.sort((a, b) => a.page - b.page);
+  return results;
 }
 
 // getCanonicalMenuCategoryOptions: standalone fetch of the active canonical

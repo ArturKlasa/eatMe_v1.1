@@ -1,9 +1,11 @@
 import { verifyAdminSession } from '@/lib/auth/dal';
 import { AdminNav } from '@/components/AdminNav';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SignOutButton } from '@/components/SignOutButton';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await verifyAdminSession();
+  const session = await verifyAdminSession();
+  const email = (session.claims.email as string | undefined) ?? null;
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="w-64 border-r bg-card flex flex-col p-4">
@@ -19,7 +21,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex-1 flex flex-col">
         <header className="h-14 border-b bg-card flex items-center justify-between px-6">
           <p className="text-sm font-semibold text-muted-foreground">Admin Portal</p>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <SignOutButton email={email} />
+          </div>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>

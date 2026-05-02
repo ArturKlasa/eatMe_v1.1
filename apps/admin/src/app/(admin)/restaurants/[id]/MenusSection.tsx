@@ -7,6 +7,7 @@ import type {
   AdminMenuDish,
   DishCategoryOption,
 } from '@/lib/auth/dal';
+import { AddDishButton } from './AddDishButton';
 import { CategoryRowEditor } from './CategoryRowEditor';
 import { DishRowEditor } from './DishRowEditor';
 import { MenuRowEditor } from './MenuRowEditor';
@@ -25,6 +26,7 @@ function CategoryBlock({
   dishCategoryOptions,
   onDishUpdated,
   onCategoryUpdated,
+  onDishCreated,
 }: {
   category: AdminMenuCategory;
   restaurantId: string;
@@ -32,6 +34,7 @@ function CategoryBlock({
   dishCategoryOptions: DishCategoryOption[];
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
+  onDishCreated: (dish: AdminMenuDish) => void;
 }) {
   return (
     <div className="rounded-md border border-border/60 p-3 space-y-2">
@@ -56,6 +59,13 @@ function CategoryBlock({
       ) : (
         <p className="text-xs text-muted-foreground italic">No dishes in this category.</p>
       )}
+      <AddDishButton
+        restaurantId={restaurantId}
+        menuCategoryId={category.id}
+        categoryLabel={category.name}
+        dishCategoryOptions={dishCategoryOptions}
+        onCreated={onDishCreated}
+      />
     </div>
   );
 }
@@ -68,6 +78,7 @@ function MenuBlock({
   onDishUpdated,
   onCategoryUpdated,
   onMenuUpdated,
+  onDishCreated,
 }: {
   menu: AdminMenu;
   restaurantId: string;
@@ -76,6 +87,7 @@ function MenuBlock({
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
   onMenuUpdated: (next: AdminMenu) => void;
+  onDishCreated: (dish: AdminMenuDish) => void;
 }) {
   const dishCount = menu.categories.reduce((acc, c) => acc + c.dishes.length, 0);
   return (
@@ -97,6 +109,7 @@ function MenuBlock({
               dishCategoryOptions={dishCategoryOptions}
               onDishUpdated={onDishUpdated}
               onCategoryUpdated={onCategoryUpdated}
+              onDishCreated={onDishCreated}
             />
           ))}
         </div>
@@ -184,6 +197,37 @@ export function MenusSection({
     setMenus(prev => prev.map(m => (m.id === next.id ? { ...next, categories: m.categories } : m)));
   }
 
+  // Insert a freshly-created dish into the right bucket. menu_category_id=null
+  // → orphan list. Otherwise find the matching category in the menu tree.
+  // Mirrors the "place" logic from handleDishUpdated; falls back to orphans
+  // if the target category isn't in the local tree (defensive — shouldn't
+  // happen since the server validated the FK).
+  function handleDishCreated(dish: AdminMenuDish) {
+    if (dish.menu_category_id == null) {
+      setUncategorizedDishes(prev => [...prev, dish].sort((a, b) => a.name.localeCompare(b.name)));
+      return;
+    }
+    let placed = false;
+    const nextMenus = menus.map(m => ({
+      ...m,
+      categories: m.categories.map(c => {
+        if (c.id === dish.menu_category_id) {
+          placed = true;
+          return {
+            ...c,
+            dishes: [...c.dishes, dish].sort((a, b) => a.name.localeCompare(b.name)),
+          };
+        }
+        return c;
+      }),
+    }));
+    if (!placed) {
+      setUncategorizedDishes(prev => [...prev, dish].sort((a, b) => a.name.localeCompare(b.name)));
+      return;
+    }
+    setMenus(nextMenus);
+  }
+
   const totalCategories = menus.reduce((acc, m) => acc + m.categories.length, 0);
   const totalDishesInMenus = menus.reduce(
     (acc, m) => acc + m.categories.reduce((a, c) => a + c.dishes.length, 0),
@@ -244,6 +288,7 @@ export function MenusSection({
             onDishUpdated={handleDishUpdated}
             onCategoryUpdated={handleCategoryUpdated}
             onMenuUpdated={handleMenuUpdated}
+            onDishCreated={handleDishCreated}
           />
         ))
       ) : (

@@ -4,13 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { fetchGooglePlaces } from './actions/places';
 import type { GooglePlacesResult } from './actions/places';
+import { ImportAreaSelector, type AreaSelection } from './ImportAreaSelector';
 
 type Phase = 'idle' | 'loading' | 'done' | 'error';
 
 export function PlacesImportTab() {
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
-  const [radius, setRadius] = useState('1000');
+  const [area, setArea] = useState<AreaSelection | null>(null);
   const [maxRows, setMaxRows] = useState('200');
   const [phase, setPhase] = useState<Phase>('idle');
   const [result, setResult] = useState<GooglePlacesResult | null>(null);
@@ -18,14 +17,20 @@ export function PlacesImportTab() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!area) {
+      setErrorMsg('Pick an area on the map first');
+      setPhase('error');
+      return;
+    }
+
     setPhase('loading');
     setResult(null);
     setErrorMsg('');
 
     const res = await fetchGooglePlaces({
-      lat: Number(lat),
-      lng: Number(lng),
-      radius: Number(radius),
+      lat: area.lat,
+      lng: area.lng,
+      radius: area.radius,
       maxRows: Number(maxRows),
     });
 
@@ -55,57 +60,11 @@ export function PlacesImportTab() {
         onSubmit={e => {
           handleSubmit(e).catch(() => {});
         }}
-        className="space-y-3"
+        className="space-y-4"
       >
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="places-lat" className={labelClass}>
-              Latitude
-            </label>
-            <input
-              id="places-lat"
-              type="number"
-              step="any"
-              value={lat}
-              onChange={e => setLat(e.target.value)}
-              placeholder="40.7128"
-              required
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label htmlFor="places-lng" className={labelClass}>
-              Longitude
-            </label>
-            <input
-              id="places-lng"
-              type="number"
-              step="any"
-              value={lng}
-              onChange={e => setLng(e.target.value)}
-              placeholder="-74.0060"
-              required
-              className={inputClass}
-            />
-          </div>
-        </div>
+        <ImportAreaSelector onAreaSelect={setArea} />
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="places-radius" className={labelClass}>
-              Radius (m)
-            </label>
-            <input
-              id="places-radius"
-              type="number"
-              min="50"
-              max="50000"
-              value={radius}
-              onChange={e => setRadius(e.target.value)}
-              required
-              className={inputClass}
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-3 items-end">
           <div>
             <label htmlFor="places-max" className={labelClass}>
               Max results
@@ -121,15 +80,14 @@ export function PlacesImportTab() {
               className={inputClass}
             />
           </div>
+          <button
+            type="submit"
+            disabled={phase === 'loading' || !area}
+            className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            {phase === 'loading' ? 'Fetching…' : 'Search & Import'}
+          </button>
         </div>
-
-        <button
-          type="submit"
-          disabled={phase === 'loading'}
-          className="w-full rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-        >
-          {phase === 'loading' ? 'Fetching…' : 'Search & Import'}
-        </button>
       </form>
 
       {phase === 'error' && (
@@ -142,13 +100,46 @@ export function PlacesImportTab() {
       )}
 
       {phase === 'done' && result && (
-        <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-1">
-          <p className="font-medium text-green-800">Import complete</p>
-          <p className="text-green-700">
-            {result.total_fetched} fetched · {result.total_inserted} inserted ·{' '}
-            {result.total_skipped} skipped (duplicates)
+        <div
+          className={`rounded-md border p-3 text-sm space-y-2 ${
+            result.total_errors > 0
+              ? 'bg-yellow-50 border-yellow-200'
+              : 'bg-green-50 border-green-200'
+          }`}
+        >
+          <p
+            className={`font-medium ${
+              result.total_errors > 0 ? 'text-yellow-800' : 'text-green-800'
+            }`}
+          >
+            {result.total_errors > 0 ? 'Import finished with errors' : 'Import complete'}
           </p>
-          <Link href="/restaurants" className="text-green-700 underline text-xs">
+          <p className={result.total_errors > 0 ? 'text-yellow-700' : 'text-green-700'}>
+            {result.total_fetched} fetched · {result.total_inserted} inserted ·{' '}
+            {result.total_skipped} skipped (duplicates) · {result.total_errors} failed
+          </p>
+
+          {result.error_samples.length > 0 && (
+            <div className="rounded border border-yellow-300 bg-yellow-100/50 p-2">
+              <p className="font-medium text-yellow-900 text-xs mb-1">
+                Sample failures (showing {result.error_samples.length} of {result.total_errors}):
+              </p>
+              <ul className="space-y-0.5 text-xs text-yellow-900">
+                {result.error_samples.map((err, i) => (
+                  <li key={i}>
+                    <span className="font-medium">{err.name}</span>: {err.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <Link
+            href="/restaurants"
+            className={`underline text-xs ${
+              result.total_errors > 0 ? 'text-yellow-700' : 'text-green-700'
+            }`}
+          >
             View restaurants →
           </Link>
         </div>

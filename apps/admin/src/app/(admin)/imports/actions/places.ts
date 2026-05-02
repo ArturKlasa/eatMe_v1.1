@@ -23,6 +23,10 @@ export type GooglePlacesResult = {
   total_fetched: number;
   total_inserted: number;
   total_skipped: number;
+  total_errors: number;
+  // Up to 5 sample error messages so the UI can surface what went wrong
+  // without flooding when many rows fail for the same reason.
+  error_samples: Array<{ name: string; message: string }>;
 };
 
 type PlaceResult = {
@@ -65,9 +69,21 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
     let allPlaces: PlaceResult[] = [];
     let pageToken: string | undefined;
 
-    // Fetch pages until maxRows or no more pages
+    // Fetch pages until maxRows or no more pages.
+    // includedTypes restricts results to food/drink venues — without this
+    // Google returns every place in the radius (banks, gas stations, salons).
+    const includedTypes = [
+      'restaurant',
+      'cafe',
+      'bakery',
+      'bar',
+      'meal_takeaway',
+      'fast_food_restaurant',
+    ];
+
     do {
       const reqBody: Record<string, unknown> = {
+        includedTypes,
         locationRestriction: {
           circle: { center: { latitude: lat, longitude: lng }, radius },
         },
@@ -114,9 +130,26 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
 
     const toInsert = allPlaces.filter(p => p.id && !existingSet.has(p.id));
     const restaurantIds: string[] = [];
+    const errorSamples: Array<{ name: string; message: string }> = [];
+    let errorCount = 0;
 
     for (const place of toInsert) {
       const hasCoords = place.location?.latitude != null && place.location?.longitude != null;
+      // restaurants.location is jsonb NOT NULL, with a generated location_point
+      // column derived from location->>'lng' / location->>'lat'. We must store
+      // {lat, lng}, never a WKT string. allergens/dietary_tags do not exist on
+      // this table — they live on dishes/users.
+      if (!hasCoords) {
+        errorCount++;
+        if (errorSamples.length < 5) {
+          errorSamples.push({
+            name: place.displayName?.text ?? 'Unknown',
+            message: 'missing coordinates',
+          });
+        }
+        continue;
+      }
+
       const insertPayload = {
         name: place.displayName?.text ?? 'Unknown',
         address: place.formattedAddress ?? '',
@@ -124,22 +157,31 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
         phone: place.internationalPhoneNumber ?? null,
         website: place.websiteUri ?? null,
         status: 'draft' as const,
-        allergens: [] as string[],
-        dietary_tags: [] as string[],
-        ...(hasCoords
-          ? {
-              location:
-                `POINT(${place.location!.longitude} ${place.location!.latitude})` as unknown as null,
-            }
-          : {}),
+        location: { lat: place.location!.latitude, lng: place.location!.longitude },
       };
 
-      const { data: inserted } = await service
+      const { data: inserted, error: insertError } = await service
         .from('restaurants')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .insert(insertPayload as any)
         .select('id')
         .single();
+
+      if (insertError) {
+        errorCount++;
+        console.error('[places-import] insert failed:', {
+          name: insertPayload.name,
+          place_id: place.id,
+          message: insertError.message,
+        });
+        if (errorSamples.length < 5) {
+          errorSamples.push({
+            name: insertPayload.name,
+            message: insertError.message,
+          });
+        }
+        continue;
+      }
 
       if (inserted?.id) restaurantIds.push(inserted.id);
     }
@@ -147,33 +189,35 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
     // Track API usage (best-effort)
     const month = new Date().toISOString().slice(0, 7);
     try {
-      await service
-        .from('google_api_usage')
-        .upsert(
-          {
-            month,
-            api_calls: allPlaces.length,
-            estimated_cost_usd: (allPlaces.length / 1000) * 40,
-          },
-          { onConflict: 'month' }
-        );
+      await service.from('google_api_usage').upsert(
+        {
+          month,
+          api_calls: allPlaces.length,
+          estimated_cost_usd: (allPlaces.length / 1000) * 40,
+        },
+        { onConflict: 'month' }
+      );
     } catch {
       // best-effort: ignore usage tracking failures
     }
 
-    // Create import job record
+    // Create import job record. status='failed' when nothing inserted despite
+    // fetching candidates — distinguishes a totally broken run from a benign
+    // "everything was a duplicate".
+    const jobStatus = restaurantIds.length === 0 && toInsert.length > 0 ? 'failed' : 'completed';
     const { data: jobRow } = await service
       .from('restaurant_import_jobs')
       .insert({
         admin_id: ctx.userId,
         admin_email: ctx.user.email ?? '',
         source: 'google_places',
-        status: 'completed',
+        status: jobStatus,
         search_params: { lat, lng, radius, maxRows },
         total_fetched: allPlaces.length,
         total_inserted: restaurantIds.length,
         total_skipped: allPlaces.length - toInsert.length,
         total_flagged: 0,
+        errors: errorSamples,
         restaurant_ids: restaurantIds,
         api_calls_used: allPlaces.length,
         estimated_cost_usd: (allPlaces.length / 1000) * 40,
@@ -201,6 +245,8 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
         total_fetched: allPlaces.length,
         total_inserted: restaurantIds.length,
         total_skipped: allPlaces.length - toInsert.length,
+        total_errors: errorCount,
+        error_samples: errorSamples,
       },
     };
   }

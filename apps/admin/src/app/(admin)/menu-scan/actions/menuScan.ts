@@ -44,6 +44,13 @@ const reviewedCategoryDescriptionSchema = z.object({
   custom_name: z.string().min(1).max(200).nullable(),
   existing_id: z.string().uuid().nullable(),
   description: z.string().max(2000).nullable(),
+  // Restaurant's actual menu wording for a canonical-mode group (e.g. "Starters"
+  // when AI matched it to canonical "appetizers"). Server uses this as the
+  // displayed name + name_translations[lang] override on row creation, keeping
+  // the canonical link intact for cross-locale fallback. Only meaningful when
+  // canonical_slug is set; ignored otherwise. Optional for back-compat with
+  // older clients.
+  verbatim_name: z.string().min(1).max(200).nullable().optional(),
 });
 
 const confirmPayloadSchema = z.object({
@@ -369,9 +376,11 @@ export const adminConfirmMenuScan = withAdminAuth(
     // Build the description lookup keyed by the same tuple shape. Skip blank
     // descriptions entirely so we never overwrite a real value with empty.
     const descriptionByKey = new Map<string, string>();
+    // Verbatim section name for canonical-mode groups only (e.g. "Starters" when
+    // AI matched it to canonical "appetizers"). Used below to override the
+    // canonical English label on row creation, preserving the restaurant's voice.
+    const verbatimByKey = new Map<string, string>();
     for (const c of parsed.data.category_descriptions ?? []) {
-      const desc = c.description?.trim();
-      if (!desc) continue;
       const key = c.canonical_slug
         ? `c:${c.canonical_slug}`
         : c.custom_name
@@ -379,7 +388,13 @@ export const adminConfirmMenuScan = withAdminAuth(
           : c.existing_id
             ? `e:${c.existing_id}`
             : null;
-      if (key) descriptionByKey.set(key, desc);
+      if (!key) continue;
+
+      const desc = c.description?.trim();
+      if (desc) descriptionByKey.set(key, desc);
+
+      const verbatim = c.verbatim_name?.trim();
+      if (verbatim && c.canonical_slug) verbatimByKey.set(key, verbatim);
     }
 
     // Resolve each unique tuple → menu_category_id. Use SELECT-then-INSERT
@@ -414,9 +429,21 @@ export const adminConfirmMenuScan = withAdminAuth(
           row = existing as { id: string };
           existingDescription = (existing as { description: string | null }).description ?? null;
         } else {
-          // Snapshot canonical name in source language (fall back to en)
-          const displayName =
+          // Prefer the restaurant's verbatim wording (e.g. "Starters") over the
+          // canonical English label ("Appetizers") when the AI captured one and
+          // it differs case-insensitively. The canonical link itself stays
+          // intact, so cross-locale fallback (canonical.names[locale]) and
+          // dedup on canonical_category_id keep working — only the source-
+          // language display name reflects the restaurant's voice. When verbatim
+          // is missing or matches the canonical label, fall back to the
+          // canonical-derived display name.
+          const canonicalDisplay =
             canon.names[sourceLanguage] ?? canon.names[DEFAULT_LANGUAGE] ?? canon.slug;
+          const verbatim = verbatimByKey.get(key);
+          const useVerbatim =
+            !!verbatim && verbatim.toLowerCase() !== canonicalDisplay.toLowerCase();
+          const displayName = useVerbatim ? verbatim! : canonicalDisplay;
+
           const { data: created, error: createErr } = await svc
             .from('menu_categories')
             .insert({
@@ -426,6 +453,7 @@ export const adminConfirmMenuScan = withAdminAuth(
               canonical_category_id: canon.id,
               source_language_code: sourceLanguage,
               is_active: true,
+              ...(useVerbatim ? { name_translations: { [sourceLanguage]: verbatim! } } : {}),
               ...(desc
                 ? {
                     description: desc,

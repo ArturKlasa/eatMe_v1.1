@@ -396,28 +396,47 @@ export function ReviewDishEditor({
     setSaving(true);
     try {
       // Build category_descriptions array — one entry per unique key referenced
-      // by an active dish. Existing-cat with locked description → skip (server
-      // wouldn't overwrite anyway, no point sending).
+      // by an active dish. We send an entry whenever EITHER:
+      //   - admin entered a section description that should be persisted, OR
+      //   - the AI captured a verbatim section name for a canonical-mode group
+      //     (the server uses it to override the canonical English label —
+      //     "Starters" instead of "Appetizers" — while keeping the canonical
+      //     link intact).
+      // Existing-cat with locked description → skip the description but still
+      // send if there's a verbatim (server side-effects gated by the same key).
       const seenKeys = new Set<string>();
       const categoryDescriptionsPayload: Array<{
         canonical_slug: string | null;
         custom_name: string | null;
         existing_id: string | null;
         description: string | null;
+        verbatim_name: string | null;
       }> = [];
       for (const d of activeDishes) {
         const key = getGroupKey(d);
         if (key === 'none' || seenKeys.has(key)) continue;
         seenKeys.add(key);
-        const desc = categoryDescriptions.get(key)?.trim() || null;
-        if (!desc) continue;
+
         const meta = getGroupMeta(key);
-        if (meta.descriptionLocked) continue;
+        const rawDesc = categoryDescriptions.get(key)?.trim() || null;
+        const desc = rawDesc && !meta.descriptionLocked ? rawDesc : null;
+
+        // Verbatim is only meaningful for canonical-mode groups — existing/custom
+        // already use the right wording in their own fields.
+        const verbatim =
+          d.categoryMode === 'canonical' && d.suggested_category_name?.trim()
+            ? d.suggested_category_name.trim()
+            : null;
+
+        // Skip entries that contribute nothing to either side-effect.
+        if (!desc && !verbatim) continue;
+
         categoryDescriptionsPayload.push({
           canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
           custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
           existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
           description: desc,
+          verbatim_name: verbatim,
         });
       }
 

@@ -13,6 +13,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, PanResponder } from 'react-native';
 import { useFilterStore, DailyFilters, defaultDailyFilters } from '../../stores/filterStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { getCurrencyInfo } from '../../utils/currencyConfig';
 import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
 import { colors, spacing, typography, borderRadius } from '@eatme/tokens';
@@ -49,6 +51,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   const replaceDailyFilters = useFilterStore(state => state.replaceDailyFilters);
   // Read the current applied daily filters once so the modal opens showing them.
   const currentDaily = useFilterStore(state => state.daily);
+  const currency = useSettingsStore(state => state.currency);
+  const currencyInfo = getCurrencyInfo(currency);
+  const { min: priceMin, max: priceMax, step: priceStep } = currencyInfo.priceRange;
 
   // Local state — initialised from the currently applied filters each time the modal opens.
   // Changes here don’t affect the feed until the user presses Apply.
@@ -56,13 +61,6 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   const [cuisineModalVisible, setCuisineModalVisible] = React.useState(false);
   const [mealModalVisible, setMealModalVisible] = React.useState(false);
   const [sliderDragging, setSliderDragging] = React.useState(false);
-
-  // Incremented each time the modal finishes its slide-in animation (onShow fires
-  // after the native animation completes). Used as a key on DualRangeSlider so it
-  // remounts at a point when the modal is fully visible and onLayout reports the
-  // correct width — avoiding the physical-Android issue where onLayout fires once
-  // during the animation with width=0 and never again.
-  const [sliderMountKey, setSliderMountKey] = React.useState(0);
 
   // Sync to current applied state each time the modal becomes visible
   React.useEffect(() => {
@@ -72,13 +70,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
   }, [visible]); // intentionally only on open; currentDaily not in deps
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-      onShow={() => setSliderMountKey(k => k + 1)}
-    >
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <TouchableOpacity style={modals.overlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity
           style={[modals.container, modals.darkContainer]}
@@ -136,20 +128,20 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               <View style={modals.priceSliderContainer}>
                 <View style={modals.priceSliderLabels}>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    {localFilters.priceRange.min === 10
-                      ? `${t('filters.lessThan')} ${formatCurrency(10)}`
-                      : formatCurrency(localFilters.priceRange.min)}
+                    {localFilters.priceRange.min === priceMin
+                      ? `${t('filters.lessThan')} ${formatCurrency(priceMin, currency)}`
+                      : formatCurrency(localFilters.priceRange.min, currency)}
                   </Text>
                   <Text style={[modals.priceSliderLabel, modals.darkPriceLabel]}>
-                    {localFilters.priceRange.max === 50
-                      ? `${t('filters.over')} ${formatCurrency(50)}`
-                      : formatCurrency(localFilters.priceRange.max)}
+                    {localFilters.priceRange.max === priceMax
+                      ? `${t('filters.over')} ${formatCurrency(priceMax, currency)}`
+                      : formatCurrency(localFilters.priceRange.max, currency)}
                   </Text>
                 </View>
                 <DualRangeSlider
-                  key={sliderMountKey}
-                  min={10}
-                  max={50}
+                  min={priceMin}
+                  max={priceMax}
+                  step={priceStep}
                   valueMin={localFilters.priceRange.min}
                   valueMax={localFilters.priceRange.max}
                   onValuesChange={(min, max) =>
@@ -683,6 +675,7 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
 interface DualRangeSliderProps {
   min: number;
   max: number;
+  step?: number;
   valueMin: number;
   valueMax: number;
   onValuesChange: (min: number, max: number) => void;
@@ -692,6 +685,7 @@ interface DualRangeSliderProps {
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   min,
   max,
+  step = 1,
   valueMin,
   valueMax,
   onValuesChange,
@@ -705,21 +699,31 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   const trackWidthRef = React.useRef(0);
   const wrapperRef = React.useRef<View>(null);
 
-  // Fallback measurement: if onLayout fired during the Modal's slide-in animation
-  // and reported width=0 (the if(w>0) guard dropped it), it won't fire again.
-  // After 50ms — enough for one or two layout passes to settle — query the native
-  // layer directly via measure(). Only runs when trackWidth is still 0.
+  // Poll measure() until non-zero — some Android devices report width=0 for ~1s after Modal slide-in.
   React.useEffect(() => {
     if (trackWidth > 0) return;
-    const id = setTimeout(() => {
+    let cancelled = false;
+    let attempts = 0;
+    const tryMeasure = () => {
+      if (cancelled) return;
       wrapperRef.current?.measure((_x, _y, width) => {
+        if (cancelled) return;
         if (width > 0) {
           trackWidthRef.current = width;
           setTrackWidth(width);
+          return;
+        }
+        attempts += 1;
+        if (attempts < 20) {
+          setTimeout(tryMeasure, 50);
         }
       });
-    }, 50);
-    return () => clearTimeout(id);
+    };
+    const initialId = setTimeout(tryMeasure, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(initialId);
+    };
   }, [trackWidth]);
 
   // Keep fresh refs for PanResponder closures so they always see current values
@@ -750,15 +754,22 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
       onPanResponderMove: (_evt, gestureState) => {
         if (trackWidthRef.current === 0) return;
         const deltaValue = (gestureState.dx / trackWidthRef.current) * (max - min);
-        const newValue = Math.round(clamp(startValue + deltaValue, min, max));
+        const raw = clamp(startValue + deltaValue, min, max);
+        const newValue = Math.round(raw / step) * step;
         if (thumb === 'min') {
-          onValuesChange(clamp(newValue, min, valueMaxRef.current - 1), valueMaxRef.current);
+          onValuesChange(clamp(newValue, min, valueMaxRef.current - step), valueMaxRef.current);
         } else {
-          onValuesChange(valueMinRef.current, clamp(newValue, valueMinRef.current + 1, max));
+          onValuesChange(valueMinRef.current, clamp(newValue, valueMinRef.current + step, max));
         }
       },
-      onPanResponderRelease: () => { setActiveThumb(null); onDragStateChange?.(false); },
-      onPanResponderTerminate: () => { setActiveThumb(null); onDragStateChange?.(false); },
+      onPanResponderRelease: () => {
+        setActiveThumb(null);
+        onDragStateChange?.(false);
+      },
+      onPanResponderTerminate: () => {
+        setActiveThumb(null);
+        onDragStateChange?.(false);
+      },
     });
   };
 
@@ -786,12 +797,7 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
       {/* Visual track bar */}
       <View style={modals.priceSliderTrack} />
       {/* Active range highlight */}
-      <View
-        style={[
-          modals.priceSliderActiveRange,
-          { left: minLeft, width: maxLeft - minLeft },
-        ]}
-      />
+      <View style={[modals.priceSliderActiveRange, { left: minLeft, width: maxLeft - minLeft }]} />
       {/* Min thumb — left is offset by half the thumb width (12) so the centre
           aligns with the value position. Direct subtraction avoids transform,
           which shifts pixels but NOT the touch area on older Android. */}

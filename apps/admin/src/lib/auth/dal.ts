@@ -354,6 +354,27 @@ export async function getMenuScanReviewContext(
   return { existingCategories, canonicalCategories, dishCategories };
 }
 
+// getCanonicalMenuCategoryOptions: standalone fetch of the active canonical
+// taxonomy. Used by the restaurant-detail "+ Add category" surface, which
+// doesn't need the rest of the review context. Mirrors the canonical fetch
+// inside getMenuScanReviewContext above (kept as a separate function to
+// avoid pulling in the unrelated existingCategories/dishCategories queries).
+export async function getCanonicalMenuCategoryOptions(): Promise<CanonicalCategoryOption[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const svc = createAdminServiceClient() as any;
+  const { data, error } = await svc
+    .from('canonical_menu_categories')
+    .select('id, slug, names')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  if (error || !data) return [];
+  return (data as Array<Record<string, unknown>>).map(r => ({
+    id: r.id as string,
+    slug: r.slug as string,
+    names: (r.names as Record<string, string> | null) ?? {},
+  }));
+}
+
 // Resolves a list of free-text dish-category suggestions (from the worker's
 // suggested_dish_category field) to dish_categories rows via the
 // fuzzy_match_dish_category RPC. One RPC call per unique query — typical scans

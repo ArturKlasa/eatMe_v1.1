@@ -5,8 +5,10 @@ import type {
   AdminMenu,
   AdminMenuCategory,
   AdminMenuDish,
+  CanonicalCategoryOption,
   DishCategoryOption,
 } from '@/lib/auth/dal';
+import { AddCategoryButton } from './AddCategoryButton';
 import { AddDishButton } from './AddDishButton';
 import { CategoryRowEditor } from './CategoryRowEditor';
 import { DishRowEditor } from './DishRowEditor';
@@ -17,6 +19,11 @@ interface Props {
   menus: AdminMenu[];
   uncategorizedDishes: AdminMenuDish[];
   dishCategoryOptions: DishCategoryOption[];
+  canonicalCategoryOptions: CanonicalCategoryOption[];
+  // ISO-639-1 derived from the restaurant's country_code. Threaded through
+  // to AddCategoryButton so newly-created menu_categories carry the right
+  // source_language_code + name_translations.
+  sourceLanguageCode: string;
 }
 
 function CategoryBlock({
@@ -75,21 +82,39 @@ function MenuBlock({
   restaurantId,
   menus,
   dishCategoryOptions,
+  canonicalCategoryOptions,
+  sourceLanguageCode,
   onDishUpdated,
   onCategoryUpdated,
   onMenuUpdated,
   onDishCreated,
+  onCategoryCreated,
 }: {
   menu: AdminMenu;
   restaurantId: string;
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
+  canonicalCategoryOptions: CanonicalCategoryOption[];
+  sourceLanguageCode: string;
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
   onMenuUpdated: (next: AdminMenu) => void;
   onDishCreated: (dish: AdminMenuDish) => void;
+  onCategoryCreated: (category: AdminMenuCategory) => void;
 }) {
   const dishCount = menu.categories.reduce((acc, c) => acc + c.dishes.length, 0);
+
+  // Filter out canonicals already linked under THIS menu (mig 124's partial
+  // unique index would block the insert anyway). The same canonical can still
+  // appear in a different menu of the same restaurant — Lunch + Dinner can
+  // both have a "Drinks" section, for example.
+  const usedCanonicalIds = new Set(
+    menu.categories.map(c => c.canonical_category_id).filter((id): id is string => id != null)
+  );
+  const availableCanonicalOptions = canonicalCategoryOptions.filter(
+    c => !usedCanonicalIds.has(c.id)
+  );
+
   return (
     <div className="rounded-lg border border-border p-3 space-y-3">
       <MenuRowEditor
@@ -116,6 +141,14 @@ function MenuBlock({
       ) : (
         <p className="text-xs text-muted-foreground italic">No categories in this menu.</p>
       )}
+      <AddCategoryButton
+        restaurantId={restaurantId}
+        menuId={menu.id}
+        menuName={menu.name}
+        sourceLanguageCode={sourceLanguageCode}
+        availableCanonicalOptions={availableCanonicalOptions}
+        onCreated={onCategoryCreated}
+      />
     </div>
   );
 }
@@ -125,6 +158,8 @@ export function MenusSection({
   menus: initialMenus,
   uncategorizedDishes: initialUncategorized,
   dishCategoryOptions,
+  canonicalCategoryOptions,
+  sourceLanguageCode,
 }: Props) {
   // Local state holds the optimistic copy. Edits go here first, then persist.
   // revalidatePath in the action will refresh the server data on next nav.
@@ -195,6 +230,18 @@ export function MenusSection({
   // Update an edited menu in place (preserves categories inside).
   function handleMenuUpdated(next: AdminMenu) {
     setMenus(prev => prev.map(m => (m.id === next.id ? { ...next, categories: m.categories } : m)));
+  }
+
+  // Insert a freshly-created category at the bottom of its parent menu's
+  // category list. dishes is always [] for a new category.
+  function handleCategoryCreated(category: AdminMenuCategory) {
+    setMenus(prev =>
+      prev.map(m =>
+        m.id === category.menu_id
+          ? { ...m, categories: [...m.categories, { ...category, dishes: [] }] }
+          : m
+      )
+    );
   }
 
   // Insert a freshly-created dish into the right bucket. menu_category_id=null
@@ -285,10 +332,13 @@ export function MenusSection({
             restaurantId={restaurantId}
             menus={menus}
             dishCategoryOptions={dishCategoryOptions}
+            canonicalCategoryOptions={canonicalCategoryOptions}
+            sourceLanguageCode={sourceLanguageCode}
             onDishUpdated={handleDishUpdated}
             onCategoryUpdated={handleCategoryUpdated}
             onMenuUpdated={handleMenuUpdated}
             onDishCreated={handleDishCreated}
+            onCategoryCreated={handleCategoryCreated}
           />
         ))
       ) : (

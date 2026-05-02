@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { countryToLanguage } from '@eatme/shared';
 import { verifyAdminSession } from '@/lib/auth/dal';
 import {
   getAdminRestaurantById,
   getAdminRestaurantMenus,
   getAllDishCategoryOptions,
+  getCanonicalMenuCategoryOptions,
 } from '@/lib/auth/dal';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
@@ -54,11 +56,18 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
   const restaurant = await getAdminRestaurantById(id);
   if (!restaurant) notFound();
 
-  const [draftCounts, menusData, dishCategoryOptions] = await Promise.all([
-    getDraftCounts(restaurant.id),
-    getAdminRestaurantMenus(restaurant.id),
-    getAllDishCategoryOptions(),
-  ]);
+  const [draftCounts, menusData, dishCategoryOptions, canonicalCategoryOptions] = await Promise.all(
+    [
+      getDraftCounts(restaurant.id),
+      getAdminRestaurantMenus(restaurant.id),
+      getAllDishCategoryOptions(),
+      getCanonicalMenuCategoryOptions(),
+    ]
+  );
+
+  // Source language for new menu_categories defaults to the country-derived
+  // language (matches how the menu-scan flow derives sourceLanguage).
+  const sourceLanguageCode = countryToLanguage(restaurant.country_code);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -115,6 +124,8 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         menus={menusData.menus}
         uncategorizedDishes={menusData.uncategorizedDishes}
         dishCategoryOptions={dishCategoryOptions}
+        canonicalCategoryOptions={canonicalCategoryOptions}
+        sourceLanguageCode={sourceLanguageCode}
       />
 
       {/* Admin-only suspension section */}

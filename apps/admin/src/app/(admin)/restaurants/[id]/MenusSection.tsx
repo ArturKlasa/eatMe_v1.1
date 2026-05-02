@@ -10,6 +10,7 @@ import type {
 } from '@/lib/auth/dal';
 import { AddCategoryButton } from './AddCategoryButton';
 import { AddDishButton } from './AddDishButton';
+import { AddMenuButton } from './AddMenuButton';
 import { CategoryRowEditor } from './CategoryRowEditor';
 import { DishRowEditor } from './DishRowEditor';
 import { MenuRowEditor } from './MenuRowEditor';
@@ -232,6 +233,13 @@ export function MenusSection({
     setMenus(prev => prev.map(m => (m.id === next.id ? { ...next, categories: m.categories } : m)));
   }
 
+  // Insert a freshly-created menu at the bottom of the menus list. categories
+  // is always [] for a new menu — admin will populate it via the per-menu
+  // AddCategoryButton.
+  function handleMenuCreated(menu: AdminMenu) {
+    setMenus(prev => [...prev, { ...menu, categories: [] }]);
+  }
+
   // Insert a freshly-created category at the bottom of its parent menu's
   // category list. dishes is always [] for a new category.
   function handleCategoryCreated(category: AdminMenuCategory) {
@@ -343,9 +351,11 @@ export function MenusSection({
         ))
       ) : (
         <p className="text-sm text-muted-foreground italic">
-          No menus yet. Run a menu scan to populate.
+          No menus yet. Run a menu scan to populate, or add one manually below.
         </p>
       )}
+
+      <AddMenuButton restaurantId={restaurantId} onCreated={handleMenuCreated} />
     </section>
   );
 }

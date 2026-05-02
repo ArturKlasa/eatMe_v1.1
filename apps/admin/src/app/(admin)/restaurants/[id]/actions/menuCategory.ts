@@ -6,6 +6,145 @@ import { withAdminAuth, type ActionResult } from '@/lib/auth/wrappers';
 import { logAdminAction } from '@/lib/audit';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 
+const adminCategoryCreateSchema = z.object({
+  menu_id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).nullable().optional(),
+  canonical_category_id: z.string().uuid().nullable().optional(),
+  source_language_code: z.string().min(2).max(10).nullable().optional(),
+});
+
+// adminCreateMenuCategory: create a new menu_category under (restaurant, menu).
+// Pre-checks the partial unique indexes from migration 124:
+//   - canonical: one (restaurant, menu, canonical_category) row
+//   - custom:    one (restaurant, menu, lower(name)) row when canonical_category_id IS NULL
+// On a 23505 race we surface the same friendly error so the UI can react
+// consistently regardless of whether the dup was caught here or by the DB.
+//
+// When source_language_code is set, name (and description, when present) are
+// mirrored into name_translations[lang] / description_translations[lang] so
+// mobile reads the translated value via the COALESCE chain from migration 124.
+export const adminCreateMenuCategory = withAdminAuth(
+  async (
+    ctx,
+    restaurantId: string,
+    input: z.infer<typeof adminCategoryCreateSchema>
+  ): Promise<ActionResult<{ categoryId: string }>> => {
+    const parsed = adminCategoryCreateSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+
+    // canonical_menu_categories + new menu_categories columns aren't always in
+    // the generated types — same loose-typed alias as adminUpdateMenuCategory.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const svc = createAdminServiceClient() as any;
+    const c = parsed.data;
+
+    const { data: menu } = await svc
+      .from('menus')
+      .select('id')
+      .eq('id', c.menu_id)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (!menu) return { ok: false, formError: 'INVALID_MENU_ID' };
+
+    if (c.canonical_category_id) {
+      const { data: canon } = await svc
+        .from('canonical_menu_categories')
+        .select('id')
+        .eq('id', c.canonical_category_id)
+        .maybeSingle();
+      if (!canon) return { ok: false, formError: 'INVALID_CANONICAL_CATEGORY_ID' };
+
+      const { data: collision } = await svc
+        .from('menu_categories')
+        .select('id')
+        .eq('restaurant_id', restaurantId)
+        .eq('menu_id', c.menu_id)
+        .eq('canonical_category_id', c.canonical_category_id)
+        .maybeSingle();
+      if (collision) return { ok: false, formError: 'CATEGORY_ALREADY_LINKED' };
+    } else {
+      const { data: collision } = await svc
+        .from('menu_categories')
+        .select('id')
+        .eq('restaurant_id', restaurantId)
+        .eq('menu_id', c.menu_id)
+        .is('canonical_category_id', null)
+        .ilike('name', c.name)
+        .maybeSingle();
+      if (collision) return { ok: false, formError: 'CATEGORY_NAME_COLLISION' };
+    }
+
+    const { data: maxRow } = await svc
+      .from('menu_categories')
+      .select('display_order')
+      .eq('menu_id', c.menu_id)
+      .eq('restaurant_id', restaurantId)
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextOrder =
+      ((maxRow as { display_order: number | null } | null)?.display_order ?? -1) + 1;
+
+    const lang = c.source_language_code ?? null;
+    const insertPayload: Record<string, unknown> = {
+      restaurant_id: restaurantId,
+      menu_id: c.menu_id,
+      name: c.name,
+      description: c.description ?? null,
+      canonical_category_id: c.canonical_category_id ?? null,
+      source_language_code: lang,
+      display_order: nextOrder,
+      is_active: true,
+    };
+    if (lang) {
+      insertPayload.name_translations = { [lang]: c.name };
+      if (c.description) {
+        insertPayload.description_translations = { [lang]: c.description };
+      }
+    }
+
+    const { data: created, error } = await svc
+      .from('menu_categories')
+      .insert(insertPayload)
+      .select('id')
+      .single();
+
+    if (error) {
+      if (typeof error.message === 'string' && error.message.includes('23505')) {
+        return {
+          ok: false,
+          formError: c.canonical_category_id
+            ? 'CATEGORY_ALREADY_LINKED'
+            : 'CATEGORY_NAME_COLLISION',
+        };
+      }
+      return { ok: false, formError: error.message };
+    }
+    if (!created) return { ok: false, formError: 'CREATE_FAILED' };
+
+    const categoryId = (created as { id: string }).id;
+
+    await logAdminAction(
+      svc,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'create_menu_category',
+      'menu_category',
+      categoryId,
+      null,
+      insertPayload
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: { categoryId } };
+  }
+);
+
 const adminCategoryUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),

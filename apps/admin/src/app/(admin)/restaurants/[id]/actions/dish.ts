@@ -10,6 +10,109 @@ import { PRIMARY_PROTEINS } from '@eatme/shared';
 const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
 const DISH_STATUSES = ['draft', 'published', 'archived'] as const;
 
+const adminDishCreateSchema = z.object({
+  menu_category_id: z.string().uuid().nullable(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).nullable().optional(),
+  price: z.number().nonnegative().nullable().optional(),
+  primary_protein: z.enum(PRIMARY_PROTEINS),
+  dish_kind: z.enum(DISH_KINDS).optional(),
+  dish_category_id: z.string().uuid().nullable().optional(),
+});
+
+// adminCreateDish: create a new dish under a restaurant. Lands as status='draft',
+// is_available=true, is_template=false. allergens / dietary_tags default to []
+// (per design §2.7 + small-memos G2 — same convention as confirm_menu_scan).
+//
+// menu_category_id may be null — that creates an "uncategorized" dish that
+// surfaces in the orphan section on the restaurant detail page.
+export const adminCreateDish = withAdminAuth(
+  async (
+    ctx,
+    restaurantId: string,
+    input: z.infer<typeof adminDishCreateSchema>
+  ): Promise<ActionResult<{ dishId: string }>> => {
+    const parsed = adminDishCreateSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+
+    const service = createAdminServiceClient();
+    const d = parsed.data;
+
+    const { data: restaurant } = await service
+      .from('restaurants')
+      .select('id')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    if (!restaurant) return { ok: false, formError: 'RESTAURANT_NOT_FOUND' };
+
+    if (d.menu_category_id) {
+      const { data: cat } = await service
+        .from('menu_categories')
+        .select('id')
+        .eq('id', d.menu_category_id)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+      if (!cat) return { ok: false, formError: 'INVALID_MENU_CATEGORY_ID' };
+    }
+
+    if (d.dish_category_id) {
+      const { data: dc } = await service
+        .from('dish_categories')
+        .select('id')
+        .eq('id', d.dish_category_id)
+        .maybeSingle();
+      if (!dc) return { ok: false, formError: 'INVALID_DISH_CATEGORY_ID' };
+    }
+
+    const insertPayload = {
+      restaurant_id: restaurantId,
+      menu_category_id: d.menu_category_id,
+      name: d.name,
+      description: d.description ?? null,
+      price: d.price ?? 0,
+      primary_protein: d.primary_protein,
+      dish_kind: d.dish_kind ?? 'standard',
+      dish_category_id: d.dish_category_id ?? null,
+      status: 'draft' as const,
+      is_available: true,
+      is_template: false,
+      allergens: [] as string[],
+      dietary_tags: [] as string[],
+    };
+
+    const { data: created, error } = await service
+      .from('dishes')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(insertPayload as any)
+      .select('id')
+      .single();
+
+    if (error || !created) {
+      return { ok: false, formError: error?.message ?? 'CREATE_FAILED' };
+    }
+
+    const dishId = (created as { id: string }).id;
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'create_dish',
+      'dish',
+      dishId,
+      null,
+      insertPayload
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: { dishId } };
+  }
+);
+
 const adminDishUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),

@@ -9,6 +9,88 @@ import { createAdminServiceClient } from '@/lib/supabase/server';
 const MENU_TYPES = ['food', 'drink'] as const;
 const MENU_STATUSES = ['draft', 'published', 'archived'] as const;
 
+const adminMenuCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).nullable().optional(),
+  menu_type: z.enum(MENU_TYPES).optional(),
+});
+
+// adminCreateMenu: create a new menu under a restaurant. Lands as status='draft'
+// (mig 117 flipped the column default to 'published' — same explicit-draft
+// pattern as adminConfirmMenuScan), with display_order one past the current
+// max so the new menu appears at the bottom of the list.
+export const adminCreateMenu = withAdminAuth(
+  async (
+    ctx,
+    restaurantId: string,
+    input: z.infer<typeof adminMenuCreateSchema>
+  ): Promise<ActionResult<{ menuId: string }>> => {
+    const parsed = adminMenuCreateSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+
+    const service = createAdminServiceClient();
+
+    const { data: restaurant } = await service
+      .from('restaurants')
+      .select('id')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    if (!restaurant) return { ok: false, formError: 'RESTAURANT_NOT_FOUND' };
+
+    const { data: maxRow } = await service
+      .from('menus')
+      .select('display_order')
+      .eq('restaurant_id', restaurantId)
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextOrder =
+      ((maxRow as { display_order: number | null } | null)?.display_order ?? -1) + 1;
+
+    const m = parsed.data;
+    const insertPayload = {
+      restaurant_id: restaurantId,
+      name: m.name,
+      description: m.description ?? null,
+      menu_type: m.menu_type ?? 'food',
+      display_order: nextOrder,
+      is_active: true,
+      status: 'draft' as const,
+    };
+
+    const { data: created, error } = await service
+      .from('menus')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(insertPayload as any)
+      .select('id')
+      .single();
+
+    if (error || !created) {
+      return { ok: false, formError: error?.message ?? 'CREATE_FAILED' };
+    }
+
+    const menuId = (created as { id: string }).id;
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'create_menu',
+      'menu',
+      menuId,
+      null,
+      insertPayload
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: { menuId } };
+  }
+);
+
 const adminMenuUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),

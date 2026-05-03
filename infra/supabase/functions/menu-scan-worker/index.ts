@@ -1,7 +1,12 @@
 // menu-scan-worker/index.ts
-// Supabase Edge Function — invoked by pg_cron every minute via pg_net.http_post.
-// Claims pending menu_scan_jobs, downloads images from Storage, calls OpenAI GPT-4o
-// with Vision + Structured Outputs, writes result back via complete_menu_scan_job.
+// Supabase Edge Function — claims pending menu_scan_jobs, downloads images from
+// Storage, calls OpenAI GPT-4o with Vision + Structured Outputs, writes result
+// back via complete_menu_scan_job.
+//
+// Invocation: direct POST from adminCreateMenuScanJob (apps/admin/.../actions/
+// menuScan.ts) immediately after the row is created. The pg_cron sweep
+// 'menu-scan-worker-tick' (migration 116b) was disabled 2026-05-03 — see that
+// migration's header for the recovery tradeoff.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import OpenAI from 'npm:openai@4';
 import { zodResponseFormat } from 'npm:openai@4/helpers/zod';

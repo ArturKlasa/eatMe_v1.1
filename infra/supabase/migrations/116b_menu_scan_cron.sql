@@ -1,6 +1,16 @@
 -- 116b_menu_scan_cron.sql
 -- Created: 2026-04-23
 --
+-- DISABLED 2026-05-03: the 'menu-scan-worker-tick' cron job has been
+-- unscheduled in production. Menu scans now rely entirely on the direct
+-- fetch() call from adminCreateMenuScanJob (apps/admin/.../actions/menuScan.ts)
+-- to invoke the Edge Function. Tradeoff: a failed direct POST leaves the
+-- job stuck at 'pending' until another upload happens to trigger the
+-- worker, which then claims the older row first. Acceptable for current
+-- volume; revisit if jobs start piling up at 'pending'. A trigger-based
+-- alternative (AFTER INSERT ON menu_scan_jobs → pg_net.http_post) would
+-- restore automatic recovery without the every-minute waste.
+--
 -- Schedules the menu-scan-worker Edge Function via pg_cron + pg_net.
 -- Ticks every minute. Uses vault secrets for project URL and service-role key
 -- (set via Supabase Dashboard → Settings → Vault before running this migration).

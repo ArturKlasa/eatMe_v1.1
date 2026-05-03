@@ -27,6 +27,63 @@ function formatPrice(price: number | null): string {
   return price.toFixed(2);
 }
 
+// Read-only sub-list of variants (for parents) and courses+items (for
+// course_menu parents). Editing happens through the menu-scan review flow;
+// this exists to make the saved structure visible on the verifier page.
+function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
+  const hasVariants = dish.is_parent && dish.variants.length > 0;
+  const hasCourses = dish.dish_kind === 'course_menu' && dish.courses.length > 0;
+  if (!hasVariants && !hasCourses) return null;
+
+  return (
+    <div className="ml-4 mt-1 space-y-1.5">
+      {hasVariants && (
+        <ul className="space-y-0.5 border-l border-blue-300/50 pl-3 dark:border-blue-900/40">
+          {dish.variants.map(v => (
+            <li key={v.id} className="flex items-baseline gap-2 text-xs text-muted-foreground">
+              <span className="text-blue-600/70 dark:text-blue-300/70">↳</span>
+              <span className="flex-1">{v.name}</span>
+              <span className="tabular-nums w-16 text-right">{formatPrice(v.price)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {hasCourses && (
+        <ul className="space-y-1 border-l border-purple-300/50 pl-3 dark:border-purple-900/40">
+          {dish.courses.map(c => (
+            <li key={c.id}>
+              <div className="flex items-baseline gap-2 text-xs">
+                <span className="font-medium text-purple-900 dark:text-purple-200">
+                  {c.course_number}. {c.course_name?.trim() || '(unnamed)'}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {c.choice_type === 'one_of' ? `pick ${c.required_count}` : 'fixed'}
+                </span>
+              </div>
+              {c.items.length > 0 && (
+                <ul className="ml-3 mt-0.5 space-y-0.5">
+                  {c.items.map(it => (
+                    <li
+                      key={it.id}
+                      className="flex items-baseline gap-2 text-[11px] text-muted-foreground"
+                    >
+                      <span className="flex-1">• {it.option_label}</span>
+                      {it.price_delta !== 0 && (
+                        <span className="tabular-nums">+{formatPrice(it.price_delta)}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function DishRowEditor({
   dish,
   restaurantId,
@@ -131,6 +188,16 @@ export function DishRowEditor({
               {dish.dish_kind}
             </span>
           )}
+          {dish.is_parent && dish.dish_kind !== 'course_menu' && (
+            <span className="inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+              {dish.variants.length} variant{dish.variants.length === 1 ? '' : 's'}
+            </span>
+          )}
+          {dish.dish_kind === 'course_menu' && (
+            <span className="inline-block rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-800 dark:bg-purple-950/40 dark:text-purple-200">
+              {dish.courses.length} course{dish.courses.length === 1 ? '' : 's'}
+            </span>
+          )}
           {dish.is_template && (
             <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
               template
@@ -148,6 +215,7 @@ export function DishRowEditor({
             {dish.dish_category_name ?? '—'}
           </span>
         </button>
+        <DishRowSubList dish={dish} />
       </li>
     );
   }
@@ -347,6 +415,8 @@ export function DishRowEditor({
           </button>
         </div>
       )}
+
+      <DishRowSubList dish={dish} />
     </li>
   );
 }

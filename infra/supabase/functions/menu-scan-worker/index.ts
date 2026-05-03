@@ -155,12 +155,24 @@ async function downloadImageAsBase64(supa: any, img: ImageRef): Promise<string> 
 const PRIMARY_MODEL = 'gpt-4o-2024-11-20';
 const FALLBACK_MODEL = 'gpt-4o-mini';
 
+// Single-image extraction. v2 used to bundle all images into one call, but
+// GPT-4o reliably under-attends to images after the first when sent together
+// with detail:'high' — pages 2..N would come back empty. Mirroring v1's
+// per-image pattern (apps/web-portal/app/api/menu-scan/route.ts) gives each
+// page the model's full attention.
 async function callExtraction(
   openai: OpenAI,
   model: string,
-  imageBase64List: string[],
+  base64: string,
+  pageNumber: number,
+  totalPages: number,
   prompt: string
 ): Promise<MenuExtractionResult> {
+  const pageContext =
+    totalPages > 1
+      ? `This is page ${pageNumber} of ${totalPages}. Extract every dish on THIS page only.`
+      : 'Extract every dish from this menu image.';
+
   const completion = await openai.beta.chat.completions.parse({
     model,
     messages: [
@@ -168,13 +180,14 @@ async function callExtraction(
         role: 'user',
         content: [
           { type: 'text', text: prompt },
-          ...imageBase64List.map(b64 => ({
+          { type: 'text', text: pageContext },
+          {
             type: 'image_url' as const,
             image_url: {
-              url: `data:image/jpeg;base64,${b64}`,
+              url: `data:image/jpeg;base64,${base64}`,
               detail: 'high' as const,
             },
-          })),
+          },
         ],
       },
     ],
@@ -182,9 +195,47 @@ async function callExtraction(
     max_tokens: 16384,
     temperature: 0.1,
   });
-  const parsed = completion.choices[0]?.message?.parsed;
+
+  const choice = completion.choices[0];
+  if (choice?.finish_reason === 'length') {
+    // Single-image output rarely hits 16K tokens, but log if it does so we
+    // can spot a truncation pattern. Not promoted to error — partial dishes
+    // are still better than nothing for that page.
+    console.warn(
+      `Page ${pageNumber}/${totalPages} truncated at max_tokens — some dishes may be missing`
+    );
+  }
+
+  const parsed = choice?.message?.parsed;
   if (!parsed) throw new Error('OpenAI returned no parsed result');
   return parsed;
+}
+
+// Per-image call wrapper that mirrors the existing primary→mini fallback
+// behaviour but applies it independently per image instead of per job.
+async function extractOneImageWithFallback(
+  openai: OpenAI,
+  jobAttempts: number,
+  base64: string,
+  pageNumber: number,
+  totalPages: number,
+  prompt: string
+): Promise<MenuExtractionResult> {
+  const startWithFallback = jobAttempts >= 2;
+  if (startWithFallback) {
+    return await callExtraction(openai, FALLBACK_MODEL, base64, pageNumber, totalPages, prompt);
+  }
+  try {
+    return await callExtraction(openai, PRIMARY_MODEL, base64, pageNumber, totalPages, prompt);
+  } catch (e) {
+    if (e instanceof OpenAI.RateLimitError) {
+      console.warn(
+        `Page ${pageNumber}/${totalPages}: primary rate-limited; falling back to gpt-4o-mini`
+      );
+      return await callExtraction(openai, FALLBACK_MODEL, base64, pageNumber, totalPages, prompt);
+    }
+    throw e;
+  }
 }
 
 async function runExtraction(
@@ -193,23 +244,48 @@ async function runExtraction(
   imageBase64List: string[],
   prompt: string
 ): Promise<MenuExtractionResult> {
-  // Use fallback model when already on second+ attempt or on 429 from primary.
-  const primaryModel = jobAttempts >= 2 ? FALLBACK_MODEL : PRIMARY_MODEL;
+  // Fan out one OpenAI call per image. allSettled so a single page failure
+  // (BadRequestError, RateLimitError after fallback, etc.) doesn't discard
+  // the other pages' successful extractions.
+  const settled = await Promise.allSettled(
+    imageBase64List.map((b64, idx) =>
+      extractOneImageWithFallback(openai, jobAttempts, b64, idx + 1, imageBase64List.length, prompt)
+    )
+  );
 
-  if (primaryModel === PRIMARY_MODEL) {
-    try {
-      return await callExtraction(openai, PRIMARY_MODEL, imageBase64List, prompt);
-    } catch (e) {
-      if (e instanceof OpenAI.RateLimitError) {
-        // 429 on primary → immediately retry with fallback
-        console.warn('Primary model rate-limited; falling back to gpt-4o-mini');
-        return await callExtraction(openai, FALLBACK_MODEL, imageBase64List, prompt);
+  const dishes: MenuExtractionResult['dishes'] = [];
+  let detectedLanguage: string | null = null;
+  let failedPages = 0;
+
+  for (let idx = 0; idx < settled.length; idx++) {
+    const r = settled[idx];
+    if (r.status === 'fulfilled') {
+      // Override source_image_index from the loop, never trust the AI's value.
+      // Each call sees only one image so the model's guess is meaningless;
+      // this also fixes the long-standing class of bugs where every dish
+      // came back tagged as page 0.
+      for (const d of r.value.dishes) {
+        dishes.push({ ...d, source_image_index: idx });
       }
-      throw e;
+      if (!detectedLanguage && r.value.detected_language) {
+        detectedLanguage = r.value.detected_language;
+      }
+    } else {
+      failedPages++;
+      const errMsg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+      console.warn(`Page ${idx + 1} extraction failed:`, errMsg);
     }
-  } else {
-    return await callExtraction(openai, FALLBACK_MODEL, imageBase64List, prompt);
   }
+
+  // Total failure → propagate so the existing fail_menu_scan_job path handles
+  // retry vs terminal failure (BadRequestError still gets max_attempts=1 in
+  // processJobs's catch block).
+  if (dishes.length === 0 && failedPages === settled.length) {
+    const firstReject = settled.find(r => r.status === 'rejected') as PromiseRejectedResult;
+    throw firstReject.reason;
+  }
+
+  return { dishes, detected_language: detectedLanguage };
 }
 
 // deno-lint-ignore no-explicit-any

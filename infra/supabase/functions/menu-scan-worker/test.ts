@@ -41,6 +41,11 @@ const CANNED_RESULT = {
       confidence: 0.95,
     },
   ],
+  // runExtraction merges per-page results into a single shape that always
+  // includes detected_language (the Zod schema requires the field — null is
+  // the canonical "uncertain" value). Keeping it here avoids assertEquals
+  // tripping on the missing-vs-null difference.
+  detected_language: null,
 };
 
 function makeJob(id: string, overrides: Record<string, unknown> = {}) {
@@ -369,4 +374,188 @@ Deno.test('null-input job: fast-fail with p_max_attempts=1 (not retried)', async
 
   assertEquals(result.errors.length, 1);
   assertEquals(failedMaxAttempts[0], 1);
+});
+
+// ── Multi-image extraction tests ──────────────────────────────────────────────
+//
+// The worker runs one OpenAI call per image in parallel (Promise.allSettled),
+// then merges the results with source_image_index forced to the loop index.
+// These tests cover the merge logic + per-page failure isolation that the
+// single-image fixtures above don't exercise.
+
+function makeMultiImageJob(
+  id: string,
+  imageCount: number,
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    attempts: 1,
+    status: 'processing',
+    input: {
+      images: Array.from({ length: imageCount }, (_, i) => ({
+        bucket: 'menu-scan-uploads',
+        path: `owner/${id}-page-${i + 1}.jpg`,
+        page: i + 1,
+      })),
+    },
+    ...overrides,
+  };
+}
+
+function makeOpenAIMockSequence(results: Array<unknown | Error>): OpenAI {
+  let callIdx = 0;
+  return {
+    beta: {
+      chat: {
+        completions: {
+          parse: async () => {
+            const r = results[callIdx++];
+            if (r instanceof Error) throw r;
+            return { choices: [{ message: { parsed: r }, finish_reason: 'stop' }] };
+          },
+        },
+      },
+    },
+  } as unknown as OpenAI;
+}
+
+function makeCannedDishes(count: number, sourceImageIndex: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    name: `Dish ${i + 1}`,
+    description: null,
+    price: 10,
+    dish_kind: 'standard',
+    primary_protein: 'chicken',
+    suggested_category_name: null,
+    canonical_category_slug: null,
+    suggested_category_description: null,
+    suggested_dish_category: null,
+    // Deliberately may be wrong — runExtraction overrides from the loop index.
+    source_image_index: sourceImageIndex,
+    confidence: 0.9,
+  }));
+}
+
+Deno.test(
+  'multi-image: 3 pages all succeed, dishes tagged with correct source_image_index',
+  async () => {
+    const job = makeMultiImageJob('multi-001', 3);
+    // deno-lint-ignore no-explicit-any
+    let captured: any;
+
+    const supa = makeSupaMock({
+      jobs: [job],
+      onComplete: (_id, result) => {
+        captured = result;
+      },
+    });
+
+    const openai = makeOpenAIMockSequence([
+      { dishes: makeCannedDishes(2, 99), detected_language: 'en' },
+      { dishes: makeCannedDishes(2, 99), detected_language: null },
+      { dishes: makeCannedDishes(2, 99), detected_language: 'es' },
+    ]);
+
+    const result = await processJobs({ supa, openai });
+
+    assertEquals(result.processed, ['multi-001']);
+    assertEquals(result.errors.length, 0);
+    assertEquals(captured.dishes.length, 6);
+    // Loop index overrides the AI's deliberately-wrong 99
+    // deno-lint-ignore no-explicit-any
+    const indices = captured.dishes.map((d: any) => d.source_image_index).sort();
+    assertEquals(indices, [0, 0, 1, 1, 2, 2]);
+    // detected_language picks first non-null in encounter order
+    assertEquals(captured.detected_language, 'en');
+  }
+);
+
+Deno.test('multi-image: page 2 fails, pages 1 and 3 still complete', async () => {
+  const job = makeMultiImageJob('multi-partial', 3);
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+  const failed: string[] = [];
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+    onFail: id => failed.push(id),
+  });
+
+  const openai = makeOpenAIMockSequence([
+    { dishes: makeCannedDishes(2, 0), detected_language: 'en' },
+    new Error('simulated transient page-2 failure'),
+    { dishes: makeCannedDishes(3, 0), detected_language: null },
+  ]);
+
+  const result = await processJobs({ supa, openai });
+
+  // Job is reported processed (not error) — partial extraction is still useful.
+  assertEquals(result.processed, ['multi-partial']);
+  assertEquals(failed.length, 0);
+  // 5 dishes total — 2 from page 1 (idx 0), 3 from page 3 (idx 2). None from page 2.
+  assertEquals(captured.dishes.length, 5);
+  // deno-lint-ignore no-explicit-any
+  const indices = captured.dishes.map((d: any) => d.source_image_index).sort();
+  assertEquals(indices, [0, 0, 2, 2, 2]);
+});
+
+Deno.test('multi-image: all 3 pages fail with RateLimitError → job ends in error', async () => {
+  // attempts >= 2 so each call goes straight to the fallback model. All fallbacks 429.
+  const job = makeMultiImageJob('multi-totalfail', 3, { attempts: 3 });
+  const failed: string[] = [];
+  const failedMaxAttempts: number[] = [];
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    onFail: (id, _err, maxAttempts) => {
+      failed.push(id);
+      failedMaxAttempts.push(maxAttempts);
+    },
+  });
+
+  const rateLimitErr = new OpenAI.RateLimitError(
+    429,
+    { message: 'rate limit' },
+    'Rate Limit',
+    new Headers()
+  );
+  const openai = makeOpenAIMockSequence([rateLimitErr, rateLimitErr, rateLimitErr]);
+
+  const result = await processJobs({ supa, openai });
+
+  assertEquals(result.processed, []);
+  assertEquals(result.errors.length, 1);
+  assertEquals(result.errors[0].id, 'multi-totalfail');
+  assertArrayIncludes(failed, ['multi-totalfail']);
+  // RateLimitError is not BadRequest — keeps the standard 3-attempts retry budget.
+  assertEquals(failedMaxAttempts[0], 3);
+});
+
+Deno.test('multi-image: source_image_index override is authoritative', async () => {
+  const job = makeMultiImageJob('multi-override', 2);
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+
+  // Both pages claim source_image_index=99; runExtraction must override per-loop.
+  const openai = makeOpenAIMockSequence([
+    { dishes: makeCannedDishes(1, 99), detected_language: 'en' },
+    { dishes: makeCannedDishes(1, 99), detected_language: 'en' },
+  ]);
+
+  await processJobs({ supa, openai });
+
+  assertEquals(captured.dishes.length, 2);
+  assertEquals(captured.dishes[0].source_image_index, 0);
+  assertEquals(captured.dishes[1].source_image_index, 1);
 });

@@ -254,8 +254,10 @@ export function ReviewDishEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const activeDishes = useMemo(() => dishes.filter(d => !d._deleted), [dishes]);
-  const deletedCount = dishes.length - activeDishes.length;
+  // Top-level dishes only — variant children render nested under their parent
+  // and are saved through the parent's variant_dishes[] array.
+  const activeDishes = useMemo(() => dishes.filter(d => !d._deleted && !d.parent_id), [dishes]);
+  const deletedCount = dishes.filter(d => !d.parent_id).length - activeDishes.length;
 
   const detectedDiffers =
     !!detectedLanguage &&
@@ -431,20 +433,43 @@ export function ReviewDishEditor({
         });
       }
 
+      const baseFields = (d: EditableDish) => ({
+        name: d.name.trim(),
+        description: d.description?.trim() || null,
+        price: d.price,
+        dish_kind: d.dish_kind,
+        primary_protein: d.primary_protein,
+        source_image_index: d.source_image_index,
+        category_existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
+        category_canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
+        category_custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
+        dish_category_id: d.dishCategoryId,
+        is_parent: d.is_parent,
+        display_price_prefix: d.display_price_prefix,
+        serves: d.serves,
+      });
+
       const payload = {
         source_language_code: sourceLanguage,
         category_descriptions: categoryDescriptionsPayload,
         dishes: activeDishes.map(d => ({
-          name: d.name.trim(),
-          description: d.description?.trim() || null,
-          price: d.price,
-          dish_kind: d.dish_kind,
-          primary_protein: d.primary_protein,
-          source_image_index: d.source_image_index,
-          category_existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
-          category_canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
-          category_custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
-          dish_category_id: d.dishCategoryId,
+          ...baseFields(d),
+          variant_dishes: d.is_parent
+            ? dishes.filter(c => c.parent_id === d._id && !c._deleted).map(baseFields)
+            : [],
+          courses:
+            d.dish_kind === 'course_menu' && d.is_parent
+              ? d.courses.map(c => ({
+                  course_number: c.course_number,
+                  course_name: c.course_name.trim() || null,
+                  choice_type: c.choice_type,
+                  required_count: c.required_count,
+                  items: c.items.map(it => ({
+                    option_label: it.option_label.trim(),
+                    price_delta: it.price_delta,
+                  })),
+                }))
+              : [],
         })),
       };
       const result = await adminConfirmMenuScan(jobId, payload);

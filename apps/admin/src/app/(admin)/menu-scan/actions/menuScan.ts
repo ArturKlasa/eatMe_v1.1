@@ -14,6 +14,22 @@ import {
 } from '@eatme/shared';
 
 const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
+const PRICE_PREFIXES = ['exact', 'from', 'per_person', 'market_price', 'ask_server'] as const;
+
+const reviewedCourseItemSchema = z.object({
+  option_label: z.string().min(1).max(200),
+  price_delta: z.number().default(0),
+});
+
+const reviewedCourseSchema = z.object({
+  course_number: z.number().int().min(1),
+  course_name: z.string().max(200).nullable(),
+  choice_type: z.enum(['fixed', 'one_of']),
+  required_count: z.number().int().min(1).default(1),
+  items: z.array(reviewedCourseItemSchema).max(50),
+});
+
+type ReviewedCourse = z.infer<typeof reviewedCourseSchema>;
 
 // Per-dish category resolution. Exactly one of the three category_* fields is
 // expected to be set (or all null for "no category"). Validation below enforces
@@ -22,18 +38,47 @@ const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet
 // dish_category_id is independent of the menu_category fields above:
 // menu_category drives the consumer-facing menu UI grouping, dish_category
 // drives the global filtering/recommendation engine on mobile.
-const reviewedDishSchema = z.object({
-  name: z.string().min(1).max(200),
-  description: z.string().max(2000).nullable(),
-  price: z.number().nonnegative().nullable(),
-  dish_kind: z.enum(DISH_KINDS),
-  primary_protein: z.enum(PRIMARY_PROTEINS),
-  source_image_index: z.number().int().min(0).nullable(),
-  category_existing_id: z.string().uuid().nullable(),
-  category_canonical_slug: z.string().min(1).max(100).nullable(),
-  category_custom_name: z.string().min(1).max(200).nullable(),
-  dish_category_id: z.string().uuid().nullable(),
-});
+//
+// is_parent / display_price_prefix / serves / variant_dishes / courses default
+// to false / 'exact' / null / [] / [] so a Phase 3 client (which doesn't yet
+// send these) still validates. Phase 4b ships the client payload extension.
+type ReviewedDish = {
+  name: string;
+  description: string | null;
+  price: number | null;
+  dish_kind: (typeof DISH_KINDS)[number];
+  primary_protein: (typeof PRIMARY_PROTEINS)[number];
+  source_image_index: number | null;
+  category_existing_id: string | null;
+  category_canonical_slug: string | null;
+  category_custom_name: string | null;
+  dish_category_id: string | null;
+  is_parent: boolean;
+  display_price_prefix: (typeof PRICE_PREFIXES)[number];
+  serves: number | null;
+  variant_dishes: ReviewedDish[];
+  courses: ReviewedCourse[];
+};
+
+const reviewedDishSchema: z.ZodType<ReviewedDish> = z.lazy(() =>
+  z.object({
+    name: z.string().min(1).max(200),
+    description: z.string().max(2000).nullable(),
+    price: z.number().nonnegative().nullable(),
+    dish_kind: z.enum(DISH_KINDS),
+    primary_protein: z.enum(PRIMARY_PROTEINS),
+    source_image_index: z.number().int().min(0).nullable(),
+    category_existing_id: z.string().uuid().nullable(),
+    category_canonical_slug: z.string().min(1).max(100).nullable(),
+    category_custom_name: z.string().min(1).max(200).nullable(),
+    dish_category_id: z.string().uuid().nullable(),
+    is_parent: z.boolean().default(false),
+    display_price_prefix: z.enum(PRICE_PREFIXES).default('exact'),
+    serves: z.number().int().min(1).nullable().default(null),
+    variant_dishes: z.array(reviewedDishSchema).max(50).default([]),
+    courses: z.array(reviewedCourseSchema).max(20).default([]),
+  })
+);
 
 // One per unique category referenced by dishes in this scan. Carries the
 // admin-edited section description (in source language). Exactly one of
@@ -53,7 +98,7 @@ const reviewedCategoryDescriptionSchema = z.object({
   verbatim_name: z.string().min(1).max(200).nullable().optional(),
 });
 
-const confirmPayloadSchema = z.object({
+export const confirmPayloadSchema = z.object({
   dishes: z.array(reviewedDishSchema).min(1).max(200),
   // Source language for any custom categories created in this scan. Admin sets
   // this in the review UI based on the language banner (country-derived default,
@@ -577,45 +622,176 @@ export const adminConfirmMenuScan = withAdminAuth(
         .eq('id', existingId);
     }
 
-    // ── (7) Insert dishes with resolved menu_category_id ───────────────────
-    const rows = parsed.data.dishes.map(d => {
-      let menuCategoryId: string | null = null;
-      if (d.category_existing_id) {
-        menuCategoryId = d.category_existing_id;
-      } else if (d.category_canonical_slug && canonicalBySlug.has(d.category_canonical_slug)) {
-        menuCategoryId = tupleToMenuCategoryId.get(`c:${d.category_canonical_slug}`) ?? null;
-      } else if (d.category_custom_name) {
-        menuCategoryId =
-          tupleToMenuCategoryId.get(`n:${d.category_custom_name.toLowerCase()}`) ?? null;
+    // ── (7) Multi-pass dish insert ─────────────────────────────────────────
+    // Order: parents → variant children → courses + items → standalones.
+    // bundle/course_menu/buffet parents carry the menu price; configurable +
+    // standard parents (size variants) are display-only containers and have
+    // their price forced to 0 — children carry the actual prices.
+    // Multi-pass without a transaction can leave orphans on partial failure;
+    // surfaced via formError. RPC-based transactional save is a Phase-6+ item.
+    function resolveMenuCategoryId(d: ReviewedDish): string | null {
+      if (d.category_existing_id) return d.category_existing_id;
+      if (d.category_canonical_slug && canonicalBySlug.has(d.category_canonical_slug)) {
+        return tupleToMenuCategoryId.get(`c:${d.category_canonical_slug}`) ?? null;
       }
+      if (d.category_custom_name) {
+        return tupleToMenuCategoryId.get(`n:${d.category_custom_name.toLowerCase()}`) ?? null;
+      }
+      return null;
+    }
 
+    function buildDishRow(
+      d: ReviewedDish,
+      opts: {
+        menuCategoryId: string | null;
+        isParent: boolean;
+        parentDishId: string | null;
+        forcePriceZero?: boolean;
+      }
+    ) {
       return {
         restaurant_id: restaurantId,
-        menu_category_id: menuCategoryId,
+        menu_category_id: opts.menuCategoryId,
         dish_category_id: d.dish_category_id,
         name: d.name,
         description: d.description,
-        price: d.price,
+        price: opts.forcePriceZero ? 0 : (d.price ?? 0),
         dish_kind: d.dish_kind,
         primary_protein: d.primary_protein,
+        is_parent: opts.isParent,
+        parent_dish_id: opts.parentDishId,
+        display_price_prefix: d.display_price_prefix,
+        serves: d.serves ?? 1,
         is_template: false,
         status: 'draft' as const,
         allergens: [] as string[],
         dietary_tags: [] as string[],
         source_image_index: d.source_image_index,
       };
-    });
-
-    const { data: inserted, error: insertError } = await service
-      .from('dishes')
-      .insert(rows)
-      .select('id');
-
-    if (insertError || !inserted) {
-      return { ok: false, formError: insertError?.message ?? 'INSERT_FAILED' };
     }
 
-    const insertedIds = (inserted as Array<{ id: string }>).map(r => r.id);
+    const parents = parsed.data.dishes.filter(d => d.is_parent);
+    const standalones = parsed.data.dishes.filter(d => !d.is_parent);
+
+    const insertedIds: string[] = [];
+    let variantsInserted = 0;
+    let coursesInserted = 0;
+    let courseItemsInserted = 0;
+
+    // Pass 1: parents
+    const parentDbIds: string[] = [];
+    if (parents.length > 0) {
+      const parentRows = parents.map(d => {
+        const forcePriceZero = d.dish_kind === 'configurable' || d.dish_kind === 'standard';
+        return buildDishRow(d, {
+          menuCategoryId: resolveMenuCategoryId(d),
+          isParent: true,
+          parentDishId: null,
+          forcePriceZero,
+        });
+      });
+      const { data: insertedParents, error: parentErr } = await service
+        .from('dishes')
+        .insert(parentRows)
+        .select('id');
+      if (parentErr || !insertedParents) {
+        return { ok: false, formError: parentErr?.message ?? 'PARENT_INSERT_FAILED' };
+      }
+      for (const r of insertedParents as Array<{ id: string }>) {
+        parentDbIds.push(r.id);
+        insertedIds.push(r.id);
+      }
+    }
+
+    // Pass 2: variant children
+    const childRows: ReturnType<typeof buildDishRow>[] = [];
+    for (let pIdx = 0; pIdx < parents.length; pIdx++) {
+      const parent = parents[pIdx];
+      const parentDbId = parentDbIds[pIdx];
+      const parentMenuCategoryId = resolveMenuCategoryId(parent);
+      for (const child of parent.variant_dishes) {
+        childRows.push(
+          buildDishRow(child, {
+            menuCategoryId: parentMenuCategoryId,
+            isParent: false,
+            parentDishId: parentDbId,
+          })
+        );
+      }
+    }
+    if (childRows.length > 0) {
+      const { data: insertedChildren, error: childErr } = await service
+        .from('dishes')
+        .insert(childRows)
+        .select('id');
+      if (childErr || !insertedChildren) {
+        return { ok: false, formError: childErr?.message ?? 'VARIANT_INSERT_FAILED' };
+      }
+      for (const r of insertedChildren as Array<{ id: string }>) {
+        insertedIds.push(r.id);
+      }
+      variantsInserted = insertedChildren.length;
+    }
+
+    // Pass 3: courses + items for course_menu parents
+    for (let pIdx = 0; pIdx < parents.length; pIdx++) {
+      const parent = parents[pIdx];
+      if (parent.dish_kind !== 'course_menu' || parent.courses.length === 0) continue;
+      const parentDbId = parentDbIds[pIdx];
+
+      for (const course of parent.courses) {
+        const { data: courseRow, error: courseErr } = await svc
+          .from('dish_courses')
+          .insert({
+            parent_dish_id: parentDbId,
+            course_number: course.course_number,
+            course_name: course.course_name,
+            choice_type: course.choice_type,
+            required_count: course.required_count,
+          })
+          .select('id')
+          .single();
+        if (courseErr || !courseRow) {
+          return { ok: false, formError: courseErr?.message ?? 'COURSE_INSERT_FAILED' };
+        }
+        coursesInserted++;
+        if (course.items.length > 0) {
+          const itemRows = course.items.map((it, idx) => ({
+            course_id: (courseRow as { id: string }).id,
+            option_label: it.option_label,
+            price_delta: it.price_delta,
+            sort_order: idx,
+          }));
+          const { error: itemErr } = await svc.from('dish_course_items').insert(itemRows);
+          if (itemErr) {
+            return { ok: false, formError: itemErr.message };
+          }
+          courseItemsInserted += itemRows.length;
+        }
+      }
+    }
+
+    // Pass 4: standalone dishes
+    if (standalones.length > 0) {
+      const standaloneRows = standalones.map(d =>
+        buildDishRow(d, {
+          menuCategoryId: resolveMenuCategoryId(d),
+          isParent: false,
+          parentDishId: null,
+        })
+      );
+      const { data: insertedStandalone, error: standaloneErr } = await service
+        .from('dishes')
+        .insert(standaloneRows)
+        .select('id');
+      if (standaloneErr || !insertedStandalone) {
+        return { ok: false, formError: standaloneErr?.message ?? 'STANDALONE_INSERT_FAILED' };
+      }
+      for (const r of insertedStandalone as Array<{ id: string }>) {
+        insertedIds.push(r.id);
+      }
+    }
+
     const nowIso = new Date().toISOString();
 
     // ── (8) Mark job completed + audit ─────────────────────────────────────
@@ -642,6 +818,10 @@ export const adminConfirmMenuScan = withAdminAuth(
       {
         status: 'completed',
         inserted_count: insertedIds.length,
+        parents_count: parents.length,
+        variants_count: variantsInserted,
+        courses_count: coursesInserted,
+        course_items_count: courseItemsInserted,
         restaurant_id: restaurantId,
         menu_id: menuId,
         menu_created: menuCreated,

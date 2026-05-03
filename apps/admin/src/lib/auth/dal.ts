@@ -467,6 +467,22 @@ export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
 
 // ── Restaurant Menus (admin verifier view) ────────────────────────────────────
 
+export type AdminMenuCourseItem = {
+  id: string;
+  option_label: string;
+  price_delta: number;
+  sort_order: number;
+};
+
+export type AdminMenuCourse = {
+  id: string;
+  course_number: number;
+  course_name: string | null;
+  choice_type: 'fixed' | 'one_of';
+  required_count: number;
+  items: AdminMenuCourseItem[];
+};
+
 export type AdminMenuDish = {
   id: string;
   name: string;
@@ -482,6 +498,15 @@ export type AdminMenuDish = {
   dish_category_name: string | null;
   source_image_index: number | null;
   serves: number | null;
+  is_parent: boolean;
+  parent_dish_id: string | null;
+  display_price_prefix: string;
+  // Children of this dish (only populated for parents). Top-level renderers
+  // skip variant rows by filtering on parent_dish_id IS NULL and read variants
+  // through this nested array instead.
+  variants: AdminMenuDish[];
+  // Courses for course_menu parents; empty array for everything else.
+  courses: AdminMenuCourse[];
 };
 
 export type AdminMenuCategory = {
@@ -528,6 +553,10 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
   const svc = createAdminServiceClient() as any;
 
   // Three independent queries; cheaper to issue in parallel than to nest.
+  // Dishes query no longer filters out parents — multi-kind dishes (bundle,
+  // configurable, course_menu) need their parent rows surfaced so admins can
+  // see + edit the full structure. Variant children are nested under parents
+  // post-fetch; courses are loaded in a follow-up query keyed by parent ids.
   const [menusRes, categoriesRes, dishesRes] = await Promise.all([
     svc
       .from('menus')
@@ -546,17 +575,13 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
     svc
       .from('dishes')
       .select(
-        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, dish_categories!left(id, name)'
+        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, is_parent, parent_dish_id, display_price_prefix, dish_categories!left(id, name)'
       )
       .eq('restaurant_id', restaurantId)
-      // is_parent=false skips the legacy v1 parent/variant tree's parent rows
-      // (variants render under their own row in admin scan). Children
-      // (parent_dish_id IS NOT NULL) still appear; admin can verify them.
-      .eq('is_parent', false)
       .order('name', { ascending: true }),
   ]);
 
-  const dishRows: AdminMenuDish[] = (dishesRes.data ?? []).map((r: Record<string, unknown>) => {
+  const rawDishes: AdminMenuDish[] = (dishesRes.data ?? []).map((r: Record<string, unknown>) => {
     const dc = r.dish_categories as { id: string; name: string } | null;
     return {
       id: r.id as string,
@@ -573,13 +598,78 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
       dish_category_name: dc?.name ?? null,
       source_image_index: (r.source_image_index as number | null) ?? null,
       serves: (r.serves as number | null) ?? null,
+      is_parent: (r.is_parent as boolean | null) ?? false,
+      parent_dish_id: (r.parent_dish_id as string | null) ?? null,
+      display_price_prefix: (r.display_price_prefix as string | null) ?? 'exact',
+      variants: [],
+      courses: [],
     };
   });
+
+  // Load courses + items for course_menu parents in a separate batched query.
+  // Scoping by parent_dish_id IN (...) avoids fetching course rows for
+  // restaurants the admin isn't viewing.
+  const courseMenuParentIds = rawDishes
+    .filter(d => d.is_parent && d.dish_kind === 'course_menu')
+    .map(d => d.id);
+
+  const coursesByParent = new Map<string, AdminMenuCourse[]>();
+  if (courseMenuParentIds.length > 0) {
+    const { data: courseRows } = await svc
+      .from('dish_courses')
+      .select(
+        'id, parent_dish_id, course_number, course_name, choice_type, required_count, dish_course_items(id, option_label, price_delta, sort_order)'
+      )
+      .in('parent_dish_id', courseMenuParentIds)
+      .order('course_number', { ascending: true });
+
+    for (const c of (courseRows ?? []) as Array<Record<string, unknown>>) {
+      const items = ((c.dish_course_items as Array<Record<string, unknown>>) ?? [])
+        .map(it => ({
+          id: it.id as string,
+          option_label: it.option_label as string,
+          price_delta: (it.price_delta as number | null) ?? 0,
+          sort_order: (it.sort_order as number | null) ?? 0,
+        }))
+        .sort((a, b) => a.sort_order - b.sort_order);
+      const parentId = c.parent_dish_id as string;
+      const arr = coursesByParent.get(parentId) ?? [];
+      arr.push({
+        id: c.id as string,
+        course_number: c.course_number as number,
+        course_name: (c.course_name as string | null) ?? null,
+        choice_type: c.choice_type as 'fixed' | 'one_of',
+        required_count: (c.required_count as number | null) ?? 1,
+        items,
+      });
+      coursesByParent.set(parentId, arr);
+    }
+  }
+
+  // Group variant children under their parent. Top-level dishes (no parent)
+  // keep an empty variants[]; parents collect their children via parent_dish_id.
+  const variantsByParent = new Map<string, AdminMenuDish[]>();
+  for (const d of rawDishes) {
+    if (d.parent_dish_id == null) continue;
+    const arr = variantsByParent.get(d.parent_dish_id) ?? [];
+    arr.push(d);
+    variantsByParent.set(d.parent_dish_id, arr);
+  }
+
+  for (const d of rawDishes) {
+    if (d.is_parent) {
+      d.variants = variantsByParent.get(d.id) ?? [];
+      d.courses = coursesByParent.get(d.id) ?? [];
+    }
+  }
+
+  // Top-level dishes only — variant children render through their parent.
+  const topLevelDishes = rawDishes.filter(d => d.parent_dish_id == null);
 
   // Bucket dishes by menu_category_id; orphans (NULL) go to a separate list.
   const dishesByCategory = new Map<string, AdminMenuDish[]>();
   const uncategorizedDishes: AdminMenuDish[] = [];
-  for (const d of dishRows) {
+  for (const d of topLevelDishes) {
     if (d.menu_category_id == null) {
       uncategorizedDishes.push(d);
     } else {

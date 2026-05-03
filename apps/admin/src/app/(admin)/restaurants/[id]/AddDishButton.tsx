@@ -124,6 +124,11 @@ export function AddDishButton({
         dish_category_name: dishCategoryName,
         source_image_index: null,
         serves: null,
+        is_parent: false,
+        parent_dish_id: null,
+        display_price_prefix: 'exact',
+        variants: [],
+        courses: [],
       };
       onCreated(newDish);
       reset();

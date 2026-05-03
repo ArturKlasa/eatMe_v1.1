@@ -24,6 +24,7 @@ import {
   type DishKind,
   type EditableDish,
   type ExtractedDish,
+  type PricePrefix,
   type Protein,
 } from './useReviewState';
 
@@ -207,7 +208,7 @@ export function ReviewDishEditor({
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
 
-  const { dishes, update, toggleDelete } = useReviewState(
+  const { dishes, update, toggleDelete, setKind } = useReviewState(
     useMemo(
       () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
       // initial only — recomputing on prop change would clobber edits
@@ -599,6 +600,15 @@ export function ReviewDishEditor({
                       placeholder="Dish name"
                       className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm font-medium disabled:opacity-50"
                     />
+                    {d.is_parent && (
+                      <span
+                        className="shrink-0 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200"
+                        title="Parent dish — variants/courses are nested under this row"
+                      >
+                        Parent ({dishes.filter(c => c.parent_id === d._id && !c._deleted).length}{' '}
+                        variants)
+                      </span>
+                    )}
                     <span
                       className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${confidenceTone(d.confidence)}`}
                       title="AI extraction confidence"
@@ -633,7 +643,11 @@ export function ReviewDishEditor({
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Price</span>
+                      <span className="text-muted-foreground">
+                        {d.dish_kind === 'course_menu' && d.is_parent
+                          ? 'Total price (optional)'
+                          : 'Price'}
+                      </span>
                       <input
                         type="number"
                         step="0.01"
@@ -654,7 +668,7 @@ export function ReviewDishEditor({
                       <span className="text-muted-foreground">Kind</span>
                       <select
                         value={d.dish_kind}
-                        onChange={e => update(d._id, { dish_kind: e.target.value as DishKind })}
+                        onChange={e => setKind(d._id, e.target.value as DishKind)}
                         disabled={d._deleted || saving}
                         className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
                       >
@@ -681,6 +695,26 @@ export function ReviewDishEditor({
                             {p}
                           </option>
                         ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs">
+                      <span className="text-muted-foreground">Price label</span>
+                      <select
+                        value={d.display_price_prefix}
+                        onChange={e =>
+                          update(d._id, {
+                            display_price_prefix: e.target.value as PricePrefix,
+                          })
+                        }
+                        disabled={d._deleted || saving}
+                        className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      >
+                        <option value="exact">Exact</option>
+                        <option value="from">From</option>
+                        <option value="per_person">Per person</option>
+                        <option value="market_price">Market price</option>
+                        <option value="ask_server">Ask server</option>
                       </select>
                     </label>
                   </div>

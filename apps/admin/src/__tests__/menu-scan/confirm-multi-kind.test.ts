@@ -16,10 +16,8 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 import { createServerActionClient, createAdminServiceClient } from '@/lib/supabase/server';
-import {
-  adminConfirmMenuScan,
-  confirmPayloadSchema,
-} from '@/app/(admin)/menu-scan/actions/menuScan';
+import { adminConfirmMenuScan } from '@/app/(admin)/menu-scan/actions/menuScan';
+import { confirmPayloadSchema } from '@/app/(admin)/menu-scan/actions/confirmSchema';
 
 const ADMIN_USER = {
   id: 'admin-uuid',

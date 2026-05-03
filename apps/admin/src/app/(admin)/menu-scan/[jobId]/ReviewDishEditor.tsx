@@ -18,39 +18,16 @@ import type {
 } from '@/lib/auth/dal';
 import { adminConfirmMenuScan } from '../actions/menuScan';
 import { adminCreateDishCategory } from '../actions/dishCategory';
+import {
+  useReviewState,
+  type CategoryMode,
+  type DishKind,
+  type EditableDish,
+  type ExtractedDish,
+  type Protein,
+} from './useReviewState';
 
-type DishKind = keyof typeof DISH_KIND_META;
-type Protein = (typeof PRIMARY_PROTEINS)[number];
-
-export type ExtractedDish = {
-  name: string;
-  description: string | null;
-  price: number | null;
-  dish_kind: DishKind;
-  primary_protein: Protein;
-  suggested_category_name: string | null;
-  canonical_category_slug: string | null;
-  suggested_category_description: string | null;
-  suggested_dish_category: string | null;
-  source_image_index: number;
-  confidence: number;
-};
-
-type CategoryMode = 'none' | 'existing' | 'canonical' | 'custom';
-
-type EditableDish = ExtractedDish & {
-  _id: string;
-  _deleted: boolean;
-  categoryMode: CategoryMode;
-  categoryExistingId: string | null;
-  categoryCanonicalSlug: string | null;
-  categoryCustomName: string;
-  // Global filtering taxonomy (dish_categories table). Null = unmatched.
-  dishCategoryId: string | null;
-  // True when AI provided a suggestion but fuzzy match didn't clear the
-  // 0.7 threshold — drives the "needs admin attention" badge in the UI.
-  dishCategoryUnmatched: boolean;
-};
+export type { ExtractedDish } from './useReviewState';
 
 interface Props {
   jobId: string;
@@ -110,6 +87,22 @@ function asEditable(
     categoryCustomName,
     dishCategoryId,
     dishCategoryUnmatched,
+    is_parent: d.is_parent ?? false,
+    display_price_prefix: d.display_price_prefix ?? 'exact',
+    serves: d.serves ?? null,
+    parent_id: null,
+    courses: (d.courses ?? []).map((c, ci) => ({
+      _id: `course-${i}-${ci}`,
+      course_number: c.course_number,
+      course_name: c.course_name ?? '',
+      choice_type: c.choice_type,
+      required_count: c.required_count,
+      items: c.items.map((it, ii) => ({
+        _id: `ci-${i}-${ci}-${ii}`,
+        option_label: it.option_label,
+        price_delta: it.price_delta,
+      })),
+    })),
   };
 }
 
@@ -214,8 +207,13 @@ export function ReviewDishEditor({
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
 
-  const [dishes, setDishes] = useState<EditableDish[]>(() =>
-    initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery))
+  const { dishes, update, toggleDelete } = useReviewState(
+    useMemo(
+      () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
+      // initial only — recomputing on prop change would clobber edits
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      []
+    )
   );
 
   // Per-dish "create new dish_category" inline form state.
@@ -320,14 +318,6 @@ export function ReviewDishEditor({
     }
     return { displayName: key, descriptionLocked: false, badge: null };
   }
-
-  const update = (id: string, patch: Partial<EditableDish>) => {
-    setDishes(prev => prev.map(d => (d._id === id ? { ...d, ...patch } : d)));
-  };
-
-  const toggleDelete = (id: string) => {
-    setDishes(prev => prev.map(d => (d._id === id ? { ...d, _deleted: !d._deleted } : d)));
-  };
 
   const updateGroupDescription = (key: string, value: string) => {
     setCategoryDescriptions(prev => {

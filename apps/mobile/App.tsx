@@ -10,7 +10,7 @@ import { useSessionStore } from './src/stores/sessionStore';
 import './src/i18n'; // Initialize i18n
 import { initializeSettings, useSettingsStore } from './src/stores/settingsStore';
 import { useFilterStore } from './src/stores/filterStore';
-import { useCountryDetection } from './src/hooks/useCountryDetection';
+import { useCountryDetectionStore } from './src/stores/countryDetectionStore';
 import 'react-native-gesture-handler'; // Required for React Navigation
 import { configureGoogleSignIn } from './src/lib/googleAuth';
 
@@ -45,24 +45,21 @@ export default function App(): React.JSX.Element {
     initializeSettings();
   }, []);
 
-  /**
-   * GPS-based country/currency refinement.
-   *
-   * Tier 1 (device locale) runs synchronously inside initializeSettings().
-   * Here we run Tier 2 (GPS reverse geocoding) in the background so the
-   * price-range slider updates to the user's physical location if it differs
-   * from their device region (e.g., a US user currently in Mexico).
-   *
-   * autoRefineWithGPS=true automatically fires when location permission is
-   * already granted; it silently does nothing if permission is denied.
-   */
-  const { currency: detectedCurrency, source: detectionSource } = useCountryDetection(true);
+  // Tier 1 (device locale) runs synchronously inside initializeSettings().
+  // Fire Tier 2 (GPS reverse geocoding) once on mount; it no-ops silently if
+  // location permission isn't granted yet — BasicMapScreen retries after the
+  // user grants permission.
+  useEffect(() => {
+    useCountryDetectionStore.getState().refineFromGPS();
+  }, []);
+
+  const detectedCurrency = useCountryDetectionStore(state => state.currency);
+  const detectionSource = useCountryDetectionStore(state => state.source);
   const updateCurrency = useSettingsStore(state => state.updateCurrency);
   const setCurrencyPriceRange = useFilterStore(state => state.setCurrencyPriceRange);
 
   useEffect(() => {
     if (detectionSource === 'gps') {
-      // GPS confirmed (or overrode) the device-locale currency — sync both stores
       updateCurrency(detectedCurrency);
       setCurrencyPriceRange(detectedCurrency);
     }

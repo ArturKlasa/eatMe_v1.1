@@ -236,8 +236,8 @@ interface FilterActions {
 
   /**
    * Re-initialises the daily price range slider to the correct defaults for
-   * the given currency. Call this after autoDetectCurrency() resolves so the
-   * slider immediately reflects local prices.
+   * the given currency. Call this when GPS detection updates the currency so
+   * the slider immediately reflects local prices.
    */
   setCurrencyPriceRange: (currency: SupportedCurrency) => void;
 

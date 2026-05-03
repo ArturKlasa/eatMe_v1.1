@@ -48,7 +48,7 @@ interface SettingsStore extends UserSettings {
    * and updates currency and detectedCountryCode accordingly.
    * Call once on app start; the filter store reads from currency.
    */
-  autoDetectCurrency: () => void;
+  detectCurrencyFromLocale: () => void;
   updateUnitSystem: (unitSystem: UnitSystem) => void;
   updateNotifications: (
     settings: Partial<
@@ -92,28 +92,23 @@ export const useSettingsStore = create<SettingsStore>()(
       ...defaultSettings,
 
       updateLanguage: (language: Language) => {
-        // Update language only. Currency is independent — it is determined
-        // by the user's physical location via autoDetectCurrency() which runs
-        // on every app launch. Changing language must never override it.
+        // Currency is independent — it follows device locale (and GPS, if granted)
+        // and is updated on every launch. Changing language must never override it.
         set({ language });
       },
 
       updateCurrency: (currency: Currency) => set({ currency }),
 
-      autoDetectCurrency: () => {
+      detectCurrencyFromLocale: () => {
         try {
           const countryCode = RNLocalize.getCountry() ?? null;
           const detectedCurrency = getCurrencyForCountry(countryCode);
-          const currentState = get();
-          // Only apply if the user hasn't manually overridden currency
-          // (i.e., stored currency still matches the default 'USD' from a
-          // fresh install, or matches a previously auto-detected value).
           set({ detectedCountryCode: countryCode, currency: detectedCurrency });
           debugLog(
-            `[Settings] Auto-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`
+            `[Settings] Locale-detected country: ${countryCode ?? 'unknown'}, currency: ${detectedCurrency}`
           );
         } catch (error) {
-          console.error('[Settings] autoDetectCurrency error:', error);
+          console.error('[Settings] detectCurrencyFromLocale error:', error);
         }
       },
 
@@ -164,8 +159,9 @@ export const useSettingsStore = create<SettingsStore>()(
 export const initializeSettings = async () => {
   const store = useSettingsStore.getState();
   await store.loadFromStorage();
-  // Auto-detect currency from device region (instant, no GPS needed).
+  // Detect currency from device locale (instant, no GPS needed).
   // This is called every launch so the currency stays correct even if the
-  // user changes their device region.
-  store.autoDetectCurrency();
+  // user changes their device region. GPS-based refinement happens later via
+  // useCountryDetectionStore once location permission is granted.
+  store.detectCurrencyFromLocale();
 };

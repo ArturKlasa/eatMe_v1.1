@@ -6,6 +6,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { supabase } from '../lib/supabase';
 import { ENV, debugLog } from '../config/environment';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { useCountryDetectionStore } from '../stores/countryDetectionStore';
 import { useFilterStore } from '../stores/filterStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useViewModeStore } from '../stores/viewModeStore';
@@ -281,6 +282,13 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   useEffect(() => {
     getLocationWithPermission();
   }, []);
+
+  // Refine country/currency from GPS once permission is granted (idempotent — store no-ops if already done).
+  useEffect(() => {
+    if (hasPermission) {
+      useCountryDetectionStore.getState().refineFromGPS();
+    }
+  }, [hasPermission]);
 
   // Fetch dishes + restaurants in a single combined call whenever location or filters change
   useEffect(() => {

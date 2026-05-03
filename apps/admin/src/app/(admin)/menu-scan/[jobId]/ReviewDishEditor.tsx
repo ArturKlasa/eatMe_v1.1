@@ -27,6 +27,9 @@ import {
   type PricePrefix,
   type Protein,
 } from './useReviewState';
+import { VariantEditor } from './VariantEditor';
+
+const VARIANT_KINDS: ReadonlySet<DishKind> = new Set(['standard', 'bundle', 'configurable']);
 
 export type { ExtractedDish } from './useReviewState';
 
@@ -208,7 +211,7 @@ export function ReviewDishEditor({
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
 
-  const { dishes, update, toggleDelete, setKind } = useReviewState(
+  const { dishes, update, toggleDelete, setKind, addVariant, removeVariant } = useReviewState(
     useMemo(
       () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
       // initial only — recomputing on prop change would clobber edits
@@ -922,6 +925,17 @@ export function ReviewDishEditor({
                       </div>
                     )}
                   </div>
+
+                  {d.is_parent && VARIANT_KINDS.has(d.dish_kind) && (
+                    <VariantEditor
+                      parent={d}
+                      variants={dishes.filter(c => c.parent_id === d._id)}
+                      saving={saving}
+                      onAddVariant={() => addVariant(d._id)}
+                      onRemoveVariant={removeVariant}
+                      onUpdateVariant={update}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

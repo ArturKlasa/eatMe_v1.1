@@ -28,6 +28,7 @@ import {
   type Protein,
 } from './useReviewState';
 import { VariantEditor } from './VariantEditor';
+import { CourseEditor } from './CourseEditor';
 
 const VARIANT_KINDS: ReadonlySet<DishKind> = new Set(['standard', 'bundle', 'configurable']);
 
@@ -211,7 +212,22 @@ export function ReviewDishEditor({
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
 
-  const { dishes, update, toggleDelete, setKind, addVariant, removeVariant } = useReviewState(
+  const {
+    dishes,
+    update,
+    toggleDelete,
+    setKind,
+    addVariant,
+    removeVariant,
+    addCourse,
+    removeCourse,
+    moveCourse,
+    updateCourse,
+    addCourseItem,
+    removeCourseItem,
+    moveCourseItem,
+    updateCourseItem,
+  } = useReviewState(
     useMemo(
       () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
       // initial only — recomputing on prop change would clobber edits
@@ -934,6 +950,23 @@ export function ReviewDishEditor({
                       onAddVariant={() => addVariant(d._id)}
                       onRemoveVariant={removeVariant}
                       onUpdateVariant={update}
+                    />
+                  )}
+
+                  {d.is_parent && d.dish_kind === 'course_menu' && (
+                    <CourseEditor
+                      parent={d}
+                      saving={saving}
+                      onAddCourse={() => addCourse(d._id)}
+                      onRemoveCourse={idx => removeCourse(d._id, idx)}
+                      onMoveCourse={(from, to) => moveCourse(d._id, from, to)}
+                      onUpdateCourse={(idx, patch) => updateCourse(d._id, idx, patch)}
+                      onAddItem={idx => addCourseItem(d._id, idx)}
+                      onRemoveItem={(cIdx, iIdx) => removeCourseItem(d._id, cIdx, iIdx)}
+                      onMoveItem={(cIdx, from, to) => moveCourseItem(d._id, cIdx, from, to)}
+                      onUpdateItem={(cIdx, iIdx, patch) =>
+                        updateCourseItem(d._id, cIdx, iIdx, patch)
+                      }
                     />
                   )}
                 </li>

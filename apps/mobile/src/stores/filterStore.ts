@@ -58,7 +58,7 @@ export interface DailyFilters {
     beef: boolean;
     pork: boolean;
     lamb: boolean;
-    duck: boolean;
+    goat: boolean;
     other: boolean;
   };
 
@@ -286,7 +286,7 @@ export const defaultDailyFilters: DailyFilters = {
     beef: false,
     pork: false,
     lamb: false,
-    duck: false,
+    goat: false,
     other: false,
   },
   spiceLevel: 'eitherWay',

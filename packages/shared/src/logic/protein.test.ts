@@ -27,10 +27,10 @@ describe('deriveProteinFields', () => {
     expect(result.dietary_tags_override).toBeNull();
   });
 
-  it('duck → meat + poultry families', () => {
-    const result = deriveProteinFields('duck');
-    expect(result.protein_families).toEqual(['meat', 'poultry']);
-    expect(result.protein_canonical_names).toEqual(['duck']);
+  it('goat → meat family', () => {
+    const result = deriveProteinFields('goat');
+    expect(result.protein_families).toEqual(['meat']);
+    expect(result.protein_canonical_names).toEqual(['goat']);
     expect(result.dietary_tags_override).toBeNull();
   });
 

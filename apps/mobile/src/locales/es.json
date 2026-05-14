@@ -110,7 +110,7 @@
       "beef": "🐄 Res",
       "pork": "🐷 Cerdo",
       "lamb": "🐑 Cordero",
-      "duck": "🦆 Pato",
+      "goat": "🐐 Cabra",
       "other": "🍖 Otro"
     },
     "cuisines": {
@@ -322,7 +322,7 @@
       "beef": "🐄 Res",
       "pork": "🐷 Cerdo",
       "lamb": "🐑 Cordero",
-      "duck": "🦆 Pato",
+      "goat": "🐐 Cabra",
       "other_meat": "🍖 Otra Carne",
       "fish": "🐟 Pescado",
       "shellfish": "🦐 Mariscos",

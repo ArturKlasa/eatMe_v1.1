@@ -20,7 +20,7 @@ export const PRIMARY_PROTEINS = [
   'beef',
   'pork',
   'lamb',
-  'duck',
+  'goat',
   'other_meat',
   'fish',
   'shellfish',
@@ -100,7 +100,7 @@ For each dish output exactly these fields:
     course_menu    — multi-course sequenced meal (starter, main, dessert pattern)
     buffet         — flat-rate unlimited access
 - primary_protein: the main protein source — exactly one of:
-    chicken | beef | pork | lamb | duck | other_meat | fish | shellfish | eggs | vegetarian | vegan
+    chicken | beef | pork | lamb | goat | other_meat | fish | shellfish | eggs | vegetarian | vegan
     Use "vegetarian" for plant-based dishes, "vegan" only when the dish is fully vegan.
 - suggested_category_name: the menu section this dish belongs to, written exactly as it appears
     on the menu (verbatim, in the source language). Null if no section header is shown.

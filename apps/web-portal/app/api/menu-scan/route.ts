@@ -49,7 +49,7 @@ const DishSchema: z.ZodType<unknown> = z.lazy(() =>
         'beef',
         'pork',
         'lamb',
-        'duck',
+        'goat',
         'other_meat',
         'fish',
         'shellfish',
@@ -195,7 +195,7 @@ Example 5 — Buffet:
 Menu showing "Korean BBQ Buffet $299/person — unlimited meat selections":
 → name="Korean BBQ Buffet", dish_kind="buffet", is_parent=false, price=299, display_price_prefix="per_person", serves=1
 
-PRIMARY PROTEIN — infer the dominant protein for each dish and set primary_protein to one of: chicken, beef, pork, lamb, duck, other_meat, fish, shellfish, eggs, vegetarian, vegan.
+PRIMARY PROTEIN — infer the dominant protein for each dish and set primary_protein to one of: chicken, beef, pork, lamb, goat, other_meat, fish, shellfish, eggs, vegetarian, vegan.
 - Use "vegetarian" or "vegan" when the dish has no animal protein (and is not a drink).
 - Use null ONLY when you genuinely cannot determine the protein (e.g. parent containers, drinks, unknown ingredients). Do not guess when confidence is low.
 - For parent dishes (is_parent=true), set primary_protein=null on the parent; infer it on each child variant.

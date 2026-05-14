@@ -243,7 +243,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                                       beef: false,
                                       pork: false,
                                       lamb: false,
-                                      duck: false,
+                                      goat: false,
                                       other: false,
                                     }
                                   : {
@@ -251,7 +251,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                                       beef: true,
                                       pork: true,
                                       lamb: false,
-                                      duck: false,
+                                      goat: false,
                                       other: false,
                                     },
                               }),
@@ -281,7 +281,7 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                       { key: 'beef', label: t('filters.meatTypes.beef') },
                       { key: 'pork', label: t('filters.meatTypes.pork') },
                       { key: 'lamb', label: t('filters.meatTypes.lamb') },
-                      { key: 'duck', label: t('filters.meatTypes.duck') },
+                      { key: 'goat', label: t('filters.meatTypes.goat') },
                       { key: 'other', label: t('filters.meatTypes.other') },
                     ].map(meatType => {
                       const isSelected =

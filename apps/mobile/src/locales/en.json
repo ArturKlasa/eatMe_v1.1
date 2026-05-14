@@ -110,7 +110,7 @@
       "beef": "🐄 Beef",
       "pork": "🐷 Pork",
       "lamb": "🐑 Lamb",
-      "duck": "🦆 Duck",
+      "goat": "🐐 Goat",
       "other": "🍖 Other"
     },
     "cuisines": {
@@ -322,7 +322,7 @@
       "beef": "🐄 Beef",
       "pork": "🐷 Pork",
       "lamb": "🐑 Lamb",
-      "duck": "🦆 Duck",
+      "goat": "🐐 Goat",
       "other_meat": "🍖 Other Meat",
       "fish": "🐟 Fish",
       "shellfish": "🦐 Shellfish",

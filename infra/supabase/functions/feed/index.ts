@@ -341,7 +341,7 @@ function rankCandidates(
           'pork_ribs',
         ],
         lamb: ['lamb'],
-        duck: ['duck', 'duck_fat'],
+        goat: ['goat'],
       };
 
       // Collect all concrete canonical names from named types (used for 'other' fallback)
@@ -354,7 +354,7 @@ function rankCandidates(
         wantedNames.size > 0 && d.protein_canonical_names?.some(n => wantedNames.has(n));
 
       // 'other' = dish has meat/poultry protein but none of its canonical names are
-      // in the known chicken/beef/pork/lamb/duck lists (turkey, veal, venison, etc.)
+      // in the known chicken/beef/pork/lamb/goat lists (turkey, veal, venison, etc.)
       if (!matched && filters.meatTypes.includes('other')) {
         const hasMeatFamily = d.protein_families.some(f => f === 'meat' || f === 'poultry');
         const hasConcreteMatch = d.protein_canonical_names?.some(n => allConcreteNames.has(n));

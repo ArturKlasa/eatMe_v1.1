@@ -21,7 +21,7 @@ const PROTEIN_GROUPS = [
       { value: 'beef', label: 'Beef' },
       { value: 'pork', label: 'Pork' },
       { value: 'lamb', label: 'Lamb' },
-      { value: 'duck', label: 'Duck' },
+      { value: 'goat', label: 'Goat' },
       { value: 'other_meat', label: 'Other meat' },
     ],
   },

@@ -110,7 +110,7 @@
       "beef": "🐄 Wołowina",
       "pork": "🐷 Wieprzowina",
       "lamb": "🐑 Jagnięcina",
-      "duck": "🦆 Kaczka",
+      "goat": "🐐 Koza",
       "other": "🍖 Inne"
     },
     "cuisines": {
@@ -322,7 +322,7 @@
       "beef": "🐄 Wołowina",
       "pork": "🐷 Wieprzowina",
       "lamb": "🐑 Jagnięcina",
-      "duck": "🦆 Kaczka",
+      "goat": "🐐 Koza",
       "other_meat": "🍖 Inne mięso",
       "fish": "🐟 Ryba",
       "shellfish": "🦐 Owoce morza",

@@ -388,7 +388,7 @@ export function DishEditPanelV2({ dish, mIdx, cIdx, dIdx }: DishEditPanelV2Props
             <option value="beef">Beef</option>
             <option value="pork">Pork</option>
             <option value="lamb">Lamb</option>
-            <option value="duck">Duck</option>
+            <option value="goat">Goat</option>
             <option value="other_meat">Other meat</option>
           </optgroup>
           <optgroup label="Fish &amp; Seafood">

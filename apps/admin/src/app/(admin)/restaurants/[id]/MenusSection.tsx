@@ -35,6 +35,7 @@ function CategoryBlock({
   onDishUpdated,
   onCategoryUpdated,
   onDishCreated,
+  onDishCategoryCreated,
 }: {
   category: AdminMenuCategory;
   restaurantId: string;
@@ -43,6 +44,7 @@ function CategoryBlock({
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
   onDishCreated: (dish: AdminMenuDish) => void;
+  onDishCategoryCreated: (cat: DishCategoryOption) => void;
 }) {
   return (
     <div className="rounded-md border border-border/60 p-3 space-y-2">
@@ -61,6 +63,7 @@ function CategoryBlock({
               menus={menus}
               dishCategoryOptions={dishCategoryOptions}
               onUpdated={next => onDishUpdated(d.id, next)}
+              onDishCategoryCreated={onDishCategoryCreated}
             />
           ))}
         </ul>
@@ -73,6 +76,7 @@ function CategoryBlock({
         categoryLabel={category.name}
         dishCategoryOptions={dishCategoryOptions}
         onCreated={onDishCreated}
+        onDishCategoryCreated={onDishCategoryCreated}
       />
     </div>
   );
@@ -90,6 +94,7 @@ function MenuBlock({
   onMenuUpdated,
   onDishCreated,
   onCategoryCreated,
+  onDishCategoryCreated,
 }: {
   menu: AdminMenu;
   restaurantId: string;
@@ -102,6 +107,7 @@ function MenuBlock({
   onMenuUpdated: (next: AdminMenu) => void;
   onDishCreated: (dish: AdminMenuDish) => void;
   onCategoryCreated: (category: AdminMenuCategory) => void;
+  onDishCategoryCreated: (cat: DishCategoryOption) => void;
 }) {
   const dishCount = menu.categories.reduce((acc, c) => acc + c.dishes.length, 0);
 
@@ -136,6 +142,7 @@ function MenuBlock({
               onDishUpdated={onDishUpdated}
               onCategoryUpdated={onCategoryUpdated}
               onDishCreated={onDishCreated}
+              onDishCategoryCreated={onDishCategoryCreated}
             />
           ))}
         </div>
@@ -158,7 +165,7 @@ export function MenusSection({
   restaurantId,
   menus: initialMenus,
   uncategorizedDishes: initialUncategorized,
-  dishCategoryOptions,
+  dishCategoryOptions: initialDishCategoryOptions,
   canonicalCategoryOptions,
   sourceLanguageCode,
 }: Props) {
@@ -167,6 +174,21 @@ export function MenusSection({
   const [menus, setMenus] = useState<AdminMenu[]>(initialMenus);
   const [uncategorizedDishes, setUncategorizedDishes] =
     useState<AdminMenuDish[]>(initialUncategorized);
+  // Lifted so newly-created dish categories from any DishRowEditor or
+  // AddDishButton appear in every sibling's combobox without a page reload.
+  const [dishCategoryOptions, setDishCategoryOptions] = useState<DishCategoryOption[]>(
+    initialDishCategoryOptions
+  );
+
+  // Append a freshly-created (or already-existing, idempotent) dish_category
+  // and re-sort alphabetically to match how getAllDishCategoryOptions returns
+  // them.
+  function handleDishCategoryCreated(cat: DishCategoryOption) {
+    setDishCategoryOptions(prev => {
+      const next = prev.some(c => c.id === cat.id) ? prev : [...prev, cat];
+      return [...next].sort((a, b) => a.name.localeCompare(b.name));
+    });
+  }
 
   // Update a dish wherever it lives. If the user moved it to a different
   // menu_category_id (or to NULL), re-bucket it across the tree.
@@ -326,6 +348,7 @@ export function MenusSection({
                 menus={menus}
                 dishCategoryOptions={dishCategoryOptions}
                 onUpdated={next => handleDishUpdated(d.id, next)}
+                onDishCategoryCreated={handleDishCategoryCreated}
               />
             ))}
           </ul>
@@ -347,6 +370,7 @@ export function MenusSection({
             onMenuUpdated={handleMenuUpdated}
             onDishCreated={handleDishCreated}
             onCategoryCreated={handleCategoryCreated}
+            onDishCategoryCreated={handleDishCategoryCreated}
           />
         ))
       ) : (

@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { PRIMARY_PROTEINS } from '@eatme/shared';
 import type { AdminMenu, AdminMenuDish, DishCategoryOption } from '@/lib/auth/dal';
+import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
+import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import { adminDeleteDish, adminUpdateDish } from './actions/dish';
 
 const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
@@ -14,6 +16,9 @@ interface Props {
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
   onUpdated: (next: AdminMenuDish) => void;
+  // Bubbles up so MenusSection can append the new category to its lifted
+  // state — every sibling row's combobox sees it without a page reload.
+  onDishCategoryCreated: (cat: DishCategoryOption) => void;
 }
 
 function statusBadgeClass(status: string) {
@@ -90,6 +95,7 @@ export function DishRowEditor({
   menus,
   dishCategoryOptions,
   onUpdated,
+  onDishCategoryCreated,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -301,54 +307,48 @@ export function DishRowEditor({
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs">
-          <span className="block text-muted-foreground mb-0.5">Global category</span>
-          <select
-            value={draft.dish_category_id ?? ''}
-            onChange={e =>
-              setDraft({
-                ...draft,
-                dish_category_id: e.target.value === '' ? null : e.target.value,
-              })
-            }
-            className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
-          >
-            <option value="">— None —</option>
-            {dishCategoryOptions.map(o => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-                {o.is_drink ? ' (drink)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-xs">
-          <span className="block text-muted-foreground mb-0.5">Menu section</span>
-          <select
-            value={draft.menu_category_id ?? ''}
-            onChange={e =>
-              setDraft({
-                ...draft,
-                menu_category_id: e.target.value === '' ? null : e.target.value,
-              })
-            }
-            className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
-          >
-            <option value="">— Uncategorized —</option>
-            {menus.map(m => (
-              <optgroup key={m.id} label={m.name}>
-                {m.categories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+      <div className="text-xs space-y-1">
+        <span className="block text-muted-foreground mb-0.5">Global category</span>
+        <div className="flex items-start gap-2">
+          <DishCategoryCombobox
+            value={draft.dish_category_id ?? null}
+            options={dishCategoryOptions}
+            className="flex-1"
+            onChange={id => setDraft({ ...draft, dish_category_id: id })}
+          />
+          <DishCategoryCreateInline
+            onCreated={cat => {
+              onDishCategoryCreated(cat);
+              setDraft(d => ({ ...d, dish_category_id: cat.id }));
+            }}
+          />
+        </div>
       </div>
+
+      <label className="text-xs block">
+        <span className="block text-muted-foreground mb-0.5">Menu section</span>
+        <select
+          value={draft.menu_category_id ?? ''}
+          onChange={e =>
+            setDraft({
+              ...draft,
+              menu_category_id: e.target.value === '' ? null : e.target.value,
+            })
+          }
+          className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
+        >
+          <option value="">— Uncategorized —</option>
+          {menus.map(m => (
+            <optgroup key={m.id} label={m.name}>
+              {m.categories.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
 
       <label className="flex items-center gap-2 text-xs">
         <input

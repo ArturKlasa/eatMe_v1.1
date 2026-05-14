@@ -17,7 +17,8 @@ import type {
   DishCategoryMatch,
 } from '@/lib/auth/dal';
 import { adminConfirmMenuScan } from '../actions/menuScan';
-import { adminCreateDishCategory } from '../actions/dishCategory';
+import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
+import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import {
   useReviewState,
   type CategoryMode,
@@ -236,14 +237,6 @@ export function ReviewDishEditor({
     )
   );
 
-  // Per-dish "create new dish_category" inline form state.
-  // Keyed by dish _id; null means form is closed.
-  const [creatingDishCategoryFor, setCreatingDishCategoryFor] = useState<string | null>(null);
-  const [newDishCategoryName, setNewDishCategoryName] = useState('');
-  const [newDishCategoryIsDrink, setNewDishCategoryIsDrink] = useState(false);
-  const [creatingDishCategory, setCreatingDishCategory] = useState(false);
-  const [createDishCategoryError, setCreateDishCategoryError] = useState<string | null>(null);
-
   // Per-group description state (admin-editable). Keyed by group key.
   // Initial values: existing-cat description (if non-empty) → AI suggestion → empty.
   const [categoryDescriptions, setCategoryDescriptions] = useState<Map<string, string>>(() => {
@@ -350,40 +343,17 @@ export function ReviewDishEditor({
     });
   };
 
-  const handleCreateDishCategory = async (dishId: string) => {
-    setCreateDishCategoryError(null);
-    const name = newDishCategoryName.trim();
-    if (!name) {
-      setCreateDishCategoryError('Name is required.');
-      return;
-    }
-    setCreatingDishCategory(true);
-    try {
-      const result = await adminCreateDishCategory({
-        name,
-        is_drink: newDishCategoryIsDrink,
-      });
-      if (!result.ok) {
-        setCreateDishCategoryError(result.formError ?? 'Create failed');
-        return;
-      }
-      // Append to local list (or no-op if already present from a prior create)
-      setDishCategories(prev =>
-        prev.some(c => c.id === result.data.id)
-          ? prev
-          : [
-              ...prev,
-              { id: result.data.id, name: result.data.name, is_drink: result.data.is_drink },
-            ]
-      );
-      // Auto-assign to the dish that triggered the create
-      update(dishId, { dishCategoryId: result.data.id, dishCategoryUnmatched: false });
-      setCreatingDishCategoryFor(null);
-      setNewDishCategoryName('');
-      setNewDishCategoryIsDrink(false);
-    } finally {
-      setCreatingDishCategory(false);
-    }
+  // Append a freshly-created dish_category and auto-assign it to the dish
+  // that opened the inline create form. Re-sorts alphabetically so the new
+  // entry slots into the right place in the combobox listbox. Idempotent on
+  // id (the server action returns existing rows for case-insensitive name
+  // matches).
+  const handleDishCategoryCreated = (dishId: string, cat: DishCategoryOption) => {
+    setDishCategories(prev => {
+      const next = prev.some(c => c.id === cat.id) ? prev : [...prev, cat];
+      return [...next].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    update(dishId, { dishCategoryId: cat.id, dishCategoryUnmatched: false });
   };
 
   const handleSave = async () => {
@@ -839,45 +809,26 @@ export function ReviewDishEditor({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={d.dishCategoryId ?? ''}
-                        onChange={e =>
+                    <div className="flex items-start gap-2">
+                      <DishCategoryCombobox
+                        value={d.dishCategoryId ?? null}
+                        options={dishCategories}
+                        disabled={d._deleted || saving}
+                        unmatched={d.dishCategoryUnmatched}
+                        className="flex-1"
+                        onChange={id =>
                           update(d._id, {
-                            dishCategoryId: e.target.value || null,
+                            dishCategoryId: id,
                             // Clearing the unmatched flag once admin makes a deliberate pick
                             dishCategoryUnmatched: false,
                           })
                         }
+                      />
+                      <DishCategoryCreateInline
+                        initialName={d.suggested_dish_category ?? ''}
                         disabled={d._deleted || saving}
-                        className={[
-                          'flex-1 rounded border bg-background px-2 py-1.5 text-sm disabled:opacity-50',
-                          d.dishCategoryUnmatched
-                            ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
-                            : 'border-border',
-                        ].join(' ')}
-                      >
-                        <option value="">— None —</option>
-                        {dishCategories.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                            {c.is_drink ? ' (drink)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCreatingDishCategoryFor(d._id);
-                          setNewDishCategoryName(d.suggested_dish_category ?? '');
-                          setNewDishCategoryIsDrink(false);
-                          setCreateDishCategoryError(null);
-                        }}
-                        disabled={d._deleted || saving}
-                        className="shrink-0 rounded border border-border px-2 py-1.5 text-xs hover:bg-muted disabled:opacity-50"
-                      >
-                        + New
-                      </button>
+                        onCreated={cat => handleDishCategoryCreated(d._id, cat)}
+                      />
                     </div>
                     {d.dishCategoryUnmatched && (
                       <p className="text-[11px] text-yellow-800 dark:text-yellow-400">
@@ -892,53 +843,6 @@ export function ReviewDishEditor({
                           {dishCategoryById.get(d.dishCategoryId)?.name ?? '(unknown)'}
                         </span>
                       </p>
-                    )}
-
-                    {creatingDishCategoryFor === d._id && (
-                      <div className="mt-1 rounded border border-border bg-muted/30 p-2 space-y-2">
-                        <input
-                          aria-label="New dish category name"
-                          value={newDishCategoryName}
-                          onChange={e => setNewDishCategoryName(e.target.value)}
-                          disabled={creatingDishCategory}
-                          placeholder="e.g. Pad See Ew"
-                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
-                        />
-                        <label className="flex items-center gap-1.5 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={newDishCategoryIsDrink}
-                            onChange={e => setNewDishCategoryIsDrink(e.target.checked)}
-                            disabled={creatingDishCategory}
-                          />
-                          Drink (excluded from food feed)
-                        </label>
-                        {createDishCategoryError && (
-                          <p className="text-xs text-destructive">{createDishCategoryError}</p>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void handleCreateDishCategory(d._id)}
-                            disabled={creatingDishCategory}
-                            className="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                          >
-                            {creatingDishCategory ? 'Creating…' : 'Create'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCreatingDishCategoryFor(null);
-                              setNewDishCategoryName('');
-                              setCreateDishCategoryError(null);
-                            }}
-                            disabled={creatingDishCategory}
-                            className="rounded border border-border px-3 py-1 text-xs hover:bg-muted disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
                     )}
                   </div>
 

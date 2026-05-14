@@ -77,9 +77,11 @@ export const adminCreateDishCategory = withAdminAuth(
       { name: row.name, is_drink: row.is_drink ?? false }
     );
 
-    // Revalidate any open menu-scan review page so the new category shows in
-    // the dropdown without a manual refresh.
+    // Revalidate any open menu-scan review page or restaurant verifier page so
+    // the new category shows in the dropdown without a manual refresh. Both
+    // routes load the dish_categories list server-side at request time.
     revalidatePath('/menu-scan', 'layout');
+    revalidatePath('/restaurants', 'layout');
 
     return {
       ok: true,

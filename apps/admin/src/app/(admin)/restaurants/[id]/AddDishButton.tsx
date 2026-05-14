@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { PRIMARY_PROTEINS, DISH_KIND_META } from '@eatme/shared';
 import type { AdminMenuDish, DishCategoryOption } from '@/lib/auth/dal';
+import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
+import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import { adminCreateDish } from './actions/dish';
 
 type DishKind = keyof typeof DISH_KIND_META;
@@ -18,6 +20,9 @@ interface Props {
   categoryLabel: string;
   dishCategoryOptions: DishCategoryOption[];
   onCreated: (dish: AdminMenuDish) => void;
+  // Bubbles up so MenusSection can append the new category to its lifted
+  // state — every sibling row's combobox sees it without a page reload.
+  onDishCategoryCreated: (cat: DishCategoryOption) => void;
 }
 
 function friendlyError(code: string): string {
@@ -35,6 +40,7 @@ export function AddDishButton({
   categoryLabel,
   dishCategoryOptions,
   onCreated,
+  onDishCategoryCreated,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -217,25 +223,26 @@ export function AddDishButton({
         </label>
       </div>
 
-      <label className="text-xs block">
+      <div className="text-xs space-y-1">
         <span className="block text-muted-foreground mb-0.5">
           Dish category{' '}
           <span className="text-muted-foreground/60">(filter taxonomy, optional)</span>
         </span>
-        <select
-          value={dishCategoryId}
-          onChange={e => setDishCategoryId(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
-        >
-          <option value="">— None —</option>
-          {dishCategoryOptions.map(c => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.is_drink ? ' (drink)' : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+        <div className="flex items-start gap-2">
+          <DishCategoryCombobox
+            value={dishCategoryId === '' ? null : dishCategoryId}
+            options={dishCategoryOptions}
+            className="flex-1"
+            onChange={id => setDishCategoryId(id ?? '')}
+          />
+          <DishCategoryCreateInline
+            onCreated={cat => {
+              onDishCategoryCreated(cat);
+              setDishCategoryId(cat.id);
+            }}
+          />
+        </div>
+      </div>
 
       {serverError && <p className="text-destructive text-xs">{serverError}</p>}
 

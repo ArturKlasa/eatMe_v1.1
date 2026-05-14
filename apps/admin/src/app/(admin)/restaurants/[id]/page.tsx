@@ -13,6 +13,7 @@ import { AdminSuspensionSection } from './AdminSuspensionSection';
 import { MenusSection } from './MenusSection';
 import { PublishSection } from './PublishSection';
 import { RestaurantInspector } from './RestaurantInspector';
+import { ScanNewMenuSection } from './ScanNewMenuSection';
 
 async function getDraftCounts(restaurantId: string): Promise<{ menus: number; dishes: number }> {
   const service = createAdminServiceClient();
@@ -127,6 +128,9 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         canonicalCategoryOptions={canonicalCategoryOptions}
         sourceLanguageCode={sourceLanguageCode}
       />
+
+      {/* Scan additional menu — drafts will land in this restaurant's menu */}
+      <ScanNewMenuSection restaurantId={restaurant.id} restaurantName={restaurant.name} />
 
       {/* Admin-only suspension section */}
       <AdminSuspensionSection

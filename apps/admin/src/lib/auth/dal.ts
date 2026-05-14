@@ -459,6 +459,7 @@ export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
     .from('restaurants')
     .select('id, name, city')
     .eq('skip_menu_scan', false)
+    .neq('status', 'published')
     .order('name')
     .limit(200);
   if (error || !data) return [];

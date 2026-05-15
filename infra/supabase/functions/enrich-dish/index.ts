@@ -380,9 +380,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // Mark as pending
-    await supabase.from('dishes').update({ enrichment_status: 'pending' }).eq('id', dishId);
-
     // ── Load all independent data in parallel ────────────────────────────────
     const parallelStart = Date.now();
 
@@ -555,22 +552,6 @@ serve(async (req: Request) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    // ── Update restaurant vector ──────────────────────────────────────────────
-    // Only recompute when the embedding carries new AI-enriched signal.
-    // Skipping for non-AI enrichments avoids redundant RPC calls when bulk
-    // confirming menus (one call per dish would otherwise flood the endpoint).
-
-    if (enrichmentSource !== 'none') {
-      const { error: rpcError } = await supabase.rpc('update_restaurant_vector', {
-        p_restaurant_id: dish.restaurant_id,
-      });
-      if (rpcError) {
-        console.error('[enrich-dish] update_restaurant_vector failed (non-fatal):', rpcError);
-      }
-    } else {
-      console.log('[enrich-dish] Skipping update_restaurant_vector — no AI enrichment this run');
     }
 
     console.log('[enrich-dish] Completed:', dishId, `(${confidence} confidence)`);

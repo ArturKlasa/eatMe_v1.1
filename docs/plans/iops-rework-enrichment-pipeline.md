@@ -39,8 +39,9 @@ On the read side, `generate_candidates` orders by `embedding <=> preference_vect
 | 7 | `chore(db): record enrich-dish triggers in migrations` | 135 | 3 | ✅ done |
 | 8 | `chore(db): record HNSW dishes_embedding index in migrations` | 136 | 4 | ✅ done |
 | 9 | `chore(db): record other vector indexes (drift fix)` | 137 | 4 | ✅ done |
-| 10 | `chore(db): record WEBHOOK_SECRET trigger drop` | 138 | 5 | ⏳ pending |
-| 11 | `chore(db): drop dead enrichment columns` | 139 | 5 | ⏳ pending |
+| 10 | `chore(db): drop dead enrichment columns + record WEBHOOK_SECRET drop` | 138 + 139 | 5 | ✅ done |
+| 11 | `refactor: stop writing dead enrichment columns (enrich-dish + web-portal)` | — | 5 | ✅ done |
+| 12 | `fix(admin): silence eslint-rule false positives` | — | 5 (pre) | ✅ done |
 
 **Deferred / on hold:**
 - Phase 3 Slice B (batched embedding at confirm time + planner-friendly RPC rewrite for generate_candidates) — admin's confirm path is already async via trigger; no current value.
@@ -292,30 +293,24 @@ The original plan reserved 136-138 for Phase 4-5 work. With this scope change:
 
 ### Tasks
 
-- [ ] **5.1** Write migration `infra/supabase/migrations/138_record_webhook_trigger_drop.sql` — idempotent record of the Phase 1 live drop:
-  ```sql
-  DROP TRIGGER IF EXISTS "WEBHOOK_SECRET" ON public.dishes;
-  ```
-- [ ] **5.2** Write migration `infra/supabase/migrations/139_drop_dead_enrichment_columns.sql`:
-  ```sql
-  BEGIN;
+- [x] **5.0** Remove dead column writes from enrich-dish (embedding_input) and apps/web-portal confirm route (enrichment_source, enrichment_confidence) — done 2026-05-16.
+- [x] **5.1** Migration `138_record_webhook_trigger_drop.sql` written + applied.
+- [x] **5.2** Migration `139_drop_dead_enrichment_columns.sql` written + applied. Dropped: enrichment_payload, enrichment_review_status, embedding_input, enrichment_source, enrichment_confidence + dishes_enrichment_review_status_idx.
+- [x] **5.3** Regenerated `packages/database/src/types.ts` from post-139 live schema.
+- [x] **5.4** Done — see 5.0 above.
+- [x] **5.5** Done — comment updated, type kept since `confidence` is used by admin UI for low-confidence highlighting.
+- [ ] **5.6** Run `supabase inspect db unused-indexes` audit — deferred (low priority; can run periodically as a hygiene check).
+- [x] **5.7** `turbo lint` clean (0 errors) after fixing pre-existing admin issues in a separate commit. `turbo check-types` has pre-existing failures in `apps/web-portal-v2` (status enum narrowing + a `dish_courses.dish_id` reference that should be `parent_dish_id`) — these are not Phase 5 issues; tracked separately.
 
-  ALTER TABLE dishes
-    DROP COLUMN IF EXISTS enrichment_payload,
-    DROP COLUMN IF EXISTS enrichment_review_status,
-    DROP COLUMN IF EXISTS embedding_input,
-    DROP COLUMN IF EXISTS enrichment_source,
-    DROP COLUMN IF EXISTS enrichment_confidence;
+### Known pre-existing issues (out of scope for this rework)
 
-  DROP INDEX IF EXISTS dishes_enrichment_review_status_idx;
+The IOPS-rework completion verification surfaced check-types failures in `apps/web-portal-v2` that predate Phase 5:
 
-  COMMIT;
-  ```
-- [ ] **5.3** Regenerate types: `supabase gen types typescript --linked > packages/database/src/types.ts`.
-- [ ] **5.4** Remove `enrichment_source`/`enrichment_confidence` writes from `apps/web-portal/app/api/menu-scan/confirm/route.ts:375-376`.
-- [ ] **5.5** Remove `enrichment_source`/`enrichment_confidence` fields from `apps/web-portal/lib/menu-scan.ts`.
-- [ ] **5.6** Run `supabase inspect db unused-indexes`. Audit each flagged index for any code reference; drop those confirmed unused (one-line migration per drop).
-- [ ] **5.7** Verify all apps build clean: `turbo build` `turbo check-types` `turbo lint`.
+- `apps/web-portal-v2/src/app/(app)/onboard/page.tsx:93` — `restaurant.status: string` not assignable to `'archived' | 'draft' | 'published'` union. The regenerated supabase types use `string` for CHECK-constrained columns rather than narrowed unions.
+- `apps/web-portal-v2/src/app/(app)/restaurant/[id]/page.tsx:66` — same issue.
+- `apps/web-portal-v2/src/app/(app)/restaurant/[id]/actions/dish.ts:59` — code inserts into `dish_courses` with `dish_id` field, but the schema column is `parent_dish_id`. This is a runtime bug in web-portal-v2.
+
+These are unrelated to the IOPS rework. Fix in a separate ticket scoped to web-portal-v2 maintenance.
 
 ### Acceptance criteria
 

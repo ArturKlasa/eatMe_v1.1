@@ -2,6 +2,11 @@
 // "use server" file because Next.js requires server-action modules to only
 // export async functions — a Zod schema is an object, so it must live here
 // to also be importable from tests + non-server callers.
+//
+// The eatme/no-unwrapped-action rule fires on any export from an actions/
+// directory, but the exports here are schemas and constants — not server
+// actions that need auth wrapping. Disable the rule for this file.
+/* eslint-disable eatme/no-unwrapped-action */
 
 import { z } from 'zod';
 import { PRIMARY_PROTEINS } from '@eatme/shared';

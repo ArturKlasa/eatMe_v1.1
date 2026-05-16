@@ -13,9 +13,9 @@
 // Pipeline:
 //   1. Load dish + ingredients + option groups + restaurant cuisine
 //      + parent dish (when this is a variant) + parent ingredients
-//   2. Build embedding_input (labeled NL format, 60-120 tokens)
+//   2. Build embedding text (labeled NL format, 60-120 tokens)
 //   3. Call OpenAI text-embedding-3-small (1536 dims)
-//   4. Write embedding + embedding_input + enrichment_status='completed'
+//   4. Write embedding + enrichment_status='completed'
 //
 // The downstream _trg_after_dish_embedded trigger handles recomputing the
 // restaurant centroid when embedding changes — not this function's concern.
@@ -257,7 +257,6 @@ serve(async (req: Request) => {
       .from('dishes')
       .update({
         embedding: JSON.stringify(embedding),
-        embedding_input: embeddingInput,
         enrichment_status: 'completed',
       })
       .eq('id', dishId);

@@ -230,7 +230,7 @@ export interface ConfirmDish {
   primary_protein?: string | null;
   /** AI-suggested allergen codes. Supplementary until DB trigger computes from ingredients. */
   allergens?: string[];
-  /** GPT-4o extraction confidence [0–1]. Used to populate enrichment_confidence at confirm. */
+  /** GPT-4o extraction confidence [0–1]. Used by the admin UI to flag low-confidence dishes for review. */
   confidence?: number;
   /** Structured courses for course_menu dishes. */
   courses?: ConfirmCourse[];

@@ -336,10 +336,6 @@ function buildDishRow(
   menuCategoryId: string,
   overrides?: Partial<Record<string, unknown>>
 ) {
-  const conf = dish.confidence;
-  const enrichmentConfidence =
-    conf !== undefined ? (conf >= 0.7 ? 'high' : conf >= 0.5 ? 'medium' : 'low') : null;
-
   const derived = deriveProteinFields(dish.primary_protein as PrimaryProtein | null);
 
   return {
@@ -372,8 +368,6 @@ function buildDishRow(
     protein_families: derived.protein_families,
     protein_canonical_names: derived.protein_canonical_names,
     enrichment_status: 'pending',
-    enrichment_source: 'ai',
-    enrichment_confidence: enrichmentConfidence,
     is_template: dish.is_template ?? false,
     status: dish.status ?? 'published',
     source_image_index: dish.source_image_index ?? null,

@@ -28,21 +28,23 @@ On the read side, `generate_candidates` orders by `embedding <=> preference_vect
 
 ## Atomic commit map
 
-| # | Commit | Migration # | Phase | PR |
+| # | Commit | Migration # | Phase | Status |
 |---|---|---|---|---|
-| 1 | `fix(enrich-dish): remove redundant pending UPDATE and restaurant_vector RPC` | — | 1 | 1 |
-| 2 | `chore(db): drop WEBHOOK_SECRET trigger on dishes` | live SQL + 138 in Phase 5 | 1 | live + 5 |
-| 3 | `feat(db): Vault-based auth for _trg_notify_enrich_dish` | 132 | 1.5 | 1.5 |
-| 4 | `refactor(enrich-dish): strip to embedding-only; remove gpt-4o-mini call` | — | 2 | 2 |
-| 5 | `feat(db): embed-recovery-tick cron` (no separate batch fn — cron calls enrich-dish directly) | 133 | 2 | 2 |
-| 6 | `feat(db): restaurant_vector_dirty_at + recompute cron` | 134 | 3 | 3 |
-| 7 | `feat(db): update_dish_embeddings_batch RPC` | 135 | 3 | 3 |
-| 8 | `refactor(db): narrow trg_enrich_on_dish_change to UPDATE-only` | 136 | 3 | 3 |
-| 9 | `feat(web-portal): batched embedding at menu-scan confirm time` | — | 3 | 3 |
-| 10 | `feat(db): HNSW partial index on dishes.embedding` | (CONCURRENTLY, no migration) | 4 | 4 |
-| 11 | `refactor(db): generate_candidates planner-friendly ORDER BY` (if needed) | 137 | 4 | 4 |
-| 12 | `chore(db): record WEBHOOK_SECRET trigger drop` | 138 | 5 | 5 |
-| 13 | `chore(db): drop dead enrichment columns` | 139 | 5 | 5 |
+| 1 | `fix(enrich-dish): remove redundant pending UPDATE and restaurant_vector RPC` | — | 1 | ✅ done |
+| 2 | `chore(db): drop WEBHOOK_SECRET trigger on dishes` | live SQL + 138 in Phase 5 | 1 | ✅ live |
+| 3 | `feat(db): Vault-based auth for _trg_notify_enrich_dish` | 132 | 1.5 | ✅ done |
+| 4 | `refactor(enrich-dish): strip to embedding-only; remove gpt-4o-mini call` | — | 2 | ✅ done |
+| 5 | `feat(db): embed-recovery-tick cron` | 133 | 2 | ✅ done |
+| 6 | `feat(db): restaurant_vector_dirty_at + recompute cron` | 134 | 3 | ✅ done |
+| 7 | `chore(db): record enrich-dish triggers in migrations` | 135 | 3 | ✅ done |
+| 8 | `chore(db): record HNSW dishes_embedding index in migrations` | 136 | 4 | ✅ done |
+| 9 | `chore(db): record other vector indexes (drift fix)` | 137 | 4 | ✅ done |
+| 10 | `chore(db): record WEBHOOK_SECRET trigger drop` | 138 | 5 | ⏳ pending |
+| 11 | `chore(db): drop dead enrichment columns` | 139 | 5 | ⏳ pending |
+
+**Deferred / on hold:**
+- Phase 3 Slice B (batched embedding at confirm time + planner-friendly RPC rewrite for generate_candidates) — admin's confirm path is already async via trigger; no current value.
+- Phase 4 RPC rewrite / HNSW tuning — planner doesn't adopt the index at current scale (~375 dishes). Revisit at ~5k+ dishes.
 
 ---
 
@@ -219,46 +221,65 @@ These were original plan tasks 3.3-3.8. Deferred unless we observe specific need
 
 ---
 
-## Phase 4 — HNSW partial index for the consumer feed
+## Phase 4 — Record HNSW indexes (scale threshold not yet reached)
 
-**Goal:** Eliminate the dominant read-IOPS source — sequential scan of all dish embeddings per feed request.
-**Expected outcome:** Feed query latency 500-1500ms → 50-150ms. Read IOPS drops ~10×.
-**Risk:** Medium — concurrent index build is IOPS-intensive; planner may need help to use the new index.
-**Rollback:** Drop the index. Feed reverts to seq-scan.
+**Goal:** Record the HNSW vector indexes that exist in production but never landed in migrations. Verify the planner's adoption threshold so we know when this phase becomes a true performance win.
+**Expected outcome:** Drift fixed. Index in place for future scale. No latency change at current scale.
+**Risk:** Very low — indexes already exist in prod; migrations are idempotent.
+**Rollback:** Apply reverses; indexes get dropped but feed continues working.
+
+### Scope reduction (2026-05-16)
+
+Original plan assumed HNSW would give a 500ms → 50ms feed latency win. Investigation revealed:
+
+1. **Three HNSW indexes already exist in production** (drift) — created at some point without being recorded in migrations:
+   - `dishes_embedding_hnsw_idx` on `dishes.embedding WHERE embedding IS NOT NULL` (6.2 MB)
+   - `ubp_preference_vector_hnsw_idx` on `user_behavior_profiles.preference_vector` (112 KB)
+   - `restaurants_vector_hnsw_idx` on `restaurants.restaurant_vector` (8.2 MB)
+
+2. **At current scale (~375 indexed rows), the planner refuses to use the dishes index**, even with `enable_seqscan=OFF` and a clean `ORDER BY embedding <=> vector` query with no CASE wrapper. Direct EXPLAIN ANALYZE shows the planner chooses `Seq Scan on dishes` (cost 0.00..305.59) over any HNSW path. This is correct cost-model behavior — at small N, sequential scan + sort is genuinely faster than HNSW graph traversal + filter.
+
+3. **The 760ms baseline latency is the vector compute itself** (375 × 1536-dim cosine distance), not seq-scan overhead. The HNSW index would help if the planner used it, but only at scale where graph traversal cost < linear compute cost.
+
+### Scale threshold — when this becomes a real performance win
+
+HNSW becomes cost-favorable typically around **5,000-10,000 indexed rows** in pgvector's cost model. At ~375 indexed dishes today, we're 10-30× below the threshold.
+
+**Heuristic for revisiting**:
+- If you ever see `generate_candidates` p95 latency exceed 1.5s sustained → re-run the diagnostic queries from Phase 4 (EXPLAIN baseline, EXPLAIN with `enable_seqscan=OFF`, direct ORDER BY test). When the planner starts choosing the index even without forcing, that's the adoption threshold.
+- Indirectly trackable via `pg_stat_statements`: when the call-volume-weighted mean execution time of `generate_candidates` rises despite no schema/code changes, investigate.
+
+When adoption threshold is reached, the planner will automatically start using the index — no further work needed. The original Phase 4 task list (`hnsw.ef_search` tuning, planner-friendly RPC rewrite if needed) can be revisited then.
 
 ### Tasks
 
-- [ ] **4.1** Schedule low-traffic window (e.g., 03:00 local time).
-- [ ] **4.2** Run during window:
-  ```sql
-  CREATE INDEX CONCURRENTLY dishes_embedding_hnsw_idx
-    ON dishes
-    USING hnsw (embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64)
-    WHERE status = 'published'
-      AND is_parent = false
-      AND is_template = false
-      AND enrichment_status = 'completed';
-  ```
-  Expect 5-15 min build time on Pro tier.
-- [ ] **4.3** `ANALYZE dishes;`
-- [ ] **4.4** `EXPLAIN ANALYZE` a representative `generate_candidates` call (script the query with a real preference_vector and known location). Confirm `Index Scan using dishes_embedding_hnsw_idx` appears in the plan.
-- [ ] **4.5** If planner falls back to seq-scan due to the `CASE WHEN p_preference_vector IS NOT NULL` wrapper in the ORDER BY: write migration `136_planner_friendly_candidates.sql` that splits `generate_candidates` (and `get_group_candidates`) into two code paths — one with raw `ORDER BY (embedding <=> p_vector)` when preference_vector is non-null, one without.
-- [ ] **4.6** Repeat 4.4 for `get_group_candidates`.
-- [ ] **4.7** Monitor feed p99 latency for 24h in Supabase Edge Function logs.
-- [ ] **4.8** Optional: try setting `hnsw.ef_search = 100` in the RPC function body and compare recall@200 vs latency at default `ef_search = 40`.
+- [x] **4.1** Capture baseline EXPLAIN — done 2026-05-16. 797ms execution, 3514 buffer hits, Function Scan opaque to inner plan.
+- [x] **4.2** Verified live HNSW index already exists (drift discovery).
+- [x] **4.3** `ANALYZE public.dishes;` — done.
+- [x] **4.4** Re-ran EXPLAIN — no change in buffer count or execution time. Planner not using the index.
+- [x] **4.5** Direct `ORDER BY embedding <=> vector` test with `enable_seqscan=OFF` — planner still chose `Seq Scan on dishes`. Confirmed scale threshold not reached.
+- [x] **4.6** Migration `136_hnsw_dishes_embedding.sql` written — records the live dishes index for fresh envs (broader `WHERE embedding IS NOT NULL` to match prod).
+- [x] **4.7** Migration `137_record_other_vector_indexes.sql` written — records `ubp_preference_vector_hnsw_idx` and `restaurants_vector_hnsw_idx`.
+- [x] **4.8** Reverses written for both migrations.
+- [ ] **4.9** (Deferred until scale threshold reached) Planner-friendly RPC rewrite, `hnsw.ef_search` tuning.
+
+### Migration numbering shift
+
+The original plan reserved 136-138 for Phase 4-5 work. With this scope change:
+
+- `136_hnsw_dishes_embedding.sql` — drift fix (this phase)
+- `137_record_other_vector_indexes.sql` — drift fix (this phase)
+- Phase 5 migrations shift to **138** (WEBHOOK_SECRET drop record) and **139** (drop dead enrichment columns).
 
 ### Acceptance criteria
 
-- `EXPLAIN ANALYZE` confirms HNSW index in use for both `generate_candidates` and `get_group_candidates`.
-- p99 feed call latency drops to <200ms.
-- Read IOPS shows another visible step-down.
-- No regression in feed result quality (sample comparison of top-20 dishes before/after for known users).
+- Fresh-environment migration apply produces the same 3 HNSW indexes that exist in production today.
+- Migration files don't change anything on production (idempotent via `IF NOT EXISTS`).
+- Plan documents the scale threshold so future-us knows what to look for when latency does become a problem.
 
 ### Open questions
 
-- **Decision pending EXPLAIN result**: planner-friendly RPC rewrite needed or not.
-- **Decision pending data**: optimal `ef_search` value — default vs 100 vs higher.
+- None for the drift fix. Defer all "should we tune the index" questions until adoption threshold is reached.
 
 ---
 
@@ -271,11 +292,11 @@ These were original plan tasks 3.3-3.8. Deferred unless we observe specific need
 
 ### Tasks
 
-- [ ] **5.1** Write migration `infra/supabase/migrations/137_record_webhook_trigger_drop.sql` — idempotent record of the Phase 1 live drop:
+- [ ] **5.1** Write migration `infra/supabase/migrations/138_record_webhook_trigger_drop.sql` — idempotent record of the Phase 1 live drop:
   ```sql
   DROP TRIGGER IF EXISTS "WEBHOOK_SECRET" ON public.dishes;
   ```
-- [ ] **5.2** Write migration `infra/supabase/migrations/138_drop_dead_enrichment_columns.sql`:
+- [ ] **5.2** Write migration `infra/supabase/migrations/139_drop_dead_enrichment_columns.sql`:
   ```sql
   BEGIN;
 

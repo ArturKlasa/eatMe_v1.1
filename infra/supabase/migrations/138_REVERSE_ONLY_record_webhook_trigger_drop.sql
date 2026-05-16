@@ -1,0 +1,21 @@
+-- 138_REVERSE_ONLY_record_webhook_trigger_drop.sql
+-- Reverses 138_record_webhook_trigger_drop.sql.
+--
+-- WARNING: this reverse is INCOMPLETE on purpose. Re-creating the
+-- WEBHOOK_SECRET trigger would re-introduce the recursion loop that
+-- caused the original IOPS budget exhaustion (3-5 enrich-dish calls
+-- per dish change). It would also re-introduce the service-role JWT
+-- leak in pg_trigger that Phase 1 specifically addressed.
+--
+-- If you really need to roll back:
+--   1. Confirm you understand the recursion implications.
+--   2. Retrieve the original trigger definition from a pre-2026-05-15
+--      pg_trigger backup, OR from the Supabase Dashboard's "Database
+--      Webhooks" UI (which can recreate it via a different path).
+--   3. Apply the CREATE TRIGGER statement manually.
+--
+-- Better path: do not roll this migration back. The trigger was
+-- functionally replaced by trg_enrich_on_dish_change (migration 135)
+-- which uses Vault-based service-role auth instead of an embedded JWT.
+
+-- Intentionally empty. See comments above.

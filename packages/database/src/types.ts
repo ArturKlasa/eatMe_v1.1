@@ -6,6 +6,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '13.0.5';
   };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
       admin_audit_log: {
@@ -314,6 +339,7 @@ export type Database = {
       };
       dish_categories: {
         Row: {
+          aliases: string[];
           created_at: string | null;
           id: string;
           is_active: boolean;
@@ -323,6 +349,7 @@ export type Database = {
           updated_at: string | null;
         };
         Insert: {
+          aliases?: string[];
           created_at?: string | null;
           id?: string;
           is_active?: boolean;
@@ -332,6 +359,7 @@ export type Database = {
           updated_at?: string | null;
         };
         Update: {
+          aliases?: string[];
           created_at?: string | null;
           id?: string;
           is_active?: boolean;
@@ -602,11 +630,6 @@ export type Database = {
           dish_kind: string;
           display_price_prefix: string;
           embedding: string | null;
-          embedding_input: string | null;
-          enrichment_confidence: string | null;
-          enrichment_payload: Json | null;
-          enrichment_review_status: string | null;
-          enrichment_source: string;
           enrichment_status: string;
           id: string;
           image_url: string | null;
@@ -643,11 +666,6 @@ export type Database = {
           dish_kind?: string;
           display_price_prefix?: string;
           embedding?: string | null;
-          embedding_input?: string | null;
-          enrichment_confidence?: string | null;
-          enrichment_payload?: Json | null;
-          enrichment_review_status?: string | null;
-          enrichment_source?: string;
           enrichment_status?: string;
           id?: string;
           image_url?: string | null;
@@ -684,11 +702,6 @@ export type Database = {
           dish_kind?: string;
           display_price_prefix?: string;
           embedding?: string | null;
-          embedding_input?: string | null;
-          enrichment_confidence?: string | null;
-          enrichment_payload?: Json | null;
-          enrichment_review_status?: string | null;
-          enrichment_source?: string;
           enrichment_status?: string;
           id?: string;
           image_url?: string | null;
@@ -1165,6 +1178,7 @@ export type Database = {
           canonical_category_id: string | null;
           created_at: string | null;
           description: string | null;
+          description_translations: Json;
           display_order: number | null;
           id: string;
           is_active: boolean | null;
@@ -1180,6 +1194,7 @@ export type Database = {
           canonical_category_id?: string | null;
           created_at?: string | null;
           description?: string | null;
+          description_translations?: Json;
           display_order?: number | null;
           id?: string;
           is_active?: boolean | null;
@@ -1195,6 +1210,7 @@ export type Database = {
           canonical_category_id?: string | null;
           created_at?: string | null;
           description?: string | null;
+          description_translations?: Json;
           display_order?: number | null;
           id?: string;
           is_active?: boolean | null;
@@ -1685,6 +1701,7 @@ export type Database = {
           rating: number | null;
           restaurant_type: string | null;
           restaurant_vector: string | null;
+          restaurant_vector_dirty_at: string | null;
           service_speed: string | null;
           skip_menu_scan: boolean;
           state: string | null;
@@ -1722,6 +1739,7 @@ export type Database = {
           rating?: number | null;
           restaurant_type?: string | null;
           restaurant_vector?: string | null;
+          restaurant_vector_dirty_at?: string | null;
           service_speed?: string | null;
           skip_menu_scan?: boolean;
           state?: string | null;
@@ -1759,6 +1777,7 @@ export type Database = {
           rating?: number | null;
           restaurant_type?: string | null;
           restaurant_vector?: string | null;
+          restaurant_vector_dirty_at?: string | null;
           service_speed?: string | null;
           skip_menu_scan?: boolean;
           state?: string | null;
@@ -2347,6 +2366,8 @@ export type Database = {
       };
     };
     Functions: {
+      _cron_embed_recovery_tick: { Args: never; Returns: undefined };
+      _cron_restaurant_vector_recompute: { Args: never; Returns: undefined };
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string };
         Returns: undefined;
@@ -2481,6 +2502,10 @@ export type Database = {
             };
             Returns: string;
           };
+      admin_delete_restaurant: {
+        Args: { p_restaurant_id: string };
+        Returns: Json;
+      };
       analyze_spatial_query_performance: {
         Args: { p_lat: number; p_lng: number; p_radius_km: number };
         Returns: {
@@ -2614,9 +2639,18 @@ export type Database = {
       enablelongtransactions: { Args: never; Returns: string };
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean };
       expire_old_sessions: { Args: never; Returns: number };
+      f_unaccent: { Args: { p_text: string }; Returns: string };
       fail_menu_scan_job: {
         Args: { p_error: string; p_id: string; p_max_attempts?: number };
         Returns: undefined;
+      };
+      fuzzy_match_dish_category: {
+        Args: { p_query: string };
+        Returns: {
+          id: string;
+          name: string;
+          score: number;
+        }[];
       };
       generate_candidates: {
         Args: {
@@ -3554,6 +3588,7 @@ export type Database = {
         Returns: unknown;
       };
       sync_all_restaurant_ratings: { Args: never; Returns: number };
+      unaccent: { Args: { '': string }; Returns: string };
       unlockrows: { Args: { '': string }; Returns: number };
       update_restaurant_vector: {
         Args: { p_restaurant_id: string };
@@ -3716,6 +3751,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       location_mode: ['host_location', 'midpoint', 'max_radius'],

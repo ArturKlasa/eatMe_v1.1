@@ -167,122 +167,55 @@ During the post-Phase-1 hygiene cleanup attempt, we discovered the anon JWT hard
 
 ---
 
-## Phase 3 — Batch embedding at confirm time + restaurant-vector debouncing
+## Phase 3 — Restaurant-vector debouncing + trigger drift fix (Slice A only)
 
-**Goal:** Collapse N OpenAI calls + N UPDATEs per menu confirm into 1 + 1. Move `update_restaurant_vector` off the synchronous path.
-**Expected outcome:** 30-dish menu confirm goes from ~30s → 1-2s. Restaurant-vector firings drop from N×2 per confirm to ~1 per restaurant per active period.
-**Risk:** Medium — touches confirm route hot path + custom RPC.
-**Rollback:** Revert confirm route commit; drop new RPC; unschedule new cron; restore trigger to fire on INSERT.
+**Goal:** Move `update_restaurant_vector` off the synchronous embedding-write path so a 30-dish menu confirm causes 1 centroid recompute per ~2 min instead of 30. Also record the missing `CREATE TRIGGER` statements in migrations.
+**Expected outcome:** Restaurant-vector RPC firings drop from N (one per dish embedded) to 1 per restaurant per ~2 min. Fresh-env migration apply now correctly attaches enrichment triggers.
+**Risk:** Low — DB-only changes, no app code touched, all four triggers already exist in production (we're just recording them).
+**Rollback:** Apply 134_REVERSE_ONLY + 135_REVERSE_ONLY.
+
+### Scope reduction (2026-05-15)
+
+The original Phase 3 plan assumed `apps/web-portal/app/api/menu-scan/confirm/route.ts` was the active path. Investigation revealed:
+
+- The active path is `apps/admin/src/app/(admin)/menu-scan/actions/menuScan.ts` (`adminConfirmMenuScan` server action).
+- Admin's flow is already async: batch INSERTs dishes, returns; trigger fires enrich-dish per dish in background. The user doesn't wait for embeddings.
+- This invalidates the "30s → 1-2s" headline win — confirm is already fast.
+- `apps/web-portal-v2` calls `confirm_menu_scan` RPC (migration 121); deferred for now.
+
+Slice A (this phase) does the DB-side debouncing and the trigger drift fix. Slice B (batched embedding endpoint + admin code changes) is deferred indefinitely — async trigger path is fine until proven otherwise.
 
 ### Tasks
 
-- [ ] **3.1** Write migration `infra/supabase/migrations/133_restaurant_vector_dirty_flag.sql`:
-  ```sql
-  BEGIN;
+- [x] **3.1** Migration `134_restaurant_vector_dirty_flag.sql` — adds dirty flag column + partial index, replaces `_trg_after_dish_embedded` to write the flag with 1-min per-row debounce, creates `_cron_restaurant_vector_recompute()` worker, schedules cron `*/2 * * * *`.
+- [x] **3.2** Reverse migration `134_REVERSE_ONLY_*` — unschedule cron, drop worker, restore prior trigger body, drop index + column.
+- [x] **3.3** Migration `135_record_enrich_dish_triggers.sql` — records the four production triggers (`trg_enrich_on_dish_change` on dishes; `after_dish_embedded` on dishes; `trg_enrich_on_ingredient_change` on dish_ingredients; `trg_enrich_on_option_group_change` on option_groups). Idempotent via `DROP IF EXISTS` + `CREATE`.
+- [x] **3.4** Reverse migration `135_REVERSE_ONLY_*` — drops all four.
+- [x] **3.5** Migrations 134 + 135 applied — completed 2026-05-16.
+- [x] **3.6** Smoke test passed — trigger fires correctly, dirty flag gets written, cron picks it up and clears.
+- [x] **3.7** Multi-dish test passed — single dirty-flag write coalesces multiple embedding changes per restaurant.
 
-  ALTER TABLE restaurants
-    ADD COLUMN IF NOT EXISTS restaurant_vector_dirty_at timestamptz;
+### Slice B — DEFERRED (not in this phase)
 
-  CREATE INDEX IF NOT EXISTS restaurants_dirty_idx
-    ON restaurants(restaurant_vector_dirty_at)
-    WHERE restaurant_vector_dirty_at IS NOT NULL;
+These were original plan tasks 3.3-3.8. Deferred unless we observe specific need:
 
-  CREATE OR REPLACE FUNCTION public._trg_after_dish_embedded()
-  RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
-  BEGIN
-    IF OLD.embedding IS DISTINCT FROM NEW.embedding AND NEW.embedding IS NOT NULL THEN
-      UPDATE restaurants
-        SET restaurant_vector_dirty_at = now()
-        WHERE id = NEW.restaurant_id
-          AND (restaurant_vector_dirty_at IS NULL
-               OR restaurant_vector_dirty_at < now() - interval '1 minute');
-    END IF;
-    RETURN NEW;
-  END;
-  $$;
-
-  SELECT cron.schedule(
-    'restaurant-vector-recompute',
-    '*/2 * * * *',
-    $$
-    SELECT update_restaurant_vector(id)
-    FROM restaurants
-    WHERE restaurant_vector_dirty_at IS NOT NULL;
-
-    UPDATE restaurants
-    SET restaurant_vector_dirty_at = NULL
-    WHERE restaurant_vector_dirty_at IS NOT NULL;
-    $$
-  );
-
-  COMMIT;
-  ```
-- [ ] **3.2** Write reverse migration `133_REVERSE_ONLY_*` — unschedule cron, restore old `_trg_after_dish_embedded` body (calling RPC directly), drop column + index.
-- [ ] **3.3** Write migration `infra/supabase/migrations/134_dish_embeddings_batch_rpc.sql`:
-  ```sql
-  BEGIN;
-
-  CREATE OR REPLACE FUNCTION update_dish_embeddings_batch(p_rows jsonb)
-  RETURNS void
-  LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path = extensions, public
-  AS $$
-  BEGIN
-    UPDATE dishes d
-    SET embedding = (r->>'embedding')::vector,
-        enrichment_status = 'completed'
-    FROM jsonb_array_elements(p_rows) AS r
-    WHERE d.id = (r->>'id')::uuid;
-  END;
-  $$;
-
-  GRANT EXECUTE ON FUNCTION update_dish_embeddings_batch TO service_role;
-
-  COMMIT;
-  ```
-- [ ] **3.4** Write migration `infra/supabase/migrations/135_narrow_enrich_trigger.sql` — narrow `trg_enrich_on_dish_change` to fire only on UPDATE OF name, description (INSERTs handled inline by confirm route):
-  ```sql
-  BEGIN;
-
-  DROP TRIGGER IF EXISTS trg_enrich_on_dish_change ON public.dishes;
-
-  CREATE TRIGGER trg_enrich_on_dish_change
-    AFTER UPDATE OF name, description ON public.dishes
-    FOR EACH ROW
-    WHEN (OLD.name IS DISTINCT FROM NEW.name
-          OR OLD.description IS DISTINCT FROM NEW.description)
-    EXECUTE FUNCTION _trg_notify_enrich_dish();
-
-  COMMIT;
-  ```
-- [ ] **3.5** Update `apps/web-portal/app/api/menu-scan/confirm/route.ts`:
-  - After each INSERT batch, collect newly-inserted non-parent, non-template dish data.
-  - Build `embedding_input` text per dish (extract the function from `enrich-dish/index.ts:233-301`; put in `apps/web-portal/lib/embedding/buildEmbeddingInput.ts` for now, accept that the Edge Function still has its own copy).
-  - Single OpenAI embeddings call with array.
-  - Single RPC call: `supabase.rpc('update_dish_embeddings_batch', { p_rows })`.
-- [ ] **3.6** Update `infra/scripts/batch-embed.ts` to use `update_dish_embeddings_batch` for batched re-embedding instead of per-dish UPDATEs.
-- [ ] **3.7** Apply migrations 133 + 134 + 135.
-- [ ] **3.8** Deploy web-portal.
-- [ ] **3.9** Smoke test — confirm 5-dish menu, verify:
-  - Exactly 1 OpenAI embeddings call in network logs (admin app or Vercel logs).
-  - Exactly 1 batched UPDATE in `pg_stat_statements`.
-  - Restaurant marked dirty.
-  - Within 2 min, cron clears the dirty flag and recomputes centroid.
-- [ ] **3.10** Edit-path test — rename a dish's name in admin UI. Verify `trg_enrich_on_dish_change` fires, `enrich-dish` runs, embedding updates.
+- ~~Migration `136_dish_embeddings_batch_rpc.sql` (was 134)~~
+- ~~Migration `137_narrow_enrich_trigger.sql` (was 135) — narrow trigger to UPDATE-only~~
+- ~~Update admin's `adminConfirmMenuScan` to do batched embedding at confirm time~~
+- ~~Update web-portal-v2 RPC if applicable~~
+- ~~Update `infra/scripts/batch-embed.ts` to use new RPC~~
 
 ### Acceptance criteria
 
-- 30-dish menu confirm completes end-to-end in <3 seconds.
-- `pg_stat_statements` shows per-dish UPDATEs dropping to near-zero `calls/hour`.
-- Both crons running, mostly idle, with active runs correlating to admin activity.
-- Restaurant vectors stay fresh (max 2 min staleness).
-- Edits to name/description still trigger re-embedding.
+- After applying 134: `_trg_after_dish_embedded` writes `restaurant_vector_dirty_at` rather than calling the RPC directly.
+- After applying 135: a fresh `supabase db reset` or equivalent attaches all four triggers correctly.
+- 30 dish embedding writes in the same minute result in 1 `restaurant_vector_dirty_at` write on the parent restaurant (29 short-circuit on debounce guard).
+- `cron.job_run_details` shows `restaurant-vector-recompute` mostly idle, with sub-200ms runs when active.
+- `update_restaurant_vector` `calls/hour` in `pg_stat_statements` drops by ≥80% vs pre-Phase-3 baseline.
 
 ### Open questions
 
-- **Decision needed**: Extract `buildEmbeddingInput` into a shared package or copy-paste? Recommendation: copy-paste for now — only 2 callers, extract if a 3rd appears.
-- **Decision needed**: Per-statement vs per-row debounce inside the dirty-flag trigger? The current plan uses a per-row trigger with an `IS NULL OR < 1 min` guard. For a batched UPDATE of 30 rows, the first row writes the flag, the next 29 short-circuit on the guard. Per-statement would also work but requires using a STATEMENT-level trigger with `REFERENCING NEW TABLE AS` semantics. Recommendation: per-row with guard — simpler.
+- None remaining for Slice A.
 
 ---
 

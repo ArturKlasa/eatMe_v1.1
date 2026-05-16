@@ -28,19 +28,21 @@ On the read side, `generate_candidates` orders by `embedding <=> preference_vect
 
 ## Atomic commit map
 
-| # | Commit | Phase | PR |
-|---|---|---|---|
-| 1 | `fix(enrich-dish): remove redundant pending UPDATE and restaurant_vector RPC` | 1 | 1 |
-| 2 | `chore(db): drop WEBHOOK_SECRET trigger on dishes` | 1 | live SQL + migration in Phase 5 |
-| 3 | `refactor(enrich-dish): strip to embedding-only; remove gpt-4o-mini call` | 2 | 2 |
-| 4 | `feat(db): embed-recovery-tick cron + embed-dish-batch edge function` | 2 | 2 |
-| 5 | `feat(db): restaurant_vector_dirty_at + recompute cron` | 3 | 3 |
-| 6 | `feat(db): update_dish_embeddings_batch RPC` | 3 | 3 |
-| 7 | `refactor(db): narrow trg_enrich_on_dish_change to UPDATE-only` | 3 | 3 |
-| 8 | `feat(web-portal): batched embedding at menu-scan confirm time` | 3 | 3 |
-| 9 | `feat(db): HNSW partial index on dishes.embedding` | 4 | 4 |
-| 10 | `refactor(db): generate_candidates planner-friendly ORDER BY` (if needed) | 4 | 4 |
-| 11 | `chore(db): drop dead enrichment columns + record WEBHOOK_SECRET drop` | 5 | 5 |
+| # | Commit | Migration # | Phase | PR |
+|---|---|---|---|---|
+| 1 | `fix(enrich-dish): remove redundant pending UPDATE and restaurant_vector RPC` | — | 1 | 1 |
+| 2 | `chore(db): drop WEBHOOK_SECRET trigger on dishes` | live SQL + 138 in Phase 5 | 1 | live + 5 |
+| 3 | `feat(db): Vault-based auth for _trg_notify_enrich_dish` | 132 | 1.5 | 1.5 |
+| 4 | `refactor(enrich-dish): strip to embedding-only; remove gpt-4o-mini call` | — | 2 | 2 |
+| 5 | `feat(db): embed-recovery-tick cron` (no separate batch fn — cron calls enrich-dish directly) | 133 | 2 | 2 |
+| 6 | `feat(db): restaurant_vector_dirty_at + recompute cron` | 134 | 3 | 3 |
+| 7 | `feat(db): update_dish_embeddings_batch RPC` | 135 | 3 | 3 |
+| 8 | `refactor(db): narrow trg_enrich_on_dish_change to UPDATE-only` | 136 | 3 | 3 |
+| 9 | `feat(web-portal): batched embedding at menu-scan confirm time` | — | 3 | 3 |
+| 10 | `feat(db): HNSW partial index on dishes.embedding` | (CONCURRENTLY, no migration) | 4 | 4 |
+| 11 | `refactor(db): generate_candidates planner-friendly ORDER BY` (if needed) | 137 | 4 | 4 |
+| 12 | `chore(db): record WEBHOOK_SECRET trigger drop` | 138 | 5 | 5 |
+| 13 | `chore(db): drop dead enrichment columns` | 139 | 5 | 5 |
 
 ---
 
@@ -140,71 +142,16 @@ During the post-Phase-1 hygiene cleanup attempt, we discovered the anon JWT hard
 
 ### Tasks
 
-- [ ] **2.1** Edit `infra/supabase/functions/enrich-dish/index.ts`:
-  - Delete `enrichWithAI` function (~lines 105-177).
-  - Delete `EnrichmentPayload` interface (~lines 70-78).
-  - Delete `evaluateCompleteness` and `evaluateConfidence` (~lines 181-229).
-  - Delete the AI-enrichment block (~lines 480-505): the `if (completeness !== 'complete' && !embeddingOnly)` block.
-  - Remove `enrichment_payload`, `enrichment_review_status`, `enrichment_source`, `enrichment_confidence` from the update payload (~lines 536-544); keep `embedding`, `embedding_input`, `enrichment_status: 'completed'`.
-  - Remove parent ingredient loading (~lines 433-453) and course loading from parallel fetch (~lines 410-415) — embedding text doesn't need them.
-  - Target: ~150 lines.
-- [ ] **2.2** Mirror in `supabase/functions/enrich-dish/index.ts`.
-- [ ] **2.3** Update `infra/scripts/batch-embed.ts:126`:
-  - Change filter to `.in('enrichment_status', ['none', 'pending', 'failed'])`.
-  - Add `.lt('updated_at', new Date(Date.now() - 60_000).toISOString())` age guard.
-- [ ] **2.4** Write new Edge Function `infra/supabase/functions/embed-dish-batch/index.ts` — accepts `{ dish_ids: string[] }`, iterates and calls existing `enrich-dish` per id with concurrency limit.
-- [ ] **2.5** Write migration `infra/supabase/migrations/132_embed_recovery_cron.sql`:
-  ```sql
-  BEGIN;
-
-  CREATE INDEX IF NOT EXISTS dishes_pending_embed_idx
-    ON dishes(updated_at)
-    WHERE enrichment_status IN ('pending', 'failed') AND embedding IS NULL;
-
-  SELECT cron.schedule(
-    'embed-recovery-tick',
-    '*/5 * * * *',
-    $$
-    SELECT net.http_post(
-      url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'project_url')
-             || '/functions/v1/embed-dish-batch',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key')
-      ),
-      body := (
-        SELECT jsonb_build_object('dish_ids', array_agg(id))
-        FROM dishes
-        WHERE enrichment_status IN ('pending', 'failed')
-          AND embedding IS NULL
-          AND is_parent = false
-          AND is_template = false
-          AND updated_at < now() - interval '1 minute'
-        LIMIT 100
-      )
-    )
-    WHERE EXISTS (
-      SELECT 1 FROM dishes
-      WHERE enrichment_status IN ('pending', 'failed')
-        AND embedding IS NULL
-        AND updated_at < now() - interval '1 minute'
-    );
-    $$
-  );
-
-  COMMIT;
-  ```
-- [ ] **2.6** Write reverse migration `infra/supabase/migrations/132_REVERSE_ONLY_embed_recovery_cron.sql`:
-  ```sql
-  BEGIN;
-  SELECT cron.unschedule('embed-recovery-tick');
-  DROP INDEX IF EXISTS dishes_pending_embed_idx;
-  COMMIT;
-  ```
-- [ ] **2.7** Deploy: `supabase functions deploy enrich-dish embed-dish-batch`.
-- [ ] **2.8** Apply migration 132.
-- [ ] **2.9** Smoke test — confirm a multi-dish menu, verify dishes get embeddings via live path (not cron).
-- [ ] **2.10** Force-failure test — pick a published dish, `UPDATE dishes SET embedding=NULL, enrichment_status='failed' WHERE id=...`. Wait 5 min. Verify cron picks it up and re-embeds.
+- [x] **2.1** Stripped `infra/supabase/functions/enrich-dish/index.ts` to embedding-only — 577 → 287 lines. AI helpers (`enrichWithAI`, completeness/confidence eval, related types) removed. `buildEmbeddingInput` simplified. Dead fields no longer written to dishes. Parent ingredient loading kept (variant embedding quality). Strict service-role auth check added in-function.
+- [x] **2.2** N/A (symlink — 2.1 covers both paths).
+- [ ] **2.3** Update `infra/scripts/batch-embed.ts` — **DEFERRED.** Script still functional with the old response shape; will log `undefined` for the removed fields but won't break. Update at next-touch (e.g., when running a manual backfill).
+- [x] **2.4** ~~Write new Edge Function `embed-dish-batch`~~ — Skipped per design decision; cron calls enrich-dish directly via pg_net.
+- [x] **2.5** Migration `133_embed_recovery_cron.sql` written — partial index `dishes_pending_embed_idx`, stored function `_cron_embed_recovery_tick()` reading `enrich_dish_service_key` from Vault, cron schedule `*/5 * * * *`.
+- [x] **2.6** Reverse migration `133_REVERSE_ONLY_embed_recovery_cron.sql` written.
+- [x] **2.7** Deployed `enrich-dish` — completed 2026-05-15.
+- [x] **2.8** Migration 133 applied — completed 2026-05-15.
+- [x] **2.9** Live-path smoke test green — Flat white dish bumped via description UPDATE, trigger fired, enrich-dish returned 200, dish landed back at `completed` with embedding.
+- [x] **2.10** Force-failure cron test green — manually broken dish recovered via cron within 5 min, `cron.job_run_details` shows `succeeded`.
 
 ### Acceptance criteria
 

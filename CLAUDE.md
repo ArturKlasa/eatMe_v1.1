@@ -41,10 +41,10 @@ See `agent_docs/architecture.md` for package relationships and data flow.
 
 Dishes are classified by a single `primary_protein` column (enum, not null) on the `dishes` table. The canonical list of 11 values lives in `packages/shared/src/logic/protein.ts` (`PRIMARY_PROTEINS` constant + `deriveProteinFields` helper). Both apps import from `@eatme/shared`.
 
-- **Web portal**: `primary_protein` is set during menu scan (AI extraction) and editable in the dish form. The ingredient concepts/variants/aliases pipeline exists but is hidden behind `NEXT_PUBLIC_INGREDIENT_ENTRY_ENABLED=false`.
-- **Mobile**: consumers filter by `primaryProtein` in the permanent filter drawer (`DrawerFilters`). The "Ingredients to Avoid" section is hidden behind `EXPO_PUBLIC_INGREDIENT_ENTRY_ENABLED=false`.
+- **Web portal**: `primary_protein` is set during menu scan (AI extraction) and editable in the dish form.
+- **Mobile**: consumers filter by `primaryProtein` in the permanent filter drawer (`DrawerFilters`).
 
-To expose the ingredient pipeline, flip both flags to `"true"` in the respective `.env.local` / `.env` files.
+The legacy `dish_ingredients` / `canonical_ingredients` / `ingredient_concepts` pipeline has been retired from the mobile + edge runtime (Phase A, 2026-05-17). The DB tables and triggers still exist; Phase B drops the triggers, Phase C drops the schema. See `docs/plans/ingredient-pipeline-phase-*` for the rollout.
 
 ## Dish Kind — Composition Type
 

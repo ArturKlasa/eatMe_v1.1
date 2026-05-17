@@ -53,8 +53,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     dishOptionGroups,
     dishPhotos,
     setDishPhotos,
-    dishIngredientNames,
-    setDishIngredientNames,
     dishRatings,
     userDishOpinions,
     setUserDishOpinions,
@@ -252,7 +250,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           onClose={() => {
             setSelectedDish(null);
             setDishPhotos([]);
-            setDishIngredientNames([]);
             setDishOptionGroups([]);
             setOptionAllergens(new Map());
           }}
@@ -262,9 +259,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             selectedDish.description_visibility !== 'menu'
               ? (selectedDish.description ?? undefined)
               : undefined
-          }
-          dishIngredients={
-            selectedDish.ingredients_visibility === 'detail' ? dishIngredientNames : []
           }
           dishPrice={selectedDish.price}
           dishKind={selectedDish.dish_kind ?? 'standard'}

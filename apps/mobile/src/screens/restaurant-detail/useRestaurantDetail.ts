@@ -30,7 +30,6 @@ import { useRestaurantStore } from '../../stores/restaurantStore';
 import { type User } from '@supabase/supabase-js';
 import { recordInteraction } from '../../services/interactionService';
 import { type DishWithGroups } from './DishGrouping';
-import i18n from '../../i18n';
 
 export type { DishRating, RestaurantRating };
 

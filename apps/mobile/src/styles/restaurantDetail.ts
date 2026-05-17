@@ -331,12 +331,6 @@ export const restaurantDetailStyles = StyleSheet.create({
     color: colors.darkTextMuted,
     lineHeight: 18,
   },
-  flaggedIngredientsWarning: {
-    fontSize: typography.size.sm,
-    color: '#D97706', // amber-600
-    lineHeight: 18,
-    marginTop: 2,
-  },
   notForYouPill: {
     backgroundColor: '#3A3A3A',
     borderRadius: 4,

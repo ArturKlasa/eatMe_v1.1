@@ -1,37 +1,22 @@
 /**
  * Permanent Filters Component - DrawerFilters
  *
- * Comprehensive permanent filtering interface with 7 main sections:
+ * Comprehensive permanent filtering interface:
  * 1. Diet Preference: All/Vegetarian/Vegan (single selection)
  * 2. Exclude: No meat, No fish, No seafood, No eggs, No dairy (multiple selection)
  * 3. Allergies: Lactose, Gluten, Peanuts, Soy, Sesame, Shellfish, Nuts (multiple selection)
- * 4. Ingredients to Avoid: Search-as-you-type picker backed by ingredient_aliases
+ * 4. Primary Protein: dish-level enum (single selection)
  * 5. Diet Preferences: Diabetic, Keto, Paleo, Low-carb, Pescatarian (multiple selection)
  * 6. Religious Restrictions: Halal, Hindu, Kosher (multiple selection)
  * 7. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  TextInput,
-  ActivityIndicator,
-} from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFilterStore } from '../stores/filterStore';
-import type { IngredientToAvoid } from '../stores/filterStore';
 import { drawerFiltersStyles } from '@/styles';
-import {
-  fetchCommonIngredients,
-  searchIngredientAliases,
-  type IngredientSuggestion,
-} from '../services/ingredientService';
-import { ingredientEntryEnabled } from '../config/environment';
 import { PRIMARY_PROTEINS } from '@eatme/shared';
 
 interface DrawerFiltersProps {
@@ -41,49 +26,6 @@ interface DrawerFiltersProps {
 
 export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll }) => {
   const { t } = useTranslation();
-  // ── Ingredient picker state ──────────────────────────────────────────────
-  const [showIngredientsModal, setShowIngredientsModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<IngredientSuggestion[]>([]);
-  const [commonIngredients, setCommonIngredients] = useState<IngredientSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Pre-fetch common ingredients once so they are ready when the modal opens.
-  useEffect(() => {
-    fetchCommonIngredients().then(setCommonIngredients);
-  }, []);
-
-  // Debounced search: fires 300 ms after the user stops typing.
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (searchQuery.trim().length < 2) {
-      setSuggestions([]);
-      setIsSearching(false);
-      return;
-    }
-    setIsSearching(true);
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchIngredientAliases(searchQuery);
-      setSuggestions(results);
-      setIsSearching(false);
-    }, 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchQuery]);
-
-  const handleOpenModal = useCallback(() => {
-    setSearchQuery('');
-    setSuggestions([]);
-    setShowIngredientsModal(true);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setSearchQuery('');
-    setSuggestions([]);
-    setShowIngredientsModal(false);
-  }, []);
 
   // ── Store ────────────────────────────────────────────────────────────────
 
@@ -95,31 +37,9 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
     toggleDietType,
     toggleReligiousRestriction,
     toggleFacility,
-    addIngredientToAvoid,
-    removeIngredientToAvoid,
     setPrimaryProtein,
     resetPermanentFilters,
   } = useFilterStore();
-
-  // ── Ingredient toggle helper ─────────────────────────────────────────────
-  const isAvoided = (canonicalIngredientId: string) =>
-    permanent.ingredientsToAvoid.some(i => i.canonicalIngredientId === canonicalIngredientId);
-
-  const handleIngredientToggle = (item: IngredientSuggestion) => {
-    if (isAvoided(item.canonicalIngredientId)) {
-      removeIngredientToAvoid(item.canonicalIngredientId);
-    } else {
-      addIngredientToAvoid({
-        conceptId: item.conceptId,
-        canonicalIngredientId: item.canonicalIngredientId,
-        displayName: item.displayName,
-      } satisfies IngredientToAvoid);
-    }
-  };
-
-  // List shown inside the modal: search results if the user has typed ≥2 chars,
-  // otherwise the common-ingredients list.
-  const displayList = searchQuery.trim().length >= 2 ? suggestions : commonIngredients;
 
   const formatLabel = (key: string): string =>
     key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
@@ -288,47 +208,6 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         </View>
       </View>
 
-      {/* 5. Ingredients to Avoid - Expandable List (requires full ingredient pipeline) */}
-      {ingredientEntryEnabled() && (
-        <View style={drawerFiltersStyles.section}>
-          <Text style={drawerFiltersStyles.sectionTitle}>
-            {t('filters.ingredientsToAvoidTitle')}
-          </Text>
-          <TouchableOpacity style={drawerFiltersStyles.expandableButton} onPress={handleOpenModal}>
-            <Text style={drawerFiltersStyles.expandableButtonText}>
-              {t('filters.selectIngredients', { count: permanent.ingredientsToAvoid.length })}
-            </Text>
-            <Text style={drawerFiltersStyles.expandableArrow}>→</Text>
-          </TouchableOpacity>
-
-          {permanent.ingredientsToAvoid.length > 0 && (
-            <View style={drawerFiltersStyles.selectedIngredientsContainer}>
-              <Text style={drawerFiltersStyles.selectedIngredientsTitle}>
-                {t('common.selected')}:
-              </Text>
-              <View style={drawerFiltersStyles.selectedIngredientsRow}>
-                {permanent.ingredientsToAvoid.map(item => (
-                  <View
-                    key={item.canonicalIngredientId}
-                    style={drawerFiltersStyles.selectedIngredientTag}
-                  >
-                    <Text style={drawerFiltersStyles.selectedIngredientText}>
-                      {item.displayName}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => removeIngredientToAvoid(item.canonicalIngredientId)}
-                      style={drawerFiltersStyles.removeIngredientButton}
-                    >
-                      <Text style={drawerFiltersStyles.removeIngredientText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-      )}
-
       {/* 6. Diet Preferences - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
         <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.dietPreferencesTitle')}</Text>
@@ -416,102 +295,6 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
           )}
         </View>
       </View>
-
-      {/* Ingredients Selection Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showIngredientsModal}
-        onRequestClose={handleCloseModal}
-      >
-        <View style={drawerFiltersStyles.modalOverlay}>
-          <View style={drawerFiltersStyles.modalContainer}>
-            <View style={drawerFiltersStyles.modalHeader}>
-              <Text style={drawerFiltersStyles.modalTitle}>{t('filters.ingredientsToAvoid')}</Text>
-              <TouchableOpacity
-                onPress={handleCloseModal}
-                style={drawerFiltersStyles.modalCloseButton}
-              >
-                <Text style={drawerFiltersStyles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Search input */}
-            <View style={drawerFiltersStyles.ingredientSearchContainer}>
-              <TextInput
-                style={drawerFiltersStyles.ingredientSearchInput}
-                placeholder={t('filters.searchIngredients')}
-                placeholderTextColor="#888"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-              />
-              {isSearching && (
-                <ActivityIndicator
-                  size="small"
-                  style={drawerFiltersStyles.ingredientSearchSpinner}
-                />
-              )}
-            </View>
-
-            {/* Section header */}
-            {searchQuery.trim().length < 2 && commonIngredients.length > 0 && (
-              <Text style={drawerFiltersStyles.ingredientSectionHeader}>
-                {t('filters.commonlyAvoided')}
-              </Text>
-            )}
-            {searchQuery.trim().length >= 2 && !isSearching && suggestions.length === 0 && (
-              <Text style={drawerFiltersStyles.ingredientSectionHeader}>
-                {t('filters.noResults', { query: searchQuery })}
-              </Text>
-            )}
-
-            <View style={drawerFiltersStyles.modalContent}>
-              <ScrollView showsVerticalScrollIndicator={true}>
-                <View style={drawerFiltersStyles.ingredientsList}>
-                  {displayList.map(item => {
-                    const selected = isAvoided(item.canonicalIngredientId);
-                    return (
-                      <TouchableOpacity
-                        key={item.aliasId}
-                        style={drawerFiltersStyles.ingredientListItem}
-                        onPress={() => handleIngredientToggle(item)}
-                      >
-                        <View style={drawerFiltersStyles.ingredientListContent}>
-                          <Text style={drawerFiltersStyles.ingredientListText}>
-                            {item.displayName}
-                          </Text>
-                          <View
-                            style={[
-                              drawerFiltersStyles.ingredientCheckbox,
-                              selected && drawerFiltersStyles.ingredientCheckboxSelected,
-                            ]}
-                          >
-                            {selected && (
-                              <Text style={drawerFiltersStyles.ingredientCheckboxCheck}>✓</Text>
-                            )}
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View style={drawerFiltersStyles.modalFooter}>
-              <TouchableOpacity
-                style={drawerFiltersStyles.modalDoneButton}
-                onPress={handleCloseModal}
-              >
-                <Text style={drawerFiltersStyles.modalDoneText}>{t('common.done')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 };

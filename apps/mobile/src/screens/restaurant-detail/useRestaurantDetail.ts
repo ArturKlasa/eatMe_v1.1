@@ -25,11 +25,7 @@ import {
 } from '../../services/dishRatingService';
 import { type DishOpinion } from '../../types/rating';
 import { getRestaurantRating, type RestaurantRating } from '../../services/restaurantRatingService';
-import {
-  useFilterStore,
-  type PermanentFilters,
-  type IngredientToAvoid,
-} from '../../stores/filterStore';
+import { useFilterStore, type PermanentFilters } from '../../stores/filterStore';
 import { useRestaurantStore } from '../../stores/restaurantStore';
 import { type User } from '@supabase/supabase-js';
 import { recordInteraction } from '../../services/interactionService';
@@ -79,7 +75,6 @@ export interface RestaurantDetailState {
   handleDishPress: (dish: DishWithGroups) => Promise<void>;
   loadCategoryDishes: (categoryId: string) => Promise<void>;
   permanentFilters: PermanentFilters;
-  ingredientsToAvoid: IngredientToAvoid[];
   user: User | null;
   restaurantId: string;
   mountedRef: React.MutableRefObject<boolean>;
@@ -92,7 +87,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const fetchRestaurantDetail = useRestaurantStore(state => state.fetchRestaurantDetail);
   const fetchCategoryDishes = useRestaurantStore(state => state.fetchCategoryDishes);
   const permanentFilters = useFilterStore(state => state.permanent);
-  const ingredientsToAvoid = useFilterStore(state => state.permanent.ingredientsToAvoid);
 
   const [restaurant, setRestaurant] = useState<RestaurantWithMenus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -409,7 +403,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     handleDishPress,
     loadCategoryDishes,
     permanentFilters,
-    ingredientsToAvoid,
     user,
     restaurantId,
     mountedRef,

@@ -2,14 +2,14 @@
  * menuFilterUtils.ts
  *
  * Classifies dishes in the restaurant menu view against the user's permanent
- * hard filters and ingredients-to-avoid list.
+ * hard filters (diet, allergens, religious restrictions).
  *
  * This runs entirely in JS on pre-fetched data — no extra network calls needed.
  *
  * Design reference: first-principles-review Part 14
  */
 
-import type { PermanentFilters, IngredientToAvoid } from '../stores/filterStore';
+import type { PermanentFilters } from '../stores/filterStore';
 
 // Migration 093 unified allergen codes to their canonical shorts — filterStore
 // keys are now identical to DB codes. Kept as an identity map so any residual
@@ -36,41 +36,23 @@ const RELIGIOUS_TO_TAG: Record<keyof PermanentFilters['religiousRestrictions'], 
 export interface DishClassification {
   /** True if the dish passes ALL of the user's permanent hard filters. */
   passesHardFilters: boolean;
-  /**
-   * Display names of any ingredients the user wants to avoid that appear in
-   * this dish's dish_ingredients list. Empty array = no flagged ingredients.
-   */
-  flaggedIngredientNames: string[];
 }
 
 /**
  * Classifies a single dish row against the user's permanent filters.
  *
- * @param dish             Raw dish row from Supabase (must include allergens, dietary_tags,
- *                         and dish_ingredients[].ingredient_id)
- * @param permanent        The user's permanent filter state from filterStore
- * @param ingredientsToAvoid  The user's ingredients-to-avoid list from filterStore
+ * @param dish       Raw dish row from Supabase (must include allergens, dietary_tags)
+ * @param permanent  The user's permanent filter state from filterStore
  */
 export function classifyDish(
   dish: {
     allergens?: string[] | null;
     dietary_tags?: string[] | null;
-    dish_ingredients?: Array<{ ingredient_id: string; concept_id?: string | null }> | null;
   },
-  permanent: PermanentFilters,
-  ingredientsToAvoid: IngredientToAvoid[]
+  permanent: PermanentFilters
 ): DishClassification {
   const allergens: string[] = dish.allergens ?? [];
   const dietaryTags: string[] = dish.dietary_tags ?? [];
-  // Phase 6A: match on concept_id when available (post-cutover rows) with
-  // legacy ingredient_id as fallback for any rows that still carry only the
-  // canonical FK.
-  const dishIngredientIds = new Set<string>();
-  const dishConceptIds = new Set<string>();
-  for (const di of dish.dish_ingredients ?? []) {
-    if (di.ingredient_id) dishIngredientIds.add(di.ingredient_id);
-    if (di.concept_id) dishConceptIds.add(di.concept_id);
-  }
 
   // ── Hard filter checks ───────────────────────────────────────────────────
 
@@ -114,16 +96,7 @@ export function classifyDish(
     }
   }
 
-  // ── Soft: ingredient flagging ────────────────────────────────────────────
-
-  const flaggedIngredientNames: string[] = ingredientsToAvoid
-    .filter(item => {
-      if (item.conceptId && dishConceptIds.has(item.conceptId)) return true;
-      return dishIngredientIds.has(item.canonicalIngredientId);
-    })
-    .map(item => item.displayName);
-
-  return { passesHardFilters, flaggedIngredientNames };
+  return { passesHardFilters };
 }
 
 /**

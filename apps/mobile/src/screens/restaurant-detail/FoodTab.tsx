@@ -13,7 +13,7 @@ import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing } from '@/styles/theme';
 import { useTranslation } from 'react-i18next';
 import { type RestaurantWithMenus, type MenuCategoryWithCanonical } from '../../lib/supabase';
-import { type PermanentFilters, type IngredientToAvoid } from '../../stores/filterStore';
+import { type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { groupDishesByParent, type DishWithGroups } from './DishGrouping';
 import { classifyDish, sortDishesByFilter } from '../../utils/menuFilterUtils';
@@ -25,19 +25,17 @@ interface FoodTabProps {
   categoryDishes: Map<string, DishWithGroups[] | 'loading' | 'error'>;
   dishRatings: Map<string, DishRating>;
   permanentFilters: PermanentFilters;
-  ingredientsToAvoid: IngredientToAvoid[];
   loadCategoryDishes: (categoryId: string) => void;
   onDishPress: (dish: DishWithGroups) => void;
 }
 
 function sortedDishes(
   dishes: DishWithGroups[],
-  permanentFilters: PermanentFilters,
-  ingredientsToAvoid: IngredientToAvoid[]
+  permanentFilters: PermanentFilters
 ): DishWithGroups[] {
   const classified = dishes.map(d => ({
     ...d,
-    passesHardFilters: classifyDish(d, permanentFilters, ingredientsToAvoid).passesHardFilters,
+    passesHardFilters: classifyDish(d, permanentFilters).passesHardFilters,
   }));
   return sortDishesByFilter(classified);
 }
@@ -67,7 +65,6 @@ export function FoodTab({
   categoryDishes,
   dishRatings,
   permanentFilters,
-  ingredientsToAvoid,
   loadCategoryDishes,
   onDishPress,
 }: FoodTabProps) {
@@ -95,7 +92,7 @@ export function FoodTab({
             const categoryState = categoryDishes.get(category.id);
             const dishes = Array.isArray(categoryState) ? categoryState : [];
             const grouped = groupDishesByParent(
-              sortedDishes(dishes as DishWithGroups[], permanentFilters, ingredientsToAvoid)
+              sortedDishes(dishes as DishWithGroups[], permanentFilters)
             );
             return (
               <View key={category.id} style={styles.menuCategory}>
@@ -147,7 +144,6 @@ export function FoodTab({
                           key={item.dish.id}
                           item={item.dish}
                           permanentFilters={permanentFilters}
-                          ingredientsToAvoid={ingredientsToAvoid}
                           dishRatings={dishRatings}
                           onPress={onDishPress}
                         />

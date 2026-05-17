@@ -11,14 +11,7 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Linking,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/types/navigation';
 import { restaurantDetailStyles as styles } from '@/styles';
@@ -31,10 +24,7 @@ import { ALLERGY_TO_DB } from '../../utils/menuFilterUtils';
 import { toggleFavorite } from '../../services/favoritesService';
 import { type PermanentFilters } from '../../stores/filterStore';
 import { useRestaurantDetail } from './useRestaurantDetail';
-import {
-  getCurrentDayHours,
-  getPaymentNote,
-} from './RestaurantMetadata';
+import { getCurrentDayHours, getPaymentNote } from './RestaurantMetadata';
 import { FoodTab } from './FoodTab';
 import { HoursMoreTab } from './HoursMoreTab';
 import { AddressModal } from './AddressModal';
@@ -79,7 +69,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     handleDishPress,
     loadCategoryDishes,
     permanentFilters,
-    ingredientsToAvoid,
     user,
   } = useRestaurantDetail(restaurantId);
 
@@ -226,7 +215,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           categoryDishes={categoryDishes}
           dishRatings={dishRatings}
           permanentFilters={permanentFilters}
-          ingredientsToAvoid={ingredientsToAvoid}
           loadCategoryDishes={loadCategoryDishes}
           onDishPress={handleDishPress}
         />

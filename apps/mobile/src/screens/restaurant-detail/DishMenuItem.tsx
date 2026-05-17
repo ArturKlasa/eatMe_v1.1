@@ -12,25 +12,18 @@ import { restaurantDetailStyles as styles } from '@/styles';
 import { useTranslation } from 'react-i18next';
 import { DishRatingBadge } from '../../components/DishRatingBadge';
 import { classifyDish } from '../../utils/menuFilterUtils';
-import { type PermanentFilters, type IngredientToAvoid } from '../../stores/filterStore';
+import { type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { type DishWithGroups } from './DishGrouping';
 
 interface DishMenuItemProps {
   item: DishWithGroups;
   permanentFilters: PermanentFilters;
-  ingredientsToAvoid: IngredientToAvoid[];
   dishRatings: Map<string, DishRating>;
   onPress: (item: DishWithGroups) => void;
 }
 
-export function DishMenuItem({
-  item,
-  permanentFilters,
-  ingredientsToAvoid,
-  dishRatings,
-  onPress,
-}: DishMenuItemProps) {
+export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: DishMenuItemProps) {
   const { t } = useTranslation();
 
   const rating = dishRatings.get(item.id);
@@ -53,11 +46,7 @@ export function DishMenuItem({
       priceLabel = `$${item.price.toFixed(2)}`;
   }
 
-  const { passesHardFilters, flaggedIngredientNames } = classifyDish(
-    item,
-    permanentFilters,
-    ingredientsToAvoid
-  );
+  const { passesHardFilters } = classifyDish(item, permanentFilters);
 
   return (
     <TouchableOpacity
@@ -95,11 +84,6 @@ export function DishMenuItem({
       )}
       {item.ingredients_visibility === 'menu' && (item.ingredients?.length ?? 0) > 0 && (
         <Text style={styles.menuItemIngredients}>{item.ingredients!.join(', ')}</Text>
-      )}
-      {flaggedIngredientNames.length > 0 && (
-        <Text style={styles.flaggedIngredientsWarning}>
-          ⚠️ Contains: {flaggedIngredientNames.join(', ')}
-        </Text>
       )}
     </TouchableOpacity>
   );

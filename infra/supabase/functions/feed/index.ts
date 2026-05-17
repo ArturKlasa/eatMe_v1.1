@@ -100,7 +100,6 @@ interface FeedRequest {
     favoriteCuisines?: string[];
     sortBy?: 'closest' | 'bestMatch' | 'highestRated';
     openNow?: boolean;
-    flagIngredients?: string[];
     /**
      * Dish/meal type keywords selected by the user (e.g. "Pizza", "Burger").
      * Dishes whose names contain any of these terms receive a strong score boost.
@@ -153,7 +152,6 @@ interface Candidate {
   popularity_score: number;
   view_count: number;
   score?: number;
-  flagged_ingredients?: string[];
   protein_families?: string[];
   protein_canonical_names?: string[];
   primary_protein?: string | null;
@@ -617,50 +615,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Ingredient flag annotation ────────────────────────────────────────────
-
-    let annotated: Candidate[] = pool;
-    if (filters.flagIngredients?.length) {
-      const flagSet = new Set(filters.flagIngredients);
-
-      let flagNames: Record<string, string> = {};
-      try {
-        const { data: aliasRows } = await supabase
-          .from('ingredient_aliases')
-          .select('canonical_ingredient_id, display_name')
-          .in('canonical_ingredient_id', Array.from(flagSet));
-        for (const row of aliasRows ?? []) {
-          if (!flagNames[row.canonical_ingredient_id]) {
-            flagNames[row.canonical_ingredient_id] = row.display_name;
-          }
-        }
-      } catch (e) {
-        console.error('[Feed] Flag name lookup failed (non-fatal):', e);
-      }
-
-      const dishIds = pool.map(d => d.id);
-      let dishIngredientMap: Record<string, string[]> = {};
-      try {
-        const { data: diRows } = await supabase
-          .from('dish_ingredients')
-          .select('dish_id, ingredient_id')
-          .in('dish_id', dishIds);
-        for (const row of diRows ?? []) {
-          if (!dishIngredientMap[row.dish_id]) dishIngredientMap[row.dish_id] = [];
-          dishIngredientMap[row.dish_id].push(row.ingredient_id);
-        }
-      } catch (e) {
-        console.error('[Feed] dish_ingredients lookup failed (non-fatal):', e);
-      }
-
-      annotated = pool.map(d => {
-        const ids = dishIngredientMap[d.id] ?? [];
-        const flagged = ids.filter(id => flagSet.has(id)).map(id => flagNames[id] ?? id);
-        return { ...d, flagged_ingredients: flagged };
-      });
-    } else {
-      annotated = pool.map(d => ({ ...d, flagged_ingredients: [] }));
-    }
+    const annotated: Candidate[] = pool;
 
     // ── Protein family annotation ─────────────────────────────────────────────
     // protein_families and protein_canonical_names are now precomputed columns
@@ -736,10 +691,6 @@ serve(async (req: Request) => {
             },
             distance_km: d.distance_m / 1000,
             score: d.score,
-            // Only include flagged_ingredients if non-empty
-            ...(d.flagged_ingredients?.length
-              ? { flagged_ingredients: d.flagged_ingredients }
-              : {}),
           }));
 
     // ── Build restaurants result ─────────────────────────────────────────────

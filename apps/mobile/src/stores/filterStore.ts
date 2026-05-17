@@ -88,21 +88,6 @@ export interface DailyFilters {
   scheduleType: 'daily' | 'rotating' | undefined;
 }
 
-/** A single ingredient entry in the "Ingredients to Avoid" permanent filter. */
-export interface IngredientToAvoid {
-  /**
-   * ingredient_concepts.id — the primary match key after Phase 6A cutover.
-   * Optional during the transition so existing user preferences (which only
-   * carry canonicalIngredientId) keep working. New entries always include
-   * both; legacy entries get `conceptId` populated lazily on next write.
-   */
-  conceptId?: string;
-  /** canonical_ingredients.id — legacy match key. Still used as a fallback when conceptId is absent. */
-  canonicalIngredientId: string;
-  /** Display name shown in the UI without a join */
-  displayName: string;
-}
-
 // Permanent Filters - Profile-level, stored in user settings
 export interface PermanentFilters {
   // 1. Diet preference (only one can be selected)
@@ -156,11 +141,7 @@ export interface PermanentFilters {
     kidsMenu: boolean;
   };
 
-  // 7. Ingredients to avoid — keyed by canonical_ingredient_id so filters
-  //    can match against dish_ingredients without string comparisons.
-  ingredientsToAvoid: IngredientToAvoid[];
-
-  // 8. Primary protein preference — single-select, null means no preference.
+  // 7. Primary protein preference — single-select, null means no preference.
   primaryProtein: string | null;
 
   defaultPriceRange: {
@@ -217,8 +198,6 @@ interface FilterActions {
     restriction: keyof PermanentFilters['religiousRestrictions']
   ) => void;
   toggleFacility: (facility: keyof PermanentFilters['facilities']) => void;
-  addIngredientToAvoid: (ingredient: IngredientToAvoid) => void;
-  removeIngredientToAvoid: (canonicalIngredientId: string) => void;
   setPrimaryProtein: (protein: string | null) => void;
   setPermanentPriceRange: (min: number, max: number) => void;
   setCuisinePreferences: (cuisines: string[]) => void;
@@ -358,7 +337,6 @@ const defaultPermanentFilters: PermanentFilters = {
     lgbtAccessible: false,
     kidsMenu: false,
   },
-  ingredientsToAvoid: [],
   primaryProtein: null,
   defaultPriceRange: {
     min: 10,
@@ -691,28 +669,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     get().savePermanentFilters();
   },
 
-  addIngredientToAvoid: (ingredient: IngredientToAvoid) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        ingredientsToAvoid: [...state.permanent.ingredientsToAvoid, ingredient],
-      },
-    }));
-    get().savePermanentFilters();
-  },
-
-  removeIngredientToAvoid: (canonicalIngredientId: string) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        ingredientsToAvoid: state.permanent.ingredientsToAvoid.filter(
-          i => i.canonicalIngredientId !== canonicalIngredientId
-        ),
-      },
-    }));
-    get().savePermanentFilters();
-  },
-
   setPrimaryProtein: (protein: string | null) => {
     set(state => ({
       permanent: {
@@ -846,6 +802,13 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
 
       if (permanentStored) {
         const parsedPermanent = JSON.parse(permanentStored);
+        // Phase A migration: strip the retired ingredientsToAvoid field if
+        // a pre-Phase-A version of the app saved it. The field/type was
+        // removed from PermanentFilters; without this strip, the spread
+        // below would keep a stale key on the in-memory state object.
+        // Safe to remove this strip after a release cycle where ~all users
+        // have re-saved their state.
+        delete parsedPermanent.ingredientsToAvoid;
         set(state => ({
           ...state,
           daily: getDefaultDailyFilters(
@@ -1107,11 +1070,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     // Check facilities
     const activeFacilities = Object.values(state.permanent.facilities).filter(Boolean);
     if (activeFacilities.length > 0) {
-      count++;
-    }
-
-    // Check ingredients to avoid
-    if (state.permanent.ingredientsToAvoid.length > 0) {
       count++;
     }
 

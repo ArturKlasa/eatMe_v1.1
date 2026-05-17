@@ -80,7 +80,6 @@ export interface UserPreferencesDB {
   diet_types: string[] | null;
   religious_restrictions: string[] | null;
   default_max_distance: number;
-  ingredients_to_avoid: PermanentFilters['ingredientsToAvoid'] | null;
   primary_protein: string | null;
 }
 
@@ -157,7 +156,6 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
       .filter(([_, active]) => active)
       .map(([key]) => key), // keys match dietary_tags.code directly
     default_max_distance: 5,
-    ingredients_to_avoid: filters.ingredientsToAvoid,
     primary_protein: filters.primaryProtein,
   };
 }
@@ -202,9 +200,6 @@ export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<Perman
       jain: religiousSet.has('jain'),
       buddhist: religiousSet.has('buddhist'),
     },
-    ingredientsToAvoid: Array.isArray(dbPrefs.ingredients_to_avoid)
-      ? dbPrefs.ingredients_to_avoid
-      : [],
     primaryProtein: dbPrefs.primary_protein ?? null,
   };
 }

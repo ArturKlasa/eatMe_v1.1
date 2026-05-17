@@ -77,24 +77,13 @@ function buildEmbeddingInput(params: {
   name: string;
   description: string | null;
   dishKind: string;
-  ingredientNames: string[];
   optionGroups: OptionGroupData[];
   cuisineTypes: string[];
   parentName: string | null;
-  parentIngredients: string[];
   primaryProtein: string | null;
 }): string {
-  const {
-    name,
-    description,
-    dishKind,
-    ingredientNames,
-    optionGroups,
-    cuisineTypes,
-    parentName,
-    parentIngredients,
-    primaryProtein,
-  } = params;
+  const { name, description, dishKind, optionGroups, cuisineTypes, parentName, primaryProtein } =
+    params;
 
   const parts: string[] = [];
 
@@ -112,10 +101,7 @@ function buildEmbeddingInput(params: {
 
   if (description) parts.push(description.slice(0, 300));
 
-  const allIngredients = [...parentIngredients, ...ingredientNames];
-  if (allIngredients.length > 0) {
-    parts.push(`Ingredients: ${allIngredients.join(', ')}`);
-  } else if (primaryProtein) {
+  if (primaryProtein) {
     parts.push(`Protein: ${primaryProtein}`);
   }
 
@@ -192,30 +178,18 @@ serve(async (req: Request) => {
       });
     }
 
-    const [
-      { data: ingredientRows },
-      { data: optionGroupRows },
-      { data: restaurantRow },
-      { data: parentDish },
-    ] = await Promise.all([
-      supabase
-        .from('dish_ingredients')
-        .select('canonical_ingredient:canonical_ingredients(canonical_name)')
-        .eq('dish_id', dishId),
-      supabase
-        .from('option_groups')
-        .select('name, options(name)')
-        .eq('dish_id', dishId)
-        .eq('is_active', true),
-      supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
-      dish.parent_dish_id
-        ? supabase.from('dishes').select('name').eq('id', dish.parent_dish_id).single()
-        : Promise.resolve({ data: null, error: null }),
-    ]);
-
-    const ingredientNames: string[] = (ingredientRows ?? [])
-      .map((r: any) => r.canonical_ingredient?.canonical_name)
-      .filter(Boolean) as string[];
+    const [{ data: optionGroupRows }, { data: restaurantRow }, { data: parentDish }] =
+      await Promise.all([
+        supabase
+          .from('option_groups')
+          .select('name, options(name)')
+          .eq('dish_id', dishId)
+          .eq('is_active', true),
+        supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
+        dish.parent_dish_id
+          ? supabase.from('dishes').select('name').eq('id', dish.parent_dish_id).single()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
 
     const optionGroups: OptionGroupData[] = (optionGroupRows ?? []).map((g: any) => ({
       groupName: g.name,
@@ -224,28 +198,15 @@ serve(async (req: Request) => {
 
     const cuisineTypes: string[] = (restaurantRow?.cuisine_types as string[]) ?? [];
 
-    let parentName: string | null = null;
-    let parentIngredients: string[] = [];
-    if (dish.parent_dish_id && parentDish) {
-      parentName = parentDish.name;
-      const { data: parentIngRows } = await supabase
-        .from('dish_ingredients')
-        .select('canonical_ingredient:canonical_ingredients(canonical_name)')
-        .eq('dish_id', dish.parent_dish_id);
-      parentIngredients = (parentIngRows ?? [])
-        .map((r: any) => r.canonical_ingredient?.canonical_name)
-        .filter(Boolean) as string[];
-    }
+    const parentName: string | null = dish.parent_dish_id && parentDish ? parentDish.name : null;
 
     const embeddingInput = buildEmbeddingInput({
       name: dish.name,
       description: dish.description,
       dishKind: dish.dish_kind,
-      ingredientNames,
       optionGroups,
       cuisineTypes,
       parentName,
-      parentIngredients,
       primaryProtein: dish.primary_protein,
     });
 

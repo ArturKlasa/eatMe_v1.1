@@ -27,13 +27,6 @@ export interface ServerDish {
 
   distance_km?: number;
   score?: number;
-
-  /**
-   * Display names of ingredients the user wants to avoid that are present
-   * in this dish. Empty array = no flagged ingredients. The dish is still
-   * shown — this is a soft warning, not a hard exclusion.
-   */
-  flagged_ingredients: string[];
 }
 
 /** Maps filterStore allergy keys to allergens.code values used in dishes.allergens TEXT[]. */
@@ -59,11 +52,6 @@ export interface FeedRequest {
     favoriteCuisines?: string[]; // soft boost — permanent favourite cuisines
     sortBy?: 'closest' | 'bestMatch' | 'highestRated';
     openNow?: boolean; // hard — restaurant mode only
-    /**
-     * canonical_ingredient_id UUIDs from the user's "Ingredients to Avoid" list.
-     * Dishes containing these are annotated (flagged_ingredients), not excluded.
-     */
-    flagIngredients?: string[];
     /**
      * Dish/meal type keywords selected by the user (e.g. "Pizza", "Burger").
      * Dishes whose names contain any of these terms receive a strong score boost.
@@ -202,10 +190,6 @@ function buildFilters(
     religiousRestrictions: activeReligious.length > 0 ? activeReligious : undefined,
     cuisines: dailyFilters.cuisineTypes.length > 0 ? dailyFilters.cuisineTypes : undefined,
     spiceLevel: dailyFilters.spiceLevel !== 'eitherWay' ? dailyFilters.spiceLevel : undefined,
-    flagIngredients:
-      permanentFilters.ingredientsToAvoid.length > 0
-        ? permanentFilters.ingredientsToAvoid.map(i => i.canonicalIngredientId)
-        : undefined,
     dishNames: dailyFilters.meals.length > 0 ? dailyFilters.meals : undefined,
     proteinTypes: (() => {
       const active = (Object.entries(dailyFilters.proteinTypes) as [string, boolean][])

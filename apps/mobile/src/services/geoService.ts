@@ -61,7 +61,6 @@ type EdgeFunctionFilters = {
   priceMax?: number;
   dietaryTags?: string[];
   excludeAllergens?: string[];
-  flagIngredients?: string[];
   maxDistance?: number;
   proteinTypes?: string[];
   proteinFamilies?: string[];
@@ -105,10 +104,6 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
     if (activeAllergens.length > 0) {
       filters.excludeAllergens = activeAllergens;
     }
-  }
-
-  if (permanent.ingredientsToAvoid && permanent.ingredientsToAvoid.length > 0) {
-    filters.flagIngredients = permanent.ingredientsToAvoid.map(i => i.canonicalIngredientId);
   }
 
   return Object.keys(filters).length > 0 ? filters : undefined;

@@ -14,7 +14,7 @@ import { type Dish, type OptionGroup } from '../../lib/supabase';
  * DishWithGroups augments the generated Dish type with:
  * - option_groups: embedded option groups from the nested query
  * - photo_url: legacy alias for image_url (may be present from older data/queries)
- * - ingredients: legacy text array column (superseded by dish_ingredients join table)
+ * - ingredients: legacy text array of ingredient names from menu scan
  * - parent_dish_id / is_parent: universal dish structure fields
  */
 export type DishWithGroups = Dish & {

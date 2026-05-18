@@ -128,6 +128,43 @@ interface FeedRequest {
   limit?: number;
 }
 
+// Modifier shapes mirror the worker schema (infra/supabase/functions/menu-scan-worker/index.ts)
+// and migration 142's modifier_groups jsonb aggregation in generate_candidates.
+interface ModifierOption {
+  id: string;
+  name: string;
+  price_delta: number;
+  price_override: number | null;
+  primary_protein: string | null;
+  removes_dietary_tags: string[];
+  adds_allergens: string[];
+  serves_delta: number;
+  is_default: boolean;
+}
+
+interface ModifierGroup {
+  id: string;
+  name: string;
+  selection_type: 'single' | 'multiple';
+  min_selections: number;
+  max_selections: number;
+  display_order: number;
+  display_in_card: boolean;
+  options: ModifierOption[];
+}
+
+// One auto-applied option, returned in the feed response so the mobile card
+// renderer knows what config was scored against and which option(s) to surface
+// in the dish-name suffix (when group_display_in_card=true).
+interface AppliedOption {
+  option_id: string;
+  group_name: string;
+  group_display_in_card: boolean;
+  name: string;
+  primary_protein: string | null;
+  price_delta: number;
+}
+
 interface Candidate {
   id: string;
   restaurant_id: string;
@@ -159,6 +196,15 @@ interface Candidate {
   parent_dish_id?: string | null;
   serves?: number;
   price_per_person?: number | null;
+  // Modifier-model fields surfaced by migration 142's generate_candidates rewrite.
+  // `reachable_*` express the OR of base + every option (modifier reach), used
+  // for "is there any way to consume this dish that matches user's daily filters?"
+  // semantics.
+  modifier_groups?: ModifierGroup[] | null;
+  reachable_proteins?: string[];
+  reachable_protein_families?: string[];
+  dining_format?: string | null;
+  bundled_items?: Array<{ name: string; note?: string | null }> | null;
 }
 
 // ── Stage 2 scoring ───────────────────────────────────────────────────────────
@@ -312,7 +358,14 @@ function rankCandidates(
     }
 
     // Soft daily protein type boost (+0.20)
-    if (filters.proteinTypes?.length && d.protein_families?.length) {
+    // Use reachable_protein_families when available — this is the OR of base + every option's
+    // primary_protein-derived families, so dishes with a chicken modifier still match
+    // proteinTypes='meat' even if the base is vegetarian. Falls back to protein_families
+    // for legacy candidates.
+    const proteinFamilies = d.reachable_protein_families?.length
+      ? d.reachable_protein_families
+      : d.protein_families;
+    if (filters.proteinTypes?.length && proteinFamilies?.length) {
       const familyMap: Record<string, string[]> = {
         meat: ['meat', 'poultry'],
         fish: ['fish'],
@@ -320,11 +373,14 @@ function rankCandidates(
         egg: ['eggs'],
       };
       const wantedFamilies = new Set(filters.proteinTypes.flatMap(p => familyMap[p] ?? []));
-      if (d.protein_families.some(f => wantedFamilies.has(f))) score += 0.2;
+      if (proteinFamilies.some(f => wantedFamilies.has(f))) score += 0.2;
     }
 
     // Soft daily meat subtype boost (+0.10 additional on top of protein match)
-    if (filters.meatTypes?.length && d.protein_families?.length) {
+    // Two-source matching: (a) base dish's protein_canonical_names for fine-grained matches
+    // (beef_jerky vs beef, etc.), (b) reachable_proteins (primary_protein values from base
+    // + every option) for coarse-but-modifier-aware matches. Mirror of phase-1-database.md §3.
+    if (filters.meatTypes?.length && proteinFamilies?.length) {
       const meatNameMap: Record<string, string[]> = {
         chicken: ['chicken', 'chicken_livers', 'chicken_fat'],
         beef: ['beef', 'beef_liver', 'beef_tongue', 'beef_fat', 'beef_jerky', 'oxtail'],
@@ -348,13 +404,20 @@ function rankCandidates(
       const namedTypes = filters.meatTypes.filter(m => m !== 'other');
       const wantedNames = new Set(namedTypes.flatMap(m => meatNameMap[m] ?? []));
 
+      // Coarse-level set keyed by primary_protein value (chicken/beef/pork/lamb/goat)
+      const wantedPrimaryProteins = new Set(
+        namedTypes.filter(m => ['chicken', 'beef', 'pork', 'lamb', 'goat'].includes(m))
+      );
+
       let matched =
-        wantedNames.size > 0 && d.protein_canonical_names?.some(n => wantedNames.has(n));
+        (wantedNames.size > 0 && d.protein_canonical_names?.some(n => wantedNames.has(n))) ||
+        (wantedPrimaryProteins.size > 0 &&
+          d.reachable_proteins?.some(p => wantedPrimaryProteins.has(p)));
 
       // 'other' = dish has meat/poultry protein but none of its canonical names are
       // in the known chicken/beef/pork/lamb/goat lists (turkey, veal, venison, etc.)
       if (!matched && filters.meatTypes.includes('other')) {
-        const hasMeatFamily = d.protein_families.some(f => f === 'meat' || f === 'poultry');
+        const hasMeatFamily = proteinFamilies.some(f => f === 'meat' || f === 'poultry');
         const hasConcreteMatch = d.protein_canonical_names?.some(n => allConcreteNames.has(n));
         matched = hasMeatFamily && !hasConcreteMatch;
       }
@@ -364,6 +427,152 @@ function rankCandidates(
 
     return { ...d, score: Math.max(0, score) };
   });
+}
+
+// ── Modifier auto-selection ───────────────────────────────────────────────────
+//
+// `selectConfigForUser` picks ONE option per required group so the feed has a
+// canonical "what would this dish actually look like for this user" view. The
+// scoring rule for each option mirrors the dish-level scoring: protein match
+// dominates, then price-delta as a tiebreaker, then is_default as a fallback.
+// Optional groups (min_selections=0) are skipped — they default to "not applied".
+//
+// User hard constraints (allergens, dietPreference) filter the option pool BEFORE
+// scoring. The dish itself is filtered out at SQL-level by required_groups_safe
+// in generate_candidates (migration 142), so this function should always find at
+// least one survivor per required group; if it doesn't, the group is silently
+// skipped (defensive).
+
+function proteinToFamilies(protein: string | null | undefined): string[] {
+  if (!protein) return [];
+  if (protein === 'chicken') return ['meat', 'poultry'];
+  if (['beef', 'pork', 'lamb', 'goat', 'other_meat'].includes(protein)) return ['meat'];
+  if (protein === 'fish') return ['fish'];
+  if (protein === 'shellfish') return ['shellfish'];
+  if (protein === 'eggs') return ['eggs'];
+  return [];
+}
+
+function matchesDailyProteinFamily(
+  opt: ModifierOption,
+  proteinTypes: string[] | undefined
+): boolean {
+  if (!proteinTypes?.length || !opt.primary_protein) return false;
+  const familyMap: Record<string, string[]> = {
+    meat: ['meat', 'poultry'],
+    fish: ['fish'],
+    seafood: ['shellfish'],
+    egg: ['eggs'],
+  };
+  const wantedFamilies = new Set(proteinTypes.flatMap(p => familyMap[p] ?? []));
+  return proteinToFamilies(opt.primary_protein).some(f => wantedFamilies.has(f));
+}
+
+interface SelectedConfig {
+  applied_options: AppliedOption[];
+  effective_price: number;
+  effective_primary_protein: string | null;
+  effective_dietary_tags: string[];
+  effective_allergens: string[];
+}
+
+function selectConfigForUser(
+  dish: Candidate,
+  filters: FeedRequest['filters'],
+  userAllergens: string[]
+): SelectedConfig {
+  const applied: AppliedOption[] = [];
+  let proteinOverride: string | null = null;
+  const tagsRemoved = new Set<string>();
+  const allergensAdded = new Set<string>();
+  let totalDelta = 0;
+  let overridePrice: number | null = null;
+
+  const groups = Array.isArray(dish.modifier_groups) ? dish.modifier_groups : [];
+  const sortedGroups = [...groups].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+  for (const group of sortedGroups) {
+    // Optional groups (min_selections=0) default to "not applied". The feed shows
+    // the dish at its base configuration; mobile UI lets the user toggle optional
+    // add-ons in the dish detail screen.
+    if ((group.min_selections ?? 0) < 1) continue;
+
+    const surviving = (group.options ?? []).filter(opt => {
+      // Note: unavailable options are pre-filtered by migration 142's SQL
+      // (`o.is_available = true` in the options subquery), so we don't check
+      // again here.
+      if (
+        Array.isArray(opt.adds_allergens) &&
+        opt.adds_allergens.some(a => userAllergens.includes(a))
+      ) {
+        return false;
+      }
+      if (
+        filters.dietPreference === 'vegetarian' &&
+        Array.isArray(opt.removes_dietary_tags) &&
+        opt.removes_dietary_tags.includes('vegetarian')
+      ) {
+        return false;
+      }
+      if (
+        filters.dietPreference === 'vegan' &&
+        Array.isArray(opt.removes_dietary_tags) &&
+        opt.removes_dietary_tags.includes('vegan')
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    // If the SQL-level safety check passed but in-JS filters now eliminate all
+    // options (e.g. religious tag mismatch SQL doesn't cover yet), silently skip
+    // the group rather than crash. Required-group enforcement happens at confirm-RPC.
+    if (surviving.length === 0) continue;
+
+    const scored = surviving.map(opt => {
+      let s = 0;
+      if (opt.primary_protein && opt.primary_protein === filters.primaryProtein) s += 100;
+      if (opt.primary_protein && filters.meatTypes?.includes(opt.primary_protein)) s += 50;
+      if (matchesDailyProteinFamily(opt, filters.proteinTypes)) s += 30;
+      s -= (opt.price_delta ?? 0) * 0.5; // tie-break: cheaper wins
+      if (opt.is_default) s += 1;
+      return { opt, s };
+    });
+    scored.sort((a, b) => b.s - a.s);
+    const winner = scored[0].opt;
+
+    applied.push({
+      option_id: winner.id,
+      group_name: group.name,
+      group_display_in_card: group.display_in_card ?? false,
+      name: winner.name,
+      primary_protein: winner.primary_protein ?? null,
+      price_delta: winner.price_delta ?? 0,
+    });
+
+    if (winner.primary_protein) proteinOverride = winner.primary_protein;
+    if (Array.isArray(winner.removes_dietary_tags))
+      winner.removes_dietary_tags.forEach(t => tagsRemoved.add(t));
+    if (Array.isArray(winner.adds_allergens))
+      winner.adds_allergens.forEach(a => allergensAdded.add(a));
+
+    if (winner.price_override !== null && winner.price_override !== undefined) {
+      overridePrice = winner.price_override;
+    } else {
+      totalDelta += winner.price_delta ?? 0;
+    }
+  }
+
+  const basePrice = dish.price ?? 0;
+  const effective_price = overridePrice !== null ? overridePrice : basePrice + totalDelta;
+
+  return {
+    applied_options: applied,
+    effective_price,
+    effective_primary_protein: proteinOverride ?? dish.primary_protein ?? null,
+    effective_dietary_tags: (dish.dietary_tags ?? []).filter(t => !tagsRemoved.has(t)),
+    effective_allergens: [...new Set([...(dish.allergens ?? []), ...allergensAdded])],
+  };
 }
 
 // ── Diversity cap ─────────────────────────────────────────────────────────────
@@ -435,7 +644,10 @@ serve(async (req: Request) => {
 
     // ── Cache check ───────────────────────────────────────────────────────────
 
-    const cacheKey = `feed:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:${JSON.stringify(filters)}`;
+    // v2: cache key bumped after modifier-aware rewrite so legacy cached responses
+    // without applied_options/effective_* fields are not returned. Old entries
+    // expire naturally via TTL (5 min) — no manual flush needed.
+    const cacheKey = `feed:v2:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:${JSON.stringify(filters)}`;
     const redis = getRedis();
     if (redis) {
       try {
@@ -664,34 +876,47 @@ serve(async (req: Request) => {
     // is redundant but preserved for API compatibility.
     const dishPool = diversified.filter(d => isOpenNow(openHoursMap.get(d.restaurant_id)));
 
+    const userAllergens = filters.allergens ?? [];
     const dishResult =
       mode === 'restaurants'
         ? []
-        : dishPool.slice(0, limit).map(d => ({
-            id: d.id,
-            restaurant_id: d.restaurant_id,
-            name: d.name,
-            description: d.description,
-            price: d.price,
-            display_price_prefix: d.display_price_prefix,
-            calories: d.calories,
-            image_url: d.image_url,
-            spice_level: d.spice_level,
-            is_available: d.is_available,
-            allergens: d.allergens,
-            dietary_tags: d.dietary_tags,
-            dish_kind: d.dish_kind,
-            serves: d.serves,
-            price_per_person: d.price_per_person,
-            restaurant: {
-              id: d.restaurant_id,
-              name: d.restaurant_name,
-              cuisine_types: d.restaurant_cuisines,
-              rating: d.restaurant_rating,
-            },
-            distance_km: d.distance_m / 1000,
-            score: d.score,
-          }));
+        : dishPool.slice(0, limit).map(d => {
+            const config = selectConfigForUser(d, filters, userAllergens);
+            return {
+              id: d.id,
+              restaurant_id: d.restaurant_id,
+              name: d.name,
+              description: d.description,
+              price: d.price,
+              display_price_prefix: d.display_price_prefix,
+              calories: d.calories,
+              image_url: d.image_url,
+              spice_level: d.spice_level,
+              is_available: d.is_available,
+              allergens: d.allergens,
+              dietary_tags: d.dietary_tags,
+              dish_kind: d.dish_kind,
+              serves: d.serves,
+              price_per_person: d.price_per_person,
+              // v2 modifier-aware fields
+              dining_format: d.dining_format ?? null,
+              bundled_items: d.bundled_items ?? null,
+              modifier_groups: d.modifier_groups ?? [],
+              applied_options: config.applied_options,
+              effective_price: config.effective_price,
+              effective_primary_protein: config.effective_primary_protein,
+              effective_dietary_tags: config.effective_dietary_tags,
+              effective_allergens: config.effective_allergens,
+              restaurant: {
+                id: d.restaurant_id,
+                name: d.restaurant_name,
+                cuisine_types: d.restaurant_cuisines,
+                rating: d.restaurant_rating,
+              },
+              distance_km: d.distance_m / 1000,
+              score: d.score,
+            };
+          });
 
     // ── Build restaurants result ─────────────────────────────────────────────
 

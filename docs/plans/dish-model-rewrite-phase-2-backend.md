@@ -1,12 +1,19 @@
 # Phase 2 — Backend functions
 
 **Parent plan:** `docs/project/dish-model-rewrite-plan.md`
-**Status:** Proposed
-**Last updated:** 2026-05-17
+**Status:** Shipped 2026-05-18
+**Last updated:** 2026-05-18
 **Estimated wall time:** 3 days
 **Reversibility:** Additive output fields — old clients continue working; new fields are optional.
 
 Update `menu-scan-worker` to emit modifier groups + `dining_format` + `bundled_items`, extend `enrich-dish` to include modifier option names in embedding inputs, and rewrite `feed` to surface `effective_*` fields + apply per-user variant selection.
+
+**Ship log:**
+- `menu-scan-worker` updated to emit `modifier_groups`, `dining_format`, `bundled_items` alongside the existing `dish_kind` (commit `b48e196`). `dish_kind` kept through the Phase 2→4 window to keep the admin review UI working; Phase 7 drops it once Phase 4 consumes `modifier_groups`. 7 fixture tests added (Pad Thai, Caesar, Pizza S/M/L, build-your-own bowl, tasting menu, buffet, tiered wings) plus a combo-meal `bundled_items` fixture.
+- `enrich-dish` extended to union `dish.allergens` with every option's `adds_allergens` for the embedding "Contains: ..." line; `is_parent` skip removed (commit `a6e94ba`).
+- `feed` rewritten to consume migration 142's modifier-aware shape: `Candidate` interface extended with `modifier_groups` / `reachable_proteins` / `reachable_protein_families` / `dining_format` / `bundled_items`; scoring uses `reachable_*` for proteinTypes/meatTypes matches; new `selectConfigForUser` step auto-picks one option per required group; response gains `applied_options` + `effective_*` fields; cache key bumped to `feed:v2:` (commit `be6b279`).
+- **Deploy notes (carried out by user):** drain `menu_scan_jobs.status='processing'` to zero before deploying the new worker (parent plan risk #7). Worker + feed + enrich-dish can be deployed independently; the parent plan covers order/dependencies in §3.
+- **Open items (non-blocking):** Deno test run for the 7 worker fixtures (no Deno in CI yet); shadow-comparison of `feed:v2:` responses vs `feed:v1:` for the same restaurant set (deferred until modifier data exists in Phase 4); worker prompt A/B tooling (parent plan open question #2 still pending).
 
 ---
 

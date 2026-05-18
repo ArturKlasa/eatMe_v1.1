@@ -48,6 +48,7 @@ interface DishRow {
   is_parent: boolean;
   parent_dish_id: string | null;
   primary_protein: string | null;
+  allergens: string[] | null;
 }
 
 interface OptionGroupData {
@@ -81,9 +82,22 @@ function buildEmbeddingInput(params: {
   cuisineTypes: string[];
   parentName: string | null;
   primaryProtein: string | null;
+  // Union of dish.allergens with every option.adds_allergens. Surfaces the full
+  // "what this dish can contain" set to semantic search (e.g. queries like
+  // "shellfish-free" benefit from knowing Pad Thai's shrimp option carries
+  // shellfish).
+  allergenUnion: string[];
 }): string {
-  const { name, description, dishKind, optionGroups, cuisineTypes, parentName, primaryProtein } =
-    params;
+  const {
+    name,
+    description,
+    dishKind,
+    optionGroups,
+    cuisineTypes,
+    parentName,
+    primaryProtein,
+    allergenUnion,
+  } = params;
 
   const parts: string[] = [];
 
@@ -111,6 +125,10 @@ function buildEmbeddingInput(params: {
       .map(g => `${g.groupName}: ${g.optionNames.slice(0, 8).join(', ')}`)
       .join('. ');
     parts.push(optStr);
+  }
+
+  if (allergenUnion.length > 0) {
+    parts.push(`Contains: ${allergenUnion.slice(0, 10).join(', ')}`);
   }
 
   return parts.join('. ');
@@ -150,7 +168,7 @@ serve(async (req: Request) => {
     const { data: dish, error: dishError } = (await supabase
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id, primary_protein'
+        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id, primary_protein, allergens'
       )
       .eq('id', dishId)
       .single()) as { data: DishRow | null; error: unknown };
@@ -163,12 +181,9 @@ serve(async (req: Request) => {
       });
     }
 
-    if (dish.is_parent) {
-      console.log('[enrich-dish] Skipping parent dish:', dishId);
-      return new Response(JSON.stringify({ skipped: true, reason: 'is_parent' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // is_parent skip removed: post-Phase 6 no parent rows exist, and pre-Phase 6
+    // the parent rows are dishes.is_parent=true which carry their own embedding-
+    // worthy metadata (cuisine, category) — re-embedding them is harmless.
 
     const ageSeconds = (Date.now() - new Date(dish.updated_at).getTime()) / 1000;
     if (dish.enrichment_status === 'completed' && ageSeconds < DEBOUNCE_SECONDS) {
@@ -182,7 +197,7 @@ serve(async (req: Request) => {
       await Promise.all([
         supabase
           .from('option_groups')
-          .select('name, options(name)')
+          .select('name, options(name, adds_allergens)')
           .eq('dish_id', dishId)
           .eq('is_active', true),
         supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
@@ -196,6 +211,17 @@ serve(async (req: Request) => {
       optionNames: (g.options ?? []).map((o: any) => o.name).filter(Boolean),
     }));
 
+    // Union of base-dish allergens with every option's adds_allergens. Phase 1
+    // migration 140 added `options.adds_allergens text[] DEFAULT '{}'` so the
+    // column is always present.
+    const baseAllergens: string[] = Array.isArray(dish.allergens) ? dish.allergens : [];
+    const optionAllergens: string[] = (optionGroupRows ?? []).flatMap((g: any) =>
+      (g.options ?? []).flatMap((o: any) =>
+        Array.isArray(o.adds_allergens) ? (o.adds_allergens as string[]) : []
+      )
+    );
+    const allergenUnion = [...new Set([...baseAllergens, ...optionAllergens])];
+
     const cuisineTypes: string[] = (restaurantRow?.cuisine_types as string[]) ?? [];
 
     const parentName: string | null = dish.parent_dish_id && parentDish ? parentDish.name : null;
@@ -208,6 +234,7 @@ serve(async (req: Request) => {
       cuisineTypes,
       parentName,
       primaryProtein: dish.primary_protein,
+      allergenUnion,
     });
 
     console.log('[enrich-dish] Embedding input:', embeddingInput.slice(0, 200));

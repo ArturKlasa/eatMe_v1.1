@@ -1,10 +1,17 @@
 # Phase 1 — Database foundation
 
 **Parent plan:** `docs/project/dish-model-rewrite-plan.md`
-**Status:** Proposed
-**Last updated:** 2026-05-17
+**Status:** Shipped 2026-05-18
+**Last updated:** 2026-05-18
 **Estimated wall time:** 2.5 days
 **Reversibility:** Pure additive — every migration adds columns/tables only; existing readers continue working unchanged.
+
+**Ship log:**
+- Migrations 140 + 141 + 141a applied + committed (commits `11bfb29`, `2d0a4e1`).
+- Migrations 142 + 143 applied + committed (commit `0495c01`). Verified against live data: chicken → `['meat','poultry']`, vegetarian/vegan → `[]`, beef → `['meat']`.
+- `app-config` edge function deployed + committed (commit `fceec7d`).
+- Mobile `useAppVersionGate` + `ForceUpdateScreen` + i18n + `App.tsx` wiring committed (commit `386c17d`).
+- **Open items (non-blocking):** mobile gate end-to-end smoke test (set `min_supported_mobile_version='99.0.0'` → reload app → see modal); performance benchmark of `generate_candidates` vs migration 122 baseline (deferred until modifier data exists in Phase 4).
 
 Migrations 140–143 extend `options`/`option_groups`/`dishes` with the new modifier model, rewrite the `generate_candidates` and `get_group_candidates` RPCs to surface the new shape, and add an `app_config` table + edge function + mobile hook for the Phase 6 force-upgrade gate.
 

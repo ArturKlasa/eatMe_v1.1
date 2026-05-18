@@ -1073,5 +1073,11 @@
       "fairValue": "Precio justo",
       "overpriced": "Caro"
     }
+  },
+  "appVersionGate": {
+    "title": "Actualización necesaria",
+    "message": "Actualiza la aplicación para seguir usando EatMe.",
+    "openAppStore": "Abrir App Store",
+    "openPlayStore": "Abrir Play Store"
   }
 }

@@ -6,6 +6,8 @@ import Mapbox from '@rnmapbox/maps';
 import { RootNavigator } from './src/navigation';
 import { ENV } from './src/config/environment';
 import { ErrorBoundary } from './src/components/common/ErrorBoundary';
+import { ForceUpdateScreen } from './src/components/common/ForceUpdateScreen';
+import { useAppVersionGate } from './src/hooks/useAppVersionGate';
 import { useSessionStore } from './src/stores/sessionStore';
 import './src/i18n'; // Initialize i18n
 import { initializeSettings, useSettingsStore } from './src/stores/settingsStore';
@@ -73,12 +75,20 @@ export default function App(): React.JSX.Element {
     startSession();
   }, []);
 
+  // Phase 6 force-upgrade gate — see docs/plans/dish-model-rewrite-phase-1-database.md §6.
+  // Non-null when the installed app version is below app_config.min_supported_mobile_version.
+  const versionGate = useAppVersionGate();
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <ErrorBoundary>
-          <RootNavigator />
-        </ErrorBoundary>
+        {versionGate ? (
+          <ForceUpdateScreen config={versionGate} />
+        ) : (
+          <ErrorBoundary>
+            <RootNavigator />
+          </ErrorBoundary>
+        )}
         <StatusBar style="light" />
       </SafeAreaView>
     </SafeAreaProvider>

@@ -12,3 +12,4 @@ export { SettingItem } from './SettingItem';
 export { FeatureList } from './FeatureList';
 export { SectionContainer } from './SectionContainer';
 export { ErrorBoundary } from './ErrorBoundary';
+export { ForceUpdateScreen } from './ForceUpdateScreen';

@@ -1073,5 +1073,11 @@
       "fairValue": "Uczciwa cena",
       "overpriced": "Przepłacone"
     }
+  },
+  "appVersionGate": {
+    "title": "Wymagana aktualizacja",
+    "message": "Zaktualizuj aplikację, aby nadal korzystać z EatMe.",
+    "openAppStore": "Otwórz App Store",
+    "openPlayStore": "Otwórz Sklep Play"
   }
 }

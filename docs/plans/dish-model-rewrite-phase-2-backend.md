@@ -19,29 +19,38 @@ Update `menu-scan-worker` to emit modifier groups + `dining_format` + `bundled_i
 const DINING_FORMATS = ['buffet','course_menu','interactive_table','shared_plates','sampler'] as const;
 
 const modifierOptionSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string(),
   price_delta: z.number(),
   price_override: z.number().nullable(),
   primary_protein: z.enum(PRIMARY_PROTEINS).nullable(),
-  removes_dietary_tags: z.array(z.string()).default([]),
-  adds_allergens: z.array(z.string()).default([]),
-  serves_delta: z.number().int().default(0),
-  is_default: z.boolean().default(false),
+  removes_dietary_tags: z.array(z.string()),
+  adds_allergens: z.array(z.string()),
+  serves_delta: z.number().int(),
+  is_default: z.boolean(),
 });
 
 const modifierGroupSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string(),
   selection_type: z.enum(['single','multiple']),
-  min_selections: z.number().int().min(0).default(0),
-  max_selections: z.number().int().min(1).default(1),
-  display_in_card: z.boolean().default(false),
-  options: z.array(modifierOptionSchema).max(20),
+  min_selections: z.number().int().min(0),
+  max_selections: z.number().int().min(1),
+  display_in_card: z.boolean(),
+  options: z.array(modifierOptionSchema),
+});
+
+const bundledItemSchema = z.object({
+  name: z.string(),
+  note: z.string().nullable(),
 });
 
 // Per-dish schema:
-// REMOVE: dish_kind
+// KEEP: dish_kind (until Phase 4 admin UI consumes modifier_groups — see Decision below)
 // ADD: dining_format, bundled_items, modifier_groups
 ```
+
+**Decision 2026-05-18 — keep `dish_kind` during Phase 2→4 window:** the per-phase plan originally said "REMOVE: dish_kind" but the parent plan §1 frames Phase 2 as "additive output fields". The admin review UI (`apps/admin/src/app/(admin)/menu-scan/[jobId]/`) heavily consumes `dish_kind` from `result_json` — removing it would break the review screen for every menu scanned in the window between Phase 2 and Phase 4 ship. Resolution: worker continues emitting `dish_kind` alongside the new fields. Phase 4 migrates the admin UI to consume `modifier_groups`; Phase 7 cleanup drops `dish_kind` from the worker schema and prompt.
+
+**Note on OpenAI Structured Outputs compatibility:** the schema above drops `.default()` (incompatible with OpenAI's strict `required:all` mode) and `.min()/.max()` on strings/arrays. The AI is instructed via prompt to emit empty arrays where the plan called for `.default([])`, and the application code accepts empty arrays as the no-modifier case. Length bounds live at the DB layer (migration 140 + table constraints).
 
 **Prompt update:** replace the `dish_kind` instruction block with:
 

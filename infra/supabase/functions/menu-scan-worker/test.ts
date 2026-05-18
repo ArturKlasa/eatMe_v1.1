@@ -35,8 +35,14 @@ const CANNED_RESULT = {
       description: 'Fresh Atlantic salmon',
       price: 24.5,
       dish_kind: 'standard',
+      dining_format: null,
+      bundled_items: [],
+      modifier_groups: [],
       primary_protein: 'fish',
       suggested_category_name: 'Mains',
+      canonical_category_slug: null,
+      suggested_category_description: null,
+      suggested_dish_category: 'Salmon',
       source_image_index: 0,
       confidence: 0.95,
     },
@@ -426,6 +432,9 @@ function makeCannedDishes(count: number, sourceImageIndex: number) {
     description: null,
     price: 10,
     dish_kind: 'standard',
+    dining_format: null,
+    bundled_items: [],
+    modifier_groups: [],
     primary_protein: 'chicken',
     suggested_category_name: null,
     canonical_category_slug: null,
@@ -558,4 +567,548 @@ Deno.test('multi-image: source_image_index override is authoritative', async () 
   assertEquals(captured.dishes.length, 2);
   assertEquals(captured.dishes[0].source_image_index, 0);
   assertEquals(captured.dishes[1].source_image_index, 1);
+});
+
+// ── v2 modifier-aware fixtures ────────────────────────────────────────────────
+//
+// These fixtures exercise the worker's pass-through behaviour for the new
+// schema fields (dining_format, bundled_items, modifier_groups). They simulate
+// the LLM emitting each documented pattern from the prompt block and verify
+// the shape lands intact in the captured result_json. Schema validation lives
+// at the OpenAI parse boundary (zodResponseFormat); these tests verify worker
+// plumbing, not the schema itself.
+
+interface ModOption {
+  name: string;
+  price_delta: number;
+  price_override: number | null;
+  primary_protein: string | null;
+  removes_dietary_tags: string[];
+  adds_allergens: string[];
+  serves_delta: number;
+  is_default: boolean;
+}
+interface ModGroup {
+  name: string;
+  selection_type: 'single' | 'multiple';
+  min_selections: number;
+  max_selections: number;
+  display_in_card: boolean;
+  options: ModOption[];
+}
+
+function makeFixtureDish(overrides: {
+  name: string;
+  price: number | null;
+  dish_kind: string;
+  dining_format?: string | null;
+  bundled_items?: Array<{ name: string; note: string | null }>;
+  modifier_groups?: ModGroup[];
+  primary_protein?: string;
+  description?: string | null;
+}) {
+  return {
+    name: overrides.name,
+    description: overrides.description ?? null,
+    price: overrides.price,
+    dish_kind: overrides.dish_kind,
+    dining_format: overrides.dining_format ?? null,
+    bundled_items: overrides.bundled_items ?? [],
+    modifier_groups: overrides.modifier_groups ?? [],
+    primary_protein: overrides.primary_protein ?? 'chicken',
+    suggested_category_name: null,
+    canonical_category_slug: null,
+    suggested_category_description: null,
+    suggested_dish_category: null,
+    source_image_index: 0,
+    confidence: 0.95,
+  };
+}
+
+async function runFixture(fixtureDish: ReturnType<typeof makeFixtureDish>) {
+  const job = makeJob('fixture-job');
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+  const openai = makeOpenAIMockSequence([{ dishes: [fixtureDish], detected_language: 'en' }]);
+  const result = await processJobs({ supa, openai });
+  assertEquals(result.processed, ['fixture-job']);
+  assertEquals(result.errors.length, 0);
+  return captured.dishes[0];
+}
+
+Deno.test('fixture: Pad Thai with required protein choice', async () => {
+  const dish = makeFixtureDish({
+    name: 'Pad Thai',
+    price: 14.0,
+    dish_kind: 'standard',
+    primary_protein: 'chicken', // matches the default option
+    modifier_groups: [
+      {
+        name: 'Choose your protein',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: true, // protein meaningfully changes dish identity
+        options: [
+          {
+            name: 'Chicken',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: 'chicken',
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: 'Shrimp',
+            price_delta: 3,
+            price_override: null,
+            primary_protein: 'shellfish',
+            removes_dietary_tags: [],
+            adds_allergens: ['shellfish'],
+            serves_delta: 0,
+            is_default: false,
+          },
+          {
+            name: 'Tofu',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: 'vegetarian',
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+
+  assertEquals(captured.modifier_groups.length, 1);
+  assertEquals(captured.modifier_groups[0].min_selections, 1);
+  assertEquals(captured.modifier_groups[0].display_in_card, true);
+  assertEquals(captured.modifier_groups[0].options.length, 3);
+  // Exactly one default in a required group
+  const defaults = captured.modifier_groups[0].options.filter((o: ModOption) => o.is_default);
+  assertEquals(defaults.length, 1);
+  assertEquals(defaults[0].name, 'Chicken');
+  // Shrimp option carries shellfish allergen
+  const shrimp = captured.modifier_groups[0].options.find((o: ModOption) => o.name === 'Shrimp');
+  assertArrayIncludes(shrimp.adds_allergens, ['shellfish']);
+});
+
+Deno.test('fixture: Caesar with optional add-ons', async () => {
+  const dish = makeFixtureDish({
+    name: 'Caesar Salad',
+    price: 11.0,
+    dish_kind: 'standard',
+    primary_protein: 'vegetarian',
+    modifier_groups: [
+      {
+        name: 'Add protein',
+        selection_type: 'single',
+        min_selections: 0, // optional
+        max_selections: 1,
+        display_in_card: false, // base dish identity intact without add-on
+        options: [
+          {
+            name: 'Grilled chicken (+$5)',
+            price_delta: 5,
+            price_override: null,
+            primary_protein: 'chicken',
+            removes_dietary_tags: ['vegetarian'],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: false, // optional groups have no default
+          },
+          {
+            name: 'Grilled shrimp (+$7)',
+            price_delta: 7,
+            price_override: null,
+            primary_protein: 'shellfish',
+            removes_dietary_tags: ['vegetarian'],
+            adds_allergens: ['shellfish'],
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+
+  assertEquals(captured.modifier_groups[0].min_selections, 0);
+  assertEquals(captured.modifier_groups[0].display_in_card, false);
+  // No default in optional groups
+  const defaults = captured.modifier_groups[0].options.filter((o: ModOption) => o.is_default);
+  assertEquals(defaults.length, 0);
+  // All add-ons strip vegetarian
+  for (const opt of captured.modifier_groups[0].options) {
+    assertArrayIncludes(opt.removes_dietary_tags, ['vegetarian']);
+  }
+});
+
+Deno.test('fixture: Pizza S/M/L sizes with serves_delta', async () => {
+  const dish = makeFixtureDish({
+    name: 'Margherita Pizza',
+    price: 12.0, // S
+    dish_kind: 'standard',
+    primary_protein: 'vegetarian',
+    modifier_groups: [
+      {
+        name: 'Size',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: false, // size doesn't change identity
+        options: [
+          {
+            name: 'Small (8")',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: 'Medium (12")',
+            price_delta: 4,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 1, // serves 2 instead of 1
+            is_default: false,
+          },
+          {
+            name: 'Large (16")',
+            price_delta: 8,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 2, // serves 3 instead of 1
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+
+  const opts = captured.modifier_groups[0].options;
+  assertEquals(
+    opts.map((o: ModOption) => o.serves_delta),
+    [0, 1, 2]
+  );
+  assertEquals(
+    opts.map((o: ModOption) => o.price_delta),
+    [0, 4, 8]
+  );
+  // No option changes protein
+  for (const opt of opts) assertEquals(opt.primary_protein, null);
+});
+
+Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
+  const dish = makeFixtureDish({
+    name: 'Build-Your-Own Bowl',
+    price: 13.5,
+    dish_kind: 'configurable',
+    primary_protein: 'vegetarian', // base before protein pick
+    modifier_groups: [
+      {
+        name: 'Choose your base',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: false,
+        options: [
+          {
+            name: 'Brown rice',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: 'Quinoa',
+            price_delta: 1,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+      {
+        name: 'Choose your protein',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: true,
+        options: [
+          {
+            name: 'Tofu',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: 'vegetarian',
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: 'Chicken',
+            price_delta: 2,
+            price_override: null,
+            primary_protein: 'chicken',
+            removes_dietary_tags: ['vegetarian'],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+      {
+        name: 'Toppings (up to 3)',
+        selection_type: 'multiple',
+        min_selections: 0,
+        max_selections: 3,
+        display_in_card: false,
+        options: [
+          {
+            name: 'Avocado (+$2)',
+            price_delta: 2,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: false,
+          },
+          {
+            name: 'Crushed peanuts',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: ['peanuts'],
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+
+  assertEquals(captured.modifier_groups.length, 3);
+  // Two required + one optional
+  const required = captured.modifier_groups.filter((g: ModGroup) => g.min_selections >= 1);
+  assertEquals(required.length, 2);
+  // Only the protein group is display_in_card
+  const inCard = captured.modifier_groups.filter((g: ModGroup) => g.display_in_card);
+  assertEquals(inCard.length, 1);
+  assertEquals(inCard[0].name, 'Choose your protein');
+  // Multi-select group has max_selections > 1
+  const toppings = captured.modifier_groups.find((g: ModGroup) => g.name.startsWith('Toppings'));
+  assertEquals(toppings.selection_type, 'multiple');
+  assertEquals(toppings.max_selections, 3);
+});
+
+Deno.test(
+  'fixture: tasting menu with dining_format=course_menu and sequential required groups',
+  async () => {
+    const dish = makeFixtureDish({
+      name: '5-Course Tasting Menu',
+      price: 95.0,
+      dish_kind: 'course_menu',
+      dining_format: 'course_menu',
+      primary_protein: 'fish', // anchor protein for the menu
+      modifier_groups: [
+        {
+          name: 'Starter',
+          selection_type: 'single',
+          min_selections: 1,
+          max_selections: 1,
+          display_in_card: false,
+          options: [
+            {
+              name: 'Beet salad',
+              price_delta: 0,
+              price_override: null,
+              primary_protein: 'vegetarian',
+              removes_dietary_tags: [],
+              adds_allergens: [],
+              serves_delta: 0,
+              is_default: true,
+            },
+            {
+              name: 'Tuna tartare',
+              price_delta: 0,
+              price_override: null,
+              primary_protein: 'fish',
+              removes_dietary_tags: ['vegetarian', 'vegan'],
+              adds_allergens: ['fish'],
+              serves_delta: 0,
+              is_default: false,
+            },
+          ],
+        },
+        {
+          name: 'Main',
+          selection_type: 'single',
+          min_selections: 1,
+          max_selections: 1,
+          display_in_card: false,
+          options: [
+            {
+              name: 'Branzino',
+              price_delta: 0,
+              price_override: null,
+              primary_protein: 'fish',
+              removes_dietary_tags: [],
+              adds_allergens: ['fish'],
+              serves_delta: 0,
+              is_default: true,
+            },
+            {
+              name: 'Lamb chop',
+              price_delta: 12,
+              price_override: null,
+              primary_protein: 'lamb',
+              removes_dietary_tags: [],
+              adds_allergens: [],
+              serves_delta: 0,
+              is_default: false,
+            },
+          ],
+        },
+      ],
+    });
+    const captured = await runFixture(dish);
+
+    assertEquals(captured.dining_format, 'course_menu');
+    assertEquals(captured.dish_kind, 'course_menu');
+    assertEquals(captured.modifier_groups.length, 2);
+    // Each course is a required single-select
+    for (const g of captured.modifier_groups) {
+      assertEquals(g.min_selections, 1);
+      assertEquals(g.selection_type, 'single');
+    }
+  }
+);
+
+Deno.test('fixture: buffet has dining_format=buffet and no modifier groups', async () => {
+  const dish = makeFixtureDish({
+    name: 'All-You-Can-Eat Sunday Brunch',
+    price: 45.0,
+    dish_kind: 'buffet',
+    dining_format: 'buffet',
+    primary_protein: 'other_meat',
+    modifier_groups: [],
+    bundled_items: [],
+  });
+  const captured = await runFixture(dish);
+
+  assertEquals(captured.dining_format, 'buffet');
+  assertEquals(captured.dish_kind, 'buffet');
+  assertEquals(captured.modifier_groups.length, 0);
+  assertEquals(captured.bundled_items.length, 0);
+});
+
+Deno.test('fixture: tiered wings with non-linear pricing via price_override', async () => {
+  const dish = makeFixtureDish({
+    name: 'Chicken Wings',
+    price: 5.0, // 6-wing base price
+    dish_kind: 'standard',
+    primary_protein: 'chicken',
+    modifier_groups: [
+      {
+        name: 'Quantity',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: false,
+        options: [
+          {
+            name: '6 wings',
+            price_delta: 0,
+            price_override: null, // base
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: '12 wings',
+            price_delta: 0,
+            price_override: 9.0, // 12 wings for $9, not 2× $5
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 1,
+            is_default: false,
+          },
+          {
+            name: '24 wings',
+            price_delta: 0,
+            price_override: 16.0, // bulk discount
+            primary_protein: null,
+            removes_dietary_tags: [],
+            adds_allergens: [],
+            serves_delta: 3,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+
+  const opts = captured.modifier_groups[0].options;
+  assertEquals(opts[0].price_override, null);
+  assertEquals(opts[1].price_override, 9.0);
+  assertEquals(opts[2].price_override, 16.0);
+  // price_delta is 0 throughout — price_override carries the value
+  for (const opt of opts) assertEquals(opt.price_delta, 0);
+});
+
+Deno.test('fixture: combo meal with bundled_items', async () => {
+  const dish = makeFixtureDish({
+    name: 'Burger Meal',
+    description: 'Cheeseburger with fries and a drink',
+    price: 15.0,
+    dish_kind: 'bundle',
+    primary_protein: 'beef',
+    bundled_items: [
+      { name: 'cheeseburger', note: null },
+      { name: 'fries', note: 'or sweet potato fries' },
+      { name: 'drink', note: 'soft drink or iced tea' },
+    ],
+    modifier_groups: [],
+  });
+  const captured = await runFixture(dish);
+
+  assertEquals(captured.dish_kind, 'bundle');
+  assertEquals(captured.bundled_items.length, 3);
+  assertEquals(captured.bundled_items[0].name, 'cheeseburger');
+  assertEquals(captured.bundled_items[1].note, 'or sweet potato fries');
+  assertEquals(captured.modifier_groups.length, 0);
 });

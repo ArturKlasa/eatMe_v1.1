@@ -29,11 +29,74 @@ export const PRIMARY_PROTEINS = [
   'vegan',
 ] as const;
 
+// Dining-format hint for dishes that are dining experiences rather than plates.
+// Null for standard dishes. Persisted to dishes.dining_format by the confirm RPC.
+export const DINING_FORMATS = [
+  'buffet',
+  'course_menu',
+  'interactive_table',
+  'shared_plates',
+  'sampler',
+] as const;
+
+// Modifier-group schemas: parallel to packages/shared validation (Phase 3
+// canonicalises them). Kept locally because Deno can't import workspace
+// packages.
+export const modifierOptionSchema = z.object({
+  name: z.string(),
+  price_delta: z.number(),
+  // Non-linear quantity pricing (e.g. "12 wings for $45" — 12-wing option has
+  // price_override=45). When set, replaces the base price; otherwise price_delta
+  // adds to base.
+  price_override: z.number().nullable(),
+  // Override base primary_protein when the option changes the protein source.
+  // Null when the option doesn't touch protein (size choice, dressing choice).
+  primary_protein: z.enum(PRIMARY_PROTEINS).nullable(),
+  // Tags removed from base when selected (e.g. ['vegetarian','vegan'] for adding
+  // meat to a salad). Empty array when no change.
+  removes_dietary_tags: z.array(z.string()),
+  // Allergens added beyond what the base dish carries. Empty array when none.
+  adds_allergens: z.array(z.string()),
+  // Headcount change. 0 when no change.
+  serves_delta: z.number().int(),
+  // Marks the standard / cheapest option in a required group.
+  is_default: z.boolean(),
+});
+
+export const modifierGroupSchema = z.object({
+  name: z.string(),
+  selection_type: z.enum(['single', 'multiple']),
+  // 0 = optional group; ≥1 = required (must pick at least N).
+  min_selections: z.number().int().min(0),
+  max_selections: z.number().int().min(1),
+  // True ONLY for groups whose selected option meaningfully changes the dish
+  // identity in a one-line description (e.g. protein on Pad Thai → "with chicken").
+  // False for size/dressing/drink choices.
+  display_in_card: z.boolean(),
+  options: z.array(modifierOptionSchema),
+});
+
+const bundledItemSchema = z.object({
+  name: z.string(),
+  note: z.string().nullable(),
+});
+
 const menuExtractionDishSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   price: z.number().nonnegative().nullable(),
+  // Kept through the Phase 2→4 window so the existing admin review UI keeps
+  // rendering. Phase 4 migrates the review UI to consume modifier_groups; Phase 7
+  // drops dish_kind from the worker schema.
   dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']),
+  // NEW: dining-experience hint, null for standard dishes.
+  dining_format: z.enum(DINING_FORMATS).nullable(),
+  // NEW: pre-included items the customer doesn't pick (combo meal, prix-fixe
+  // included sides). Empty array when no bundling.
+  bundled_items: z.array(bundledItemSchema),
+  // NEW: customer choices ("choose your X", "add Y for $Z", size variants).
+  // Empty array when the dish has no choices.
+  modifier_groups: z.array(modifierGroupSchema),
   primary_protein: z.enum(PRIMARY_PROTEINS),
   // Verbatim section text from the menu, in the source language. Kept for v2
   // owner-portal back-compat; also doubles as the custom-category name when
@@ -99,9 +162,53 @@ For each dish output exactly these fields:
     configurable   — customer selects from options/slots
     course_menu    — multi-course sequenced meal (starter, main, dessert pattern)
     buffet         — flat-rate unlimited access
-- primary_protein: the main protein source — exactly one of:
+- dining_format: when the listing is a dining EXPERIENCE rather than a regular plated dish,
+    set to one of:
+      'buffet'             — flat-rate unlimited access
+      'course_menu'        — multi-course sequenced meal (tasting menus, prix-fixe)
+      'interactive_table'  — interactive cooking at the table (hot pot, Korean BBQ, fondue)
+      'shared_plates'      — small plates designed for sharing (tapas, dim sum, izakaya)
+      'sampler'            — fixed selection presented as one item (mixed grill, charcuterie board)
+    Otherwise output null.
+- bundled_items: items pre-included with the dish that the customer does NOT pick from a list.
+    Use this for combo meals and fixed accompaniments. Examples:
+      "Burger meal: burger + fries + drink" → [{"name":"burger","note":null},{"name":"fries","note":null},{"name":"drink","note":null}]
+      "Steak frites (includes side salad)"  → [{"name":"side salad","note":null}]
+    Output an empty array [] when the dish has no bundled items. Each item is {name, note?}.
+    Do NOT use bundled_items for customer choices — use modifier_groups for those.
+- modifier_groups: customer-selectable choices. Extract one group per "choose your X",
+    "add Y for $Z", "+$N upgrade", "size: S/M/L", protein choice, dressing choice, course
+    choice, etc. Use an empty array [] when the dish has no choices.
+    Group fields:
+      name: short label as printed on the menu (e.g. "Choose your protein", "Size", "Add-ons")
+      selection_type: 'single' (pick exactly one) or 'multiple' (may pick several)
+      min_selections: 0 for optional groups; ≥1 for required groups (must pick at least N)
+      max_selections: max picks allowed (1 for 'single' unless tasting menu)
+      display_in_card: set true ONLY for groups whose selected option meaningfully changes
+        the dish identity in a one-line description (e.g. protein choice on Pad Thai →
+        "Pad Thai with chicken"). Set false (default) for size, dressing, drink, side choices.
+        When in doubt, set false.
+      options: list of choices (each with the fields below)
+    Option fields:
+      name: the choice label exactly as printed
+      price_delta: signed surcharge in the menu's currency (0 for the base/included option)
+      price_override: ONLY for non-linear quantity pricing (e.g. "12 wings for $45" → the
+        12-wing option has price_override=45, price_delta=0). Otherwise null.
+      primary_protein: only when the option CHANGES the dish's protein source
+        (e.g. Pad Thai "with chicken" → 'chicken'). Otherwise null.
+      removes_dietary_tags: include ['vegetarian'] when adding meat/fish to a vegetarian base;
+        include ['vegan'] when adding dairy/eggs/honey to a vegan base. Empty array otherwise.
+      adds_allergens: e.g. ['shellfish'] when option adds shrimp, ['dairy'] for adding cheese.
+        Use the standard allergen taxonomy (shellfish, dairy, eggs, peanuts, tree_nuts,
+        gluten, soy, fish, sesame). Empty array otherwise.
+      serves_delta: only for options that change headcount (rare). 0 otherwise.
+      is_default: set TRUE on exactly one option in each required group — the cheapest /
+        standard choice. FALSE for all options in optional groups.
+- primary_protein: the main protein source of the BASE dish — exactly one of:
     chicken | beef | pork | lamb | goat | other_meat | fish | shellfish | eggs | vegetarian | vegan
     Use "vegetarian" for plant-based dishes, "vegan" only when the dish is fully vegan.
+    When the dish has a required protein choice, use the cheapest/default option's protein
+    (modifier_groups[].options[].primary_protein will override at feed-time).
 - suggested_category_name: the menu section this dish belongs to, written exactly as it appears
     on the menu (verbatim, in the source language). Null if no section header is shown.
 - canonical_category_slug: if the section maps cleanly to one of the canonical slugs listed

@@ -3,11 +3,13 @@
 import { useMemo, useState } from 'react';
 import {
   PRIMARY_PROTEINS,
-  DISH_KIND_META,
+  DINING_FORMATS,
+  DINING_FORMAT_META,
   countryToLanguage,
   SUPPORTED_LANGUAGES,
   isSupportedLanguage,
   DEFAULT_LANGUAGE,
+  type DiningFormat,
   type SupportedLanguage,
 } from '@eatme/shared';
 import type {
@@ -22,16 +24,12 @@ import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline'
 import {
   useReviewState,
   type CategoryMode,
-  type DishKind,
   type EditableDish,
   type ExtractedDish,
   type PricePrefix,
   type Protein,
 } from './useReviewState';
-import { VariantEditor } from './VariantEditor';
-import { CourseEditor } from './CourseEditor';
-
-const VARIANT_KINDS: ReadonlySet<DishKind> = new Set(['standard', 'bundle', 'configurable']);
+import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 
 export type { ExtractedDish } from './useReviewState';
 
@@ -46,10 +44,18 @@ interface Props {
   dishCategoryMatches: DishCategoryMatch[];
 }
 
-const DISH_KIND_VALUES = Object.keys(DISH_KIND_META) as DishKind[];
-
 function pickName(dict: Record<string, string>, lang: SupportedLanguage, fallback: string): string {
   return dict[lang] ?? dict[DEFAULT_LANGUAGE] ?? fallback;
+}
+
+// Map legacy worker output to the new dining_format hint. Only fires when the
+// worker did NOT provide a dining_format directly (i.e. very old jobs scanned
+// before Phase 2 shipped the dining_format field).
+function deriveDiningFormat(d: ExtractedDish): DiningFormat | null {
+  if (d.dining_format !== undefined) return d.dining_format;
+  if (d.dish_kind === 'course_menu') return 'course_menu';
+  if (d.dish_kind === 'buffet') return 'buffet';
+  return null;
 }
 
 function asEditable(
@@ -78,13 +84,47 @@ function asEditable(
     if (match?.matched_id) {
       dishCategoryId = match.matched_id;
     } else {
-      // AI suggested but fuzzy didn't clear threshold — flag it.
       dishCategoryUnmatched = true;
     }
   }
 
+  const modifierGroups = (d.modifier_groups ?? []).map((g, gi) => ({
+    _id: `mg-${i}-${gi}`,
+    name: g.name,
+    selection_type: g.selection_type,
+    min_selections: g.min_selections,
+    max_selections: g.max_selections,
+    display_in_card: g.display_in_card,
+    options: g.options.map((o, oi) => ({
+      _id: `mo-${i}-${gi}-${oi}`,
+      name: o.name,
+      price_delta: o.price_delta,
+      price_override: o.price_override,
+      primary_protein: o.primary_protein,
+      removes_dietary_tags: o.removes_dietary_tags,
+      adds_allergens: o.adds_allergens,
+      serves_delta: o.serves_delta,
+      is_default: o.is_default,
+    })),
+  }));
+
+  const bundledItems = (d.bundled_items ?? []).map((b, bi) => ({
+    _id: `bi-${i}-${bi}`,
+    name: b.name,
+    note: b.note,
+  }));
+
   return {
-    ...d,
+    name: d.name,
+    description: d.description,
+    price: d.price,
+    primary_protein: d.primary_protein,
+    suggested_category_name: d.suggested_category_name,
+    canonical_category_slug: d.canonical_category_slug,
+    suggested_category_description: d.suggested_category_description,
+    suggested_dish_category: d.suggested_dish_category,
+    source_image_index: d.source_image_index,
+    confidence: d.confidence,
     _id: `dish-${i}`,
     _deleted: false,
     categoryMode,
@@ -93,22 +133,11 @@ function asEditable(
     categoryCustomName,
     dishCategoryId,
     dishCategoryUnmatched,
-    is_parent: d.is_parent ?? false,
     display_price_prefix: d.display_price_prefix ?? 'exact',
     serves: d.serves ?? null,
-    parent_id: null,
-    courses: (d.courses ?? []).map((c, ci) => ({
-      _id: `course-${i}-${ci}`,
-      course_number: c.course_number,
-      course_name: c.course_name ?? '',
-      choice_type: c.choice_type,
-      required_count: c.required_count,
-      items: c.items.map((it, ii) => ({
-        _id: `ci-${i}-${ci}-${ii}`,
-        option_label: it.option_label,
-        price_delta: it.price_delta,
-      })),
-    })),
+    dining_format: deriveDiningFormat(d),
+    bundled_items: bundledItems,
+    modifier_groups: modifierGroups,
   };
 }
 
@@ -118,8 +147,6 @@ function confidenceTone(c: number): string {
   return 'bg-red-100 text-red-800 border-red-200';
 }
 
-// Group key for a dish — same shape the server action uses to dedupe categories.
-// 'none' for ungrouped; 'e:<id>' / 'c:<slug>' / 'n:<lower(name)>' for the others.
 function getGroupKey(d: EditableDish): string {
   switch (d.categoryMode) {
     case 'existing':
@@ -202,8 +229,6 @@ export function ReviewDishEditor({
     [dishCategoryMatches]
   );
 
-  // Local state so newly-created categories from the inline form append without
-  // needing a full page reload.
   const [dishCategories, setDishCategories] = useState<DishCategoryOption[]>(initialDishCategories);
   const dishCategoryById = useMemo(
     () => new Map(dishCategories.map(c => [c.id, c])),
@@ -217,17 +242,17 @@ export function ReviewDishEditor({
     dishes,
     update,
     toggleDelete,
-    setKind,
-    addVariant,
-    removeVariant,
-    addCourse,
-    removeCourse,
-    moveCourse,
-    updateCourse,
-    addCourseItem,
-    removeCourseItem,
-    moveCourseItem,
-    updateCourseItem,
+    addModifierGroup,
+    removeModifierGroup,
+    moveModifierGroup,
+    updateModifierGroup,
+    addModifierOption,
+    removeModifierOption,
+    moveModifierOption,
+    updateModifierOption,
+    addBundledItem,
+    removeBundledItem,
+    updateBundledItem,
   } = useReviewState(
     useMemo(
       () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
@@ -237,8 +262,6 @@ export function ReviewDishEditor({
     )
   );
 
-  // Per-group description state (admin-editable). Keyed by group key.
-  // Initial values: existing-cat description (if non-empty) → AI suggestion → empty.
   const [categoryDescriptions, setCategoryDescriptions] = useState<Map<string, string>>(() => {
     const map = new Map<string, string>();
     const seen = new Set<string>();
@@ -246,7 +269,6 @@ export function ReviewDishEditor({
       const key = getGroupKey(d);
       if (key === 'none' || seen.has(key)) continue;
       seen.add(key);
-      // Existing-cat path: prefer the stored description from props
       if (key.startsWith('e:')) {
         const id = key.slice(2);
         const ex = existingById.get(id);
@@ -255,7 +277,6 @@ export function ReviewDishEditor({
           continue;
         }
       }
-      // Otherwise use the AI suggestion from the first dish in the group
       if (d.suggested_category_description?.trim()) {
         map.set(key, d.suggested_category_description.trim());
       }
@@ -266,19 +287,14 @@ export function ReviewDishEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Top-level dishes only — variant children render nested under their parent
-  // and are saved through the parent's variant_dishes[] array.
-  const activeDishes = useMemo(() => dishes.filter(d => !d._deleted && !d.parent_id), [dishes]);
-  const deletedCount = dishes.filter(d => !d.parent_id).length - activeDishes.length;
+  const activeDishes = useMemo(() => dishes.filter(d => !d._deleted), [dishes]);
+  const deletedCount = dishes.length - activeDishes.length;
 
   const detectedDiffers =
     !!detectedLanguage &&
     detectedLanguage !== sourceLanguage &&
     detectedLanguage !== countryDerivedLang;
 
-  // Build ordered groups from current dish state. Order: encounter order across
-  // active + deleted dishes (so removing a dish doesn't reorder groups). 'none'
-  // group is always rendered last.
   const groups = useMemo(() => {
     const order: string[] = [];
     const seen = new Set<string>();
@@ -289,7 +305,6 @@ export function ReviewDishEditor({
         order.push(key);
       }
     }
-    // Move 'none' to end if present
     const noneIdx = order.indexOf('none');
     if (noneIdx !== -1) {
       order.splice(noneIdx, 1);
@@ -301,7 +316,6 @@ export function ReviewDishEditor({
     }));
   }, [dishes]);
 
-  // Display name + description-locked state for a group key.
   function getGroupMeta(key: string): {
     displayName: string;
     descriptionLocked: boolean;
@@ -326,7 +340,6 @@ export function ReviewDishEditor({
       return { displayName: name, descriptionLocked: false, badge: 'Canonical' };
     }
     if (key.startsWith('n:')) {
-      // For custom, use the custom name from the first dish in the group
       const firstDish = dishes.find(d => getGroupKey(d) === key);
       const name = firstDish?.categoryCustomName.trim() || key.slice(2);
       return { displayName: name, descriptionLocked: false, badge: 'Custom' };
@@ -343,11 +356,6 @@ export function ReviewDishEditor({
     });
   };
 
-  // Append a freshly-created dish_category and auto-assign it to the dish
-  // that opened the inline create form. Re-sorts alphabetically so the new
-  // entry slots into the right place in the combobox listbox. Idempotent on
-  // id (the server action returns existing rows for case-insensitive name
-  // matches).
   const handleDishCategoryCreated = (dishId: string, cat: DishCategoryOption) => {
     setDishCategories(prev => {
       const next = prev.some(c => c.id === cat.id) ? prev : [...prev, cat];
@@ -374,18 +382,20 @@ export function ReviewDishEditor({
       setError('Custom category names cannot be empty. Pick a category or remove the dish.');
       return;
     }
+    const invalidGroup = activeDishes.find(d =>
+      d.modifier_groups.some(g => !g.name.trim() || g.options.some(o => !o.name.trim()))
+    );
+    if (invalidGroup) {
+      setError(
+        'Every modifier group needs a name, and every option needs a name. Fix or remove the empty ones.'
+      );
+      return;
+    }
 
     setSaving(true);
     try {
       // Build category_descriptions array — one entry per unique key referenced
-      // by an active dish. We send an entry whenever EITHER:
-      //   - admin entered a section description that should be persisted, OR
-      //   - the AI captured a verbatim section name for a canonical-mode group
-      //     (the server uses it to override the canonical English label —
-      //     "Starters" instead of "Appetizers" — while keeping the canonical
-      //     link intact).
-      // Existing-cat with locked description → skip the description but still
-      // send if there's a verbatim (server side-effects gated by the same key).
+      // by an active dish.
       const seenKeys = new Set<string>();
       const categoryDescriptionsPayload: Array<{
         canonical_slug: string | null;
@@ -403,14 +413,11 @@ export function ReviewDishEditor({
         const rawDesc = categoryDescriptions.get(key)?.trim() || null;
         const desc = rawDesc && !meta.descriptionLocked ? rawDesc : null;
 
-        // Verbatim is only meaningful for canonical-mode groups — existing/custom
-        // already use the right wording in their own fields.
         const verbatim =
           d.categoryMode === 'canonical' && d.suggested_category_name?.trim()
             ? d.suggested_category_name.trim()
             : null;
 
-        // Skip entries that contribute nothing to either side-effect.
         if (!desc && !verbatim) continue;
 
         categoryDescriptionsPayload.push({
@@ -422,43 +429,43 @@ export function ReviewDishEditor({
         });
       }
 
-      const baseFields = (d: EditableDish) => ({
-        name: d.name.trim(),
-        description: d.description?.trim() || null,
-        price: d.price,
-        dish_kind: d.dish_kind,
-        primary_protein: d.primary_protein,
-        source_image_index: d.source_image_index,
-        category_existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
-        category_canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
-        category_custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
-        dish_category_id: d.dishCategoryId,
-        is_parent: d.is_parent,
-        display_price_prefix: d.display_price_prefix,
-        serves: d.serves,
-      });
-
       const payload = {
         source_language_code: sourceLanguage,
         category_descriptions: categoryDescriptionsPayload,
         dishes: activeDishes.map(d => ({
-          ...baseFields(d),
-          variant_dishes: d.is_parent
-            ? dishes.filter(c => c.parent_id === d._id && !c._deleted).map(baseFields)
-            : [],
-          courses:
-            d.dish_kind === 'course_menu' && d.is_parent
-              ? d.courses.map(c => ({
-                  course_number: c.course_number,
-                  course_name: c.course_name.trim() || null,
-                  choice_type: c.choice_type,
-                  required_count: c.required_count,
-                  items: c.items.map(it => ({
-                    option_label: it.option_label.trim(),
-                    price_delta: it.price_delta,
-                  })),
-                }))
-              : [],
+          name: d.name.trim(),
+          description: d.description?.trim() || null,
+          price: d.price,
+          primary_protein: d.primary_protein,
+          source_image_index: d.source_image_index,
+          category_existing_id: d.categoryMode === 'existing' ? d.categoryExistingId : null,
+          category_canonical_slug: d.categoryMode === 'canonical' ? d.categoryCanonicalSlug : null,
+          category_custom_name: d.categoryMode === 'custom' ? d.categoryCustomName.trim() : null,
+          dish_category_id: d.dishCategoryId,
+          display_price_prefix: d.display_price_prefix,
+          serves: d.serves,
+          dining_format: d.dining_format,
+          bundled_items: d.bundled_items.map(b => ({
+            name: b.name.trim(),
+            note: b.note?.trim() || null,
+          })),
+          modifier_groups: d.modifier_groups.map(g => ({
+            name: g.name.trim(),
+            selection_type: g.selection_type,
+            min_selections: g.min_selections,
+            max_selections: g.max_selections,
+            display_in_card: g.display_in_card,
+            options: g.options.map(o => ({
+              name: o.name.trim(),
+              price_delta: o.price_delta,
+              price_override: o.price_override,
+              primary_protein: o.primary_protein,
+              removes_dietary_tags: o.removes_dietary_tags,
+              adds_allergens: o.adds_allergens,
+              serves_delta: o.serves_delta,
+              is_default: o.is_default,
+            })),
+          })),
         })),
       };
       const result = await adminConfirmMenuScan(jobId, payload);
@@ -466,7 +473,6 @@ export function ReviewDishEditor({
         setError(result.formError ?? 'Save failed');
         return;
       }
-      // Realtime subscription in AdminJobShell will flip status → 'completed'.
     } finally {
       setSaving(false);
     }
@@ -495,7 +501,6 @@ export function ReviewDishEditor({
         </button>
       </div>
 
-      {/* Source language selector + mismatch banner */}
       <div className="rounded border border-border bg-muted/20 p-3 space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
           <label htmlFor="source-language" className="text-xs font-medium">
@@ -550,13 +555,11 @@ export function ReviewDishEditor({
         </p>
       )}
 
-      {/* Grouped layout: one section per category */}
       {groups.map(group => {
         const meta = getGroupMeta(group.key);
         const desc = categoryDescriptions.get(group.key) ?? '';
         return (
           <section key={group.key} className="rounded-lg border border-border bg-muted/10">
-            {/* Category heading */}
             <header className="border-b border-border px-4 py-3 space-y-2">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
@@ -595,7 +598,6 @@ export function ReviewDishEditor({
                 ))}
             </header>
 
-            {/* Dishes in this group */}
             <ul className="space-y-3 p-3">
               {group.dishes.map(d => (
                 <li
@@ -614,13 +616,13 @@ export function ReviewDishEditor({
                       placeholder="Dish name"
                       className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm font-medium disabled:opacity-50"
                     />
-                    {d.is_parent && (
+                    {d.dining_format && (
                       <span
-                        className="shrink-0 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200"
-                        title="Parent dish — variants/courses are nested under this row"
+                        className="shrink-0 inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-800 dark:border-violet-900/40 dark:bg-violet-900/20 dark:text-violet-200"
+                        title={DINING_FORMAT_META[d.dining_format].description}
                       >
-                        Parent ({dishes.filter(c => c.parent_id === d._id && !c._deleted).length}{' '}
-                        variants)
+                        {DINING_FORMAT_META[d.dining_format].icon}{' '}
+                        {DINING_FORMAT_META[d.dining_format].label}
                       </span>
                     )}
                     <span
@@ -655,13 +657,9 @@ export function ReviewDishEditor({
                     className="w-full rounded border border-border bg-background px-3 py-2 text-sm disabled:opacity-50 resize-y"
                   />
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">
-                        {d.dish_kind === 'course_menu' && d.is_parent
-                          ? 'Total price (optional)'
-                          : 'Price'}
-                      </span>
+                      <span className="text-muted-foreground">Price</span>
                       <input
                         type="number"
                         step="0.01"
@@ -679,18 +677,22 @@ export function ReviewDishEditor({
                     </label>
 
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Kind</span>
+                      <span className="text-muted-foreground">Price label</span>
                       <select
-                        value={d.dish_kind}
-                        onChange={e => setKind(d._id, e.target.value as DishKind)}
+                        value={d.display_price_prefix}
+                        onChange={e =>
+                          update(d._id, {
+                            display_price_prefix: e.target.value as PricePrefix,
+                          })
+                        }
                         disabled={d._deleted || saving}
                         className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
                       >
-                        {DISH_KIND_VALUES.map(k => (
-                          <option key={k} value={k}>
-                            {DISH_KIND_META[k].icon} {DISH_KIND_META[k].label}
-                          </option>
-                        ))}
+                        <option value="exact">Exact</option>
+                        <option value="from">From</option>
+                        <option value="per_person">Per person</option>
+                        <option value="market_price">Market price</option>
+                        <option value="ask_server">Ask server</option>
                       </select>
                     </label>
 
@@ -713,27 +715,34 @@ export function ReviewDishEditor({
                     </label>
 
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Price label</span>
+                      <span
+                        className="text-muted-foreground"
+                        title="Rarely set — only for buffets, course menus, hot pot, shared plates, samplers"
+                      >
+                        Dining format
+                      </span>
                       <select
-                        value={d.display_price_prefix}
+                        value={d.dining_format ?? ''}
                         onChange={e =>
                           update(d._id, {
-                            display_price_prefix: e.target.value as PricePrefix,
+                            dining_format:
+                              e.target.value === '' ? null : (e.target.value as DiningFormat),
                           })
                         }
                         disabled={d._deleted || saving}
                         className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
                       >
-                        <option value="exact">Exact</option>
-                        <option value="from">From</option>
-                        <option value="per_person">Per person</option>
-                        <option value="market_price">Market price</option>
-                        <option value="ask_server">Ask server</option>
+                        <option value="">— Standard —</option>
+                        {DINING_FORMATS.map(f => (
+                          <option key={f} value={f}>
+                            {DINING_FORMAT_META[f].icon} {DINING_FORMAT_META[f].label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                   </div>
 
-                  {/* Per-dish category override (lets the user move a dish to another group) */}
+                  {/* Per-dish category override */}
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground font-medium">Menu category</span>
@@ -787,8 +796,7 @@ export function ReviewDishEditor({
                     )}
                   </div>
 
-                  {/* Dish category (global filtering taxonomy — invisible to consumers,
-                      drives mobile recommendations + drink/dessert exclusion). */}
+                  {/* Dish category (global filter taxonomy) */}
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground font-medium">
@@ -819,7 +827,6 @@ export function ReviewDishEditor({
                         onChange={id =>
                           update(d._id, {
                             dishCategoryId: id,
-                            // Clearing the unmatched flag once admin makes a deliberate pick
                             dishCategoryUnmatched: false,
                           })
                         }
@@ -846,30 +853,29 @@ export function ReviewDishEditor({
                     )}
                   </div>
 
-                  {d.is_parent && VARIANT_KINDS.has(d.dish_kind) && (
-                    <VariantEditor
-                      parent={d}
-                      variants={dishes.filter(c => c.parent_id === d._id)}
-                      saving={saving}
-                      onAddVariant={() => addVariant(d._id)}
-                      onRemoveVariant={removeVariant}
-                      onUpdateVariant={update}
-                    />
-                  )}
+                  {/* Bundled items (e.g. "Lunch combo = Soup + Salad + Drink") */}
+                  <BundledItemsBlock
+                    dish={d}
+                    saving={saving}
+                    onAdd={() => addBundledItem(d._id)}
+                    onRemove={idx => removeBundledItem(d._id, idx)}
+                    onUpdate={(idx, patch) => updateBundledItem(d._id, idx, patch)}
+                  />
 
-                  {d.is_parent && d.dish_kind === 'course_menu' && (
-                    <CourseEditor
+                  {/* Modifier groups (replaces variants + courses) */}
+                  {!d._deleted && (
+                    <ModifierGroupsEditor
                       parent={d}
                       saving={saving}
-                      onAddCourse={() => addCourse(d._id)}
-                      onRemoveCourse={idx => removeCourse(d._id, idx)}
-                      onMoveCourse={(from, to) => moveCourse(d._id, from, to)}
-                      onUpdateCourse={(idx, patch) => updateCourse(d._id, idx, patch)}
-                      onAddItem={idx => addCourseItem(d._id, idx)}
-                      onRemoveItem={(cIdx, iIdx) => removeCourseItem(d._id, cIdx, iIdx)}
-                      onMoveItem={(cIdx, from, to) => moveCourseItem(d._id, cIdx, from, to)}
-                      onUpdateItem={(cIdx, iIdx, patch) =>
-                        updateCourseItem(d._id, cIdx, iIdx, patch)
+                      onAddGroup={() => addModifierGroup(d._id)}
+                      onRemoveGroup={idx => removeModifierGroup(d._id, idx)}
+                      onMoveGroup={(from, to) => moveModifierGroup(d._id, from, to)}
+                      onUpdateGroup={(idx, patch) => updateModifierGroup(d._id, idx, patch)}
+                      onAddOption={idx => addModifierOption(d._id, idx)}
+                      onRemoveOption={(gIdx, oIdx) => removeModifierOption(d._id, gIdx, oIdx)}
+                      onMoveOption={(gIdx, from, to) => moveModifierOption(d._id, gIdx, from, to)}
+                      onUpdateOption={(gIdx, oIdx, patch) =>
+                        updateModifierOption(d._id, gIdx, oIdx, patch)
                       }
                     />
                   )}
@@ -879,6 +885,74 @@ export function ReviewDishEditor({
           </section>
         );
       })}
+    </div>
+  );
+}
+
+interface BundledBlockProps {
+  dish: EditableDish;
+  saving: boolean;
+  onAdd: () => void;
+  onRemove: (itemIdx: number) => void;
+  onUpdate: (itemIdx: number, patch: Partial<{ name: string; note: string | null }>) => void;
+}
+
+function BundledItemsBlock({ dish, saving, onAdd, onRemove, onUpdate }: BundledBlockProps) {
+  if (dish._deleted) return null;
+  const hasItems = dish.bundled_items.length > 0;
+  return (
+    <div className="rounded border border-dashed border-emerald-200 bg-emerald-50/40 p-2 space-y-1.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-emerald-900 dark:text-emerald-200">
+          Bundled items ({dish.bundled_items.length})
+        </span>
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={saving}
+          className="rounded border border-emerald-300 bg-background px-2 py-0.5 text-xs hover:bg-emerald-100 dark:border-emerald-800 dark:hover:bg-emerald-900/40 disabled:opacity-50"
+        >
+          + Add item
+        </button>
+      </div>
+      {!hasItems ? (
+        <p className="text-[11px] italic text-muted-foreground">
+          Use for set menus / combos: list the included items (e.g. &ldquo;Soup of the day&rdquo;,
+          &ldquo;Side salad&rdquo;, &ldquo;Drink&rdquo;).
+        </p>
+      ) : (
+        <ul className="space-y-1">
+          {dish.bundled_items.map((b, idx) => (
+            <li key={b._id} className="flex items-center gap-1.5">
+              <input
+                aria-label="Bundled item name"
+                value={b.name}
+                onChange={e => onUpdate(idx, { name: e.target.value })}
+                disabled={saving}
+                placeholder="Item name"
+                className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
+              />
+              <input
+                aria-label="Note"
+                value={b.note ?? ''}
+                onChange={e => onUpdate(idx, { note: e.target.value || null })}
+                disabled={saving}
+                placeholder="Note (optional)"
+                className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                disabled={saving}
+                aria-label="Remove bundled item"
+                className="rounded border border-border px-1.5 py-1 text-[11px] hover:bg-muted disabled:opacity-50"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

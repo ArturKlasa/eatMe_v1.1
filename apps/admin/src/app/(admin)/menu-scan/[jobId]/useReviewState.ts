@@ -1,36 +1,51 @@
 'use client';
 
 import { useState } from 'react';
-import { DISH_KIND_META, PRIMARY_PROTEINS } from '@eatme/shared';
+import { PRIMARY_PROTEINS, type DiningFormat } from '@eatme/shared';
 
-export type DishKind = keyof typeof DISH_KIND_META;
 export type Protein = (typeof PRIMARY_PROTEINS)[number];
 
 export type PricePrefix = 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
 
 export type CategoryMode = 'none' | 'existing' | 'canonical' | 'custom';
 
-export type ExtractedCourseItem = {
-  option_label: string;
+// Wire-format option from menu-scan-worker.
+export type ExtractedModifierOption = {
+  name: string;
   price_delta: number;
+  price_override: number | null;
+  primary_protein: Protein | null;
+  removes_dietary_tags: string[];
+  adds_allergens: string[];
+  serves_delta: number;
+  is_default: boolean;
 };
 
-export type ExtractedCourse = {
-  course_number: number;
-  course_name: string | null;
-  choice_type: 'fixed' | 'one_of';
-  required_count: number;
-  items: ExtractedCourseItem[];
+// Wire-format group from menu-scan-worker.
+export type ExtractedModifierGroup = {
+  name: string;
+  selection_type: 'single' | 'multiple';
+  min_selections: number;
+  max_selections: number;
+  display_in_card: boolean;
+  options: ExtractedModifierOption[];
 };
 
-// Wire shape from menu-scan-worker. Phase 7 will populate the optional
-// is_parent / display_price_prefix / serves / variants / courses fields;
-// today the worker leaves them undefined and hydration applies defaults.
+export type ExtractedBundledItem = {
+  name: string;
+  note: string | null;
+};
+
+// Wire shape from menu-scan-worker. `dish_kind` is still emitted by the worker
+// during the Phase 2→4 window but is ignored by the review UI — the new
+// modifier_groups + dining_format pair is the source of truth. `dish_kind` is
+// kept here as an optional read-only field so legacy needs_review jobs that
+// pre-date Phase 2 still parse; asEditable in ReviewDishEditor derives
+// dining_format from dish_kind when dining_format is absent.
 export type ExtractedDish = {
   name: string;
   description: string | null;
   price: number | null;
-  dish_kind: DishKind;
   primary_protein: Protein;
   suggested_category_name: string | null;
   canonical_category_slug: string | null;
@@ -38,31 +53,36 @@ export type ExtractedDish = {
   suggested_dish_category: string | null;
   source_image_index: number;
   confidence: number;
-  is_parent?: boolean;
   display_price_prefix?: PricePrefix;
   serves?: number | null;
-  variants?: ExtractedDish[] | null;
-  courses?: ExtractedCourse[] | null;
+  dining_format?: DiningFormat | null;
+  bundled_items?: ExtractedBundledItem[];
+  modifier_groups?: ExtractedModifierGroup[];
+  // Legacy wire-format fields (worker still emits dish_kind through Phase 7;
+  // courses/variants only present on pre-Phase-2 jobs). Read-only — UI never
+  // edits these directly.
+  dish_kind?: 'standard' | 'bundle' | 'configurable' | 'course_menu' | 'buffet';
 };
 
-export type EditableCourseItem = {
+// In-editor versions carry a local _id (for stable React keys + reordering).
+// Otherwise they match the wire shape one-to-one.
+
+export type EditableModifierOption = ExtractedModifierOption & {
   _id: string;
-  option_label: string;
-  price_delta: number;
 };
 
-export type EditableCourse = {
+export type EditableModifierGroup = Omit<ExtractedModifierGroup, 'options'> & {
   _id: string;
-  course_number: number;
-  course_name: string;
-  choice_type: 'fixed' | 'one_of';
-  required_count: number;
-  items: EditableCourseItem[];
+  options: EditableModifierOption[];
+};
+
+export type EditableBundledItem = ExtractedBundledItem & {
+  _id: string;
 };
 
 export type EditableDish = Omit<
   ExtractedDish,
-  'is_parent' | 'display_price_prefix' | 'serves' | 'variants' | 'courses'
+  'display_price_prefix' | 'serves' | 'dining_format' | 'bundled_items' | 'modifier_groups'
 > & {
   _id: string;
   _deleted: boolean;
@@ -72,242 +92,223 @@ export type EditableDish = Omit<
   categoryCustomName: string;
   dishCategoryId: string | null;
   dishCategoryUnmatched: boolean;
-  is_parent: boolean;
   display_price_prefix: PricePrefix;
   serves: number | null;
-  parent_id: string | null;
-  courses: EditableCourse[];
+  dining_format: DiningFormat | null;
+  bundled_items: EditableBundledItem[];
+  modifier_groups: EditableModifierGroup[];
 };
 
-export function newEmptyCourse(courseNumber: number): EditableCourse {
-  return {
-    _id: `course-${crypto.randomUUID()}`,
-    course_number: courseNumber,
-    course_name: '',
-    choice_type: 'one_of',
-    required_count: 1,
-    items: [],
-  };
-}
+// ── Factories ────────────────────────────────────────────────────────────────
 
-export function newEmptyCourseItem(): EditableCourseItem {
+export function newEmptyModifierGroup(): EditableModifierGroup {
   return {
-    _id: `ci-${crypto.randomUUID()}`,
-    option_label: '',
-    price_delta: 0,
-  };
-}
-
-export function newEmptyVariant(parent: EditableDish): EditableDish {
-  return {
-    _id: `dish-${crypto.randomUUID()}`,
-    _deleted: false,
+    _id: `mg-${crypto.randomUUID()}`,
     name: '',
-    description: null,
-    price: null,
-    dish_kind: 'standard',
-    primary_protein: parent.primary_protein,
-    suggested_category_name: null,
-    canonical_category_slug: null,
-    suggested_category_description: null,
-    suggested_dish_category: null,
-    source_image_index: parent.source_image_index,
-    confidence: 1,
-    categoryMode: parent.categoryMode,
-    categoryExistingId: parent.categoryExistingId,
-    categoryCanonicalSlug: parent.categoryCanonicalSlug,
-    categoryCustomName: parent.categoryCustomName,
-    dishCategoryId: parent.dishCategoryId,
-    dishCategoryUnmatched: false,
-    is_parent: false,
-    display_price_prefix: 'exact',
-    serves: parent.serves,
-    parent_id: parent._id,
-    courses: [],
+    selection_type: 'single',
+    min_selections: 1,
+    max_selections: 1,
+    display_in_card: false,
+    options: [],
   };
 }
 
-export function applySetKind(
+export function newEmptyModifierOption(): EditableModifierOption {
+  return {
+    _id: `mo-${crypto.randomUUID()}`,
+    name: '',
+    price_delta: 0,
+    price_override: null,
+    primary_protein: null,
+    removes_dietary_tags: [],
+    adds_allergens: [],
+    serves_delta: 0,
+    is_default: false,
+  };
+}
+
+export function newEmptyBundledItem(): EditableBundledItem {
+  return {
+    _id: `bi-${crypto.randomUUID()}`,
+    name: '',
+    note: null,
+  };
+}
+
+// ── Modifier-group helpers ───────────────────────────────────────────────────
+
+export function applyAddModifierGroup(dishes: EditableDish[], dishId: string): EditableDish[] {
+  return dishes.map(d => {
+    if (d._id !== dishId) return d;
+    return { ...d, modifier_groups: [...d.modifier_groups, newEmptyModifierGroup()] };
+  });
+}
+
+export function applyRemoveModifierGroup(
   dishes: EditableDish[],
-  id: string,
-  newKind: DishKind
+  dishId: string,
+  groupIdx: number
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== id) return d;
-    const oldKind = d.dish_kind;
-    let patch: Partial<EditableDish> = { dish_kind: newKind };
-    switch (newKind) {
-      case 'standard':
-        patch = { ...patch, is_parent: false, display_price_prefix: 'exact' };
-        break;
-      case 'bundle':
-        patch = { ...patch, is_parent: true, display_price_prefix: 'exact' };
-        break;
-      case 'configurable':
-        patch = { ...patch, is_parent: true, display_price_prefix: 'from' };
-        break;
-      case 'course_menu':
-        patch = { ...patch, is_parent: true, display_price_prefix: 'per_person' };
-        if (d.courses.length === 0) {
-          patch.courses = [newEmptyCourse(1)];
-        }
-        break;
-      case 'buffet':
-        patch = { ...patch, is_parent: false, display_price_prefix: 'per_person' };
-        break;
-    }
-    if (oldKind === 'course_menu' && newKind !== 'course_menu') {
-      patch.courses = [];
-    }
-    return { ...d, ...patch };
+    if (d._id !== dishId) return d;
+    return {
+      ...d,
+      modifier_groups: d.modifier_groups.filter((_, i) => i !== groupIdx),
+    };
   });
 }
 
-export function applyAddVariant(dishes: EditableDish[], parentId: string): EditableDish[] {
-  const parent = dishes.find(d => d._id === parentId);
-  if (!parent) return dishes;
-  return [...dishes, newEmptyVariant(parent)];
-}
-
-export function applyRemoveVariant(dishes: EditableDish[], variantId: string): EditableDish[] {
-  return dishes.filter(d => d._id !== variantId);
-}
-
-export function applyAddCourse(dishes: EditableDish[], parentId: string): EditableDish[] {
-  return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    return { ...d, courses: [...d.courses, newEmptyCourse(d.courses.length + 1)] };
-  });
-}
-
-export function applyRemoveCourse(
+export function applyMoveModifierGroup(
   dishes: EditableDish[],
-  parentId: string,
-  courseIdx: number
-): EditableDish[] {
-  return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    const remaining = d.courses.filter((_, i) => i !== courseIdx);
-    const renumbered = remaining.map((c, i) => ({ ...c, course_number: i + 1 }));
-    return { ...d, courses: renumbered };
-  });
-}
-
-export function applyMoveCourse(
-  dishes: EditableDish[],
-  parentId: string,
+  dishId: string,
   fromIdx: number,
   toIdx: number
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== parentId) return d;
+    if (d._id !== dishId) return d;
     if (
       fromIdx === toIdx ||
       fromIdx < 0 ||
       toIdx < 0 ||
-      fromIdx >= d.courses.length ||
-      toIdx >= d.courses.length
+      fromIdx >= d.modifier_groups.length ||
+      toIdx >= d.modifier_groups.length
     ) {
       return d;
     }
-    const courses = [...d.courses];
-    const [moved] = courses.splice(fromIdx, 1);
-    courses.splice(toIdx, 0, moved);
-    const renumbered = courses.map((c, i) => ({ ...c, course_number: i + 1 }));
-    return { ...d, courses: renumbered };
+    const groups = [...d.modifier_groups];
+    const [moved] = groups.splice(fromIdx, 1);
+    groups.splice(toIdx, 0, moved);
+    return { ...d, modifier_groups: groups };
   });
 }
 
-export function applyUpdateCourse(
+export function applyUpdateModifierGroup(
   dishes: EditableDish[],
-  parentId: string,
-  courseIdx: number,
-  patch: Partial<EditableCourse>
+  dishId: string,
+  groupIdx: number,
+  patch: Partial<EditableModifierGroup>
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    const courses = d.courses.map((c, i) => (i === courseIdx ? { ...c, ...patch } : c));
-    return { ...d, courses };
+    if (d._id !== dishId) return d;
+    const groups = d.modifier_groups.map((g, i) => (i === groupIdx ? { ...g, ...patch } : g));
+    return { ...d, modifier_groups: groups };
   });
 }
 
-export function applyAddCourseItem(
+// ── Modifier-option helpers ──────────────────────────────────────────────────
+
+export function applyAddModifierOption(
   dishes: EditableDish[],
-  parentId: string,
-  courseIdx: number
+  dishId: string,
+  groupIdx: number
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    const courses = d.courses.map((c, i) => {
-      if (i !== courseIdx) return c;
-      return { ...c, items: [...c.items, newEmptyCourseItem()] };
+    if (d._id !== dishId) return d;
+    const groups = d.modifier_groups.map((g, i) => {
+      if (i !== groupIdx) return g;
+      return { ...g, options: [...g.options, newEmptyModifierOption()] };
     });
-    return { ...d, courses };
+    return { ...d, modifier_groups: groups };
   });
 }
 
-export function applyRemoveCourseItem(
+export function applyRemoveModifierOption(
   dishes: EditableDish[],
-  parentId: string,
-  courseIdx: number,
-  itemIdx: number
+  dishId: string,
+  groupIdx: number,
+  optIdx: number
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    const courses = d.courses.map((c, i) => {
-      if (i !== courseIdx) return c;
-      return { ...c, items: c.items.filter((_, ii) => ii !== itemIdx) };
+    if (d._id !== dishId) return d;
+    const groups = d.modifier_groups.map((g, i) => {
+      if (i !== groupIdx) return g;
+      return { ...g, options: g.options.filter((_, ii) => ii !== optIdx) };
     });
-    return { ...d, courses };
+    return { ...d, modifier_groups: groups };
   });
 }
 
-export function applyMoveCourseItem(
+export function applyMoveModifierOption(
   dishes: EditableDish[],
-  parentId: string,
-  courseIdx: number,
+  dishId: string,
+  groupIdx: number,
   fromIdx: number,
   toIdx: number
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    const courses = d.courses.map((c, i) => {
-      if (i !== courseIdx) return c;
+    if (d._id !== dishId) return d;
+    const groups = d.modifier_groups.map((g, i) => {
+      if (i !== groupIdx) return g;
       if (
         fromIdx === toIdx ||
         fromIdx < 0 ||
         toIdx < 0 ||
-        fromIdx >= c.items.length ||
-        toIdx >= c.items.length
+        fromIdx >= g.options.length ||
+        toIdx >= g.options.length
       ) {
-        return c;
+        return g;
       }
-      const items = [...c.items];
-      const [moved] = items.splice(fromIdx, 1);
-      items.splice(toIdx, 0, moved);
-      return { ...c, items };
+      const opts = [...g.options];
+      const [moved] = opts.splice(fromIdx, 1);
+      opts.splice(toIdx, 0, moved);
+      return { ...g, options: opts };
     });
-    return { ...d, courses };
+    return { ...d, modifier_groups: groups };
   });
 }
 
-export function applyUpdateCourseItem(
+export function applyUpdateModifierOption(
   dishes: EditableDish[],
-  parentId: string,
-  courseIdx: number,
-  itemIdx: number,
-  patch: Partial<EditableCourseItem>
+  dishId: string,
+  groupIdx: number,
+  optIdx: number,
+  patch: Partial<EditableModifierOption>
 ): EditableDish[] {
   return dishes.map(d => {
-    if (d._id !== parentId) return d;
-    const courses = d.courses.map((c, i) => {
-      if (i !== courseIdx) return c;
+    if (d._id !== dishId) return d;
+    const groups = d.modifier_groups.map((g, i) => {
+      if (i !== groupIdx) return g;
       return {
-        ...c,
-        items: c.items.map((it, ii) => (ii === itemIdx ? { ...it, ...patch } : it)),
+        ...g,
+        options: g.options.map((o, ii) => (ii === optIdx ? { ...o, ...patch } : o)),
       };
     });
-    return { ...d, courses };
+    return { ...d, modifier_groups: groups };
+  });
+}
+
+// ── Bundled-item helpers ─────────────────────────────────────────────────────
+
+export function applyAddBundledItem(dishes: EditableDish[], dishId: string): EditableDish[] {
+  return dishes.map(d => {
+    if (d._id !== dishId) return d;
+    return { ...d, bundled_items: [...d.bundled_items, newEmptyBundledItem()] };
+  });
+}
+
+export function applyRemoveBundledItem(
+  dishes: EditableDish[],
+  dishId: string,
+  itemIdx: number
+): EditableDish[] {
+  return dishes.map(d => {
+    if (d._id !== dishId) return d;
+    return { ...d, bundled_items: d.bundled_items.filter((_, i) => i !== itemIdx) };
+  });
+}
+
+export function applyUpdateBundledItem(
+  dishes: EditableDish[],
+  dishId: string,
+  itemIdx: number,
+  patch: Partial<EditableBundledItem>
+): EditableDish[] {
+  return dishes.map(d => {
+    if (d._id !== dishId) return d;
+    return {
+      ...d,
+      bundled_items: d.bundled_items.map((b, i) => (i === itemIdx ? { ...b, ...patch } : b)),
+    };
   });
 }
 
@@ -322,55 +323,62 @@ export function useReviewState(initial: EditableDish[]) {
     setDishes(prev => prev.map(d => (d._id === id ? { ...d, _deleted: !d._deleted } : d)));
   };
 
-  const setKind = (id: string, newKind: DishKind) =>
-    setDishes(prev => applySetKind(prev, id, newKind));
+  const addModifierGroup = (dishId: string) =>
+    setDishes(prev => applyAddModifierGroup(prev, dishId));
 
-  const addVariant = (parentId: string) => setDishes(prev => applyAddVariant(prev, parentId));
+  const removeModifierGroup = (dishId: string, groupIdx: number) =>
+    setDishes(prev => applyRemoveModifierGroup(prev, dishId, groupIdx));
 
-  const removeVariant = (variantId: string) =>
-    setDishes(prev => applyRemoveVariant(prev, variantId));
+  const moveModifierGroup = (dishId: string, fromIdx: number, toIdx: number) =>
+    setDishes(prev => applyMoveModifierGroup(prev, dishId, fromIdx, toIdx));
 
-  const addCourse = (parentId: string) => setDishes(prev => applyAddCourse(prev, parentId));
+  const updateModifierGroup = (
+    dishId: string,
+    groupIdx: number,
+    patch: Partial<EditableModifierGroup>
+  ) => setDishes(prev => applyUpdateModifierGroup(prev, dishId, groupIdx, patch));
 
-  const removeCourse = (parentId: string, courseIdx: number) =>
-    setDishes(prev => applyRemoveCourse(prev, parentId, courseIdx));
+  const addModifierOption = (dishId: string, groupIdx: number) =>
+    setDishes(prev => applyAddModifierOption(prev, dishId, groupIdx));
 
-  const moveCourse = (parentId: string, fromIdx: number, toIdx: number) =>
-    setDishes(prev => applyMoveCourse(prev, parentId, fromIdx, toIdx));
+  const removeModifierOption = (dishId: string, groupIdx: number, optIdx: number) =>
+    setDishes(prev => applyRemoveModifierOption(prev, dishId, groupIdx, optIdx));
 
-  const updateCourse = (parentId: string, courseIdx: number, patch: Partial<EditableCourse>) =>
-    setDishes(prev => applyUpdateCourse(prev, parentId, courseIdx, patch));
+  const moveModifierOption = (dishId: string, groupIdx: number, fromIdx: number, toIdx: number) =>
+    setDishes(prev => applyMoveModifierOption(prev, dishId, groupIdx, fromIdx, toIdx));
 
-  const addCourseItem = (parentId: string, courseIdx: number) =>
-    setDishes(prev => applyAddCourseItem(prev, parentId, courseIdx));
+  const updateModifierOption = (
+    dishId: string,
+    groupIdx: number,
+    optIdx: number,
+    patch: Partial<EditableModifierOption>
+  ) => setDishes(prev => applyUpdateModifierOption(prev, dishId, groupIdx, optIdx, patch));
 
-  const removeCourseItem = (parentId: string, courseIdx: number, itemIdx: number) =>
-    setDishes(prev => applyRemoveCourseItem(prev, parentId, courseIdx, itemIdx));
+  const addBundledItem = (dishId: string) => setDishes(prev => applyAddBundledItem(prev, dishId));
 
-  const moveCourseItem = (parentId: string, courseIdx: number, fromIdx: number, toIdx: number) =>
-    setDishes(prev => applyMoveCourseItem(prev, parentId, courseIdx, fromIdx, toIdx));
+  const removeBundledItem = (dishId: string, itemIdx: number) =>
+    setDishes(prev => applyRemoveBundledItem(prev, dishId, itemIdx));
 
-  const updateCourseItem = (
-    parentId: string,
-    courseIdx: number,
+  const updateBundledItem = (
+    dishId: string,
     itemIdx: number,
-    patch: Partial<EditableCourseItem>
-  ) => setDishes(prev => applyUpdateCourseItem(prev, parentId, courseIdx, itemIdx, patch));
+    patch: Partial<EditableBundledItem>
+  ) => setDishes(prev => applyUpdateBundledItem(prev, dishId, itemIdx, patch));
 
   return {
     dishes,
     update,
     toggleDelete,
-    setKind,
-    addVariant,
-    removeVariant,
-    addCourse,
-    removeCourse,
-    moveCourse,
-    updateCourse,
-    addCourseItem,
-    removeCourseItem,
-    moveCourseItem,
-    updateCourseItem,
+    addModifierGroup,
+    removeModifierGroup,
+    moveModifierGroup,
+    updateModifierGroup,
+    addModifierOption,
+    removeModifierOption,
+    moveModifierOption,
+    updateModifierOption,
+    addBundledItem,
+    removeBundledItem,
+    updateBundledItem,
   };
 }

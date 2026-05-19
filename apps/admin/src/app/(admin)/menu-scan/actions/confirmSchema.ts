@@ -9,9 +9,7 @@
 /* eslint-disable eatme/no-unwrapped-action */
 
 import { z } from 'zod';
-import { PRIMARY_PROTEINS } from '@eatme/shared';
-
-export const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
+import { PRIMARY_PROTEINS, DINING_FORMATS } from '@eatme/shared';
 
 export const PRICE_PREFIXES = [
   'exact',
@@ -21,20 +19,39 @@ export const PRICE_PREFIXES = [
   'ask_server',
 ] as const;
 
-export const reviewedCourseItemSchema = z.object({
-  option_label: z.string().min(1).max(200),
+// ── Modifier groups (replaces variants + courses) ─────────────────────────────
+// Mirrors @eatme/shared modifierGroupSchema / modifierOptionSchema. Kept local
+// so callers can apply admin-UI-specific min/max/length constraints without
+// changing the worker-facing schemas in @eatme/shared.
+
+export const reviewedModifierOptionSchema = z.object({
+  name: z.string().min(1).max(200),
   price_delta: z.number().default(0),
+  price_override: z.number().nonnegative().nullable().default(null),
+  primary_protein: z.enum(PRIMARY_PROTEINS).nullable().default(null),
+  removes_dietary_tags: z.array(z.string().min(1).max(50)).max(20).default([]),
+  adds_allergens: z.array(z.string().min(1).max(50)).max(20).default([]),
+  serves_delta: z.number().int().default(0),
+  is_default: z.boolean().default(false),
 });
 
-export const reviewedCourseSchema = z.object({
-  course_number: z.number().int().min(1),
-  course_name: z.string().max(200).nullable(),
-  choice_type: z.enum(['fixed', 'one_of']),
-  required_count: z.number().int().min(1).default(1),
-  items: z.array(reviewedCourseItemSchema).max(50),
+export const reviewedModifierGroupSchema = z.object({
+  name: z.string().min(1).max(200),
+  selection_type: z.enum(['single', 'multiple']),
+  min_selections: z.number().int().min(0).default(0),
+  max_selections: z.number().int().min(1).default(1),
+  display_in_card: z.boolean().default(false),
+  options: z.array(reviewedModifierOptionSchema).max(50).default([]),
 });
 
-export type ReviewedCourse = z.infer<typeof reviewedCourseSchema>;
+export const reviewedBundledItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  note: z.string().max(500).nullable().default(null),
+});
+
+export type ReviewedModifierOption = z.infer<typeof reviewedModifierOptionSchema>;
+export type ReviewedModifierGroup = z.infer<typeof reviewedModifierGroupSchema>;
+export type ReviewedBundledItem = z.infer<typeof reviewedBundledItemSchema>;
 
 // Per-dish category resolution. Exactly one of the three category_* fields is
 // expected to be set (or all null for "no category"). Validation below enforces
@@ -44,46 +61,42 @@ export type ReviewedCourse = z.infer<typeof reviewedCourseSchema>;
 // menu_category drives the consumer-facing menu UI grouping, dish_category
 // drives the global filtering/recommendation engine on mobile.
 //
-// is_parent / display_price_prefix / serves / variant_dishes / courses default
-// to false / 'exact' / null / [] / [] so a Phase 3 client (which doesn't yet
-// send these) still validates. Phase 4b ships the client payload extension.
+// display_price_prefix / serves / dining_format / bundled_items / modifier_groups
+// default to 'exact' / null / null / [] / [] so a payload that omits modifiers
+// still validates as a standalone dish.
 export type ReviewedDish = {
   name: string;
   description: string | null;
   price: number | null;
-  dish_kind: (typeof DISH_KINDS)[number];
   primary_protein: (typeof PRIMARY_PROTEINS)[number];
   source_image_index: number | null;
   category_existing_id: string | null;
   category_canonical_slug: string | null;
   category_custom_name: string | null;
   dish_category_id: string | null;
-  is_parent: boolean;
   display_price_prefix: (typeof PRICE_PREFIXES)[number];
   serves: number | null;
-  variant_dishes: ReviewedDish[];
-  courses: ReviewedCourse[];
+  dining_format: (typeof DINING_FORMATS)[number] | null;
+  bundled_items: ReviewedBundledItem[];
+  modifier_groups: ReviewedModifierGroup[];
 };
 
-export const reviewedDishSchema: z.ZodType<ReviewedDish> = z.lazy(() =>
-  z.object({
-    name: z.string().min(1).max(200),
-    description: z.string().max(2000).nullable(),
-    price: z.number().nonnegative().nullable(),
-    dish_kind: z.enum(DISH_KINDS),
-    primary_protein: z.enum(PRIMARY_PROTEINS),
-    source_image_index: z.number().int().min(0).nullable(),
-    category_existing_id: z.string().uuid().nullable(),
-    category_canonical_slug: z.string().min(1).max(100).nullable(),
-    category_custom_name: z.string().min(1).max(200).nullable(),
-    dish_category_id: z.string().uuid().nullable(),
-    is_parent: z.boolean().default(false),
-    display_price_prefix: z.enum(PRICE_PREFIXES).default('exact'),
-    serves: z.number().int().min(1).nullable().default(null),
-    variant_dishes: z.array(reviewedDishSchema).max(50).default([]),
-    courses: z.array(reviewedCourseSchema).max(20).default([]),
-  })
-);
+export const reviewedDishSchema: z.ZodType<ReviewedDish> = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).nullable(),
+  price: z.number().nonnegative().nullable(),
+  primary_protein: z.enum(PRIMARY_PROTEINS),
+  source_image_index: z.number().int().min(0).nullable(),
+  category_existing_id: z.string().uuid().nullable(),
+  category_canonical_slug: z.string().min(1).max(100).nullable(),
+  category_custom_name: z.string().min(1).max(200).nullable(),
+  dish_category_id: z.string().uuid().nullable(),
+  display_price_prefix: z.enum(PRICE_PREFIXES).default('exact'),
+  serves: z.number().int().min(1).nullable().default(null),
+  dining_format: z.enum(DINING_FORMATS).nullable().default(null),
+  bundled_items: z.array(reviewedBundledItemSchema).max(50).default([]),
+  modifier_groups: z.array(reviewedModifierGroupSchema).max(20).default([]),
+});
 
 // One per unique category referenced by dishes in this scan. Carries the
 // admin-edited section description (in source language). Exactly one of

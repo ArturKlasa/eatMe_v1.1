@@ -1,18 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import {
-  applyAddCourse,
-  applyAddCourseItem,
-  applyAddVariant,
-  applyMoveCourse,
-  applyMoveCourseItem,
-  applyRemoveCourse,
-  applyRemoveCourseItem,
-  applyRemoveVariant,
-  applySetKind,
-  applyUpdateCourse,
-  applyUpdateCourseItem,
-  newEmptyCourse,
+  applyAddBundledItem,
+  applyAddModifierGroup,
+  applyAddModifierOption,
+  applyMoveModifierGroup,
+  applyMoveModifierOption,
+  applyRemoveBundledItem,
+  applyRemoveModifierGroup,
+  applyRemoveModifierOption,
+  applyUpdateBundledItem,
+  applyUpdateModifierGroup,
+  applyUpdateModifierOption,
+  newEmptyModifierGroup,
+  newEmptyModifierOption,
   type EditableDish,
+  type EditableModifierGroup,
 } from '@/app/(admin)/menu-scan/[jobId]/useReviewState';
 
 function makeDish(overrides: Partial<EditableDish> = {}): EditableDish {
@@ -22,7 +24,6 @@ function makeDish(overrides: Partial<EditableDish> = {}): EditableDish {
     name: 'Test',
     description: null,
     price: 10,
-    dish_kind: 'standard',
     primary_protein: 'chicken',
     suggested_category_name: null,
     canonical_category_slug: null,
@@ -36,220 +37,172 @@ function makeDish(overrides: Partial<EditableDish> = {}): EditableDish {
     categoryCustomName: '',
     dishCategoryId: null,
     dishCategoryUnmatched: false,
-    is_parent: false,
     display_price_prefix: 'exact',
     serves: null,
-    parent_id: null,
-    courses: [],
+    dining_format: null,
+    bundled_items: [],
+    modifier_groups: [],
     ...overrides,
   };
 }
 
-describe('applySetKind — field mapping', () => {
-  it('standard → is_parent=false, display_price_prefix=exact', () => {
-    const next = applySetKind([makeDish()], 'dish-1', 'standard');
-    expect(next[0].dish_kind).toBe('standard');
-    expect(next[0].is_parent).toBe(false);
-    expect(next[0].display_price_prefix).toBe('exact');
+function makeGroup(overrides: Partial<EditableModifierGroup> = {}): EditableModifierGroup {
+  return {
+    ...newEmptyModifierGroup(),
+    name: 'Size',
+    ...overrides,
+  };
+}
+
+describe('applyAddModifierGroup / applyRemoveModifierGroup / applyMoveModifierGroup', () => {
+  it('addModifierGroup appends an empty group', () => {
+    const next = applyAddModifierGroup([makeDish()], 'dish-1');
+    expect(next[0].modifier_groups).toHaveLength(1);
+    expect(next[0].modifier_groups[0].name).toBe('');
+    expect(next[0].modifier_groups[0].selection_type).toBe('single');
   });
 
-  it('bundle → is_parent=true, display_price_prefix=exact', () => {
-    const next = applySetKind([makeDish()], 'dish-1', 'bundle');
-    expect(next[0].dish_kind).toBe('bundle');
-    expect(next[0].is_parent).toBe(true);
-    expect(next[0].display_price_prefix).toBe('exact');
+  it('addModifierGroup is a no-op when dish does not match', () => {
+    const start = [makeDish()];
+    const next = applyAddModifierGroup(start, 'no-such-id');
+    expect(next[0].modifier_groups).toHaveLength(0);
   });
 
-  it('configurable → is_parent=true, display_price_prefix=from', () => {
-    const next = applySetKind([makeDish()], 'dish-1', 'configurable');
-    expect(next[0].dish_kind).toBe('configurable');
-    expect(next[0].is_parent).toBe(true);
-    expect(next[0].display_price_prefix).toBe('from');
+  it('removeModifierGroup drops the group at index', () => {
+    const dish = makeDish({
+      modifier_groups: [
+        makeGroup({ name: 'A' }),
+        makeGroup({ name: 'B' }),
+        makeGroup({ name: 'C' }),
+      ],
+    });
+    const next = applyRemoveModifierGroup([dish], 'dish-1', 1);
+    expect(next[0].modifier_groups.map(g => g.name)).toEqual(['A', 'C']);
   });
 
-  it('buffet → is_parent=false, display_price_prefix=per_person', () => {
-    const next = applySetKind([makeDish()], 'dish-1', 'buffet');
-    expect(next[0].dish_kind).toBe('buffet');
-    expect(next[0].is_parent).toBe(false);
-    expect(next[0].display_price_prefix).toBe('per_person');
+  it('moveModifierGroup reorders groups', () => {
+    const dish = makeDish({
+      modifier_groups: [
+        makeGroup({ name: 'A' }),
+        makeGroup({ name: 'B' }),
+        makeGroup({ name: 'C' }),
+      ],
+    });
+    const next = applyMoveModifierGroup([dish], 'dish-1', 0, 2);
+    expect(next[0].modifier_groups.map(g => g.name)).toEqual(['B', 'C', 'A']);
   });
 
-  it('course_menu → is_parent=true, display_price_prefix=per_person, auto-seeds Course 1', () => {
-    const next = applySetKind([makeDish()], 'dish-1', 'course_menu');
-    expect(next[0].dish_kind).toBe('course_menu');
-    expect(next[0].is_parent).toBe(true);
-    expect(next[0].display_price_prefix).toBe('per_person');
-    expect(next[0].courses).toHaveLength(1);
-    expect(next[0].courses[0].course_number).toBe(1);
-  });
-
-  it('course_menu does not duplicate Course 1 if courses already exist', () => {
-    const existing = newEmptyCourse(1);
-    const next = applySetKind([makeDish({ courses: [existing] })], 'dish-1', 'course_menu');
-    expect(next[0].courses).toHaveLength(1);
-    expect(next[0].courses[0]._id).toBe(existing._id);
-  });
-
-  it('leaving course_menu clears courses', () => {
-    const next = applySetKind(
-      [makeDish({ dish_kind: 'course_menu', is_parent: true, courses: [newEmptyCourse(1)] })],
-      'dish-1',
-      'standard'
-    );
-    expect(next[0].dish_kind).toBe('standard');
-    expect(next[0].courses).toEqual([]);
-  });
-
-  it('does not reset price', () => {
-    const next = applySetKind([makeDish({ price: 99.5 })], 'dish-1', 'configurable');
-    expect(next[0].price).toBe(99.5);
-  });
-
-  it('returns same reference for non-matched dishes', () => {
-    const a = makeDish({ _id: 'dish-1' });
-    const b = makeDish({ _id: 'dish-2' });
-    const next = applySetKind([a, b], 'dish-1', 'bundle');
-    expect(next[1]).toBe(b);
+  it('moveModifierGroup is a no-op for out-of-bounds indices', () => {
+    const dish = makeDish({ modifier_groups: [makeGroup(), makeGroup()] });
+    const next = applyMoveModifierGroup([dish], 'dish-1', 0, 5);
+    expect(next).toStrictEqual([dish]);
   });
 });
 
-describe('applyAddVariant / applyRemoveVariant', () => {
-  it('addVariant appends a child with parent_id set and is_parent=false', () => {
-    const parent = makeDish({ _id: 'p1', dish_kind: 'bundle', is_parent: true });
-    const next = applyAddVariant([parent], 'p1');
-    expect(next).toHaveLength(2);
-    const variant = next[1];
-    expect(variant.parent_id).toBe('p1');
-    expect(variant.is_parent).toBe(false);
-    expect(variant.dish_kind).toBe('standard');
-  });
-
-  it('addVariant inherits primary_protein and category from parent', () => {
-    const parent = makeDish({
-      _id: 'p1',
-      primary_protein: 'beef',
-      categoryMode: 'canonical',
-      categoryCanonicalSlug: 'mains',
-      dishCategoryId: 'cat-uuid',
+describe('applyUpdateModifierGroup', () => {
+  it('merges patch into target group only', () => {
+    const dish = makeDish({
+      modifier_groups: [makeGroup({ name: 'A' }), makeGroup({ name: 'B' })],
     });
-    const next = applyAddVariant([parent], 'p1');
-    const variant = next[1];
-    expect(variant.primary_protein).toBe('beef');
-    expect(variant.categoryMode).toBe('canonical');
-    expect(variant.categoryCanonicalSlug).toBe('mains');
-    expect(variant.dishCategoryId).toBe('cat-uuid');
-  });
-
-  it('addVariant is a no-op when parent does not exist', () => {
-    const dishes = [makeDish()];
-    const next = applyAddVariant(dishes, 'no-such-id');
-    expect(next).toBe(dishes);
-  });
-
-  it('removeVariant removes the dish by id', () => {
-    const parent = makeDish({ _id: 'p1' });
-    const variant = makeDish({ _id: 'v1', parent_id: 'p1' });
-    const next = applyRemoveVariant([parent, variant], 'v1');
-    expect(next).toHaveLength(1);
-    expect(next[0]._id).toBe('p1');
+    const next = applyUpdateModifierGroup([dish], 'dish-1', 1, {
+      name: 'Renamed',
+      selection_type: 'multiple',
+      max_selections: 3,
+    });
+    expect(next[0].modifier_groups[0].name).toBe('A');
+    expect(next[0].modifier_groups[1].name).toBe('Renamed');
+    expect(next[0].modifier_groups[1].selection_type).toBe('multiple');
+    expect(next[0].modifier_groups[1].max_selections).toBe(3);
   });
 });
 
-describe('applyAddCourse / applyRemoveCourse / applyMoveCourse', () => {
-  function parentWithCourses(count: number): EditableDish {
-    return makeDish({
-      _id: 'p1',
-      dish_kind: 'course_menu',
-      is_parent: true,
-      courses: Array.from({ length: count }, (_, i) => ({
-        ...newEmptyCourse(i + 1),
-        course_name: `Course ${i + 1}`,
-      })),
-    });
-  }
-
-  it('addCourse appends with the correct course_number', () => {
-    const next = applyAddCourse([parentWithCourses(2)], 'p1');
-    expect(next[0].courses).toHaveLength(3);
-    expect(next[0].courses[2].course_number).toBe(3);
-  });
-
-  it('removeCourse removes and renumbers the rest', () => {
-    const next = applyRemoveCourse([parentWithCourses(3)], 'p1', 0);
-    expect(next[0].courses).toHaveLength(2);
-    expect(next[0].courses[0].course_number).toBe(1);
-    expect(next[0].courses[1].course_number).toBe(2);
-    expect(next[0].courses[0].course_name).toBe('Course 2');
-  });
-
-  it('moveCourse swaps and renumbers', () => {
-    const next = applyMoveCourse([parentWithCourses(3)], 'p1', 0, 2);
-    expect(next[0].courses[0].course_name).toBe('Course 2');
-    expect(next[0].courses[1].course_name).toBe('Course 3');
-    expect(next[0].courses[2].course_name).toBe('Course 1');
-    expect(next[0].courses.map(c => c.course_number)).toEqual([1, 2, 3]);
-  });
-
-  it('moveCourse is a no-op for out-of-bounds indices', () => {
-    const start = [parentWithCourses(2)];
-    expect(applyMoveCourse(start, 'p1', 0, 5)).toStrictEqual(start);
-  });
-
-  it('updateCourse merges patch into target course only', () => {
-    const next = applyUpdateCourse([parentWithCourses(2)], 'p1', 1, {
-      course_name: 'Renamed',
-      choice_type: 'fixed',
-    });
-    expect(next[0].courses[0].course_name).toBe('Course 1');
-    expect(next[0].courses[1].course_name).toBe('Renamed');
-    expect(next[0].courses[1].choice_type).toBe('fixed');
-  });
-});
-
-describe('applyAddCourseItem / applyRemoveCourseItem / applyMoveCourseItem / applyUpdateCourseItem', () => {
-  function parentWithItems(itemCount: number): EditableDish {
-    const course = newEmptyCourse(1);
-    course.items = Array.from({ length: itemCount }, (_, i) => ({
-      _id: `ci-${i}`,
-      option_label: `Item ${i + 1}`,
+describe('applyAddModifierOption / applyRemoveModifierOption / applyMoveModifierOption', () => {
+  function dishWithOptions(count: number): EditableDish {
+    const group = makeGroup();
+    group.options = Array.from({ length: count }, (_, i) => ({
+      ...newEmptyModifierOption(),
+      name: `Opt ${i + 1}`,
       price_delta: i,
     }));
-    return makeDish({
-      _id: 'p1',
-      dish_kind: 'course_menu',
-      is_parent: true,
-      courses: [course],
-    });
+    return makeDish({ modifier_groups: [group] });
   }
 
-  it('addCourseItem appends an empty item', () => {
-    const next = applyAddCourseItem([parentWithItems(1)], 'p1', 0);
-    expect(next[0].courses[0].items).toHaveLength(2);
-    expect(next[0].courses[0].items[1].option_label).toBe('');
+  it('addModifierOption appends an empty option', () => {
+    const next = applyAddModifierOption([dishWithOptions(1)], 'dish-1', 0);
+    expect(next[0].modifier_groups[0].options).toHaveLength(2);
+    expect(next[0].modifier_groups[0].options[1].name).toBe('');
   });
 
-  it('removeCourseItem drops the item at index', () => {
-    const next = applyRemoveCourseItem([parentWithItems(3)], 'p1', 0, 1);
-    expect(next[0].courses[0].items).toHaveLength(2);
-    expect(next[0].courses[0].items.map(it => it.option_label)).toEqual(['Item 1', 'Item 3']);
+  it('removeModifierOption drops the option at index', () => {
+    const next = applyRemoveModifierOption([dishWithOptions(3)], 'dish-1', 0, 1);
+    expect(next[0].modifier_groups[0].options.map(o => o.name)).toEqual(['Opt 1', 'Opt 3']);
   });
 
-  it('moveCourseItem reorders items within a course', () => {
-    const next = applyMoveCourseItem([parentWithItems(3)], 'p1', 0, 0, 2);
-    expect(next[0].courses[0].items.map(it => it.option_label)).toEqual([
-      'Item 2',
-      'Item 3',
-      'Item 1',
+  it('moveModifierOption reorders options within a group', () => {
+    const next = applyMoveModifierOption([dishWithOptions(3)], 'dish-1', 0, 0, 2);
+    expect(next[0].modifier_groups[0].options.map(o => o.name)).toEqual([
+      'Opt 2',
+      'Opt 3',
+      'Opt 1',
     ]);
   });
+});
 
-  it('updateCourseItem merges patch into target item only', () => {
-    const next = applyUpdateCourseItem([parentWithItems(2)], 'p1', 0, 1, {
-      option_label: 'Edited',
+describe('applyUpdateModifierOption', () => {
+  it('merges patch into target option only', () => {
+    const group = makeGroup();
+    group.options = [
+      { ...newEmptyModifierOption(), name: 'A' },
+      { ...newEmptyModifierOption(), name: 'B' },
+    ];
+    const dish = makeDish({ modifier_groups: [group] });
+    const next = applyUpdateModifierOption([dish], 'dish-1', 0, 1, {
+      name: 'Edited',
       price_delta: 5,
+      primary_protein: 'beef',
+      is_default: true,
     });
-    expect(next[0].courses[0].items[0].option_label).toBe('Item 1');
-    expect(next[0].courses[0].items[1].option_label).toBe('Edited');
-    expect(next[0].courses[0].items[1].price_delta).toBe(5);
+    expect(next[0].modifier_groups[0].options[0].name).toBe('A');
+    expect(next[0].modifier_groups[0].options[1].name).toBe('Edited');
+    expect(next[0].modifier_groups[0].options[1].price_delta).toBe(5);
+    expect(next[0].modifier_groups[0].options[1].primary_protein).toBe('beef');
+    expect(next[0].modifier_groups[0].options[1].is_default).toBe(true);
+  });
+});
+
+describe('applyAddBundledItem / applyRemoveBundledItem / applyUpdateBundledItem', () => {
+  it('addBundledItem appends an empty item', () => {
+    const next = applyAddBundledItem([makeDish()], 'dish-1');
+    expect(next[0].bundled_items).toHaveLength(1);
+    expect(next[0].bundled_items[0].name).toBe('');
+    expect(next[0].bundled_items[0].note).toBe(null);
+  });
+
+  it('removeBundledItem drops the item at index', () => {
+    const dish = makeDish({
+      bundled_items: [
+        { _id: 'bi-1', name: 'Soup', note: null },
+        { _id: 'bi-2', name: 'Salad', note: 'tossed' },
+        { _id: 'bi-3', name: 'Bread', note: null },
+      ],
+    });
+    const next = applyRemoveBundledItem([dish], 'dish-1', 1);
+    expect(next[0].bundled_items.map(b => b.name)).toEqual(['Soup', 'Bread']);
+  });
+
+  it('updateBundledItem merges patch into target item only', () => {
+    const dish = makeDish({
+      bundled_items: [
+        { _id: 'bi-1', name: 'Soup', note: null },
+        { _id: 'bi-2', name: 'Salad', note: null },
+      ],
+    });
+    const next = applyUpdateBundledItem([dish], 'dish-1', 1, {
+      name: 'Caesar Salad',
+      note: 'no anchovies',
+    });
+    expect(next[0].bundled_items[0].name).toBe('Soup');
+    expect(next[0].bundled_items[1].name).toBe('Caesar Salad');
+    expect(next[0].bundled_items[1].note).toBe('no anchovies');
   });
 });

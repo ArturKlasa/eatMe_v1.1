@@ -13,11 +13,12 @@ import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing } from '@/styles/theme';
 import { useTranslation } from 'react-i18next';
 import { type RestaurantWithMenus, type MenuCategoryWithCanonical } from '../../lib/supabase';
-import { type PermanentFilters } from '../../stores/filterStore';
+import { useFilterStore, type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { groupDishesByParent, type DishWithGroups } from './DishGrouping';
 import { classifyDish, sortDishesByFilter } from '../../utils/menuFilterUtils';
 import { DishMenuItem } from './DishMenuItem';
+import { ModifierGroupsList } from './ModifierGroupsList';
 import { VariantPickerSheet } from './VariantPickerSheet';
 
 interface FoodTabProps {
@@ -71,6 +72,7 @@ export function FoodTab({
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const locale = i18n.language;
+  const dailyFilters = useFilterStore(state => state.daily);
 
   const [pickerGroup, setPickerGroup] = useState<{
     parent: DishWithGroups;
@@ -139,16 +141,32 @@ export function FoodTab({
                 {Array.isArray(categoryState) &&
                   grouped.map(item => {
                     if (item.type === 'standalone') {
+                      // New-model render: row + inline modifier groups below.
+                      // option_groups[] is loaded by fetchCategoryDishes (Phase 5a).
+                      // Empty array → ModifierGroupsList renders nothing.
                       return (
-                        <DishMenuItem
-                          key={item.dish.id}
-                          item={item.dish}
-                          permanentFilters={permanentFilters}
-                          dishRatings={dishRatings}
-                          onPress={onDishPress}
-                        />
+                        <View key={item.dish.id}>
+                          <DishMenuItem
+                            item={item.dish}
+                            permanentFilters={permanentFilters}
+                            dishRatings={dishRatings}
+                            onPress={onDishPress}
+                          />
+                          {(item.dish.option_groups?.length ?? 0) > 0 && (
+                            <View style={{ paddingHorizontal: spacing.md }}>
+                              <ModifierGroupsList
+                                groups={item.dish.option_groups ?? []}
+                                permanent={permanentFilters}
+                                daily={dailyFilters}
+                                basePrice={item.dish.price ?? 0}
+                              />
+                            </View>
+                          )}
+                        </View>
                       );
                     }
+                    // Legacy parent/variant dishes: keep the picker-sheet flow
+                    // until Phase 7 drops the parent_dish_id column.
                     const minPrice = item.variants.reduce(
                       (acc, v) => (v.price != null && v.price < acc ? v.price : acc),
                       Infinity

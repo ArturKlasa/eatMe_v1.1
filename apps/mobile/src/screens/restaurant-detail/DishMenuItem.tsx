@@ -85,6 +85,15 @@ export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: D
       {item.ingredients_visibility === 'menu' && (item.ingredients?.length ?? 0) > 0 && (
         <Text style={styles.menuItemIngredients}>{item.ingredients!.join(', ')}</Text>
       )}
+      {/* Bundled items: e.g. "comes with: Soup of the day, Side salad" */}
+      {Array.isArray(item.bundled_items) && item.bundled_items.length > 0 && (
+        <Text style={styles.menuItemIngredients}>
+          {t('restaurant.comesWith', 'comes with')}:{' '}
+          {(item.bundled_items as Array<{ name: string; note?: string | null }>)
+            .map(b => (b.note ? `${b.name} (${b.note})` : b.name))
+            .join(', ')}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }

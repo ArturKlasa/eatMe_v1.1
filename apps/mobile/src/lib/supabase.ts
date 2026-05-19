@@ -43,20 +43,38 @@ export type MenuCategory = Tables<'menu_categories'>;
 /** Raw row from the `dishes` table */
 export type Dish = Tables<'dishes'>;
 
-/** A single selectable option within an option group */
+/** A single selectable option within an option group.
+ *
+ * Phase 4 dish-model rewrite (migration 140) added price_override,
+ * primary_protein, adds_dietary_tags, removes_dietary_tags, adds_allergens,
+ * serves_delta, is_default to the options table. These power the new
+ * modifier-aware dish model — protein-introducing options, allergen warnings
+ * derived from option choices, default selections that drive the feed-card
+ * descriptor, and tiered pricing via price_override.
+ */
 export interface Option {
   id: string;
   option_group_id: string;
   name: string;
   description?: string | null;
   price_delta: number;
+  price_override?: number | null;
+  primary_protein?: string | null;
+  adds_dietary_tags?: string[] | null;
+  removes_dietary_tags?: string[] | null;
+  adds_allergens?: string[] | null;
+  serves_delta?: number | null;
+  is_default?: boolean | null;
   calories_delta?: number | null;
   canonical_ingredient_id?: string | null;
   is_available: boolean;
   display_order: number;
 }
 
-/** A group of options attached to a dish (template / experience kinds) */
+/** A group of options attached to a dish. Phase 4 added display_in_card,
+ * which tells the mobile feed card whether to surface this group's selection
+ * in the composed dish-card descriptor (e.g. "Pad Thai with Chicken").
+ */
 export interface OptionGroup {
   id: string;
   restaurant_id: string;
@@ -68,6 +86,7 @@ export interface OptionGroup {
   min_selections: number;
   max_selections?: number | null;
   display_order: number;
+  display_in_card?: boolean | null;
   is_active: boolean;
   options: Option[];
 }

@@ -325,11 +325,15 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
             spice_level, image_url, is_available, dish_kind, display_price_prefix,
             description_visibility, ingredients_visibility, parent_dish_id, is_parent,
             serves, price_per_person,
+            primary_protein, dining_format, bundled_items,
+            available_days, available_hours_start, available_hours_end,
             option_groups (
               id, name, description, selection_type, min_selections, max_selections,
-              display_order, is_active,
-              options (id, name, description, price_delta, calories_delta,
-                       canonical_ingredient_id, is_available, display_order)
+              display_order, display_in_card, is_active,
+              options (id, name, description, price_delta, price_override,
+                       primary_protein, adds_dietary_tags, removes_dietary_tags,
+                       adds_allergens, serves_delta, is_default,
+                       calories_delta, canonical_ingredient_id, is_available, display_order)
             )
           )
         `

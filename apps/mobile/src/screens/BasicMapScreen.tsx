@@ -14,7 +14,12 @@ import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { estimateAvgPrice } from '../services/filterService';
-import { getCombinedFeed, ServerDish, ServerRestaurant } from '../services/edgeFunctionsService';
+import {
+  composeCardName,
+  getCombinedFeed,
+  ServerDish,
+  ServerRestaurant,
+} from '../services/edgeFunctionsService';
 import { formatDistance } from '../services/geoService';
 import { isRestaurantOpenNow } from '../utils/i18nUtils';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
@@ -222,16 +227,20 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     };
     return {
       id: dish.id,
-      name: dish.name,
+      // Compose the card name from applied_options (Hybrid A+C). Falls back
+      // to dish.name when no descriptors qualify.
+      name: composeCardName(dish),
       restaurantId: dish.restaurant_id,
       restaurantName: dish.restaurant?.name || flatDish.restaurant_name || 'Unknown Restaurant',
-      price: dish.price,
+      // Prefer the feed-resolved effective_price (default options applied);
+      // fall back to base price when the feed didn't customise.
+      price: dish.effective_price ?? dish.price,
       cuisine:
         dish.restaurant?.cuisine_types?.[0] || flatDish.restaurant_cuisines?.[0] || 'Unknown',
       imageUrl: dish.image_url || undefined,
       isAvailable: dish.is_available,
-      dietary_tags: dish.dietary_tags || [],
-      allergens: dish.allergens || [],
+      dietary_tags: dish.effective_dietary_tags ?? dish.dietary_tags ?? [],
+      allergens: dish.effective_allergens ?? dish.allergens ?? [],
     };
   }
 

@@ -9,7 +9,7 @@
  * Design reference: first-principles-review Part 14
  */
 
-import type { PermanentFilters } from '../stores/filterStore';
+import type { DailyFilters, PermanentFilters } from '../stores/filterStore';
 
 // Migration 093 unified allergen codes to their canonical shorts — filterStore
 // keys are now identical to DB codes. Kept as an identity map so any residual
@@ -108,4 +108,110 @@ export function sortDishesByFilter<T extends { passesHardFilters: boolean }>(dis
     if (a.passesHardFilters === b.passesHardFilters) return 0;
     return a.passesHardFilters ? -1 : 1;
   });
+}
+
+// ── Modifier-option classification (Phase 5) ─────────────────────────────────
+
+/**
+ * Per-option classification against the active permanent + daily filters.
+ *
+ * Mobile uses this to annotate option rows in the dish detail screen — e.g.
+ * show a red allergy chip on "Add anchovies" for a shellfish-allergic user,
+ * or grey out "Add chicken" when the user's permanent dietPreference is vegan.
+ *
+ * Returns lists rather than booleans so the UI can name the specific tag (e.g.
+ * "removes vegan") rather than a generic warning.
+ */
+export interface OptionClassification {
+  /** Codes from the option's adds_allergens that the user has marked active. */
+  triggersAllergy: string[];
+  /** Codes from the option's removes_dietary_tags that the user requires. */
+  stripsDietaryTags: string[];
+  /** True when permanent.primaryProtein matches the option's primary_protein. */
+  matchesPreferredProtein: boolean;
+  /** True when the option's primary_protein lines up with an active daily meat type. */
+  matchesDailyMeatType: boolean;
+}
+
+// Map a PRIMARY_PROTEINS value onto the daily-filter meatTypes keyspace.
+// Returns null for proteins that aren't a meat (fish, shellfish, eggs, vegan,
+// vegetarian) — those don't participate in the meatTypes toggle.
+function proteinToMeatTypeKey(
+  protein: string | null | undefined
+): keyof DailyFilters['meatTypes'] | null {
+  switch (protein) {
+    case 'chicken':
+      return 'chicken';
+    case 'beef':
+      return 'beef';
+    case 'pork':
+      return 'pork';
+    case 'lamb':
+      return 'lamb';
+    case 'goat':
+      return 'goat';
+    case 'other_meat':
+      return 'other';
+    default:
+      return null;
+  }
+}
+
+// Religious-restriction → dietary_tag map. Same shape as RELIGIOUS_TO_TAG above
+// but with the user-facing filter keys instead of the DB keys for ergonomics.
+const RELIGIOUS_REQUIRED_TAG: Record<keyof PermanentFilters['religiousRestrictions'], string> = {
+  halal: 'halal',
+  hindu: 'hindu_vegetarian',
+  kosher: 'kosher',
+  jain: 'jain',
+  buddhist: 'buddhist',
+};
+
+export function classifyOption(
+  option: {
+    adds_allergens?: string[] | null;
+    removes_dietary_tags?: string[] | null;
+    primary_protein?: string | null;
+  },
+  permanent: PermanentFilters,
+  daily: DailyFilters
+): OptionClassification {
+  const addsAllergens = option.adds_allergens ?? [];
+  const removesTags = option.removes_dietary_tags ?? [];
+
+  // ── Allergy triggers ──────────────────────────────────────────────────────
+  const activeAllergenCodes = (
+    Object.entries(permanent.allergies) as [keyof PermanentFilters['allergies'], boolean][]
+  )
+    .filter(([, active]) => active)
+    .map(([key]) => ALLERGY_TO_DB[key]);
+  const triggersAllergy = addsAllergens.filter(a => activeAllergenCodes.includes(a));
+
+  // ── Dietary-tag strip detection ───────────────────────────────────────────
+  // Build the set of dietary tags the user requires the dish to KEEP. An option
+  // that removes one of these is an explicit conflict.
+  const requiredTags = new Set<string>();
+  if (permanent.dietPreference === 'vegan') requiredTags.add('vegan');
+  if (permanent.dietPreference === 'vegetarian') requiredTags.add('vegetarian');
+  for (const [key, active] of Object.entries(permanent.religiousRestrictions) as [
+    keyof PermanentFilters['religiousRestrictions'],
+    boolean,
+  ][]) {
+    if (active) requiredTags.add(RELIGIOUS_REQUIRED_TAG[key]);
+  }
+  const stripsDietaryTags = removesTags.filter(t => requiredTags.has(t));
+
+  // ── Protein matching ──────────────────────────────────────────────────────
+  const matchesPreferredProtein =
+    permanent.primaryProtein != null && option.primary_protein === permanent.primaryProtein;
+
+  const meatKey = proteinToMeatTypeKey(option.primary_protein);
+  const matchesDailyMeatType = meatKey != null && daily.meatTypes[meatKey] === true;
+
+  return {
+    triggersAllergy,
+    stripsDietaryTags,
+    matchesPreferredProtein,
+    matchesDailyMeatType,
+  };
 }

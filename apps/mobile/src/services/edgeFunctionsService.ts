@@ -4,6 +4,15 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 const EDGE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 
+export interface AppliedOption {
+  option_id: string;
+  group_name: string;
+  group_display_in_card: boolean;
+  name: string;
+  primary_protein: string | null;
+  price_delta: number;
+}
+
 export interface ServerDish {
   id: string;
   restaurant_id: string;
@@ -18,6 +27,17 @@ export interface ServerDish {
   allergens: string[];
   dietary_tags: string[];
 
+  // Phase 5 dish-model fields. The feed function applies default options +
+  // user-preference selections and emits the resolved values here. Fallback to
+  // base fields when absent (older feed function or non-customisable dish).
+  effective_price?: number;
+  effective_primary_protein?: string | null;
+  effective_dietary_tags?: string[];
+  effective_allergens?: string[];
+  applied_options?: AppliedOption[];
+  dining_format?: string | null;
+  bundled_items?: Array<{ name: string; note?: string | null }> | null;
+
   restaurant?: {
     id: string;
     name: string;
@@ -27,6 +47,25 @@ export interface ServerDish {
 
   distance_km?: number;
   score?: number;
+}
+
+/**
+ * Compose the card-displayed dish name using the Hybrid A+C rule:
+ *   A — group_display_in_card=true on the applied option's group, OR
+ *   C — option's primary_protein is non-null (introducing protein → descriptive)
+ *
+ * "Pad Thai" with applied protein=Chicken → "Pad Thai with chicken"
+ * "Margherita" with no descriptors → "Margherita"
+ * Capped at 2 descriptors; further options collapse to "+N more".
+ */
+export function composeCardName(dish: ServerDish): string {
+  const descriptors = (dish.applied_options ?? [])
+    .filter(opt => opt.group_display_in_card || opt.primary_protein !== null)
+    .map(opt => opt.name);
+  if (descriptors.length === 0) return dish.name;
+  if (descriptors.length === 1) return `${dish.name} with ${descriptors[0]}`;
+  if (descriptors.length === 2) return `${dish.name} with ${descriptors[0]} and ${descriptors[1]}`;
+  return `${dish.name} with ${descriptors[0]} (+${descriptors.length - 1} more)`;
 }
 
 /** Maps filterStore allergy keys to allergens.code values used in dishes.allergens TEXT[]. */

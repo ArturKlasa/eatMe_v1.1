@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { PRIMARY_PROTEINS, DISH_KIND_META } from '@eatme/shared';
+import {
+  PRIMARY_PROTEINS,
+  DINING_FORMATS,
+  DINING_FORMAT_META,
+  type DiningFormat,
+} from '@eatme/shared';
 import type { AdminMenuDish, DishCategoryOption } from '@/lib/auth/dal';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
 import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import { adminCreateDish } from './actions/dish';
 
-type DishKind = keyof typeof DISH_KIND_META;
 type Protein = (typeof PRIMARY_PROTEINS)[number];
-const DISH_KIND_VALUES = Object.keys(DISH_KIND_META) as DishKind[];
 
 interface Props {
   restaurantId: string;
@@ -53,7 +56,7 @@ export function AddDishButton({
   // on dishes (CLAUDE.md pitfall #6) and a silent default like 'chicken' would
   // mis-classify vegetarian dishes that admin adds in a hurry.
   const [primaryProtein, setPrimaryProtein] = useState<Protein | ''>('');
-  const [dishKind, setDishKind] = useState<DishKind>('standard');
+  const [diningFormat, setDiningFormat] = useState<DiningFormat | ''>('');
   const [dishCategoryId, setDishCategoryId] = useState<string>('');
 
   function reset() {
@@ -61,7 +64,7 @@ export function AddDishButton({
     setDescription('');
     setPrice('');
     setPrimaryProtein('');
-    setDishKind('standard');
+    setDiningFormat('');
     setDishCategoryId('');
     setServerError('');
   }
@@ -100,8 +103,8 @@ export function AddDishButton({
         description: trimmedDescription,
         price: parsedPrice,
         primary_protein: primaryProtein,
-        dish_kind: dishKind,
         dish_category_id: resolvedDishCategoryId,
+        dining_format: diningFormat === '' ? null : diningFormat,
       });
       if (!result.ok) {
         setServerError(friendlyError(result.formError ?? 'Create failed'));
@@ -123,7 +126,7 @@ export function AddDishButton({
         status: 'draft',
         is_available: true,
         is_template: false,
-        dish_kind: dishKind,
+        dish_kind: 'standard',
         primary_protein: primaryProtein,
         menu_category_id: menuCategoryId,
         dish_category_id: resolvedDishCategoryId,
@@ -133,8 +136,11 @@ export function AddDishButton({
         is_parent: false,
         parent_dish_id: null,
         display_price_prefix: 'exact',
+        dining_format: diningFormat === '' ? null : diningFormat,
+        bundled_items: null,
         variants: [],
         courses: [],
+        modifier_groups: [],
       };
       onCreated(newDish);
       reset();
@@ -189,16 +195,22 @@ export function AddDishButton({
           />
         </label>
 
-        <label className="text-xs">
-          <span className="block text-muted-foreground mb-0.5">Kind</span>
+        <label
+          className="text-xs"
+          title="Rarely set — only for buffets, course menus, hot pot, shared plates, samplers"
+        >
+          <span className="block text-muted-foreground mb-0.5">Dining format</span>
           <select
-            value={dishKind}
-            onChange={e => setDishKind(e.target.value as DishKind)}
+            value={diningFormat}
+            onChange={e =>
+              setDiningFormat(e.target.value === '' ? '' : (e.target.value as DiningFormat))
+            }
             className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
           >
-            {DISH_KIND_VALUES.map(k => (
-              <option key={k} value={k}>
-                {DISH_KIND_META[k].label}
+            <option value="">— Standard —</option>
+            {DINING_FORMATS.map(f => (
+              <option key={f} value={f}>
+                {DINING_FORMAT_META[f].icon} {DINING_FORMAT_META[f].label}
               </option>
             ))}
           </select>

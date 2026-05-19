@@ -1,13 +1,22 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { PRIMARY_PROTEINS } from '@eatme/shared';
-import type { AdminMenu, AdminMenuDish, DishCategoryOption } from '@/lib/auth/dal';
+import {
+  PRIMARY_PROTEINS,
+  DINING_FORMATS,
+  DINING_FORMAT_META,
+  type DiningFormat,
+} from '@eatme/shared';
+import type {
+  AdminMenu,
+  AdminMenuDish,
+  AdminMenuModifierGroup,
+  DishCategoryOption,
+} from '@/lib/auth/dal';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
 import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import { adminDeleteDish, adminUpdateDish } from './actions/dish';
 
-const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
 const DISH_STATUSES = ['draft', 'published', 'archived'] as const;
 
 interface Props {
@@ -32,16 +41,38 @@ function formatPrice(price: number | null): string {
   return price.toFixed(2);
 }
 
-// Read-only sub-list of variants (for parents) and courses+items (for
-// course_menu parents). Editing happens through the menu-scan review flow;
-// this exists to make the saved structure visible on the verifier page.
+// Read-only sub-list of modifier groups (Phase 4 model) + legacy
+// variants/courses (kept until Phase 7 drops those tables). Editing happens
+// through the menu-scan review flow; this exists to make the saved structure
+// visible on the verifier page.
 function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
+  const hasModifiers = dish.modifier_groups.length > 0;
+  const hasBundled = (dish.bundled_items?.length ?? 0) > 0;
   const hasVariants = dish.is_parent && dish.variants.length > 0;
   const hasCourses = dish.dish_kind === 'course_menu' && dish.courses.length > 0;
-  if (!hasVariants && !hasCourses) return null;
+  if (!hasModifiers && !hasBundled && !hasVariants && !hasCourses) return null;
 
   return (
     <div className="ml-4 mt-1 space-y-1.5">
+      {hasModifiers && <ModifierGroupsSummary groups={dish.modifier_groups} />}
+
+      {hasBundled && (
+        <ul className="space-y-0.5 border-l border-emerald-300/50 pl-3 dark:border-emerald-900/40">
+          {(dish.bundled_items ?? []).map((b, i) => (
+            <li
+              key={`${b.name}-${i}`}
+              className="flex items-baseline gap-2 text-xs text-muted-foreground"
+            >
+              <span className="text-emerald-600/70 dark:text-emerald-300/70">🎁</span>
+              <span className="flex-1">{b.name}</span>
+              {b.note && (
+                <span className="text-[10px] italic text-muted-foreground/80">{b.note}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
       {hasVariants && (
         <ul className="space-y-0.5 border-l border-blue-300/50 pl-3 dark:border-blue-900/40">
           {dish.variants.map(v => (
@@ -144,11 +175,11 @@ export function DishRowEditor({
     if (draft.is_available !== dish.is_available) patch.is_available = draft.is_available ?? true;
     if (draft.primary_protein !== dish.primary_protein)
       patch.primary_protein = draft.primary_protein;
-    if (draft.dish_kind !== dish.dish_kind) patch.dish_kind = draft.dish_kind;
     if (draft.menu_category_id !== dish.menu_category_id)
       patch.menu_category_id = draft.menu_category_id;
     if (draft.dish_category_id !== dish.dish_category_id)
       patch.dish_category_id = draft.dish_category_id;
+    if (draft.dining_format !== dish.dining_format) patch.dining_format = draft.dining_format;
 
     if (Object.keys(patch).length === 0) {
       setIsEditing(false);
@@ -202,6 +233,24 @@ export function DishRowEditor({
           {dish.dish_kind === 'course_menu' && (
             <span className="inline-block rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-800 dark:bg-purple-950/40 dark:text-purple-200">
               {dish.courses.length} course{dish.courses.length === 1 ? '' : 's'}
+            </span>
+          )}
+          {dish.modifier_groups.length > 0 && (
+            <span
+              className="inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+              title="Modifier groups (size, protein, toppings, etc.)"
+            >
+              {dish.modifier_groups.length} group
+              {dish.modifier_groups.length === 1 ? '' : 's'}
+            </span>
+          )}
+          {dish.dining_format && (
+            <span
+              className="inline-block rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 dark:bg-violet-950/40 dark:text-violet-200"
+              title={DINING_FORMAT_META[dish.dining_format as DiningFormat]?.description}
+            >
+              {DINING_FORMAT_META[dish.dining_format as DiningFormat]?.icon ?? '🍽️'}{' '}
+              {DINING_FORMAT_META[dish.dining_format as DiningFormat]?.label ?? dish.dining_format}
             </span>
           )}
           {dish.is_template && (
@@ -291,16 +340,25 @@ export function DishRowEditor({
           </select>
         </label>
 
-        <label className="text-xs">
-          <span className="block text-muted-foreground mb-0.5">Kind</span>
+        <label
+          className="text-xs"
+          title="Rarely set — only for buffets, course menus, hot pot, shared plates, samplers"
+        >
+          <span className="block text-muted-foreground mb-0.5">Dining format</span>
           <select
-            value={draft.dish_kind}
-            onChange={e => setDraft({ ...draft, dish_kind: e.target.value })}
+            value={draft.dining_format ?? ''}
+            onChange={e =>
+              setDraft({
+                ...draft,
+                dining_format: e.target.value === '' ? null : (e.target.value as DiningFormat),
+              })
+            }
             className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
           >
-            {DISH_KINDS.map(k => (
-              <option key={k} value={k}>
-                {k}
+            <option value="">— Standard —</option>
+            {DINING_FORMATS.map(f => (
+              <option key={f} value={f}>
+                {DINING_FORMAT_META[f].icon} {DINING_FORMAT_META[f].label}
               </option>
             ))}
           </select>
@@ -418,5 +476,70 @@ export function DishRowEditor({
 
       <DishRowSubList dish={dish} />
     </li>
+  );
+}
+
+// Collapsible read-only summary of a dish's modifier groups. Editing flows
+// through the menu-scan review UI today; a dedicated inline editor on this
+// page is deferred until usage justifies it.
+function ModifierGroupsSummary({ groups }: { groups: AdminMenuModifierGroup[] }) {
+  const [expanded, setExpanded] = useState(false);
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="rounded border border-dashed border-amber-200 bg-amber-50/30 px-2 py-1.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/15">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between gap-2 text-amber-900 dark:text-amber-200"
+      >
+        <span className="font-medium">Modifier groups ({groups.length})</span>
+        <span className="text-[10px]">{expanded ? '▾' : '▸'}</span>
+      </button>
+      {expanded && (
+        <ul className="mt-1.5 space-y-1.5">
+          {groups.map(g => (
+            <li key={g.id} className="space-y-0.5">
+              <div className="flex items-baseline gap-2 text-amber-900 dark:text-amber-200">
+                <span className="font-medium">{g.name}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {g.selection_type === 'single' ? 'single' : 'multiple'} · {g.min_selections}–
+                  {g.max_selections}
+                </span>
+                {g.display_in_card && (
+                  <span className="text-[10px] rounded bg-amber-100 px-1 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
+                    card
+                  </span>
+                )}
+              </div>
+              {g.options.length > 0 && (
+                <ul className="ml-3 space-y-0.5">
+                  {g.options.map(o => (
+                    <li
+                      key={o.id}
+                      className="flex items-baseline gap-1.5 text-[11px] text-muted-foreground"
+                    >
+                      <span className="flex-1">
+                        {o.is_default ? '★ ' : '• '}
+                        {o.name}
+                      </span>
+                      {o.price_override != null ? (
+                        <span className="tabular-nums">= {o.price_override.toFixed(2)}</span>
+                      ) : o.price_delta !== 0 ? (
+                        <span className="tabular-nums">
+                          {o.price_delta > 0 ? '+' : ''}
+                          {o.price_delta.toFixed(2)}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

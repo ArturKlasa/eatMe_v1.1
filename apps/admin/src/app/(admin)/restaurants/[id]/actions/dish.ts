@@ -5,10 +5,38 @@ import { revalidatePath } from 'next/cache';
 import { withAdminAuth, type ActionResult } from '@/lib/auth/wrappers';
 import { logAdminAction } from '@/lib/audit';
 import { createAdminServiceClient } from '@/lib/supabase/server';
-import { PRIMARY_PROTEINS } from '@eatme/shared';
+import { PRIMARY_PROTEINS, DINING_FORMATS } from '@eatme/shared';
 
+// dish_kind is deprecated post-Phase-4 (Phase 7 drops the column). Kept here as
+// an optional field on create/update so callers that haven't migrated yet still
+// work. New code should set dining_format instead.
 const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
 const DISH_STATUSES = ['draft', 'published', 'archived'] as const;
+
+const bundledItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  note: z.string().max(500).nullable().optional(),
+});
+
+const modifierOptionSchema = z.object({
+  name: z.string().min(1).max(200),
+  price_delta: z.number().default(0),
+  price_override: z.number().nonnegative().nullable().optional(),
+  primary_protein: z.enum(PRIMARY_PROTEINS).nullable().optional(),
+  removes_dietary_tags: z.array(z.string().min(1).max(50)).max(20).default([]),
+  adds_allergens: z.array(z.string().min(1).max(50)).max(20).default([]),
+  serves_delta: z.number().int().default(0),
+  is_default: z.boolean().default(false),
+});
+
+const modifierGroupSchema = z.object({
+  name: z.string().min(1).max(200),
+  selection_type: z.enum(['single', 'multiple']),
+  min_selections: z.number().int().min(0).default(0),
+  max_selections: z.number().int().min(1).default(1),
+  display_in_card: z.boolean().default(false),
+  options: z.array(modifierOptionSchema).max(50).default([]),
+});
 
 const adminDishCreateSchema = z.object({
   menu_category_id: z.string().uuid().nullable(),
@@ -18,6 +46,8 @@ const adminDishCreateSchema = z.object({
   primary_protein: z.enum(PRIMARY_PROTEINS),
   dish_kind: z.enum(DISH_KINDS).optional(),
   dish_category_id: z.string().uuid().nullable().optional(),
+  dining_format: z.enum(DINING_FORMATS).nullable().optional(),
+  bundled_items: z.array(bundledItemSchema).max(50).nullable().optional(),
 });
 
 // adminCreateDish: create a new dish under a restaurant. Lands as status='draft',
@@ -69,7 +99,7 @@ export const adminCreateDish = withAdminAuth(
       if (!dc) return { ok: false, formError: 'INVALID_DISH_CATEGORY_ID' };
     }
 
-    const insertPayload = {
+    const insertPayload: Record<string, unknown> = {
       restaurant_id: restaurantId,
       menu_category_id: d.menu_category_id,
       name: d.name,
@@ -83,6 +113,8 @@ export const adminCreateDish = withAdminAuth(
       is_template: false,
       allergens: [] as string[],
       dietary_tags: [] as string[],
+      dining_format: d.dining_format ?? null,
+      bundled_items: d.bundled_items ?? null,
     };
 
     const { data: created, error } = await service
@@ -123,6 +155,8 @@ const adminDishUpdateSchema = z.object({
   dish_kind: z.enum(DISH_KINDS).optional(),
   menu_category_id: z.string().uuid().nullable().optional(),
   dish_category_id: z.string().uuid().nullable().optional(),
+  dining_format: z.enum(DINING_FORMATS).nullable().optional(),
+  bundled_items: z.array(bundledItemSchema).max(50).nullable().optional(),
 });
 
 export const adminUpdateDish = withAdminAuth(
@@ -147,7 +181,7 @@ export const adminUpdateDish = withAdminAuth(
     const { data: current } = await service
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, price, status, is_available, primary_protein, dish_kind, menu_category_id, dish_category_id'
+        'id, restaurant_id, name, description, price, status, is_available, primary_protein, dish_kind, menu_category_id, dish_category_id, dining_format, bundled_items'
       )
       .eq('id', dishId)
       .eq('restaurant_id', restaurantId)
@@ -188,6 +222,8 @@ export const adminUpdateDish = withAdminAuth(
     if (d.dish_kind !== undefined) updatePayload.dish_kind = d.dish_kind;
     if (d.menu_category_id !== undefined) updatePayload.menu_category_id = d.menu_category_id;
     if (d.dish_category_id !== undefined) updatePayload.dish_category_id = d.dish_category_id;
+    if (d.dining_format !== undefined) updatePayload.dining_format = d.dining_format;
+    if (d.bundled_items !== undefined) updatePayload.bundled_items = d.bundled_items;
 
     if (Object.keys(updatePayload).length === 0) {
       return { ok: true, data: undefined };
@@ -271,5 +307,74 @@ export const adminDeleteDish = withAdminAuth(
 
     revalidatePath(`/restaurants/${restaurantId}`, 'page');
     return { ok: true, data: undefined };
+  }
+);
+
+const adminDishModifiersReplaceSchema = z.object({
+  groups: z.array(modifierGroupSchema).max(20),
+});
+
+// adminUpdateDishModifiers: atomically replace a dish's full modifier_groups
+// set. Wraps the `admin_replace_dish_modifiers` Postgres function (migration
+// 144) — deletes all existing option_groups + options for the dish and
+// re-inserts the supplied list in a single transaction.
+//
+// Use when an admin edits modifier groups outside the menu-scan review flow
+// (e.g. directly on the restaurant detail page). The menu-scan confirm path
+// keeps using `admin_confirm_menu_scan` because it also touches dishes +
+// menu_categories + the job row.
+export const adminUpdateDishModifiers = withAdminAuth(
+  async (
+    ctx,
+    dishId: string,
+    restaurantId: string,
+    input: z.infer<typeof adminDishModifiersReplaceSchema>
+  ): Promise<ActionResult<{ groupCount: number }>> => {
+    const parsed = adminDishModifiersReplaceSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+    }
+
+    const service = createAdminServiceClient();
+
+    // Restaurant-id guard — keeps a stale URL from rewriting modifiers on the
+    // wrong dish.
+    const { data: current } = await service
+      .from('dishes')
+      .select('id, restaurant_id, name')
+      .eq('id', dishId)
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const svc = service as any;
+    const { data: result, error } = await svc.rpc('admin_replace_dish_modifiers', {
+      p_dish_id: dishId,
+      p_groups: parsed.data.groups,
+    });
+
+    if (error) {
+      return { ok: false, formError: error.message ?? 'REPLACE_FAILED' };
+    }
+
+    const groupCount =
+      (result as { group_count?: number } | null)?.group_count ?? parsed.data.groups.length;
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'replace_dish_modifiers',
+      'dish',
+      dishId,
+      null,
+      { group_count: groupCount }
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: { groupCount } };
   }
 );

@@ -484,6 +484,28 @@ export type AdminMenuCourse = {
   items: AdminMenuCourseItem[];
 };
 
+export type AdminMenuModifierOption = {
+  id: string;
+  name: string;
+  price_delta: number;
+  price_override: number | null;
+  primary_protein: string | null;
+  removes_dietary_tags: string[];
+  adds_allergens: string[];
+  serves_delta: number;
+  is_default: boolean;
+};
+
+export type AdminMenuModifierGroup = {
+  id: string;
+  name: string;
+  selection_type: 'single' | 'multiple';
+  min_selections: number;
+  max_selections: number;
+  display_in_card: boolean;
+  options: AdminMenuModifierOption[];
+};
+
 export type AdminMenuDish = {
   id: string;
   name: string;
@@ -492,6 +514,8 @@ export type AdminMenuDish = {
   status: string;
   is_available: boolean | null;
   is_template: boolean;
+  // dish_kind retained through Phase 7. New rows default to 'standard'; the
+  // dining_format field below is the source of truth for new code.
   dish_kind: string;
   primary_protein: string | null;
   menu_category_id: string | null;
@@ -502,11 +526,12 @@ export type AdminMenuDish = {
   is_parent: boolean;
   parent_dish_id: string | null;
   display_price_prefix: string;
-  // Children of this dish (only populated for parents). Top-level renderers
-  // skip variant rows by filtering on parent_dish_id IS NULL and read variants
-  // through this nested array instead.
+  // New flat model (Phase 4):
+  dining_format: string | null;
+  bundled_items: Array<{ name: string; note?: string | null }> | null;
+  modifier_groups: AdminMenuModifierGroup[];
+  // Legacy variants/courses kept for display until Phase 7 drops the tables.
   variants: AdminMenuDish[];
-  // Courses for course_menu parents; empty array for everything else.
   courses: AdminMenuCourse[];
 };
 
@@ -576,7 +601,7 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
     svc
       .from('dishes')
       .select(
-        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, is_parent, parent_dish_id, display_price_prefix, dish_categories!left(id, name)'
+        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, is_parent, parent_dish_id, display_price_prefix, dining_format, bundled_items, dish_categories!left(id, name)'
       )
       .eq('restaurant_id', restaurantId)
       .order('name', { ascending: true }),
@@ -602,10 +627,60 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
       is_parent: (r.is_parent as boolean | null) ?? false,
       parent_dish_id: (r.parent_dish_id as string | null) ?? null,
       display_price_prefix: (r.display_price_prefix as string | null) ?? 'exact',
+      dining_format: (r.dining_format as string | null) ?? null,
+      bundled_items:
+        (r.bundled_items as Array<{ name: string; note?: string | null }> | null) ?? null,
+      modifier_groups: [],
       variants: [],
       courses: [],
     };
   });
+
+  // Load modifier groups + options for all dishes in this restaurant. One
+  // batched query keyed by dish_id IN (...). Empty when there are no dishes.
+  if (rawDishes.length > 0) {
+    const dishIds = rawDishes.map(d => d.id);
+    const { data: groupRows } = await svc
+      .from('option_groups')
+      .select(
+        'id, dish_id, name, selection_type, min_selections, max_selections, display_in_card, sort_order, options(id, name, price_delta, price_override, primary_protein, removes_dietary_tags, adds_allergens, serves_delta, is_default, sort_order)'
+      )
+      .in('dish_id', dishIds)
+      .order('sort_order', { ascending: true });
+
+    const groupsByDish = new Map<string, AdminMenuModifierGroup[]>();
+    for (const g of (groupRows ?? []) as Array<Record<string, unknown>>) {
+      const dishId = g.dish_id as string;
+      const opts = (
+        ((g.options as Array<Record<string, unknown>>) ?? []).map(o => ({
+          id: o.id as string,
+          name: o.name as string,
+          price_delta: (o.price_delta as number | null) ?? 0,
+          price_override: (o.price_override as number | null) ?? null,
+          primary_protein: (o.primary_protein as string | null) ?? null,
+          removes_dietary_tags: (o.removes_dietary_tags as string[] | null) ?? [],
+          adds_allergens: (o.adds_allergens as string[] | null) ?? [],
+          serves_delta: (o.serves_delta as number | null) ?? 0,
+          is_default: (o.is_default as boolean | null) ?? false,
+          sort_order: (o.sort_order as number | null) ?? 0,
+        })) as Array<AdminMenuModifierOption & { sort_order: number }>
+      ).sort((a, b) => a.sort_order - b.sort_order);
+      const arr = groupsByDish.get(dishId) ?? [];
+      arr.push({
+        id: g.id as string,
+        name: g.name as string,
+        selection_type: g.selection_type as 'single' | 'multiple',
+        min_selections: (g.min_selections as number | null) ?? 0,
+        max_selections: (g.max_selections as number | null) ?? 1,
+        display_in_card: (g.display_in_card as boolean | null) ?? false,
+        options: opts.map(({ sort_order: _drop, ...rest }) => rest),
+      });
+      groupsByDish.set(dishId, arr);
+    }
+    for (const d of rawDishes) {
+      d.modifier_groups = groupsByDish.get(d.id) ?? [];
+    }
+  }
 
   // Load courses + items for course_menu parents in a separate batched query.
   // Scoping by parent_dish_id IN (...) avoids fetching course rows for

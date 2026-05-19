@@ -1,10 +1,16 @@
 # Phase 3 — Shared packages
 
 **Parent plan:** `docs/project/dish-model-rewrite-plan.md`
-**Status:** Proposed
-**Last updated:** 2026-05-17
+**Status:** Shipped 2026-05-19
+**Last updated:** 2026-05-19
 **Estimated wall time:** 1 day
 **Reversibility:** Additive — new types/constants exposed; legacy types marked `@deprecated` but kept through Phase 6.
+
+**Ship log:**
+- `@eatme/shared`: `DINING_FORMATS` + `DINING_FORMAT_META` added; `DISH_KIND_META` and `DishKind` marked `@deprecated`; `SELECTION_TYPES` tightened to `('single','multiple')` to match migration 140. `Option` extended with `price_override`, `primary_protein`, `adds_dietary_tags`, `removes_dietary_tags`, `adds_allergens`, `serves_delta`, `is_default`. `OptionGroup` gains `display_in_card`. `Dish` gains `dining_format`, `bundled_items`, and 5 availability fields; `dish_kind`/`parent_dish_id`/`is_parent`/`is_template`/`variants` marked `@deprecated`. `modifierGroupSchema`/`modifierOptionSchema`/`bundledItemSchema` exported. `MenuExtractionSchema` extended with new fields. `dishSchemaV2` collapsed from discriminated union into a flat schema. (commit `96544ea`).
+- `apps/mobile/src/lib/supabase.ts`: `OptionGroup.selection_type` tightened to drop `'quantity'`.
+- `@eatme/database`: regenerated `types.ts` against the live schema. Picks up `app_config` + all migration 140/141 columns (commit `2728fed`).
+- Verified: `@eatme/shared` build + 94 tests pass; `apps/admin` typecheck passes; `apps/web-portal-v2` typecheck fails as expected (out of scope per parent plan); `apps/mobile` typecheck has pre-existing unrelated errors.
 
 Update `@eatme/shared` types + Zod schemas to match the new modifier model, and regenerate `@eatme/database` types from the post-Phase-1 schema.
 

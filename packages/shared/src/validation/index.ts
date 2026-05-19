@@ -31,12 +31,18 @@ export {
   menuScanJobInputSchema,
   confirmMenuScanPayloadSchema,
   MenuExtractionSchema,
+  modifierGroupSchema,
+  modifierOptionSchema,
+  bundledItemSchema,
 } from './menuScan';
 export type {
   MenuScanJobInput,
   ConfirmMenuScanPayload,
   MenuExtractionResult,
   MenuExtractionDish,
+  ModifierGroup,
+  ModifierOption,
+  BundledItem,
 } from './menuScan';
 
 export { dishSchemaV2 } from './dish';

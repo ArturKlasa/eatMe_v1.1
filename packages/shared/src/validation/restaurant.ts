@@ -96,7 +96,7 @@ export const dishSchema = z.object({
         id: z.string().optional(),
         name: z.string().min(1, 'Group name is required'),
         description: z.string().optional(),
-        selection_type: z.enum(['single', 'multiple', 'quantity']),
+        selection_type: z.enum(['single', 'multiple']),
         min_selections: z.number().int().min(0).default(0),
         max_selections: z.number().int().min(1).nullable().optional(),
         display_order: z.number().int().min(0).default(0),

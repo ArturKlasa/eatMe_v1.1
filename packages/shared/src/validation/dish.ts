@@ -1,44 +1,28 @@
 import { z } from 'zod';
 import { PRIMARY_PROTEINS, PrimaryProtein } from '../logic/protein';
+import { DINING_FORMATS } from '../constants/menu';
+import { modifierGroupSchema, bundledItemSchema } from './menuScan';
 
 const primaryProteinEnum = z.enum(
   PRIMARY_PROTEINS as unknown as [PrimaryProtein, ...PrimaryProtein[]]
 );
 
-const slotSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, 'Slot name is required'),
-  description: z.string().optional(),
-  selection_type: z.enum(['single', 'multiple', 'quantity']),
-  min_selections: z.number().int().min(0).default(0),
-  max_selections: z.number().int().min(1).nullable().optional(),
-  options: z.array(
-    z.object({
-      id: z.string().optional(),
-      name: z.string().min(1, 'Option name is required'),
-      price_delta: z.number().default(0),
-    })
-  ),
-});
+const diningFormatEnum = z.enum(
+  DINING_FORMATS as unknown as [
+    (typeof DINING_FORMATS)[number],
+    ...(typeof DINING_FORMATS)[number][],
+  ]
+);
 
-const courseSchema = z.object({
-  id: z.string().optional(),
-  course_number: z.number().int().min(1),
-  course_name: z.string().nullable().optional(),
-  required_count: z.number().int().min(1).default(1),
-  choice_type: z.enum(['fixed', 'one_of']),
-  items: z.array(
-    z.object({
-      id: z.string().optional(),
-      option_label: z.string().min(1),
-      price_delta: z.number().default(0),
-      links_to_dish_id: z.string().uuid().nullable().optional(),
-      sort_order: z.number().int().min(0).default(0),
-    })
-  ),
-});
-
-const baseDishV2 = z.object({
+/**
+ * Flat dish schema (2026-05-18 — dish-model rewrite Phase 3).
+ *
+ * The previous discriminated-union-on-dish_kind shape collapsed into this single
+ * schema: every dish is one row with optional `modifier_groups` for choices and
+ * optional `dining_format` for experience-style dishes. `dish_kind` is kept
+ * during the Phase 2→4 transition window; Phase 7 drops it.
+ */
+export const dishSchemaV2 = z.object({
   id: z.string().optional(),
   menu_id: z.string().optional(),
   dish_category_id: z.string().uuid().nullable().optional(),
@@ -55,26 +39,20 @@ const baseDishV2 = z.object({
     .default('exact'),
   serves: z.number().int().min(1).default(1).optional(),
   status: z.enum(['draft', 'published', 'archived']).default('draft').optional(),
+  // ── Modifier-model fields ────────────────────────────────────────────────
+  dining_format: diningFormatEnum.nullable().default(null),
+  bundled_items: z.array(bundledItemSchema).nullable().default(null),
+  modifier_groups: z.array(modifierGroupSchema).default([]),
+  // ── Availability windows (migration 141) ─────────────────────────────────
+  available_days: z.array(z.string()).nullable().optional(),
+  available_hours_start: z.string().nullable().optional(),
+  available_hours_end: z.string().nullable().optional(),
+  available_from: z.string().nullable().optional(),
+  available_until: z.string().nullable().optional(),
+  // ── Legacy back-compat (Phase 7 drops these) ─────────────────────────────
+  dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']).optional(),
+  is_template: z.boolean().optional(),
 });
-
-/** V2 dish schema — discriminated union on dish_kind. Named dishSchemaV2 to coexist with the v1 dishSchema. */
-export const dishSchemaV2 = z.discriminatedUnion('dish_kind', [
-  baseDishV2.extend({ dish_kind: z.literal('standard') }),
-  baseDishV2.extend({
-    dish_kind: z.literal('bundle'),
-    bundle_items: z.array(z.string().uuid()),
-  }),
-  baseDishV2.extend({
-    dish_kind: z.literal('configurable'),
-    is_template: z.boolean().default(false),
-    slots: z.array(slotSchema),
-  }),
-  baseDishV2.extend({
-    dish_kind: z.literal('course_menu'),
-    courses: z.array(courseSchema),
-  }),
-  baseDishV2.extend({ dish_kind: z.literal('buffet') }),
-]);
 
 export type DishV2Input = z.input<typeof dishSchemaV2>;
 export type DishV2Output = z.infer<typeof dishSchemaV2>;

@@ -1,3 +1,5 @@
+import type { DiningFormat } from '../constants/menu';
+
 /** Publishing / curation state for a restaurant or menu. */
 export type RestaurantStatus = 'draft' | 'published' | 'archived';
 
@@ -29,7 +31,14 @@ export interface SelectedIngredient extends Ingredient {
   quantity?: string;
 }
 
-/** Canonical 5-value dish composition kind. */
+/**
+ * Canonical 5-value dish composition kind.
+ *
+ * @deprecated since 2026-05-18 (dish-model rewrite Phase 3). The `dish_kind`
+ * column is being collapsed into a flat model with optional `modifier_groups` +
+ * `dining_format`. Phase 7 drops the column. Existing call sites kept through
+ * the transition; do not add new ones.
+ */
 export type DishKind = 'standard' | 'bundle' | 'configurable' | 'course_menu' | 'buffet';
 
 /** Publishing / curation state for a dish. */
@@ -69,6 +78,21 @@ export interface Option {
   canonical_ingredient_id?: string | null;
   is_available?: boolean;
   display_order?: number;
+  // ── Modifier-model extensions (migration 140) ──────────────────────────────
+  /** Non-linear quantity pricing (e.g. "12 wings for $45"). When set, replaces base + delta. */
+  price_override?: number | null;
+  /** Overrides base dish's primary_protein when this option changes the protein source. */
+  primary_protein?: string | null;
+  /** Tags this option ADDS (e.g. ['gluten_free'] for a gluten-free crust upgrade). */
+  adds_dietary_tags?: string[];
+  /** Tags this option REMOVES from the base (e.g. ['vegetarian'] for adding meat). */
+  removes_dietary_tags?: string[];
+  /** Allergens this option introduces beyond the base dish. */
+  adds_allergens?: string[];
+  /** Headcount change (0 for most options; +1 for "large" size that serves 2). */
+  serves_delta?: number;
+  /** Marks the standard / cheapest option in a required group. */
+  is_default?: boolean;
 }
 
 export interface OptionGroup {
@@ -78,12 +102,14 @@ export interface OptionGroup {
   menu_category_id?: string | null;
   name: string;
   description?: string;
-  /** Controls how many options a guest may pick: single = radio, multiple = checkbox, quantity = stepper. */
-  selection_type: 'single' | 'multiple' | 'quantity';
+  /** Controls how many options a guest may pick: single = radio, multiple = checkbox. */
+  selection_type: 'single' | 'multiple';
   min_selections?: number;
   max_selections?: number | null;
   display_order?: number;
   is_active?: boolean;
+  /** True only when the selected option meaningfully changes the dish identity in the feed card. */
+  display_in_card?: boolean;
   options: Option[];
 }
 
@@ -108,15 +134,19 @@ export interface DishCategory {
   updated_at: string;
 }
 
-/** A menu item. parent_dish_id links variants; is_parent containers are excluded from the feed. */
+/**
+ * A menu item.
+ *
+ * The dish-model rewrite (2026-05-17) is collapsing parent/variant relationships,
+ * `dish_kind` discriminators, and `dish_courses` into a single flat model where
+ * every dish is one row with optional `modifier_groups` + `dining_format`. New
+ * fields are additive; legacy fields below are `@deprecated` and will be removed
+ * in Phase 7.
+ */
 export interface Dish {
   id?: string;
   menu_id?: string; // Reference to which menu this dish belongs to
   dish_category_id?: string | null; // Canonical category FK (e.g. "Pizza", "Pasta")
-
-  // Parent-child variant relationship
-  parent_dish_id?: string | null; // Links variant to its parent. null = standalone or parent.
-  is_parent?: boolean; // true = display-only container, excluded from feed.
 
   name: string;
   description?: string;
@@ -136,15 +166,43 @@ export interface Dish {
   description_visibility?: 'menu' | 'detail';
   /** Where ingredients are shown in the mobile app. Defaults to 'detail'. */
   ingredients_visibility?: 'menu' | 'detail' | 'none';
-  /** Dish composition type. 'standard' = single item (default). */
-  dish_kind?: DishKind;
   /** How the base price should be displayed. 'exact' = show as-is (default). */
   display_price_prefix?: DisplayPricePrefix;
   /** Option groups attached to this dish (template/experience types). */
   option_groups?: OptionGroup[];
   /** UI-only: canonical ingredients selected via autocomplete; not persisted on this object. */
   selectedIngredients?: SelectedIngredient[];
-  /** UI-only: variant children loaded for menu display grouping (not persisted on this object). */
+
+  // ── Modifier-model extensions (migration 141) ──────────────────────────────
+  /** UX hint for dining-experience dishes (buffet, course menu, etc.). Null for plated dishes. */
+  dining_format?: DiningFormat | null;
+  /** Pre-included items that come WITH the dish (combo meals, prix-fixe sides). Null when none. */
+  bundled_items?: Array<{ name: string; note?: string | null }> | null;
+  /** Day-of-week scoping (mon/tue/.../sun). Null = available all days the menu is. */
+  available_days?: string[] | null;
+  /** HH:MM start of availability window within a day. Null = whenever the menu is. */
+  available_hours_start?: string | null;
+  /** HH:MM end of availability window. Wraparound supported (e.g. 22:00 → 02:00). */
+  available_hours_end?: string | null;
+  /** YYYY-MM-DD start of seasonal availability. Null = no start date constraint. */
+  available_from?: string | null;
+  /** YYYY-MM-DD end of seasonal availability. Null = no end date constraint. */
+  available_until?: string | null;
+
+  // ── Legacy fields scheduled for removal in Phase 7 ─────────────────────────
+  /**
+   * @deprecated Phase 7 removes `dish_kind`. Use `modifier_groups` for choices and
+   * `dining_format` for experience-style dishes. Kept through the Phase 2→4 window
+   * so the existing admin review UI keeps rendering.
+   */
+  dish_kind?: DishKind;
+  /** @deprecated Phase 6 collapses variants into option_groups. Phase 7 drops the column. */
+  parent_dish_id?: string | null;
+  /** @deprecated Phase 6 collapses parents. Phase 7 drops the column. */
+  is_parent?: boolean;
+  /** @deprecated Phase 6 collapses reusable shells into options. Phase 7 drops the column. */
+  is_template?: boolean;
+  /** @deprecated UI-only — variants are being collapsed into the parent dish. */
   variants?: Dish[];
 }
 

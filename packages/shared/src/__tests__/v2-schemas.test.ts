@@ -208,7 +208,12 @@ describe('confirmMenuScanPayloadSchema', () => {
   });
 });
 
-// ── dishSchemaV2 discriminated union ─────────────────────────────────────────
+// ── dishSchemaV2 (flat) ──────────────────────────────────────────────────────
+//
+// Was a discriminated union on `dish_kind`; collapsed to a flat schema in the
+// dish-model rewrite (Phase 3, 2026-05-18). `dish_kind` is now optional and kept
+// only for the Phase 2→4 transition; modifier_groups + dining_format carry the
+// composition information going forward.
 
 const baseDishInput = {
   name: 'Grilled Chicken',
@@ -216,73 +221,93 @@ const baseDishInput = {
   primary_protein: 'chicken' as const,
 };
 
-describe('dishSchemaV2 discriminated union', () => {
-  it('standard narrows correctly', () => {
+describe('dishSchemaV2 (flat schema)', () => {
+  it('accepts a minimal dish with no modifiers', () => {
+    const result = dishSchemaV2.safeParse(baseDishInput);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a dish with optional dish_kind retained', () => {
     const result = dishSchemaV2.safeParse({ ...baseDishInput, dish_kind: 'standard' });
     expect(result.success).toBe(true);
   });
 
-  it('configurable narrows to include slots property', () => {
+  it('accepts modifier_groups with required + optional groups', () => {
     const result = dishSchemaV2.safeParse({
       ...baseDishInput,
-      dish_kind: 'configurable',
-      is_template: false,
-      slots: [],
-    });
-    expect(result.success).toBe(true);
-    if (result.success && result.data.dish_kind === 'configurable') {
-      // TypeScript narrows: result.data.slots is accessible here
-      expect(Array.isArray(result.data.slots)).toBe(true);
-    }
-  });
-
-  it('buffet does not include slots property', () => {
-    const result = dishSchemaV2.safeParse({ ...baseDishInput, dish_kind: 'buffet' });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect('slots' in result.data).toBe(false);
-    }
-  });
-
-  it('bundle requires bundle_items', () => {
-    const result = dishSchemaV2.safeParse({
-      ...baseDishInput,
-      dish_kind: 'bundle',
-      bundle_items: ['123e4567-e89b-12d3-a456-426614174000'],
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('course_menu includes courses', () => {
-    const result = dishSchemaV2.safeParse({
-      ...baseDishInput,
-      dish_kind: 'course_menu',
-      courses: [
+      modifier_groups: [
         {
-          course_number: 1,
-          choice_type: 'fixed',
-          items: [{ option_label: 'Soup of the day', price_delta: 0, sort_order: 0 }],
+          name: 'Choose your protein',
+          selection_type: 'single',
+          min_selections: 1,
+          max_selections: 1,
+          display_in_card: true,
+          options: [
+            {
+              name: 'Chicken',
+              price_delta: 0,
+              price_override: null,
+              primary_protein: 'chicken',
+              removes_dietary_tags: [],
+              adds_allergens: [],
+              serves_delta: 0,
+              is_default: true,
+            },
+          ],
         },
       ],
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modifier_groups).toHaveLength(1);
+      expect(result.data.modifier_groups[0].options[0].is_default).toBe(true);
+    }
   });
 
-  it('defaults dietary_tags and allergens to []', () => {
-    const result = dishSchemaV2.safeParse({ ...baseDishInput, dish_kind: 'standard' });
+  it('accepts dining_format for experience-style dishes', () => {
+    const result = dishSchemaV2.safeParse({
+      ...baseDishInput,
+      dining_format: 'course_menu',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dining_format).toBe('course_menu');
+    }
+  });
+
+  it('accepts bundled_items as informational accompaniments', () => {
+    const result = dishSchemaV2.safeParse({
+      ...baseDishInput,
+      bundled_items: [
+        { name: 'fries', note: null },
+        { name: 'drink', note: 'soft drink or iced tea' },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.bundled_items).toHaveLength(2);
+    }
+  });
+
+  it('defaults dietary_tags and allergens to [] and modifier_groups to []', () => {
+    const result = dishSchemaV2.safeParse(baseDishInput);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.dietary_tags).toEqual([]);
       expect(result.data.allergens).toEqual([]);
+      expect(result.data.modifier_groups).toEqual([]);
+      expect(result.data.bundled_items).toBeNull();
+      expect(result.data.dining_format).toBeNull();
     }
   });
 
   it('rejects invalid primary_protein', () => {
-    const result = dishSchemaV2.safeParse({
-      ...baseDishInput,
-      dish_kind: 'standard',
-      primary_protein: 'bacon',
-    });
+    const result = dishSchemaV2.safeParse({ ...baseDishInput, primary_protein: 'bacon' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unknown dining_format value', () => {
+    const result = dishSchemaV2.safeParse({ ...baseDishInput, dining_format: 'dinner_show' });
     expect(result.success).toBe(false);
   });
 });
@@ -394,6 +419,9 @@ describe('MenuExtractionSchema', () => {
     description: 'Fresh Atlantic salmon with herbs',
     price: 24.5,
     dish_kind: 'standard',
+    dining_format: null,
+    bundled_items: [],
+    modifier_groups: [],
     primary_protein: 'fish',
     suggested_category_name: 'Mains',
     source_image_index: 0,

@@ -64,7 +64,7 @@ export interface OptionGroup {
   menu_category_id?: string | null;
   name: string;
   description?: string | null;
-  selection_type: 'single' | 'multiple' | 'quantity';
+  selection_type: 'single' | 'multiple';
   min_selections: number;
   max_selections?: number | null;
   display_order: number;

@@ -12,8 +12,15 @@ export const MENU_CATEGORIES = [
 export type MenuCategory = (typeof MENU_CATEGORIES)[number]['value'];
 
 /**
- * Metadata for the 5 canonical dish kinds (Step 2 onwards).
- * Use this in new components; DISH_KINDS below is kept for legacy consumers only.
+ * Metadata for the 5 canonical dish kinds.
+ *
+ * @deprecated since 2026-05-18 (dish-model rewrite Phase 3). The `dish_kind`
+ * column is being collapsed into a flat dish model with optional `modifier_groups`
+ * and `dining_format`. Phase 4 migrates the admin review UI to consume modifier
+ * groups; Phase 7 drops `dishes.dish_kind` from the DB. Until then, this metadata
+ * is still consumed by admin/worker code paths. Do not add new call sites — use
+ * `DINING_FORMATS` for dining-experience labelling and `modifier_groups` for
+ * choices.
  */
 export const DISH_KIND_META = {
   standard: { label: 'Standard', description: 'Single fixed dish', icon: '🍽️' },
@@ -23,11 +30,50 @@ export const DISH_KIND_META = {
   buffet: { label: 'Buffet', description: 'Flat-rate unlimited access', icon: '🍱' },
 } as const;
 
-/** Selection types available for option groups within a dish. */
+/**
+ * Dining-format UX hint for dishes that are dining experiences rather than
+ * regular plated dishes. Persisted to `dishes.dining_format` (migration 141).
+ * Null for standard dishes.
+ */
+export const DINING_FORMATS = [
+  'buffet',
+  'course_menu',
+  'interactive_table',
+  'shared_plates',
+  'sampler',
+] as const;
+
+export type DiningFormat = (typeof DINING_FORMATS)[number];
+
+export const DINING_FORMAT_META: Record<
+  DiningFormat,
+  { label: string; icon: string; description: string }
+> = {
+  buffet: { label: 'Buffet', icon: '🍽️', description: 'Flat-rate unlimited access' },
+  course_menu: { label: 'Course menu', icon: '🍷', description: 'Multi-course sequenced meal' },
+  interactive_table: {
+    label: 'Interactive dining',
+    icon: '🔥',
+    description: 'Hot pot, Korean BBQ, fondue',
+  },
+  shared_plates: {
+    label: 'Small / shared plates',
+    icon: '🥢',
+    description: 'Tapas, dim sum, mezze',
+  },
+  sampler: { label: 'Sampler / platter', icon: '🍢', description: 'Fixed selection on one plate' },
+};
+
+/**
+ * Selection types for option groups within a dish.
+ *
+ * The `'quantity'` variant was removed 2026-05-18 (migration 140 tightens the
+ * DB CHECK to `('single','multiple')`). Prod query confirmed zero rows. UI for
+ * quantity selection lived only in the retired v1 portal.
+ */
 export const SELECTION_TYPES = [
   { value: 'single' as const, label: 'Single choice', description: 'Pick exactly one option' },
   { value: 'multiple' as const, label: 'Multiple choice', description: 'Pick one or more options' },
-  { value: 'quantity' as const, label: 'Quantity', description: 'Set amount per option' },
 ] as const;
 
 export const OPTION_PRESETS: Record<
@@ -36,7 +82,7 @@ export const OPTION_PRESETS: Record<
     label: string;
     groups: {
       name: string;
-      selection_type: 'single' | 'multiple' | 'quantity';
+      selection_type: 'single' | 'multiple';
       min_selections: number;
       max_selections: number | null;
     }[];

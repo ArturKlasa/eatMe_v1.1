@@ -125,7 +125,7 @@ describe('createDish', () => {
       ...baseStandardDish,
       dish_kind: 'configurable',
       is_template: true,
-      slots: [],
+      modifier_groups: [],
     });
 
     const insertCall = (supabase._chain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
@@ -254,7 +254,7 @@ describe('updateDish', () => {
       ...baseStandardDish,
       dish_kind: 'configurable',
       is_template: true,
-      slots: [],
+      modifier_groups: [],
     });
 
     const updateCall = (supabase._chain.update as ReturnType<typeof vi.fn>).mock.calls[0][0];

@@ -5,39 +5,54 @@ import { withAuth, type ActionResult, type AuthCtx } from '@/lib/auth/wrappers';
 import { dishSchemaV2, type DishV2Input } from '@eatme/shared';
 
 type Sb = AuthCtx['supabase'];
-type SlotInput = Extract<DishV2Input, { dish_kind: 'configurable' }>['slots'][number];
-type CourseInput = Extract<DishV2Input, { dish_kind: 'course_menu' }>['courses'][number];
+type ModifierGroupInput = NonNullable<DishV2Input['modifier_groups']>[number];
 
-async function upsertSlots(sb: Sb, dishId: string, restaurantId: string, slots: SlotInput[]) {
-  // Delete then re-insert for simplicity; slot ids are optional in v2 schema
+// Atomically replace a dish's modifier groups + options. v2 hasn't been wired
+// to call the admin_replace_dish_modifiers RPC yet (that's an apps/admin/ path
+// today); when v2 revival picks this up, switch to the RPC for transactional
+// safety. For now this is a delete-then-insert pair, which has a brief window
+// where the dish has no groups — acceptable for owner-side edits on draft
+// menus but should not be the production code path post-revival.
+async function upsertModifierGroups(
+  sb: Sb,
+  dishId: string,
+  restaurantId: string,
+  groups: ModifierGroupInput[]
+) {
   await sb.from('option_groups').delete().eq('dish_id', dishId);
-  if (slots.length === 0) return;
+  if (groups.length === 0) return;
 
-  const { data: groups, error } = await sb
+  const { data: groupRows, error } = await sb
     .from('option_groups')
     .insert(
-      slots.map((slot, i) => ({
+      groups.map((g, i) => ({
         dish_id: dishId,
         restaurant_id: restaurantId,
-        name: slot.name,
-        description: slot.description ?? null,
-        selection_type: slot.selection_type,
-        min_selections: slot.min_selections ?? 0,
-        max_selections: slot.max_selections ?? null,
+        name: g.name,
+        selection_type: g.selection_type,
+        min_selections: g.min_selections,
+        max_selections: g.max_selections,
+        display_in_card: g.display_in_card,
         display_order: i,
         is_active: true,
       }))
     )
     .select('id');
 
-  if (error || !groups) return;
+  if (error || !groupRows) return;
 
-  const optionRows = slots
-    .flatMap((slot, i) =>
-      (slot.options ?? []).map((opt, j) => ({
-        option_group_id: (groups as { id: string }[])[i]?.id,
+  const optionRows = groups
+    .flatMap((g, i) =>
+      (g.options ?? []).map((opt, j) => ({
+        option_group_id: (groupRows as { id: string }[])[i]?.id,
         name: opt.name,
-        price_delta: opt.price_delta ?? 0,
+        price_delta: opt.price_delta,
+        price_override: opt.price_override,
+        primary_protein: opt.primary_protein,
+        removes_dietary_tags: opt.removes_dietary_tags,
+        adds_allergens: opt.adds_allergens,
+        serves_delta: opt.serves_delta,
+        is_default: opt.is_default,
         display_order: j,
         is_available: true,
       }))
@@ -46,42 +61,6 @@ async function upsertSlots(sb: Sb, dishId: string, restaurantId: string, slots: 
 
   if (optionRows.length > 0) {
     await sb.from('options').insert(optionRows);
-  }
-}
-
-async function upsertCourses(sb: Sb, dishId: string, courses: CourseInput[]) {
-  await sb.from('dish_courses').delete().eq('dish_id', dishId);
-  if (courses.length === 0) return;
-
-  const { data: courseRows, error } = await sb
-    .from('dish_courses')
-    .insert(
-      courses.map(c => ({
-        dish_id: dishId,
-        course_number: c.course_number,
-        course_name: c.course_name ?? null,
-        required_count: c.required_count ?? 1,
-        choice_type: c.choice_type,
-      }))
-    )
-    .select('id');
-
-  if (error || !courseRows) return;
-
-  const itemRows = courses
-    .flatMap((c, i) =>
-      (c.items ?? []).map((item, j) => ({
-        course_id: (courseRows as { id: string }[])[i]?.id,
-        option_label: item.option_label,
-        price_delta: item.price_delta ?? 0,
-        links_to_dish_id: item.links_to_dish_id ?? null,
-        sort_order: item.sort_order ?? j,
-      }))
-    )
-    .filter(r => !!r.course_id);
-
-  if (itemRows.length > 0) {
-    await sb.from('dish_course_items').insert(itemRows);
   }
 }
 
@@ -129,10 +108,8 @@ export const createDish = withAuth(
       return { ok: false, formError: 'CREATE_FAILED' };
     }
 
-    if (d.dish_kind === 'configurable') {
-      await upsertSlots(ctx.supabase, dish.id, restaurantId, d.slots);
-    } else if (d.dish_kind === 'course_menu') {
-      await upsertCourses(ctx.supabase, dish.id, d.courses);
+    if (d.modifier_groups.length > 0) {
+      await upsertModifierGroups(ctx.supabase, dish.id, restaurantId, d.modifier_groups);
     }
 
     revalidatePath(`/restaurant/${restaurantId}/menu`, 'page');
@@ -185,11 +162,8 @@ export const updateDish = withAuth(
       return { ok: false, formError: 'NOT_FOUND' };
     }
 
-    if (d.dish_kind === 'configurable') {
-      await upsertSlots(ctx.supabase, dishId, restaurantId, d.slots);
-    } else if (d.dish_kind === 'course_menu') {
-      await upsertCourses(ctx.supabase, dishId, d.courses);
-    }
+    // Always call — empty array means "delete all groups for this dish".
+    await upsertModifierGroups(ctx.supabase, dishId, restaurantId, d.modifier_groups);
 
     revalidatePath(`/restaurant/${restaurantId}/menu`, 'page');
     return { ok: true, data: undefined };

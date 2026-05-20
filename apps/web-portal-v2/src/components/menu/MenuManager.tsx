@@ -148,37 +148,38 @@ export function MenuManager({ restaurantId, menus: initialMenus }: MenuManagerPr
     return async (input: DishV2Input) => {
       const result = await createDish(restaurantId, menuCategoryId, input);
       if (result.ok) {
-        setMenus(prev =>
-          prev.map(m =>
-            m.id === menuId
-              ? {
-                  ...m,
-                  categories: m.categories.map(c =>
-                    c.id === menuCategoryId
-                      ? {
-                          ...c,
-                          dishes: [
-                            ...c.dishes,
-                            {
-                              id: result.data.id,
-                              name: input.name,
-                              price: input.price,
-                              dish_kind: input.dish_kind,
-                              primary_protein: input.primary_protein,
-                              status: 'draft',
-                              is_template:
-                                input.dish_kind === 'configurable'
-                                  ? (input.is_template ?? false)
-                                  : false,
-                              is_available: input.is_available ?? true,
-                            },
-                          ],
-                        }
-                      : c
-                  ),
-                }
-              : m
-          )
+        setMenus(
+          prev =>
+            prev.map(m =>
+              m.id === menuId
+                ? {
+                    ...m,
+                    categories: m.categories.map(c =>
+                      c.id === menuCategoryId
+                        ? {
+                            ...c,
+                            dishes: [
+                              ...c.dishes,
+                              {
+                                id: result.data.id,
+                                name: input.name,
+                                price: input.price,
+                                dish_kind: input.dish_kind ?? 'standard',
+                                primary_protein: input.primary_protein,
+                                status: 'draft',
+                                is_template:
+                                  input.dish_kind === 'configurable'
+                                    ? (input.is_template ?? false)
+                                    : false,
+                                is_available: input.is_available ?? true,
+                              },
+                            ],
+                          }
+                        : c
+                    ),
+                  }
+                : m
+            ) as never
         );
         setAddingDishForCategory(null);
       }
@@ -191,26 +192,27 @@ export function MenuManager({ restaurantId, menus: initialMenus }: MenuManagerPr
       const result = await updateDish(dishId, restaurantId, input);
       if (result.ok) {
         setEditingDish(null);
-        setMenus(prev =>
-          prev.map(m => ({
-            ...m,
-            categories: m.categories.map(c => ({
-              ...c,
-              dishes: c.dishes.map(d =>
-                d.id === dishId
-                  ? {
-                      ...d,
-                      name: input.name,
-                      price: input.price,
-                      dish_kind: input.dish_kind,
-                      primary_protein: input.primary_protein,
-                      is_template:
-                        input.dish_kind === 'configurable' ? (input.is_template ?? false) : false,
-                    }
-                  : d
-              ),
-            })),
-          }))
+        setMenus(
+          prev =>
+            prev.map(m => ({
+              ...m,
+              categories: m.categories.map(c => ({
+                ...c,
+                dishes: c.dishes.map(d =>
+                  d.id === dishId
+                    ? {
+                        ...d,
+                        name: input.name,
+                        price: input.price,
+                        dish_kind: input.dish_kind ?? 'standard',
+                        primary_protein: input.primary_protein,
+                        is_template:
+                          input.dish_kind === 'configurable' ? (input.is_template ?? false) : false,
+                      }
+                    : d
+                ),
+              })),
+            })) as never
         );
       }
       return result;

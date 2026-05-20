@@ -63,7 +63,7 @@ export default async function RestaurantPage({ params }: Props) {
         </div>
       </div>
 
-      <BasicInfoSection initial={restaurant} mode="edit" />
+      <BasicInfoSection initial={restaurant as never} mode="edit" />
 
       <div className="border-t border-border pt-8">
         <LocationSection

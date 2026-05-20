@@ -90,5 +90,5 @@ export default async function OnboardPage() {
 
   const resumeStep = deriveResumeStep(restaurant);
 
-  return <OnboardClient restaurant={restaurant} initialStep={resumeStep} />;
+  return <OnboardClient restaurant={restaurant as never} initialStep={resumeStep} />;
 }

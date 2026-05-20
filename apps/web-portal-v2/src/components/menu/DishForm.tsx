@@ -82,22 +82,31 @@ function buildDishInput(values: DishFormValues): DishV2Input {
     allergens: [] as string[],
   };
 
-  switch (values.dish_kind) {
-    case 'standard':
-      return { ...base, dish_kind: 'standard' };
+  // Flat schema (Phase 3 collapsed the dish_kind discriminated union). The
+  // form still tracks the old kind for legacy UI affordances during the v2
+  // pause; on submit we map to the flat shape using modifier_groups +
+  // bundled_items + dining_format. This whole switch should be revisited when
+  // v2 revival starts — the kind concept no longer drives shape.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const v = values as any;
+  switch (v.dish_kind) {
     case 'bundle':
-      return { ...base, dish_kind: 'bundle', bundle_items: values.bundle_items };
+      return { ...base, dish_kind: 'bundle', bundled_items: v.bundle_items ?? [] };
     case 'configurable':
       return {
         ...base,
         dish_kind: 'configurable',
-        is_template: values.is_template,
-        slots: values.slots,
+        is_template: v.is_template,
+        modifier_groups: v.slots ?? [],
       };
     case 'course_menu':
-      return { ...base, dish_kind: 'course_menu', courses: values.courses };
+      // Courses no longer exist as a top-level shape — they're modeled as
+      // sequential single-choice modifier groups now. Pass through any legacy
+      // courses[] as modifier_groups for shape parity until UI is rebuilt.
+      return { ...base, dish_kind: 'course_menu', modifier_groups: v.courses ?? [] };
     case 'buffet':
       return { ...base, dish_kind: 'buffet' };
+    case 'standard':
     default:
       return { ...base, dish_kind: 'standard' };
   }

@@ -329,3 +329,60 @@ export const adminDeleteMenuCategory = withAdminAuth(
     return { ok: true, data: { dishesAffected: dishesAffected ?? 0 } };
   }
 );
+
+// adminReorderMenuCategories: rewrite display_order for every category under a
+// menu to match the submitted order. The submitted id list must be exactly the
+// menu's current category set — a mismatch means the page is stale, so we bail
+// and let the client refresh rather than persisting a partial order.
+export const adminReorderMenuCategories = withAdminAuth(
+  async (
+    ctx,
+    restaurantId: string,
+    menuId: string,
+    orderedCategoryIds: string[]
+  ): Promise<ActionResult<void>> => {
+    const parsed = z.array(z.string().uuid()).min(1).safeParse(orderedCategoryIds);
+    if (!parsed.success) return { ok: false, formError: 'INVALID_INPUT' };
+    const ids = parsed.data;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const svc = createAdminServiceClient() as any;
+
+    const { data: existing, error: loadError } = await svc
+      .from('menu_categories')
+      .select('id')
+      .eq('restaurant_id', restaurantId)
+      .eq('menu_id', menuId);
+    if (loadError) return { ok: false, formError: loadError.message };
+    if (!existing || existing.length === 0) return { ok: false, formError: 'NOT_FOUND' };
+
+    const existingIds = new Set((existing as { id: string }[]).map(r => r.id));
+    const sameMembership = existingIds.size === ids.length && ids.every(id => existingIds.has(id));
+    if (!sameMembership) return { ok: false, formError: 'STALE_ORDER' };
+
+    // No unique index on (menu_id, display_order), so sequential per-row
+    // updates can't transiently collide.
+    for (let i = 0; i < ids.length; i++) {
+      const { error } = await svc
+        .from('menu_categories')
+        .update({ display_order: i })
+        .eq('id', ids[i])
+        .eq('restaurant_id', restaurantId)
+        .eq('menu_id', menuId);
+      if (error) return { ok: false, formError: error.message };
+    }
+
+    await logAdminAction(
+      svc,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'reorder_menu_categories',
+      'menu',
+      menuId,
+      null,
+      { ordered_category_ids: ids }
+    );
+
+    revalidatePath(`/restaurants/${restaurantId}`, 'page');
+    return { ok: true, data: undefined };
+  }
+);

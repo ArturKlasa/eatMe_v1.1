@@ -1,6 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import type {
   AdminMenu,
   AdminMenuCategory,
@@ -14,6 +30,7 @@ import { AddMenuButton } from './AddMenuButton';
 import { CategoryRowEditor } from './CategoryRowEditor';
 import { DishRowEditor } from './DishRowEditor';
 import { MenuRowEditor } from './MenuRowEditor';
+import { adminReorderMenuCategories } from './actions/menuCategory';
 
 interface Props {
   restaurantId: string;
@@ -32,6 +49,7 @@ function CategoryBlock({
   restaurantId,
   menus,
   dishCategoryOptions,
+  draggable,
   onDishUpdated,
   onCategoryUpdated,
   onDishCreated,
@@ -41,18 +59,48 @@ function CategoryBlock({
   restaurantId: string;
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
+  // Whether the drag handle is shown — false when the menu has a lone category.
+  draggable: boolean;
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
   onDishCreated: (dish: AdminMenuDish) => void;
   onDishCategoryCreated: (cat: DishCategoryOption) => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id,
+  });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <div className="rounded-md border border-border/60 p-3 space-y-2">
-      <CategoryRowEditor
-        category={category}
-        restaurantId={restaurantId}
-        onUpdated={onCategoryUpdated}
-      />
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="rounded-md border border-border/60 p-3 space-y-2"
+    >
+      <div className="flex items-start gap-1.5">
+        {draggable && (
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="mt-0.5 shrink-0 cursor-grab p-0.5 text-muted-foreground/50 hover:text-muted-foreground"
+            aria-label={`Drag to reorder ${category.name}`}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+          <CategoryRowEditor
+            category={category}
+            restaurantId={restaurantId}
+            onUpdated={onCategoryUpdated}
+          />
+        </div>
+      </div>
       {category.dishes.length > 0 ? (
         <ul className="divide-y divide-border/40">
           {category.dishes.map(d => (
@@ -95,6 +143,7 @@ function MenuBlock({
   onDishCreated,
   onCategoryCreated,
   onDishCategoryCreated,
+  onCategoriesReordered,
 }: {
   menu: AdminMenu;
   restaurantId: string;
@@ -108,8 +157,25 @@ function MenuBlock({
   onDishCreated: (dish: AdminMenuDish) => void;
   onCategoryCreated: (category: AdminMenuCategory) => void;
   onDishCategoryCreated: (cat: DishCategoryOption) => void;
+  onCategoriesReordered: (menuId: string, orderedCategoryIds: string[]) => void;
 }) {
   const dishCount = menu.categories.reduce((acc, c) => acc + c.dishes.length, 0);
+
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  function handleCategoryDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromIdx = menu.categories.findIndex(c => c.id === active.id);
+    const toIdx = menu.categories.findIndex(c => c.id === over.id);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const orderedIds = arrayMove(
+      menu.categories.map(c => c.id),
+      fromIdx,
+      toIdx
+    );
+    onCategoriesReordered(menu.id, orderedIds);
+  }
 
   // Filter out canonicals already linked under THIS menu (mig 124's partial
   // unique index would block the insert anyway). The same canonical can still
@@ -131,21 +197,33 @@ function MenuBlock({
         onUpdated={onMenuUpdated}
       />
       {menu.categories.length > 0 ? (
-        <div className="space-y-2">
-          {menu.categories.map(c => (
-            <CategoryBlock
-              key={c.id}
-              category={c}
-              restaurantId={restaurantId}
-              menus={menus}
-              dishCategoryOptions={dishCategoryOptions}
-              onDishUpdated={onDishUpdated}
-              onCategoryUpdated={onCategoryUpdated}
-              onDishCreated={onDishCreated}
-              onDishCategoryCreated={onDishCategoryCreated}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleCategoryDragEnd}
+        >
+          <SortableContext
+            items={menu.categories.map(c => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {menu.categories.map(c => (
+                <CategoryBlock
+                  key={c.id}
+                  category={c}
+                  restaurantId={restaurantId}
+                  menus={menus}
+                  dishCategoryOptions={dishCategoryOptions}
+                  draggable={menu.categories.length > 1}
+                  onDishUpdated={onDishUpdated}
+                  onCategoryUpdated={onCategoryUpdated}
+                  onDishCreated={onDishCreated}
+                  onDishCategoryCreated={onDishCategoryCreated}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
         <p className="text-xs text-muted-foreground italic">No categories in this menu.</p>
       )}
@@ -179,6 +257,7 @@ export function MenusSection({
   const [dishCategoryOptions, setDishCategoryOptions] = useState<DishCategoryOption[]>(
     initialDishCategoryOptions
   );
+  const [reorderError, setReorderError] = useState('');
 
   // Append a freshly-created (or already-existing, idempotent) dish_category
   // and re-sort alphabetically to match how getAllDishCategoryOptions returns
@@ -248,6 +327,35 @@ export function MenusSection({
         categories: m.categories.map(c => (c.id === next.id ? { ...next, dishes: c.dishes } : c)),
       }))
     );
+  }
+
+  // Persist a drag-reordered category list for one menu. Optimistically applies
+  // the new order (and refreshes each display_order); on failure restores the
+  // pre-drag order for that menu only.
+  async function handleCategoriesReordered(menuId: string, orderedIds: string[]) {
+    setReorderError('');
+    const menu = menus.find(m => m.id === menuId);
+    if (!menu) return;
+    const prevCategories = menu.categories;
+
+    const byId = new Map(prevCategories.map(c => [c.id, c]));
+    const reordered = orderedIds
+      .map(id => byId.get(id))
+      .filter((c): c is AdminMenuCategory => c != null)
+      .map((c, i) => ({ ...c, display_order: i }));
+    if (reordered.length !== prevCategories.length) return;
+
+    setMenus(prev => prev.map(m => (m.id === menuId ? { ...m, categories: reordered } : m)));
+
+    const result = await adminReorderMenuCategories(restaurantId, menuId, orderedIds);
+    if (!result.ok) {
+      setMenus(prev => prev.map(m => (m.id === menuId ? { ...m, categories: prevCategories } : m)));
+      setReorderError(
+        result.formError === 'STALE_ORDER'
+          ? 'Categories changed since this page loaded — refresh and try again.'
+          : 'Could not save the new category order.'
+      );
+    }
   }
 
   // Update an edited menu in place (preserves categories inside).
@@ -324,6 +432,8 @@ export function MenusSection({
         </span>
       </div>
 
+      {reorderError && <p className="text-xs text-destructive">{reorderError}</p>}
+
       {/*
         Orphan dishes (menu_category_id IS NULL): these have no schema link
         to any specific menu. Surface them at the top so the bug class is
@@ -371,6 +481,7 @@ export function MenusSection({
             onDishCreated={handleDishCreated}
             onCategoryCreated={handleCategoryCreated}
             onDishCategoryCreated={handleDishCategoryCreated}
+            onCategoriesReordered={handleCategoriesReordered}
           />
         ))
       ) : (

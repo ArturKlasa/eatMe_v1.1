@@ -640,13 +640,17 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
   // batched query keyed by dish_id IN (...). Empty when there are no dishes.
   if (rawDishes.length > 0) {
     const dishIds = rawDishes.map(d => d.id);
-    const { data: groupRows } = await svc
+    const { data: groupRows, error: groupError } = await svc
       .from('option_groups')
       .select(
-        'id, dish_id, name, selection_type, min_selections, max_selections, display_in_card, sort_order, options(id, name, price_delta, price_override, primary_protein, removes_dietary_tags, adds_allergens, serves_delta, is_default, sort_order)'
+        'id, dish_id, name, selection_type, min_selections, max_selections, display_in_card, display_order, options(id, name, price_delta, price_override, primary_protein, removes_dietary_tags, adds_allergens, serves_delta, is_default, display_order)'
       )
       .in('dish_id', dishIds)
-      .order('sort_order', { ascending: true });
+      .order('display_order', { ascending: true });
+
+    if (groupError) {
+      console.error('[getAdminRestaurantMenus] option_groups load failed:', groupError);
+    }
 
     const groupsByDish = new Map<string, AdminMenuModifierGroup[]>();
     for (const g of (groupRows ?? []) as Array<Record<string, unknown>>) {
@@ -662,9 +666,9 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
           adds_allergens: (o.adds_allergens as string[] | null) ?? [],
           serves_delta: (o.serves_delta as number | null) ?? 0,
           is_default: (o.is_default as boolean | null) ?? false,
-          sort_order: (o.sort_order as number | null) ?? 0,
-        })) as Array<AdminMenuModifierOption & { sort_order: number }>
-      ).sort((a, b) => a.sort_order - b.sort_order);
+          display_order: (o.display_order as number | null) ?? 0,
+        })) as Array<AdminMenuModifierOption & { display_order: number }>
+      ).sort((a, b) => a.display_order - b.display_order);
       const arr = groupsByDish.get(dishId) ?? [];
       arr.push({
         id: g.id as string,
@@ -673,7 +677,7 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
         min_selections: (g.min_selections as number | null) ?? 0,
         max_selections: (g.max_selections as number | null) ?? 1,
         display_in_card: (g.display_in_card as boolean | null) ?? false,
-        options: opts.map(({ sort_order: _drop, ...rest }) => rest),
+        options: opts.map(({ display_order: _drop, ...rest }) => rest),
       });
       groupsByDish.set(dishId, arr);
     }

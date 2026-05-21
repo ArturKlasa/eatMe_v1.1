@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SearchFilterBar } from '@eatme/ui';
@@ -33,9 +33,11 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [inputValue, setInputValue] = useState(filters.q);
+  const lastSentQuery = useRef(filters.q);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function navigate(patch: Partial<Filters & { page: string }>) {
+    if ('q' in patch) lastSentQuery.current = patch.q ?? '';
     const merged = { ...filters, page: String(page), ...patch };
     const sp = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) {
@@ -54,9 +56,14 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue]);
 
-  // Sync input when RSC-driven filters change (e.g. browser back)
+  // Sync input only when filters.q changes from an external source (browser
+  // back/forward) — not when it echoes our own debounced navigation, which
+  // would clobber characters typed while the RSC round-trip was in flight.
   useEffect(() => {
-    setInputValue(filters.q);
+    if (filters.q !== lastSentQuery.current) {
+      setInputValue(filters.q);
+      lastSentQuery.current = filters.q;
+    }
   }, [filters.q]);
 
   return (

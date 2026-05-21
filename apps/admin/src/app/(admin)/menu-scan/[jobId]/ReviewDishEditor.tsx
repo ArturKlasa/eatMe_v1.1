@@ -20,6 +20,7 @@ import type {
 } from '@/lib/auth/dal';
 import { adminConfirmMenuScan } from '../actions/menuScan';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
+import { MenuCategoryCombobox, type MenuCategoryOption } from '@/components/MenuCategoryCombobox';
 import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import {
   useReviewState,
@@ -237,6 +238,28 @@ export function ReviewDishEditor({
 
   const countryDerivedLang = useMemo(() => countryToLanguage(countryCode), [countryCode]);
   const [sourceLanguage, setSourceLanguage] = useState<SupportedLanguage>(countryDerivedLang);
+
+  const menuCategoryOptions: MenuCategoryOption[] = useMemo(() => {
+    const opts: MenuCategoryOption[] = [
+      { value: '', label: '— No category —' },
+      { value: 'custom', label: '+ Custom name…' },
+    ];
+    for (const c of existingCategories) {
+      opts.push({
+        value: `existing:${c.id}`,
+        label: pickName(c.name_translations, sourceLanguage, c.name),
+        group: 'Existing for this restaurant',
+      });
+    }
+    for (const c of canonicalCategories) {
+      opts.push({
+        value: `canonical:${c.slug}`,
+        label: pickName(c.names, sourceLanguage, c.slug),
+        group: 'Canonical taxonomy',
+      });
+    }
+    return opts;
+  }, [existingCategories, canonicalCategories, sourceLanguage]);
 
   const {
     dishes,
@@ -755,34 +778,13 @@ export function ReviewDishEditor({
                         </span>
                       )}
                     </div>
-                    <select
+                    <MenuCategoryCombobox
                       value={encodeCategoryValue(d)}
-                      onChange={e => update(d._id, decodeCategoryValue(e.target.value))}
+                      options={menuCategoryOptions}
+                      onChange={v => update(d._id, decodeCategoryValue(v))}
                       disabled={d._deleted || saving}
-                      className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-                    >
-                      <option value="">— No category —</option>
-
-                      {existingCategories.length > 0 && (
-                        <optgroup label="Existing for this restaurant">
-                          {existingCategories.map(c => (
-                            <option key={c.id} value={`existing:${c.id}`}>
-                              {pickName(c.name_translations, sourceLanguage, c.name)}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-
-                      <optgroup label="Canonical taxonomy">
-                        {canonicalCategories.map(c => (
-                          <option key={c.slug} value={`canonical:${c.slug}`}>
-                            {pickName(c.names, sourceLanguage, c.slug)}
-                          </option>
-                        ))}
-                      </optgroup>
-
-                      <option value="custom">+ Custom name…</option>
-                    </select>
+                      ariaLabel="Menu category"
+                    />
 
                     {d.categoryMode === 'custom' && (
                       <input

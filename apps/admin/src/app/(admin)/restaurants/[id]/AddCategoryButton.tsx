@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import type { AdminMenuCategory, CanonicalCategoryOption } from '@/lib/auth/dal';
 import { adminCreateMenuCategory } from './actions/menuCategory';
+import { MenuCategoryCombobox, type MenuCategoryOption } from '@/components/MenuCategoryCombobox';
 
 interface Props {
   restaurantId: string;
@@ -57,6 +58,18 @@ export function AddCategoryButton({
   const [canonicalId, setCanonicalId] = useState<string>(CUSTOM);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+
+  const categoryOptions: MenuCategoryOption[] = useMemo(() => {
+    const opts: MenuCategoryOption[] = [{ value: CUSTOM, label: '— Custom name —' }];
+    for (const c of availableCanonicalOptions) {
+      opts.push({
+        value: c.id,
+        label: pickName(c.names, sourceLanguageCode, c.slug),
+        group: 'Canonical taxonomy',
+      });
+    }
+    return opts;
+  }, [availableCanonicalOptions, sourceLanguageCode]);
 
   function reset() {
     setCanonicalId(CUSTOM);
@@ -150,18 +163,12 @@ export function AddCategoryButton({
         <span className="block text-muted-foreground mb-0.5">
           Pick from canonical taxonomy (optional)
         </span>
-        <select
+        <MenuCategoryCombobox
           value={canonicalId}
-          onChange={e => handleCanonicalChange(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
-        >
-          <option value={CUSTOM}>— Custom name —</option>
-          {availableCanonicalOptions.map(c => (
-            <option key={c.id} value={c.id}>
-              {pickName(c.names, sourceLanguageCode, c.slug)}
-            </option>
-          ))}
-        </select>
+          options={categoryOptions}
+          onChange={handleCanonicalChange}
+          ariaLabel="Pick from canonical taxonomy"
+        />
       </label>
 
       <input

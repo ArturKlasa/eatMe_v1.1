@@ -631,7 +631,9 @@ serve(async (req: Request) => {
 
   try {
     const body: FeedRequest = await req.json();
-    const { location, radius = 10, mode = 'combined', filters, userId, limit = 20 } = body;
+    // `filters` defaults to {} — a request without a filters field must not crash.
+    // Every filters.* access downstream is on an optional property, so {} is safe.
+    const { location, radius = 10, mode = 'combined', filters = {}, userId, limit = 20 } = body;
 
     console.log('[Feed] Request:', { location, radius, mode, userId, limit });
 

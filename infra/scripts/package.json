@@ -4,7 +4,8 @@
   "private": true,
   "description": "One-time / batch maintenance scripts for EatMe infrastructure",
   "scripts": {
-    "batch-embed": "ts-node batch-embed.ts"
+    "batch-embed": "ts-node batch-embed.ts",
+    "backfill-open-hours": "ts-node backfill-open-hours.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

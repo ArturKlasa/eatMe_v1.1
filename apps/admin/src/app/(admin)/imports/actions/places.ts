@@ -5,6 +5,7 @@ import { withAdminAuth } from '@/lib/auth/wrappers';
 import type { ActionResult } from '@/lib/auth/wrappers';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { logAdminAction } from '@/lib/audit';
+import { mapGoogleOpeningHours, type GoogleRegularOpeningHours } from '@/lib/google/openingHours';
 
 const PLACES_API_BASE = 'https://places.googleapis.com/v1/places:searchNearby';
 const MAX_ROWS_CAP = 1_000;
@@ -37,6 +38,7 @@ type PlaceResult = {
   internationalPhoneNumber?: string;
   websiteUri?: string;
   types?: string[];
+  regularOpeningHours?: GoogleRegularOpeningHours;
 };
 
 export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GooglePlacesResult>(
@@ -64,6 +66,7 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
       'places.internationalPhoneNumber',
       'places.websiteUri',
       'places.types',
+      'places.regularOpeningHours',
     ].join(',');
 
     let allPlaces: PlaceResult[] = [];
@@ -158,6 +161,10 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
         website: place.websiteUri ?? null,
         status: 'draft' as const,
         location: { lat: place.location!.latitude, lng: place.location!.longitude },
+        // Opening hours drive feed visibility — a restaurant with empty
+        // open_hours is treated as permanently closed and its dishes are
+        // excluded from the mobile feed. {} when Google has no hours data.
+        open_hours: mapGoogleOpeningHours(place.regularOpeningHours),
       };
 
       const { data: inserted, error: insertError } = await service

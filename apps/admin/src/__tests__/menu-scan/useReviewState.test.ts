@@ -1,21 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import {
   applyAddBundledItem,
-  applyAddModifierGroup,
-  applyAddModifierOption,
-  applyMoveModifierGroup,
-  applyMoveModifierOption,
   applyRemoveBundledItem,
-  applyRemoveModifierGroup,
-  applyRemoveModifierOption,
   applyUpdateBundledItem,
-  applyUpdateModifierGroup,
-  applyUpdateModifierOption,
+  type EditableDish,
+} from '@/app/(admin)/menu-scan/[jobId]/useReviewState';
+import {
+  addGroup,
+  addOption,
+  moveGroup,
+  moveOption,
+  removeGroup,
+  removeOption,
+  updateGroup,
+  updateOption,
+} from '@/components/modifiers/groupReducers';
+import {
   newEmptyModifierGroup,
   newEmptyModifierOption,
-  type EditableDish,
   type EditableModifierGroup,
-} from '@/app/(admin)/menu-scan/[jobId]/useReviewState';
+} from '@/components/modifiers/editableTypes';
 
 function makeDish(overrides: Partial<EditableDish> = {}): EditableDish {
   return {
@@ -54,119 +58,102 @@ function makeGroup(overrides: Partial<EditableModifierGroup> = {}): EditableModi
   };
 }
 
-describe('applyAddModifierGroup / applyRemoveModifierGroup / applyMoveModifierGroup', () => {
-  it('addModifierGroup appends an empty group', () => {
-    const next = applyAddModifierGroup([makeDish()], 'dish-1');
-    expect(next[0].modifier_groups).toHaveLength(1);
-    expect(next[0].modifier_groups[0].name).toBe('');
-    expect(next[0].modifier_groups[0].selection_type).toBe('single');
+describe('addGroup / removeGroup / moveGroup', () => {
+  it('addGroup appends an empty group', () => {
+    const next = addGroup([]);
+    expect(next).toHaveLength(1);
+    expect(next[0].name).toBe('');
+    expect(next[0].selection_type).toBe('single');
   });
 
-  it('addModifierGroup is a no-op when dish does not match', () => {
-    const start = [makeDish()];
-    const next = applyAddModifierGroup(start, 'no-such-id');
-    expect(next[0].modifier_groups).toHaveLength(0);
+  it('addGroup preserves existing groups', () => {
+    const start = [makeGroup({ name: 'A' })];
+    const next = addGroup(start);
+    expect(next).toHaveLength(2);
+    expect(next[0].name).toBe('A');
+    expect(next[1].name).toBe('');
   });
 
-  it('removeModifierGroup drops the group at index', () => {
-    const dish = makeDish({
-      modifier_groups: [
-        makeGroup({ name: 'A' }),
-        makeGroup({ name: 'B' }),
-        makeGroup({ name: 'C' }),
-      ],
-    });
-    const next = applyRemoveModifierGroup([dish], 'dish-1', 1);
-    expect(next[0].modifier_groups.map(g => g.name)).toEqual(['A', 'C']);
+  it('removeGroup drops the group at index', () => {
+    const groups = [makeGroup({ name: 'A' }), makeGroup({ name: 'B' }), makeGroup({ name: 'C' })];
+    const next = removeGroup(groups, 1);
+    expect(next.map(g => g.name)).toEqual(['A', 'C']);
   });
 
-  it('moveModifierGroup reorders groups', () => {
-    const dish = makeDish({
-      modifier_groups: [
-        makeGroup({ name: 'A' }),
-        makeGroup({ name: 'B' }),
-        makeGroup({ name: 'C' }),
-      ],
-    });
-    const next = applyMoveModifierGroup([dish], 'dish-1', 0, 2);
-    expect(next[0].modifier_groups.map(g => g.name)).toEqual(['B', 'C', 'A']);
+  it('moveGroup reorders groups', () => {
+    const groups = [makeGroup({ name: 'A' }), makeGroup({ name: 'B' }), makeGroup({ name: 'C' })];
+    const next = moveGroup(groups, 0, 2);
+    expect(next.map(g => g.name)).toEqual(['B', 'C', 'A']);
   });
 
-  it('moveModifierGroup is a no-op for out-of-bounds indices', () => {
-    const dish = makeDish({ modifier_groups: [makeGroup(), makeGroup()] });
-    const next = applyMoveModifierGroup([dish], 'dish-1', 0, 5);
-    expect(next).toStrictEqual([dish]);
+  it('moveGroup is a no-op for out-of-bounds indices', () => {
+    const groups = [makeGroup(), makeGroup()];
+    const next = moveGroup(groups, 0, 5);
+    expect(next).toStrictEqual(groups);
   });
 });
 
-describe('applyUpdateModifierGroup', () => {
+describe('updateGroup', () => {
   it('merges patch into target group only', () => {
-    const dish = makeDish({
-      modifier_groups: [makeGroup({ name: 'A' }), makeGroup({ name: 'B' })],
-    });
-    const next = applyUpdateModifierGroup([dish], 'dish-1', 1, {
+    const groups = [makeGroup({ name: 'A' }), makeGroup({ name: 'B' })];
+    const next = updateGroup(groups, 1, {
       name: 'Renamed',
       selection_type: 'multiple',
       max_selections: 3,
     });
-    expect(next[0].modifier_groups[0].name).toBe('A');
-    expect(next[0].modifier_groups[1].name).toBe('Renamed');
-    expect(next[0].modifier_groups[1].selection_type).toBe('multiple');
-    expect(next[0].modifier_groups[1].max_selections).toBe(3);
+    expect(next[0].name).toBe('A');
+    expect(next[1].name).toBe('Renamed');
+    expect(next[1].selection_type).toBe('multiple');
+    expect(next[1].max_selections).toBe(3);
   });
 });
 
-describe('applyAddModifierOption / applyRemoveModifierOption / applyMoveModifierOption', () => {
-  function dishWithOptions(count: number): EditableDish {
+describe('addOption / removeOption / moveOption', () => {
+  function groupsWithOptions(count: number): EditableModifierGroup[] {
     const group = makeGroup();
     group.options = Array.from({ length: count }, (_, i) => ({
       ...newEmptyModifierOption(),
       name: `Opt ${i + 1}`,
       price_delta: i,
     }));
-    return makeDish({ modifier_groups: [group] });
+    return [group];
   }
 
-  it('addModifierOption appends an empty option', () => {
-    const next = applyAddModifierOption([dishWithOptions(1)], 'dish-1', 0);
-    expect(next[0].modifier_groups[0].options).toHaveLength(2);
-    expect(next[0].modifier_groups[0].options[1].name).toBe('');
+  it('addOption appends an empty option', () => {
+    const next = addOption(groupsWithOptions(1), 0);
+    expect(next[0].options).toHaveLength(2);
+    expect(next[0].options[1].name).toBe('');
   });
 
-  it('removeModifierOption drops the option at index', () => {
-    const next = applyRemoveModifierOption([dishWithOptions(3)], 'dish-1', 0, 1);
-    expect(next[0].modifier_groups[0].options.map(o => o.name)).toEqual(['Opt 1', 'Opt 3']);
+  it('removeOption drops the option at index', () => {
+    const next = removeOption(groupsWithOptions(3), 0, 1);
+    expect(next[0].options.map(o => o.name)).toEqual(['Opt 1', 'Opt 3']);
   });
 
-  it('moveModifierOption reorders options within a group', () => {
-    const next = applyMoveModifierOption([dishWithOptions(3)], 'dish-1', 0, 0, 2);
-    expect(next[0].modifier_groups[0].options.map(o => o.name)).toEqual([
-      'Opt 2',
-      'Opt 3',
-      'Opt 1',
-    ]);
+  it('moveOption reorders options within a group', () => {
+    const next = moveOption(groupsWithOptions(3), 0, 0, 2);
+    expect(next[0].options.map(o => o.name)).toEqual(['Opt 2', 'Opt 3', 'Opt 1']);
   });
 });
 
-describe('applyUpdateModifierOption', () => {
+describe('updateOption', () => {
   it('merges patch into target option only', () => {
     const group = makeGroup();
     group.options = [
       { ...newEmptyModifierOption(), name: 'A' },
       { ...newEmptyModifierOption(), name: 'B' },
     ];
-    const dish = makeDish({ modifier_groups: [group] });
-    const next = applyUpdateModifierOption([dish], 'dish-1', 0, 1, {
+    const next = updateOption([group], 0, 1, {
       name: 'Edited',
       price_delta: 5,
       primary_protein: 'beef',
       is_default: true,
     });
-    expect(next[0].modifier_groups[0].options[0].name).toBe('A');
-    expect(next[0].modifier_groups[0].options[1].name).toBe('Edited');
-    expect(next[0].modifier_groups[0].options[1].price_delta).toBe(5);
-    expect(next[0].modifier_groups[0].options[1].primary_protein).toBe('beef');
-    expect(next[0].modifier_groups[0].options[1].is_default).toBe(true);
+    expect(next[0].options[0].name).toBe('A');
+    expect(next[0].options[1].name).toBe('Edited');
+    expect(next[0].options[1].price_delta).toBe(5);
+    expect(next[0].options[1].primary_protein).toBe('beef');
+    expect(next[0].options[1].is_default).toBe(true);
   });
 });
 

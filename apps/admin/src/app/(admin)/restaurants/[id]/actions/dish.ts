@@ -6,6 +6,7 @@ import { withAdminAuth, type ActionResult } from '@/lib/auth/wrappers';
 import { logAdminAction } from '@/lib/audit';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { PRIMARY_PROTEINS, DINING_FORMATS } from '@eatme/shared';
+import { modifierGroupSchema } from '@/lib/modifiers/schemas';
 
 // dish_kind is deprecated post-Phase-4 (Phase 7 drops the column). Kept here as
 // an optional field on create/update so callers that haven't migrated yet still
@@ -18,25 +19,10 @@ const bundledItemSchema = z.object({
   note: z.string().max(500).nullable().optional(),
 });
 
-const modifierOptionSchema = z.object({
-  name: z.string().min(1).max(200),
-  price_delta: z.number().default(0),
-  price_override: z.number().nonnegative().nullable().optional(),
-  primary_protein: z.enum(PRIMARY_PROTEINS).nullable().optional(),
-  removes_dietary_tags: z.array(z.string().min(1).max(50)).max(20).default([]),
-  adds_allergens: z.array(z.string().min(1).max(50)).max(20).default([]),
-  serves_delta: z.number().int().default(0),
-  is_default: z.boolean().default(false),
-});
-
-const modifierGroupSchema = z.object({
-  name: z.string().min(1).max(200),
-  selection_type: z.enum(['single', 'multiple']),
-  min_selections: z.number().int().min(0).default(0),
-  max_selections: z.number().int().min(1).default(1),
-  display_in_card: z.boolean().default(false),
-  options: z.array(modifierOptionSchema).max(50).default([]),
-});
+// modifierOptionSchema and modifierGroupSchema moved to @/lib/modifiers/schemas
+// so the adapter unit test (and the soon-to-land restaurant-detail editor) can
+// import them too. adminDishModifiersReplaceSchema below wraps the imported
+// modifierGroupSchema — no behavior change.
 
 const adminDishCreateSchema = z.object({
   menu_category_id: z.string().uuid().nullable(),

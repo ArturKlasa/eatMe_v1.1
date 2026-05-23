@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { ALLERGENS, DIETARY_TAGS, PRIMARY_PROTEINS } from '@eatme/shared';
-import type { EditableDish, EditableModifierGroup, EditableModifierOption } from './useReviewState';
+import type { EditableModifierGroup, EditableModifierOption } from './editableTypes';
 
 interface Props {
-  parent: EditableDish;
+  groups: EditableModifierGroup[];
   saving: boolean;
   onAddGroup: () => void;
   onRemoveGroup: (groupIdx: number) => void;
@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function ModifierGroupsEditor({
-  parent,
+  groups,
   saving,
   onAddGroup,
   onRemoveGroup,
@@ -37,7 +37,7 @@ export function ModifierGroupsEditor({
     <div className="rounded border border-dashed border-amber-200 bg-amber-50/40 p-2 space-y-2 dark:border-amber-900/40 dark:bg-amber-950/20">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-amber-900 dark:text-amber-200">
-          Modifier groups ({parent.modifier_groups.length})
+          Modifier groups ({groups.length})
         </span>
         <button
           type="button"
@@ -49,20 +49,20 @@ export function ModifierGroupsEditor({
         </button>
       </div>
 
-      {parent.modifier_groups.length === 0 ? (
+      {groups.length === 0 ? (
         <p className="text-[11px] italic text-muted-foreground">
           No modifier groups. Add one to let customers customise this dish (e.g. protein choice,
           toppings, size).
         </p>
       ) : (
         <ul className="space-y-2">
-          {parent.modifier_groups.map((group, groupIdx) => (
+          {groups.map((group, groupIdx) => (
             <GroupRow
               key={group._id}
               group={group}
               groupIdx={groupIdx}
               isFirst={groupIdx === 0}
-              isLast={groupIdx === parent.modifier_groups.length - 1}
+              isLast={groupIdx === groups.length - 1}
               saving={saving}
               onRemoveGroup={onRemoveGroup}
               onMoveGroup={onMoveGroup}

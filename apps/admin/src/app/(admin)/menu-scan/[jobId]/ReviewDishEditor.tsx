@@ -30,7 +30,7 @@ import {
   type PricePrefix,
   type Protein,
 } from './useReviewState';
-import { ModifierGroupsEditor } from './ModifierGroupsEditor';
+import { ModifierGroupsEditor } from '@/components/modifiers/ModifierGroupsEditor';
 
 export type { ExtractedDish } from './useReviewState';
 
@@ -867,7 +867,7 @@ export function ReviewDishEditor({
                   {/* Modifier groups (replaces variants + courses) */}
                   {!d._deleted && (
                     <ModifierGroupsEditor
-                      parent={d}
+                      groups={d.modifier_groups}
                       saving={saving}
                       onAddGroup={() => addModifierGroup(d._id)}
                       onRemoveGroup={idx => removeModifierGroup(d._id, idx)}

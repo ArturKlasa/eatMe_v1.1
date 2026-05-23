@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   PRIMARY_PROTEINS,
   DINING_FORMATS,
@@ -15,7 +16,20 @@ import type {
 } from '@/lib/auth/dal';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
 import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
-import { adminDeleteDish, adminUpdateDish } from './actions/dish';
+import { ModifierGroupsEditor } from '@/components/modifiers/ModifierGroupsEditor';
+import {
+  addGroup,
+  addOption,
+  moveGroup,
+  moveOption,
+  removeGroup,
+  removeOption,
+  updateGroup,
+  updateOption,
+} from '@/components/modifiers/groupReducers';
+import { groupsEqual, toApiGroups, toEditableGroups } from '@/components/modifiers/adapters';
+import type { EditableModifierGroup } from '@/components/modifiers/editableTypes';
+import { adminDeleteDish, adminUpdateDish, adminUpdateDishModifiers } from './actions/dish';
 
 const DISH_STATUSES = ['draft', 'published', 'archived'] as const;
 
@@ -41,10 +55,10 @@ function formatPrice(price: number | null): string {
   return price.toFixed(2);
 }
 
-// Read-only sub-list of modifier groups (Phase 4 model) + legacy
-// variants/courses (kept until Phase 7 drops those tables). Editing happens
-// through the menu-scan review flow; this exists to make the saved structure
-// visible on the verifier page.
+// Sub-list shown beneath each dish row. Modifier groups render via
+// <ModifierGroupsSummary> (read-only); clicking the row enters edit mode
+// where <ModifierGroupsEditor> appears for editing. Variants and courses
+// remain read-only here (kept until Phase 7 drops those tables).
 function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
   const hasModifiers = dish.modifier_groups.length > 0;
   const hasBundled = (dish.bundled_items?.length ?? 0) > 0;
@@ -128,6 +142,7 @@ export function DishRowEditor({
   onUpdated,
   onDishCategoryCreated,
 }: Props) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState('');
@@ -136,6 +151,12 @@ export function DishRowEditor({
   // Local draft of the dish — initialized from props each time we open edit
   // mode so canceling discards all changes.
   const [draft, setDraft] = useState<AdminMenuDish>(dish);
+  // Modifier groups draft (parallels `draft`). Reset alongside it on openEdit
+  // so cancel discards group edits too. Source-of-truth read path is still
+  // `dish.modifier_groups`; this is editor-local until Save.
+  const [draftGroups, setDraftGroups] = useState<EditableModifierGroup[]>(() =>
+    toEditableGroups(dish.modifier_groups)
+  );
 
   function handleDelete() {
     setServerError('');
@@ -155,6 +176,7 @@ export function DishRowEditor({
 
   function openEdit() {
     setDraft(dish);
+    setDraftGroups(toEditableGroups(dish.modifier_groups));
     setServerError('');
     setIsEditing(true);
   }
@@ -181,24 +203,60 @@ export function DishRowEditor({
       patch.dish_category_id = draft.dish_category_id;
     if (draft.dining_format !== dish.dining_format) patch.dining_format = draft.dining_format;
 
-    if (Object.keys(patch).length === 0) {
+    const scalarChanged = Object.keys(patch).length > 0;
+    const groupsChanged = !groupsEqual(draftGroups, dish.modifier_groups);
+
+    if (!scalarChanged && !groupsChanged) {
       setIsEditing(false);
       return;
     }
 
     startTransition(async () => {
-      const result = await adminUpdateDish(dish.id, restaurantId, patch);
-      if (!result.ok) {
-        setServerError(result.formError ?? 'Update failed');
-        return;
+      // Step 1 — modifier replace FIRST (the more error-prone operation; a
+      // failure here aborts cleanly with no scalar write, so Cancel still
+      // discards everything).
+      if (groupsChanged) {
+        const result = await adminUpdateDishModifiers(dish.id, restaurantId, {
+          groups: toApiGroups(draftGroups),
+        });
+        if (!result.ok) {
+          setServerError(result.formError ?? 'Modifier update failed');
+          return;
+        }
       }
-      // Apply the optimistic state to the parent list. The server has already
-      // persisted; revalidatePath will refetch on next navigation.
+
+      // Step 2 — scalar update (only when dirty).
+      if (scalarChanged) {
+        const result = await adminUpdateDish(dish.id, restaurantId, patch);
+        if (!result.ok) {
+          setServerError(
+            groupsChanged
+              ? `Modifier groups saved, but dish update failed: ${result.formError ?? 'unknown error'}`
+              : (result.formError ?? 'Update failed')
+          );
+          return;
+        }
+      }
+
+      // Apply optimistic state for scalar fields only. Modifier groups update
+      // via router.refresh() — the server actions call revalidatePath, and
+      // refresh propagates that to the client (~100ms). Brief stale read in
+      // the <ModifierGroupsSummary> is acceptable; avoids synthesising
+      // placeholder UUIDs to satisfy React keys.
       const nextDishCategoryName =
         draft.dish_category_id != null
           ? (dishCategoryOptions.find(o => o.id === draft.dish_category_id)?.name ?? null)
           : null;
-      onUpdated({ ...draft, dish_category_name: nextDishCategoryName });
+      onUpdated({
+        ...draft,
+        dish_category_name: nextDishCategoryName,
+        // Pre-save modifier groups in optimistic state; router.refresh()
+        // pulls the freshly-persisted set.
+        modifier_groups: dish.modifier_groups,
+      });
+      if (groupsChanged) {
+        router.refresh();
+      }
       setIsEditing(false);
     });
   }
@@ -417,6 +475,21 @@ export function DishRowEditor({
         <span>Available</span>
       </label>
 
+      <div className="border-t border-border pt-2">
+        <ModifierGroupsEditor
+          groups={draftGroups}
+          saving={isPending}
+          onAddGroup={() => setDraftGroups(g => addGroup(g))}
+          onRemoveGroup={i => setDraftGroups(g => removeGroup(g, i))}
+          onMoveGroup={(from, to) => setDraftGroups(g => moveGroup(g, from, to))}
+          onUpdateGroup={(i, patch) => setDraftGroups(g => updateGroup(g, i, patch))}
+          onAddOption={i => setDraftGroups(g => addOption(g, i))}
+          onRemoveOption={(gi, oi) => setDraftGroups(g => removeOption(g, gi, oi))}
+          onMoveOption={(gi, from, to) => setDraftGroups(g => moveOption(g, gi, from, to))}
+          onUpdateOption={(gi, oi, patch) => setDraftGroups(g => updateOption(g, gi, oi, patch))}
+        />
+      </div>
+
       {serverError && <p className="text-destructive text-xs">{serverError}</p>}
 
       {showDeleteConfirm ? (
@@ -479,9 +552,8 @@ export function DishRowEditor({
   );
 }
 
-// Collapsible read-only summary of a dish's modifier groups. Editing flows
-// through the menu-scan review UI today; a dedicated inline editor on this
-// page is deferred until usage justifies it.
+// Collapsible summary of a dish's modifier groups, rendered in the read-only
+// row. Editing happens in the expanded edit-mode form via <ModifierGroupsEditor>.
 function ModifierGroupsSummary({ groups }: { groups: AdminMenuModifierGroup[] }) {
   const [expanded, setExpanded] = useState(false);
   if (groups.length === 0) return null;

@@ -89,6 +89,11 @@ const menuExtractionDishSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   price: z.number().nonnegative().nullable(),
+  // Explicit portion size when written on the menu (e.g. "250g", "0.5L",
+  // "6 szt."). Normalized to base units (kg→g, L→ml). Both null when the menu
+  // shows no portion. Mirrors the worker copy. Persisted to dishes (migration 145).
+  portion_amount: z.number().int().positive().nullable(),
+  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable(),
   // Retained through the Phase 2→4 window; Phase 7 drops dish_kind in favour of
   // dining_format + modifier_groups.
   dish_kind: z.enum(['standard', 'bundle', 'configurable', 'course_menu', 'buffet']),

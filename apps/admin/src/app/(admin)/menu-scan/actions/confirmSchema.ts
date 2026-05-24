@@ -79,6 +79,10 @@ export type ReviewedDish = {
   dining_format: (typeof DINING_FORMATS)[number] | null;
   bundled_items: ReviewedBundledItem[];
   modifier_groups: ReviewedModifierGroup[];
+  // Portion size (migration 145). Either both set or both null; DB CHECK
+  // enforces. Operator UI pairs them in the inline editor.
+  portion_amount: number | null;
+  portion_unit: 'g' | 'ml' | 'pcs' | null;
 };
 
 export const reviewedDishSchema: z.ZodType<ReviewedDish> = z.object({
@@ -96,6 +100,8 @@ export const reviewedDishSchema: z.ZodType<ReviewedDish> = z.object({
   dining_format: z.enum(DINING_FORMATS).nullable().default(null),
   bundled_items: z.array(reviewedBundledItemSchema).max(50).default([]),
   modifier_groups: z.array(reviewedModifierGroupSchema).max(20).default([]),
+  portion_amount: z.number().int().positive().nullable().default(null),
+  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable().default(null),
 });
 
 // One per unique category referenced by dishes in this scan. Carries the

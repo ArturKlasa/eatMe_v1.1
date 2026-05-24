@@ -43,6 +43,11 @@ export const dishSchemaV2 = z.object({
   dining_format: diningFormatEnum.nullable().default(null),
   bundled_items: z.array(bundledItemSchema).nullable().default(null),
   modifier_groups: z.array(modifierGroupSchema).default([]),
+  // ── Portion size (migration 145) ─────────────────────────────────────────
+  // Explicit "250g" / "0.5L" / "6 szt." extracted by menu-scan AI or set by
+  // the admin. DB CHECK enforces both-set-or-both-null; the form pairs them.
+  portion_amount: z.number().int().positive().nullable().optional(),
+  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable().optional(),
   // ── Availability windows (migration 141) ─────────────────────────────────
   available_days: z.array(z.string()).nullable().optional(),
   available_hours_start: z.string().nullable().optional(),

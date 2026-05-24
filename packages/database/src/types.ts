@@ -674,6 +674,8 @@ export type Database = {
           menu_category_id: string | null;
           name: string;
           parent_dish_id: string | null;
+          portion_amount: number | null;
+          portion_unit: string | null;
           price: number;
           price_per_person: number | null;
           primary_protein: string | null;
@@ -717,6 +719,8 @@ export type Database = {
           menu_category_id?: string | null;
           name?: string;
           parent_dish_id?: string | null;
+          portion_amount?: number | null;
+          portion_unit?: string | null;
           price?: number;
           price_per_person?: number | null;
           primary_protein?: string | null;
@@ -760,6 +764,8 @@ export type Database = {
           menu_category_id?: string | null;
           name?: string;
           parent_dish_id?: string | null;
+          portion_amount?: number | null;
+          portion_unit?: string | null;
           price?: number;
           price_per_person?: number | null;
           primary_protein?: string | null;
@@ -2574,8 +2580,21 @@ export type Database = {
             };
             Returns: string;
           };
+      admin_confirm_menu_scan: {
+        Args: {
+          p_admin_email: string;
+          p_admin_id: string;
+          p_job_id: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
       admin_delete_restaurant: {
         Args: { p_restaurant_id: string };
+        Returns: Json;
+      };
+      admin_replace_dish_modifiers: {
+        Args: { p_dish_id: string; p_groups: Json };
         Returns: Json;
       };
       analyze_spatial_query_performance: {

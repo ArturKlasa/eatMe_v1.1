@@ -451,13 +451,18 @@ export async function fuzzyMatchDishCategories(queries: string[]): Promise<DishC
   return matches;
 }
 
-export type RestaurantOption = { id: string; name: string; city: string | null };
+export type RestaurantOption = {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+};
 
 export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
   const supabase = createAdminServiceClient();
   const { data, error } = await supabase
     .from('restaurants')
-    .select('id, name, city')
+    .select('id, name, city, address')
     .eq('skip_menu_scan', false)
     .neq('status', 'published')
     .order('name')

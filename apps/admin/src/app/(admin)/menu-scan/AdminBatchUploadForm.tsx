@@ -5,14 +5,21 @@ import { supabase } from '@/lib/supabase/browser';
 import { uploadMenuScanPage, type StorageClient } from '@/lib/upload';
 import { adminCreateMenuScanJob, skipMenuScanRestaurant } from './actions/menuScan';
 
-export type RestaurantOption = { id: string; name: string; city: string | null };
+export type RestaurantOption = {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+};
 
 interface Props {
   restaurantOptions: RestaurantOption[];
 }
 
 function mapsUrlFor(r: RestaurantOption): string {
-  const q = [r.name, r.city].filter(Boolean).join(' ');
+  // Prefer street address when present — gives Maps a precise pin instead of
+  // "any restaurant matching this name in this city".
+  const q = [r.name, r.address, r.city].filter(Boolean).join(' ');
   return `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
 }
 
@@ -319,6 +326,15 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
             ))}
           </select>
         </div>
+        {defaultRestaurant && (defaultRestaurant.address || defaultRestaurant.city) && (
+          <p
+            className="pl-[calc(theme(spacing.3)+10ch)] -mt-1 text-xs text-muted-foreground"
+            aria-label="Selected restaurant address"
+          >
+            {[defaultRestaurant.address, defaultRestaurant.city].filter(Boolean).join(', ') ||
+              'No address on file'}
+          </p>
+        )}
         {defaultRestaurant && (
           <div className="flex items-center gap-4 pl-[calc(theme(spacing.3)+10ch)] -mt-1 text-xs">
             <a

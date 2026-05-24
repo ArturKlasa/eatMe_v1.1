@@ -221,6 +221,91 @@ export const updateAdminRestaurantBasics = withAdminAuth(
   }
 );
 
+// updateAdminRestaurantOpeningHours: edit the restaurants.open_hours jsonb.
+//
+// Shape we persist (matches mapGoogleOpeningHours and what the feed
+// isOpenNow() reads): Record<lowercase-day, { open: 'HH:MM', close: 'HH:MM' }>.
+// A missing day key = closed that day. Passing null clears the column entirely
+// (treated as "no hours on record" — the feed will filter the restaurant out
+// of "open now" results, same as before the importer was fixed in 1cec0c4).
+//
+// Overnight close (close < open) is allowed — the Google mapper documents that
+// it preserves overnight spans, and isOpenNow() handles wraparound.
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const dayHoursSchema = z.object({
+  open: z.string().regex(HHMM_RE, 'Use 24h HH:MM (e.g. 09:00)'),
+  close: z.string().regex(HHMM_RE, 'Use 24h HH:MM (e.g. 22:00)'),
+});
+const openHoursSchema = z
+  .object({
+    monday: dayHoursSchema.optional(),
+    tuesday: dayHoursSchema.optional(),
+    wednesday: dayHoursSchema.optional(),
+    thursday: dayHoursSchema.optional(),
+    friday: dayHoursSchema.optional(),
+    saturday: dayHoursSchema.optional(),
+    sunday: dayHoursSchema.optional(),
+  })
+  .strict();
+
+export const updateAdminRestaurantOpeningHours = withAdminAuth(
+  async (
+    ctx,
+    id: string,
+    input: { open_hours: Record<string, { open: string; close: string }> | null }
+  ): Promise<ActionResult<void>> => {
+    let normalised: z.infer<typeof openHoursSchema> | null;
+    if (input.open_hours === null) {
+      normalised = null;
+    } else {
+      const parsed = openHoursSchema.safeParse(input.open_hours);
+      if (!parsed.success) {
+        return {
+          ok: false,
+          fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+        };
+      }
+      // Drop keys with no span — empty object means "no hours", which is what
+      // the importer wrote pre-fix and the UI now renders as "no hours on
+      // record". Keeping empty keys would confuse isOpenNow() the same way.
+      const cleaned: Record<string, { open: string; close: string }> = {};
+      for (const [day, span] of Object.entries(parsed.data)) {
+        if (span) cleaned[day] = span;
+      }
+      normalised = Object.keys(cleaned).length > 0 ? cleaned : null;
+    }
+
+    const service = createAdminServiceClient();
+
+    const { data: current } = await service
+      .from('restaurants')
+      .select('open_hours')
+      .eq('id', id)
+      .maybeSingle();
+
+    const { error } = await service
+      .from('restaurants')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ open_hours: normalised as any })
+      .eq('id', id);
+
+    if (error) return { ok: false, formError: 'UPDATE_FAILED' };
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      'update_restaurant_open_hours',
+      'restaurant',
+      id,
+      current ? { open_hours: (current as { open_hours: unknown }).open_hours } : null,
+      { open_hours: normalised }
+    );
+
+    revalidatePath(`/restaurants/${id}`, 'page');
+    return { ok: true, data: undefined };
+  }
+);
+
 // adminDeleteRestaurant: hard delete. Cascade is performed by the
 // admin_delete_restaurant(uuid) Postgres function (migration 130) so the whole
 // thing is one transaction. After the row is gone we best-effort clean the

@@ -11,6 +11,7 @@ import {
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
 import { MenusSection } from './MenusSection';
+import { OpeningHoursSection } from './OpeningHoursSection';
 import { PublishSection } from './PublishSection';
 import { RestaurantInspector } from './RestaurantInspector';
 import { ScanNewMenuSection } from './ScanNewMenuSection';
@@ -110,6 +111,9 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
           value={restaurant.created_at ? new Date(restaurant.created_at).toLocaleString() : null}
         />
       </section>
+
+      {/* Opening hours — editable inline */}
+      <OpeningHoursSection restaurantId={restaurant.id} openHours={restaurant.open_hours} />
 
       {/* Publication / draft → published flow */}
       <PublishSection

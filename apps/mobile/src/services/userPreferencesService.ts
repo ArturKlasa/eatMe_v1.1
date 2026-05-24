@@ -80,7 +80,6 @@ export interface UserPreferencesDB {
   diet_types: string[] | null;
   religious_restrictions: string[] | null;
   default_max_distance: number;
-  primary_protein: string | null;
 }
 
 /** Load user preferences from database. Returns ok(null) for first-time users. */
@@ -156,7 +155,6 @@ export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPre
       .filter(([_, active]) => active)
       .map(([key]) => key), // keys match dietary_tags.code directly
     default_max_distance: 5,
-    primary_protein: filters.primaryProtein,
   };
 }
 
@@ -200,7 +198,6 @@ export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<Perman
       jain: religiousSet.has('jain'),
       buddhist: religiousSet.has('buddhist'),
     },
-    primaryProtein: dbPrefs.primary_protein ?? null,
   };
 }
 

@@ -5,10 +5,9 @@
  * 1. Diet Preference: All/Vegetarian/Vegan (single selection)
  * 2. Exclude: No meat, No fish, No seafood, No eggs, No dairy (multiple selection)
  * 3. Allergies: Lactose, Gluten, Peanuts, Soy, Sesame, Shellfish, Nuts (multiple selection)
- * 4. Primary Protein: dish-level enum (single selection)
- * 5. Diet Preferences: Diabetic, Keto, Paleo, Low-carb, Pescatarian (multiple selection)
- * 6. Religious Restrictions: Halal, Hindu, Kosher (multiple selection)
- * 7. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
+ * 4. Diet Preferences: Diabetic, Keto, Paleo, Low-carb, Pescatarian (multiple selection)
+ * 5. Religious Restrictions: Halal, Hindu, Kosher (multiple selection)
+ * 6. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
  */
 
 import React from 'react';
@@ -17,7 +16,6 @@ import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFilterStore } from '../stores/filterStore';
 import { drawerFiltersStyles } from '@/styles';
-import { PRIMARY_PROTEINS } from '@eatme/shared';
 
 interface DrawerFiltersProps {
   onClose?: () => void;
@@ -37,7 +35,6 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
     toggleDietType,
     toggleReligiousRestriction,
     toggleFacility,
-    setPrimaryProtein,
     resetPermanentFilters,
   } = useFilterStore();
 
@@ -164,51 +161,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         </View>
       </View>
 
-      {/* 4. Primary Protein Preference - Single Selection */}
-      <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.primaryProteinTitle')}</Text>
-        <View style={drawerFiltersStyles.optionsContainer}>
-          <TouchableOpacity
-            style={[
-              drawerFiltersStyles.option,
-              permanent.primaryProtein === null && drawerFiltersStyles.selectedOption,
-            ]}
-            onPress={() => setPrimaryProtein(null)}
-          >
-            <Text
-              style={[
-                drawerFiltersStyles.optionText,
-                permanent.primaryProtein === null && drawerFiltersStyles.selectedText,
-              ]}
-            >
-              {t('filters.primaryProteinAny')}
-            </Text>
-          </TouchableOpacity>
-          {PRIMARY_PROTEINS.map(protein => (
-            <TouchableOpacity
-              key={protein}
-              style={[
-                drawerFiltersStyles.option,
-                permanent.primaryProtein === protein && drawerFiltersStyles.selectedOption,
-              ]}
-              onPress={() =>
-                setPrimaryProtein(permanent.primaryProtein === protein ? null : protein)
-              }
-            >
-              <Text
-                style={[
-                  drawerFiltersStyles.optionText,
-                  permanent.primaryProtein === protein && drawerFiltersStyles.selectedText,
-                ]}
-              >
-                {t(`filters.primaryProtein.${protein}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* 6. Diet Preferences - Multiple Selection */}
+      {/* 4. Diet Preferences - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
         <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.dietPreferencesTitle')}</Text>
         <View style={drawerFiltersStyles.optionsContainer}>
@@ -236,7 +189,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         </View>
       </View>
 
-      {/* 6. Religious Restrictions - Multiple Selection */}
+      {/* 5. Religious Restrictions - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
         <Text style={drawerFiltersStyles.sectionTitle}>
           {t('filters.religiousRestrictionsTitle')}
@@ -268,7 +221,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         </View>
       </View>
 
-      {/* 7. Restaurant Facilities - Multiple Selection */}
+      {/* 6. Restaurant Facilities - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
         <Text style={drawerFiltersStyles.sectionTitle}>🏪 Restaurant Facilities</Text>
         <View style={drawerFiltersStyles.optionsContainer}>

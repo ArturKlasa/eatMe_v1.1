@@ -127,8 +127,6 @@ export interface OptionClassification {
   triggersAllergy: string[];
   /** Codes from the option's removes_dietary_tags that the user requires. */
   stripsDietaryTags: string[];
-  /** True when permanent.primaryProtein matches the option's primary_protein. */
-  matchesPreferredProtein: boolean;
   /** True when the option's primary_protein lines up with an active daily meat type. */
   matchesDailyMeatType: boolean;
 }
@@ -202,16 +200,12 @@ export function classifyOption(
   const stripsDietaryTags = removesTags.filter(t => requiredTags.has(t));
 
   // ── Protein matching ──────────────────────────────────────────────────────
-  const matchesPreferredProtein =
-    permanent.primaryProtein != null && option.primary_protein === permanent.primaryProtein;
-
   const meatKey = proteinToMeatTypeKey(option.primary_protein);
   const matchesDailyMeatType = meatKey != null && daily.meatTypes[meatKey] === true;
 
   return {
     triggersAllergy,
     stripsDietaryTags,
-    matchesPreferredProtein,
     matchesDailyMeatType,
   };
 }

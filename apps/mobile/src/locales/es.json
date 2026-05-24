@@ -309,21 +309,6 @@
       "fish": "Pescado",
       "seafood": "Mariscos"
     },
-    "primaryProteinTitle": "🥩 Proteína Principal",
-    "primaryProteinAny": "Cualquiera",
-    "primaryProtein": {
-      "chicken": "🐔 Pollo",
-      "beef": "🐄 Res",
-      "pork": "🐷 Cerdo",
-      "lamb": "🐑 Cordero",
-      "goat": "🐐 Cabra",
-      "other_meat": "🍖 Otra Carne",
-      "fish": "🐟 Pescado",
-      "shellfish": "🦐 Mariscos",
-      "eggs": "🥚 Huevos",
-      "vegetarian": "🥗 Vegetariano",
-      "vegan": "🌱 Vegano"
-    },
     "presets": {
       "nearby": "Cerca",
       "cheapEats": "Económico",

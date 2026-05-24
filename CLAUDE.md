@@ -42,7 +42,7 @@ See `agent_docs/architecture.md` for package relationships and data flow.
 Dishes are classified by a single `primary_protein` column (enum, not null) on the `dishes` table. The canonical list of 11 values lives in `packages/shared/src/logic/protein.ts` (`PRIMARY_PROTEINS` constant + `deriveProteinFields` helper). Both apps import from `@eatme/shared`.
 
 - **Web portal**: `primary_protein` is set during menu scan (AI extraction) and editable in the dish form.
-- **Mobile**: consumers filter by `primaryProtein` in the permanent filter drawer (`DrawerFilters`).
+- **Mobile**: dishes carry the `primary_protein` enum (used for daily meat-type filters and modifier-option highlighting); there is no permanent protein preference in the personal filters drawer.
 
 The legacy `dish_ingredients` / `canonical_ingredients` / `ingredient_concepts` pipeline has been retired from the mobile + edge runtime (Phase A, 2026-05-17). The DB tables and triggers still exist; Phase B drops the triggers, Phase C drops the schema. See `docs/plans/ingredient-pipeline-phase-*` for the rollout.
 

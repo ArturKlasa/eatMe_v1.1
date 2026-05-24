@@ -141,9 +141,6 @@ export interface PermanentFilters {
     kidsMenu: boolean;
   };
 
-  // 7. Primary protein preference — single-select, null means no preference.
-  primaryProtein: string | null;
-
   defaultPriceRange: {
     min: number;
     max: number;
@@ -198,7 +195,6 @@ interface FilterActions {
     restriction: keyof PermanentFilters['religiousRestrictions']
   ) => void;
   toggleFacility: (facility: keyof PermanentFilters['facilities']) => void;
-  setPrimaryProtein: (protein: string | null) => void;
   setPermanentPriceRange: (min: number, max: number) => void;
   setCuisinePreferences: (cuisines: string[]) => void;
   setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => void;
@@ -337,7 +333,6 @@ const defaultPermanentFilters: PermanentFilters = {
     lgbtAccessible: false,
     kidsMenu: false,
   },
-  primaryProtein: null,
   defaultPriceRange: {
     min: 10,
     max: 50,
@@ -664,16 +659,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
           ...state.permanent.facilities,
           [facility]: !state.permanent.facilities[facility],
         },
-      },
-    }));
-    get().savePermanentFilters();
-  },
-
-  setPrimaryProtein: (protein: string | null) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        primaryProtein: protein,
       },
     }));
     get().savePermanentFilters();
@@ -1070,11 +1055,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     // Check facilities
     const activeFacilities = Object.values(state.permanent.facilities).filter(Boolean);
     if (activeFacilities.length > 0) {
-      count++;
-    }
-
-    // Check primary protein preference
-    if (state.permanent.primaryProtein !== null) {
       count++;
     }
 

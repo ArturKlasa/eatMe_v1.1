@@ -309,21 +309,6 @@
       "fish": "Fish",
       "seafood": "Seafood"
     },
-    "primaryProteinTitle": "🥩 Protein Preference",
-    "primaryProteinAny": "Any",
-    "primaryProtein": {
-      "chicken": "🐔 Chicken",
-      "beef": "🐄 Beef",
-      "pork": "🐷 Pork",
-      "lamb": "🐑 Lamb",
-      "goat": "🐐 Goat",
-      "other_meat": "🍖 Other Meat",
-      "fish": "🐟 Fish",
-      "shellfish": "🦐 Shellfish",
-      "eggs": "🥚 Eggs",
-      "vegetarian": "🥗 Vegetarian",
-      "vegan": "🌱 Vegan"
-    },
     "presets": {
       "nearby": "Nearby",
       "cheapEats": "Cheap Eats",

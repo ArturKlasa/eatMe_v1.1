@@ -113,7 +113,7 @@ function OptionRow({
 
   const hasAllergyConflict = cls.triggersAllergy.length > 0;
   const hasDietConflict = cls.stripsDietaryTags.length > 0;
-  const isPreferredProtein = cls.matchesPreferredProtein || cls.matchesDailyMeatType;
+  const isPreferredProtein = cls.matchesDailyMeatType;
 
   const priceLabel = formatPrice(option);
 

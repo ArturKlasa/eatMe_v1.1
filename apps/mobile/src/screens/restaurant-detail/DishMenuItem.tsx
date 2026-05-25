@@ -46,6 +46,15 @@ export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: D
       priceLabel = `$${item.price.toFixed(2)}`;
   }
 
+  // Portion size (migration 145). Renders inline before the price as
+  // "250g · $12.00". Space before 'pcs'/'szt.'/'uds.' reads better
+  // ("6 pcs" vs "6pcs"); 'g'/'ml' stay tight.
+  const portionLabel =
+    item.portion_amount != null && item.portion_unit
+      ? `${item.portion_amount}${item.portion_unit === 'pcs' ? ' ' : ''}${t(`restaurant.portionUnit.${item.portion_unit}`)}`
+      : null;
+  const fullPriceLabel = portionLabel ? `${portionLabel} · ${priceLabel}` : priceLabel;
+
   const { passesHardFilters } = classifyDish(item, permanentFilters);
 
   return (
@@ -77,7 +86,7 @@ export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: D
             />
           )}
         </View>
-        <Text style={styles.menuItemPrice}>{priceLabel}</Text>
+        <Text style={styles.menuItemPrice}>{fullPriceLabel}</Text>
       </View>
       {item.description && item.description_visibility !== 'detail' && (
         <Text style={styles.menuItemIngredients}>{item.description}</Text>

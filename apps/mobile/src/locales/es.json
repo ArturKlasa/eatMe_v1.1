@@ -419,6 +419,11 @@
     "price": {
       "marketPrice": "Precio de mercado",
       "askServer": "Preguntar al mesero"
+    },
+    "portionUnit": {
+      "g": "g",
+      "ml": "ml",
+      "pcs": "uds."
     }
   },
   "settings": {

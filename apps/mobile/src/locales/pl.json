@@ -419,6 +419,11 @@
     "price": {
       "marketPrice": "Cena rynkowa",
       "askServer": "Zapytaj kelnera"
+    },
+    "portionUnit": {
+      "g": "g",
+      "ml": "ml",
+      "pcs": "szt."
     }
   },
   "settings": {

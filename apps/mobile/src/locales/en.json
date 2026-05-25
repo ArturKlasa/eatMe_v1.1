@@ -419,6 +419,11 @@
     "price": {
       "marketPrice": "Market price",
       "askServer": "Ask server"
+    },
+    "portionUnit": {
+      "g": "g",
+      "ml": "ml",
+      "pcs": "pcs"
     }
   },
   "settings": {

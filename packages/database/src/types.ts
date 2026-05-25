@@ -1760,6 +1760,7 @@ export type Database = {
           country_code: string | null;
           created_at: string | null;
           cuisine_types: string[] | null;
+          currency_code: string;
           delivery_available: boolean | null;
           description: string | null;
           dine_in_available: boolean | null;
@@ -1798,6 +1799,7 @@ export type Database = {
           country_code?: string | null;
           created_at?: string | null;
           cuisine_types?: string[] | null;
+          currency_code?: string;
           delivery_available?: boolean | null;
           description?: string | null;
           dine_in_available?: boolean | null;
@@ -1836,6 +1838,7 @@ export type Database = {
           country_code?: string | null;
           created_at?: string | null;
           cuisine_types?: string[] | null;
+          currency_code?: string;
           delivery_available?: boolean | null;
           description?: string | null;
           dine_in_available?: boolean | null;

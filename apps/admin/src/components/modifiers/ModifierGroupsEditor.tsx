@@ -305,14 +305,17 @@ function OptionRow({
           aria-label="Price delta"
           type="number"
           step="0.01"
-          value={option.price_delta}
+          // Empty input == no surcharge (state 0). Rendering "" instead of "0"
+          // lets the user clear the field; placeholder shows the implied default.
+          value={option.price_delta || ''}
           onChange={e =>
             onUpdateOption(groupIdx, optIdx, {
-              price_delta: Number(e.target.value) || 0,
+              price_delta: e.target.value === '' ? 0 : Number(e.target.value) || 0,
             })
           }
           disabled={saving}
-          title="Surcharge above the dish base price (0 = no extra)"
+          placeholder="0"
+          title="Surcharge above the dish base price (blank = no extra)"
           className="w-16 rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
         />
         <span className="text-[10px] text-muted-foreground">or =</span>

@@ -202,6 +202,11 @@ export function DishRowEditor({
     if (draft.dish_category_id !== dish.dish_category_id)
       patch.dish_category_id = draft.dish_category_id;
     if (draft.dining_format !== dish.dining_format) patch.dining_format = draft.dining_format;
+    if (draft.portion_amount !== dish.portion_amount || draft.portion_unit !== dish.portion_unit) {
+      // Always send as a pair so the DB CHECK constraint never sees half-state.
+      patch.portion_amount = draft.portion_amount;
+      patch.portion_unit = draft.portion_unit;
+    }
 
     const scalarChanged = Object.keys(patch).length > 0;
     const groupsChanged = !groupsEqual(draftGroups, dish.modifier_groups);
@@ -335,7 +340,7 @@ export function DishRowEditor({
 
   return (
     <li className="rounded-md border border-primary/40 bg-muted/20 p-3 my-1 space-y-2 text-sm">
-      <div className="grid grid-cols-[1fr_auto] gap-2">
+      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-start">
         <input
           type="text"
           value={draft.name}
@@ -343,6 +348,39 @@ export function DishRowEditor({
           placeholder="Dish name"
           className="rounded-md border border-input bg-background px-2 py-1 text-sm"
         />
+        {/* Portion (amount + unit) — both null or both set; pair clears together. */}
+        <input
+          type="number"
+          value={draft.portion_amount ?? ''}
+          step="1"
+          min="1"
+          onChange={e => {
+            const v = e.target.value === '' ? null : parseInt(e.target.value, 10);
+            setDraft({
+              ...draft,
+              portion_amount: v,
+              portion_unit: v === null ? null : ((draft.portion_unit ?? 'g') as 'g' | 'ml' | 'pcs'),
+            });
+          }}
+          placeholder="size"
+          aria-label="Portion size"
+          title="Portion size — extract from menu (e.g. 250g, 0.5L, 6 szt.)"
+          className="rounded-md border border-input bg-background px-2 py-1 text-sm w-16"
+        />
+        <select
+          value={draft.portion_unit ?? ''}
+          disabled={draft.portion_amount == null}
+          onChange={e => setDraft({ ...draft, portion_unit: e.target.value as 'g' | 'ml' | 'pcs' })}
+          aria-label="Portion unit"
+          className="rounded-md border border-input bg-background px-1 py-1 text-sm disabled:opacity-50"
+        >
+          <option value="" disabled>
+            —
+          </option>
+          <option value="g">g</option>
+          <option value="ml">ml</option>
+          <option value="pcs">pcs</option>
+        </select>
         <input
           type="number"
           value={draft.price ?? ''}

@@ -46,6 +46,8 @@ function makeDish(overrides: Partial<EditableDish> = {}): EditableDish {
     dining_format: null,
     bundled_items: [],
     modifier_groups: [],
+    portion_amount: null,
+    portion_unit: null,
     ...overrides,
   };
 }

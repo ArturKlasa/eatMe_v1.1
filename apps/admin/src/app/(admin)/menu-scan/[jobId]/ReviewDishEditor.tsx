@@ -139,6 +139,10 @@ function asEditable(
     dining_format: deriveDiningFormat(d),
     bundled_items: bundledItems,
     modifier_groups: modifierGroups,
+    // Portion fields coerced from optional-undefined on the wire to required-null
+    // on the editable side so the paired form control has stable state.
+    portion_amount: d.portion_amount ?? null,
+    portion_unit: d.portion_unit ?? null,
   };
 }
 
@@ -468,6 +472,8 @@ export function ReviewDishEditor({
           display_price_prefix: d.display_price_prefix,
           serves: d.serves,
           dining_format: d.dining_format,
+          portion_amount: d.portion_amount,
+          portion_unit: d.portion_unit,
           bundled_items: d.bundled_items.map(b => ({
             name: b.name.trim(),
             note: b.note?.trim() || null,
@@ -680,7 +686,7 @@ export function ReviewDishEditor({
                     className="w-full rounded border border-border bg-background px-3 py-2 text-sm disabled:opacity-50 resize-y"
                   />
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <label className="flex flex-col gap-1 text-xs">
                       <span className="text-muted-foreground">Price</span>
                       <input
@@ -697,6 +703,52 @@ export function ReviewDishEditor({
                         placeholder="—"
                         className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
                       />
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs">
+                      <span
+                        className="text-muted-foreground"
+                        title="Portion size — extracted from menu text (e.g. 250g, 0.5L, 6 szt.). Both null or both set."
+                      >
+                        Portion
+                      </span>
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={d.portion_amount ?? ''}
+                          onChange={e => {
+                            const v = e.target.value === '' ? null : Number(e.target.value);
+                            update(d._id, {
+                              portion_amount: v,
+                              portion_unit: v === null ? null : (d.portion_unit ?? 'g'),
+                            });
+                          }}
+                          disabled={d._deleted || saving}
+                          placeholder="—"
+                          aria-label="Portion amount"
+                          className="flex-1 min-w-0 rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                        />
+                        <select
+                          value={d.portion_unit ?? ''}
+                          disabled={d._deleted || saving || d.portion_amount == null}
+                          onChange={e =>
+                            update(d._id, {
+                              portion_unit: e.target.value as 'g' | 'ml' | 'pcs',
+                            })
+                          }
+                          aria-label="Portion unit"
+                          className="rounded border border-border bg-background px-1 py-1.5 text-sm disabled:opacity-50"
+                        >
+                          <option value="" disabled>
+                            —
+                          </option>
+                          <option value="g">g</option>
+                          <option value="ml">ml</option>
+                          <option value="pcs">pcs</option>
+                        </select>
+                      </div>
                     </label>
 
                     <label className="flex flex-col gap-1 text-xs">

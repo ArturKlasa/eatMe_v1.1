@@ -64,6 +64,10 @@ export type ExtractedDish = {
   dining_format?: DiningFormat | null;
   bundled_items?: ExtractedBundledItem[];
   modifier_groups?: import('@/components/modifiers/editableTypes').ExtractedModifierGroup[];
+  // Portion size (migration 145, prompt updated 2026-05-24). Optional because
+  // pre-update scans don't carry these; asEditable coerces to null.
+  portion_amount?: number | null;
+  portion_unit?: 'g' | 'ml' | 'pcs' | null;
   // Legacy wire-format fields (worker still emits dish_kind through Phase 7;
   // courses/variants only present on pre-Phase-2 jobs). Read-only — UI never
   // edits these directly.
@@ -76,7 +80,13 @@ export type EditableBundledItem = ExtractedBundledItem & {
 
 export type EditableDish = Omit<
   ExtractedDish,
-  'display_price_prefix' | 'serves' | 'dining_format' | 'bundled_items' | 'modifier_groups'
+  | 'display_price_prefix'
+  | 'serves'
+  | 'dining_format'
+  | 'bundled_items'
+  | 'modifier_groups'
+  | 'portion_amount'
+  | 'portion_unit'
 > & {
   _id: string;
   _deleted: boolean;
@@ -91,6 +101,10 @@ export type EditableDish = Omit<
   dining_format: DiningFormat | null;
   bundled_items: EditableBundledItem[];
   modifier_groups: EditableModifierGroup[];
+  // Required (not optional) on the editable side — asEditable coerces
+  // undefined → null so the form's pairing logic doesn't have to branch.
+  portion_amount: number | null;
+  portion_unit: 'g' | 'ml' | 'pcs' | null;
 };
 
 // ── Bundled-item factory + helpers (out of scope of the modifier lift) ───────

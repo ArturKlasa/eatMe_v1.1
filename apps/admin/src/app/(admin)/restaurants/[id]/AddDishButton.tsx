@@ -138,6 +138,8 @@ export function AddDishButton({
         display_price_prefix: 'exact',
         dining_format: diningFormat === '' ? null : diningFormat,
         bundled_items: null,
+        portion_amount: null,
+        portion_unit: null,
         variants: [],
         courses: [],
         modifier_groups: [],

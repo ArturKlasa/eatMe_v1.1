@@ -34,6 +34,11 @@ const adminDishCreateSchema = z.object({
   dish_category_id: z.string().uuid().nullable().optional(),
   dining_format: z.enum(DINING_FORMATS).nullable().optional(),
   bundled_items: z.array(bundledItemSchema).max(50).nullable().optional(),
+  // Portion size (migration 145). Always-paired or both null — DB CHECK
+  // enforces; callers either send both or omit both. We collapse the pair
+  // at the payload-build step below so a partial input fails fast.
+  portion_amount: z.number().int().positive().nullable().optional(),
+  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable().optional(),
 });
 
 // adminCreateDish: create a new dish under a restaurant. Lands as status='draft',
@@ -101,6 +106,8 @@ export const adminCreateDish = withAdminAuth(
       dietary_tags: [] as string[],
       dining_format: d.dining_format ?? null,
       bundled_items: d.bundled_items ?? null,
+      portion_amount: d.portion_amount ?? null,
+      portion_unit: d.portion_unit ?? null,
     };
 
     const { data: created, error } = await service
@@ -143,6 +150,10 @@ const adminDishUpdateSchema = z.object({
   dish_category_id: z.string().uuid().nullable().optional(),
   dining_format: z.enum(DINING_FORMATS).nullable().optional(),
   bundled_items: z.array(bundledItemSchema).max(50).nullable().optional(),
+  // Portion size (migration 145). Emitted together by the editor's patch
+  // builder so the DB's both-set-or-both-null CHECK never sees a half-write.
+  portion_amount: z.number().int().positive().nullable().optional(),
+  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable().optional(),
 });
 
 export const adminUpdateDish = withAdminAuth(
@@ -167,7 +178,7 @@ export const adminUpdateDish = withAdminAuth(
     const { data: current } = await service
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, price, status, is_available, primary_protein, dish_kind, menu_category_id, dish_category_id, dining_format, bundled_items'
+        'id, restaurant_id, name, description, price, status, is_available, primary_protein, dish_kind, menu_category_id, dish_category_id, dining_format, bundled_items, portion_amount, portion_unit'
       )
       .eq('id', dishId)
       .eq('restaurant_id', restaurantId)
@@ -210,6 +221,12 @@ export const adminUpdateDish = withAdminAuth(
     if (d.dish_category_id !== undefined) updatePayload.dish_category_id = d.dish_category_id;
     if (d.dining_format !== undefined) updatePayload.dining_format = d.dining_format;
     if (d.bundled_items !== undefined) updatePayload.bundled_items = d.bundled_items;
+    // Portion fields move as a pair — emit both whenever either was supplied.
+    // Caller can pass {portion_amount: null, portion_unit: null} to clear.
+    if (d.portion_amount !== undefined || d.portion_unit !== undefined) {
+      updatePayload.portion_amount = d.portion_amount ?? null;
+      updatePayload.portion_unit = d.portion_unit ?? null;
+    }
 
     if (Object.keys(updatePayload).length === 0) {
       return { ok: true, data: undefined };

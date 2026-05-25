@@ -535,6 +535,10 @@ export type AdminMenuDish = {
   dining_format: string | null;
   bundled_items: Array<{ name: string; note?: string | null }> | null;
   modifier_groups: AdminMenuModifierGroup[];
+  // Portion size (migration 145). Either both set or both null; DB CHECK
+  // enforces. portion_unit is one of 'g' | 'ml' | 'pcs'.
+  portion_amount: number | null;
+  portion_unit: string | null;
   // Legacy variants/courses kept for display until Phase 7 drops the tables.
   variants: AdminMenuDish[];
   courses: AdminMenuCourse[];
@@ -606,7 +610,7 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
     svc
       .from('dishes')
       .select(
-        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, is_parent, parent_dish_id, display_price_prefix, dining_format, bundled_items, dish_categories!left(id, name)'
+        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, is_parent, parent_dish_id, display_price_prefix, dining_format, bundled_items, portion_amount, portion_unit, dish_categories!left(id, name)'
       )
       .eq('restaurant_id', restaurantId)
       .order('name', { ascending: true }),
@@ -635,6 +639,8 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
       dining_format: (r.dining_format as string | null) ?? null,
       bundled_items:
         (r.bundled_items as Array<{ name: string; note?: string | null }> | null) ?? null,
+      portion_amount: (r.portion_amount as number | null) ?? null,
+      portion_unit: (r.portion_unit as string | null) ?? null,
       modifier_groups: [],
       variants: [],
       courses: [],

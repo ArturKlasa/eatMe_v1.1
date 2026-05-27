@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SUPPORTED_CURRENCIES } from '../logic/currency';
 
 export const basicInfoSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
@@ -141,7 +142,16 @@ export const restaurantBasicsSchema = z.object({
   name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
   description: z.string().optional().or(z.literal('')),
   restaurant_type: z.string().optional().or(z.literal('')),
+  /** Legacy free-text field. New admin form writes `country_code` instead; this stays for the v2 owner-portal compatibility. */
   country: z.string().optional().or(z.literal('')),
+  /** ISO 3166-1 alpha-2 (e.g. "MX", "PL"). New canonical field; mirrors restaurants.country_code in DB. */
+  country_code: z
+    .string()
+    .regex(/^[A-Z]{2}$/, 'Country code must be ISO alpha-2 (e.g. MX)')
+    .optional()
+    .or(z.literal('')),
+  /** ISO 4217 currency code (e.g. "MXN", "PLN"). Mirrors restaurants.currency_code in DB. */
+  currency_code: z.enum(SUPPORTED_CURRENCIES).optional(),
   city: z.string().optional().or(z.literal('')),
   postal_code: z.string().optional().or(z.literal('')),
   neighbourhood: z.string().optional().or(z.literal('')),
@@ -164,6 +174,12 @@ export const restaurantDraftSchema = z.object({
   description: z.string().optional().or(z.literal('')),
   restaurant_type: z.string().optional(),
   country: z.string().optional(),
+  country_code: z
+    .string()
+    .regex(/^[A-Z]{2}$/, 'Country code must be ISO alpha-2 (e.g. MX)')
+    .optional()
+    .or(z.literal('')),
+  currency_code: z.enum(SUPPORTED_CURRENCIES).optional(),
   city: z.string().optional(),
   postal_code: z.string().optional(),
   neighbourhood: z.string().optional(),

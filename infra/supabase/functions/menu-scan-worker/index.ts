@@ -146,6 +146,41 @@ export class NoImagesError extends Error {
   }
 }
 
+// ── Currency (inlined — Deno edge runtime can't import workspace packages) ───
+//
+// Mirror of the relevant rows from @eatme/shared/logic/currency.ts. Keep in
+// lockstep — if you add a 13th currency to the shared module, mirror it here.
+
+interface CurrencyInfo {
+  code: string;
+  name: string;
+  symbol: string;
+}
+
+const CURRENCY_NAMES: Record<string, { name: string; symbol: string }> = {
+  USD: { name: 'US Dollar', symbol: '$' },
+  MXN: { name: 'Mexican Peso', symbol: '$' },
+  PLN: { name: 'Polish Złoty', symbol: 'zł' },
+  EUR: { name: 'Euro', symbol: '€' },
+  GBP: { name: 'British Pound', symbol: '£' },
+  CAD: { name: 'Canadian Dollar', symbol: '$' },
+  AUD: { name: 'Australian Dollar', symbol: '$' },
+  BRL: { name: 'Brazilian Real', symbol: 'R$' },
+  JPY: { name: 'Japanese Yen', symbol: '¥' },
+  COP: { name: 'Colombian Peso', symbol: '$' },
+  ARS: { name: 'Argentine Peso', symbol: '$' },
+  CLP: { name: 'Chilean Peso', symbol: '$' },
+};
+
+function resolveCurrency(code: string | null | undefined): CurrencyInfo {
+  const fallback: CurrencyInfo = { code: 'USD', name: 'US Dollar', symbol: '$' };
+  if (!code) return fallback;
+  const upper = code.toUpperCase();
+  const info = CURRENCY_NAMES[upper];
+  if (!info) return fallback;
+  return { code: upper, name: info.name, symbol: info.symbol };
+}
+
 // ── Prompt ───────────────────────────────────────────────────────────────────
 
 interface CanonicalSlug {
@@ -153,10 +188,12 @@ interface CanonicalSlug {
   english_name: string;
 }
 
-function buildExtractionPrompt(canonicalSlugs: CanonicalSlug[]): string {
+function buildExtractionPrompt(canonicalSlugs: CanonicalSlug[], currency: CurrencyInfo): string {
   const slugList = canonicalSlugs.map(c => `  - ${c.slug} (${c.english_name})`).join('\n');
 
   return `You are a menu-extraction assistant. Extract every dish from the provided menu image(s).
+
+This restaurant's prices are in ${currency.name} (${currency.symbol}, ISO code: ${currency.code}). Extract numeric values only — strip the "${currency.symbol}" symbol (and any other currency markers) if they appear next to a price.
 
 For each dish output exactly these fields:
 - name: dish name exactly as written on the menu
@@ -436,6 +473,26 @@ async function fetchCanonicalSlugs(supa: any): Promise<CanonicalSlug[]> {
   }));
 }
 
+// Fetched once per job (not per page) to inject the restaurant's currency
+// into the extraction prompt. Failures fall back to USD silently — the
+// admin review screen catches anything obviously wrong.
+// deno-lint-ignore no-explicit-any
+async function fetchRestaurantCurrency(supa: any, restaurantId: string): Promise<CurrencyInfo> {
+  const { data, error } = await supa
+    .from('restaurants')
+    .select('currency_code')
+    .eq('id', restaurantId)
+    .single();
+  if (error || !data) {
+    console.warn(
+      `fetchRestaurantCurrency failed for ${restaurantId}; using USD:`,
+      error?.message ?? 'no data'
+    );
+    return resolveCurrency('USD');
+  }
+  return resolveCurrency(data.currency_code);
+}
+
 // ── Core worker logic ─────────────────────────────────────────────────────────
 
 export const MAX_PER_TICK = 3;
@@ -458,8 +515,9 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
 
   // Fetch canonical-category slugs once per tick — they're injected into the
   // prompt so the AI can match menu sections against the seeded taxonomy.
+  // (The slug list is restaurant-independent; the per-job prompt is built
+  //  inside the loop because currency varies by restaurant.)
   const canonicalSlugs = await fetchCanonicalSlugs(supa);
-  const prompt = buildExtractionPrompt(canonicalSlugs);
 
   for (let i = 0; i < MAX_PER_TICK; i++) {
     const { data: job, error: claimError } = await supa.rpc('claim_menu_scan_job', {
@@ -476,6 +534,11 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
     try {
       const input = job.input as { images?: ImageRef[] } | null;
       if (!input?.images?.length) throw new NoImagesError();
+
+      // Fetch this restaurant's currency once (shared across all pages of
+      // the job) and bake it into the per-job prompt. USD fallback on miss.
+      const currency = await fetchRestaurantCurrency(supa, job.restaurant_id);
+      const prompt = buildExtractionPrompt(canonicalSlugs, currency);
 
       // Download all images for this job
       const imageBase64List: string[] = [];

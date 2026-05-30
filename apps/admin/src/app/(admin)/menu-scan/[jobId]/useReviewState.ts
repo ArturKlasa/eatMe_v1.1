@@ -67,7 +67,7 @@ export type ExtractedDish = {
   // Portion size (migration 145, prompt updated 2026-05-24). Optional because
   // pre-update scans don't carry these; asEditable coerces to null.
   portion_amount?: number | null;
-  portion_unit?: 'g' | 'ml' | 'pcs' | null;
+  portion_unit?: 'g' | 'ml' | 'pcs' | 'oz' | null;
   // Legacy wire-format fields (worker still emits dish_kind through Phase 7;
   // courses/variants only present on pre-Phase-2 jobs). Read-only — UI never
   // edits these directly.
@@ -104,7 +104,7 @@ export type EditableDish = Omit<
   // Required (not optional) on the editable side — asEditable coerces
   // undefined → null so the form's pairing logic doesn't have to branch.
   portion_amount: number | null;
-  portion_unit: 'g' | 'ml' | 'pcs' | null;
+  portion_unit: 'g' | 'ml' | 'pcs' | 'oz' | null;
 };
 
 // ── Bundled-item factory + helpers (out of scope of the modifier lift) ───────

@@ -86,11 +86,12 @@ const menuExtractionDishSchema = z.object({
   description: z.string().nullable(),
   price: z.number().nonnegative().nullable(),
   // NEW: explicit portion size when written on the menu (e.g. "250g", "0.5L",
-  // "6 szt."). Normalized to base units (kg→g, L→ml). Both null when the menu
-  // doesn't show an explicit portion. Persisted to dishes.portion_amount +
-  // dishes.portion_unit (migration 145); DB CHECK enforces both-or-neither.
+  // "8 oz", "6 szt."). Metric normalized to base units (kg→g, L→ml); ounces
+  // kept as 'oz' (migration 148). Both null when the menu doesn't show an
+  // explicit portion. Persisted to dishes.portion_amount + dishes.portion_unit
+  // (migration 145); DB CHECK enforces both-or-neither.
   portion_amount: z.number().int().positive().nullable(),
-  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable(),
+  portion_unit: z.enum(['g', 'ml', 'pcs', 'oz']).nullable(),
   // Kept through the Phase 2→4 window so the existing admin review UI keeps
   // rendering. Phase 4 migrates the review UI to consume modifier_groups; Phase 7
   // drops dish_kind from the worker schema.
@@ -202,10 +203,13 @@ For each dish output exactly these fields:
 - price: numeric price (no currency symbol), null if not shown
 - portion_amount + portion_unit: explicit portion size shown on the menu.
     Extract ONLY when explicitly visible in the dish name or description.
-    Normalize to base units (kg→g, L→ml; pieces cover "X szt." / "X uds." too):
+    Units: metric weight → "g", metric volume → "ml", count → "pcs",
+    imperial weight → "oz". Normalize metric to base units (kg→g, L→ml); keep
+    ounces as "oz" — do NOT convert oz↔g. Pieces cover "X szt." / "X uds." too.
       "250g" / "250 g"             → {amount: 250,  unit: "g"}
       "1.5kg" / "1,5 kg"           → {amount: 1500, unit: "g"}
       "0.5L" / "500ml"             → {amount: 500,  unit: "ml"}
+      "8 oz" / "8oz"               → {amount: 8,    unit: "oz"}
       "6 pcs" / "6 szt." / "6 uds" → {amount: 6,    unit: "pcs"}
     When you set portion_amount/portion_unit, REMOVE that portion text from
     the name and description so it is not shown twice, and tidy any leftover

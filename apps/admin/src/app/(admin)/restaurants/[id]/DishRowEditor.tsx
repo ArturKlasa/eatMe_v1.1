@@ -359,7 +359,8 @@ export function DishRowEditor({
             setDraft({
               ...draft,
               portion_amount: v,
-              portion_unit: v === null ? null : ((draft.portion_unit ?? 'g') as 'g' | 'ml' | 'pcs'),
+              portion_unit:
+                v === null ? null : ((draft.portion_unit ?? 'g') as 'g' | 'ml' | 'pcs' | 'oz'),
             });
           }}
           placeholder="size"
@@ -370,7 +371,9 @@ export function DishRowEditor({
         <select
           value={draft.portion_unit ?? ''}
           disabled={draft.portion_amount == null}
-          onChange={e => setDraft({ ...draft, portion_unit: e.target.value as 'g' | 'ml' | 'pcs' })}
+          onChange={e =>
+            setDraft({ ...draft, portion_unit: e.target.value as 'g' | 'ml' | 'pcs' | 'oz' })
+          }
           aria-label="Portion unit"
           className="rounded-md border border-input bg-background px-1 py-1 text-sm disabled:opacity-50"
         >
@@ -380,6 +383,7 @@ export function DishRowEditor({
           <option value="g">g</option>
           <option value="ml">ml</option>
           <option value="pcs">pcs</option>
+          <option value="oz">oz</option>
         </select>
         <input
           type="number"

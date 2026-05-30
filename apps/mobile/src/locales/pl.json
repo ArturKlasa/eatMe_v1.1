@@ -423,7 +423,8 @@
     "portionUnit": {
       "g": "g",
       "ml": "ml",
-      "pcs": "szt."
+      "pcs": "szt.",
+      "oz": "oz"
     }
   },
   "settings": {

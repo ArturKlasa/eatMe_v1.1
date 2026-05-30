@@ -46,12 +46,13 @@ export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: D
       priceLabel = `$${item.price.toFixed(2)}`;
   }
 
-  // Portion size (migration 145). Renders inline before the price as
-  // "250g · $12.00". Space before 'pcs'/'szt.'/'uds.' reads better
-  // ("6 pcs" vs "6pcs"); 'g'/'ml' stay tight.
+  // Portion size (migration 145; 'oz' added migration 148). Renders inline
+  // before the price as "250g · $12.00". Space before 'pcs'/'szt.'/'uds.' and
+  // 'oz' reads better ("6 pcs", "8 oz" vs "6pcs"/"8oz"); 'g'/'ml' stay tight.
+  const portionSpaced = item.portion_unit === 'pcs' || item.portion_unit === 'oz';
   const portionLabel =
     item.portion_amount != null && item.portion_unit
-      ? `${item.portion_amount}${item.portion_unit === 'pcs' ? ' ' : ''}${t(`restaurant.portionUnit.${item.portion_unit}`)}`
+      ? `${item.portion_amount}${portionSpaced ? ' ' : ''}${t(`restaurant.portionUnit.${item.portion_unit}`)}`
       : null;
   const fullPriceLabel = portionLabel ? `${portionLabel} · ${priceLabel}` : priceLabel;
 

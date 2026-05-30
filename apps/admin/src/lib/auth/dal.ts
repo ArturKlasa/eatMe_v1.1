@@ -536,7 +536,7 @@ export type AdminMenuDish = {
   bundled_items: Array<{ name: string; note?: string | null }> | null;
   modifier_groups: AdminMenuModifierGroup[];
   // Portion size (migration 145). Either both set or both null; DB CHECK
-  // enforces. portion_unit is one of 'g' | 'ml' | 'pcs'.
+  // enforces. portion_unit is one of 'g' | 'ml' | 'pcs' | 'oz'.
   portion_amount: number | null;
   portion_unit: string | null;
   // Legacy variants/courses kept for display until Phase 7 drops the tables.

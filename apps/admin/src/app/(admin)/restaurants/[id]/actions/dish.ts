@@ -38,7 +38,7 @@ const adminDishCreateSchema = z.object({
   // enforces; callers either send both or omit both. We collapse the pair
   // at the payload-build step below so a partial input fails fast.
   portion_amount: z.number().int().positive().nullable().optional(),
-  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable().optional(),
+  portion_unit: z.enum(['g', 'ml', 'pcs', 'oz']).nullable().optional(),
 });
 
 // adminCreateDish: create a new dish under a restaurant. Lands as status='draft',
@@ -153,7 +153,7 @@ const adminDishUpdateSchema = z.object({
   // Portion size (migration 145). Emitted together by the editor's patch
   // builder so the DB's both-set-or-both-null CHECK never sees a half-write.
   portion_amount: z.number().int().positive().nullable().optional(),
-  portion_unit: z.enum(['g', 'ml', 'pcs']).nullable().optional(),
+  portion_unit: z.enum(['g', 'ml', 'pcs', 'oz']).nullable().optional(),
 });
 
 export const adminUpdateDish = withAdminAuth(

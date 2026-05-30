@@ -735,7 +735,7 @@ export function ReviewDishEditor({
                           disabled={d._deleted || saving || d.portion_amount == null}
                           onChange={e =>
                             update(d._id, {
-                              portion_unit: e.target.value as 'g' | 'ml' | 'pcs',
+                              portion_unit: e.target.value as 'g' | 'ml' | 'pcs' | 'oz',
                             })
                           }
                           aria-label="Portion unit"
@@ -747,6 +747,7 @@ export function ReviewDishEditor({
                           <option value="g">g</option>
                           <option value="ml">ml</option>
                           <option value="pcs">pcs</option>
+                          <option value="oz">oz</option>
                         </select>
                       </div>
                     </label>

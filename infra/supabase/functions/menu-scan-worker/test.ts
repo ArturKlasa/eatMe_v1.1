@@ -642,6 +642,29 @@ async function runFixture(fixtureDish: ReturnType<typeof makeFixtureDish>) {
   return captured.dishes[0];
 }
 
+Deno.test('normalize: placeholder "." description collapses to null', async () => {
+  const dish = makeFixtureDish({
+    name: '  Ribeye Steak  ',
+    price: 24.0,
+    dish_kind: 'standard',
+    description: '.',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, null); // "." is not a real description
+  assertEquals(captured.name, 'Ribeye Steak'); // names are trimmed, never null
+});
+
+Deno.test('normalize: leading stray punctuation is stripped from description', async () => {
+  const dish = makeFixtureDish({
+    name: 'Tomato Soup',
+    price: 8.0,
+    dish_kind: 'standard',
+    description: '- Creamy roasted tomato',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, 'Creamy roasted tomato');
+});
+
 Deno.test('fixture: Pad Thai with required protein choice', async () => {
   const dish = makeFixtureDish({
     name: 'Pad Thai',

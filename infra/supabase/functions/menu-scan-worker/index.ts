@@ -197,7 +197,8 @@ This restaurant's prices are in ${currency.name} (${currency.symbol}, ISO code: 
 
 For each dish output exactly these fields:
 - name: dish name exactly as written on the menu
-- description: brief description if shown, otherwise null
+- description: brief description if shown. Output null when there is no
+    description — never output a placeholder such as ".", "-", or "N/A".
 - price: numeric price (no currency symbol), null if not shown
 - portion_amount + portion_unit: explicit portion size shown on the menu.
     Extract ONLY when explicitly visible in the dish name or description.
@@ -206,6 +207,12 @@ For each dish output exactly these fields:
       "1.5kg" / "1,5 kg"           → {amount: 1500, unit: "g"}
       "0.5L" / "500ml"             → {amount: 500,  unit: "ml"}
       "6 pcs" / "6 szt." / "6 uds" → {amount: 6,    unit: "pcs"}
+    When you set portion_amount/portion_unit, REMOVE that portion text from
+    the name and description so it is not shown twice, and tidy any leftover
+    separators or empty parentheses:
+      "Ribeye Steak 250g"    → name "Ribeye Steak"
+      "Pilsner 0.5L"         → name "Pilsner"
+      "Tomato Soup (300 ml)" → name "Tomato Soup"
     Return BOTH null when:
       - no size is shown
       - size is a range ("200–250g") — avoid false precision
@@ -406,6 +413,19 @@ async function extractOneImageWithFallback(
   }
 }
 
+// Normalize an AI-emitted free-text field: trim, drop a leading stray
+// punctuation token (the model sometimes emits "." / "- " as a placeholder
+// for an absent value), and collapse empty / punctuation-only strings to null.
+function normalizeText(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const s = raw
+    .trim()
+    .replace(/^[.\-–—·•]+\s*/, '')
+    .trim();
+  if (s === '' || /^[.\-–—·•]+$/.test(s)) return null;
+  return s;
+}
+
 async function runExtraction(
   openai: OpenAI,
   jobAttempts: number,
@@ -433,7 +453,15 @@ async function runExtraction(
       // this also fixes the long-standing class of bugs where every dish
       // came back tagged as page 0.
       for (const d of r.value.dishes) {
-        dishes.push({ ...d, source_image_index: idx });
+        // Also defensively clean the free-text fields: names are trimmed
+        // (never null), and placeholder descriptions ("." / "") collapse to
+        // null so they don't reach the review UI or the DB.
+        dishes.push({
+          ...d,
+          name: d.name.trim(),
+          description: normalizeText(d.description),
+          source_image_index: idx,
+        });
       }
       if (!detectedLanguage && r.value.detected_language) {
         detectedLanguage = r.value.detected_language;

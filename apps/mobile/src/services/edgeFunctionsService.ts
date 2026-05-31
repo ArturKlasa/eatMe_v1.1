@@ -87,8 +87,6 @@ export interface FeedRequest {
     religiousRestrictions?: string[]; // hard
     cuisines?: string[]; // soft boost
     spiceLevel?: string; // soft boost — daily spice preference
-    spiceTolerance?: string; // soft boost — permanent spice tolerance
-    favoriteCuisines?: string[]; // soft boost — permanent favourite cuisines
     sortBy?: 'closest' | 'bestMatch' | 'highestRated';
     openNow?: boolean; // hard — restaurant mode only
     /**

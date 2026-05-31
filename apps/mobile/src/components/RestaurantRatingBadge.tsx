@@ -25,31 +25,44 @@ export function RestaurantRatingBadge({
     return null;
   }
 
-  const getCategoryLabel = (categoryKey: string, percentage: number): { text: string; color: string } => {
+  const getCategoryLabel = (
+    categoryKey: string,
+    percentage: number
+  ): { text: string; color: string } => {
     switch (categoryKey) {
       case 'food':
-        if (percentage >= 85) return { text: t('rating.restaurantRating.delicious'), color: colors.success };
-        if (percentage >= 70) return { text: t('rating.restaurantRating.tasty'), color: colors.accentLight };
+        if (percentage >= 85)
+          return { text: t('rating.restaurantRating.delicious'), color: colors.success };
+        if (percentage >= 70)
+          return { text: t('rating.restaurantRating.tasty'), color: colors.accentLight };
         return { text: t('rating.restaurantRating.mediocrFood'), color: colors.error };
 
       case 'service':
-        if (percentage >= 85) return { text: t('rating.restaurantRating.excellentService'), color: colors.success };
-        if (percentage >= 70) return { text: t('rating.restaurantRating.goodService'), color: colors.accentLight };
+        if (percentage >= 85)
+          return { text: t('rating.restaurantRating.excellentService'), color: colors.success };
+        if (percentage >= 70)
+          return { text: t('rating.restaurantRating.goodService'), color: colors.accentLight };
         return { text: t('rating.restaurantRating.poorService'), color: colors.error };
 
       case 'clean':
-        if (percentage >= 85) return { text: t('rating.restaurantRating.veryClean'), color: colors.success };
-        if (percentage >= 70) return { text: t('rating.restaurantRating.fairlyClean'), color: colors.accentLight };
+        if (percentage >= 85)
+          return { text: t('rating.restaurantRating.veryClean'), color: colors.success };
+        if (percentage >= 70)
+          return { text: t('rating.restaurantRating.fairlyClean'), color: colors.accentLight };
         return { text: t('rating.restaurantRating.notClean'), color: colors.error };
 
       case 'waitTime':
-        if (percentage >= 85) return { text: t('rating.restaurantRating.quickService'), color: colors.success };
-        if (percentage >= 70) return { text: t('rating.restaurantRating.reasonableWait'), color: colors.accentLight };
+        if (percentage >= 85)
+          return { text: t('rating.restaurantRating.quickService'), color: colors.success };
+        if (percentage >= 70)
+          return { text: t('rating.restaurantRating.reasonableWait'), color: colors.accentLight };
         return { text: t('rating.restaurantRating.longWait'), color: colors.error };
 
       case 'value':
-        if (percentage >= 85) return { text: t('rating.restaurantRating.greatValue'), color: colors.success };
-        if (percentage >= 70) return { text: t('rating.restaurantRating.fairValue'), color: colors.accentLight };
+        if (percentage >= 85)
+          return { text: t('rating.restaurantRating.greatValue'), color: colors.success };
+        if (percentage >= 70)
+          return { text: t('rating.restaurantRating.fairValue'), color: colors.accentLight };
         return { text: t('rating.restaurantRating.overpriced'), color: colors.error };
 
       default:
@@ -117,7 +130,7 @@ function BreakdownItem({ categoryKey, score, getCategoryLabel }: BreakdownItemPr
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'flex-start',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   breakdown: {
     flexDirection: 'row',

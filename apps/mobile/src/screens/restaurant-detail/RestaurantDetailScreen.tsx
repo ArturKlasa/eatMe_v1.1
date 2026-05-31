@@ -162,7 +162,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       {/* Compact Header */}
-      <View style={[styles.header, insets.top > 0 && { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top - 8, spacing.sm) }]}>
         <View style={styles.headerContent}>
           <View style={styles.nameRatingRow}>
             <Text style={styles.restaurantName} numberOfLines={1}>

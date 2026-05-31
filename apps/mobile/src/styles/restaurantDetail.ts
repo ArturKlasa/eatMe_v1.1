@@ -34,7 +34,7 @@ export const restaurantDetailStyles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.base,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.darkTertiary,
   },
@@ -45,7 +45,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   nameRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
     gap: spacing.xs,
   },
   restaurantName: {
@@ -437,7 +437,7 @@ export const restaurantDetailStyles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },

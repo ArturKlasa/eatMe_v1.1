@@ -183,9 +183,14 @@ export function DishPhotoModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        {/* stopPropagation: tapping the sheet itself should not dismiss */}
-        <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
+      <View style={styles.backdrop}>
+        {/* Tap the dimmed strip above the sheet to dismiss. This is a
+            separate absolute-fill Pressable behind the sheet — NOT a wrapper —
+            so the sheet's ScrollView has no Pressable ancestor that would
+            swallow its vertical scroll gesture (RN: a Pressable wrapping a
+            ScrollView can block scrolling). */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View style={styles.sheet}>
           <View style={styles.handle} />
 
           {/* Header */}
@@ -231,6 +236,7 @@ export function DishPhotoModal({
             style={styles.body}
             contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
             showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
           >
             {/* Main Photo */}
             <View style={styles.mainPhotoContainer}>
@@ -380,8 +386,8 @@ export function DishPhotoModal({
               )}
             </View>
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

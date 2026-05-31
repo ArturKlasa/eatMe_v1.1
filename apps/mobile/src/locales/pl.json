@@ -416,7 +416,12 @@
       "cardsOnly": "Tylko karty",
       "cashAndCard": "Gotówka i karta"
     },
+    "optionsGroupLabel": "Opcje",
+    "showMoreOptions": "+{{count}} więcej",
+    "showLessOptions": "Pokaż mniej",
     "price": {
+      "from": "od {{price}}",
+      "perPerson": "{{price}}/os.",
       "marketPrice": "Cena rynkowa",
       "askServer": "Zapytaj kelnera"
     },

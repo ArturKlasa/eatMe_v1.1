@@ -416,7 +416,12 @@
       "cardsOnly": "Solo tarjetas",
       "cashAndCard": "Efectivo y tarjeta"
     },
+    "optionsGroupLabel": "Opciones",
+    "showMoreOptions": "+{{count}} más",
+    "showLessOptions": "Mostrar menos",
     "price": {
+      "from": "desde {{price}}",
+      "perPerson": "{{price}}/persona",
       "marketPrice": "Precio de mercado",
       "askServer": "Preguntar al mesero"
     },

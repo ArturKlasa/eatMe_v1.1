@@ -272,7 +272,28 @@ export const restaurantDetailStyles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   menuSection: {
-    paddingBottom: spacing.lg,
+    // Vertical rhythm now comes from menuHeader (collapsed list) and the
+    // per-dish wrappers (expanded), so no section padding is needed here.
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkSecondary,
+  },
+  menuHeaderName: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+    flexShrink: 1,
+  },
+  menuChevron: {
+    fontSize: typography.size.base,
+    color: colors.darkTextMuted,
+    marginLeft: spacing.md,
   },
   menuName: {
     fontSize: typography.size['2xl'],
@@ -296,15 +317,24 @@ export const restaurantDetailStyles = StyleSheet.create({
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
     color: colors.accent,
-    marginBottom: spacing.md,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  // Wraps the category name + optional description. Its marginBottom is the gap
+  // down to the first dish (the same whether or not a description shows); the
+  // tighter name→description gap lives on categoryDescription.marginTop.
+  categoryHeader: {
+    marginBottom: spacing.md,
+  },
+  categoryDescription: {
+    color: colors.textSecondary,
+    fontSize: typography.size.xs,
+    fontStyle: 'italic',
+    marginTop: spacing.xs,
+  },
   menuItem: {
-    marginBottom: spacing.base,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.darkSecondary,
+    // Divider + bottom spacing live on the per-dish wrapper in FoodTab, so inline
+    // option groups render inside the dish's section (above the divider).
   },
   menuItemHeader: {
     flexDirection: 'row',

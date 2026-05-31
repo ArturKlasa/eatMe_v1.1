@@ -7,17 +7,24 @@
  * and price deltas resolved against the user's permanent + daily filters via
  * classifyOption().
  *
+ * Styled for the dark restaurant-detail menu (matches DishMenuItem). Long groups
+ * collapse to the first COLLAPSED_COUNT options with an inline "+N more" toggle
+ * that expands in place — the user stays on the menu page.
+ *
  * The data is already loaded as part of the per-category fetch — this is a
- * pure render component.
+ * near-pure render component (only local expand/collapse state).
  */
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, borderRadius } from '@/styles/theme';
 import { classifyOption } from '../../utils/menuFilterUtils';
 import type { OptionGroup, Option } from '../../lib/supabase';
 import type { DailyFilters, PermanentFilters } from '../../stores/filterStore';
+
+// How many options to show before collapsing the rest behind a "+N more" toggle.
+const COLLAPSED_COUNT = 2;
 
 interface Props {
   groups: OptionGroup[];
@@ -27,8 +34,6 @@ interface Props {
 }
 
 export function ModifierGroupsList({ groups, permanent, daily, basePrice: _basePrice }: Props) {
-  const { t: _t } = useTranslation();
-
   // Filter out inactive groups + sort by display_order. Same shape the rest of
   // the screen uses (see useRestaurantDetail.handleDishPress).
   const visible = groups
@@ -56,6 +61,9 @@ function GroupSection({
   permanent: PermanentFilters;
   daily: DailyFilters;
 }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+
   const opts = (group.options ?? [])
     .filter(o => o.is_available)
     .slice()
@@ -63,29 +71,46 @@ function GroupSection({
 
   if (opts.length === 0) return null;
 
-  const requiredLabel = describeSelection(group);
+  const meta = describeSelection(group);
+  const hiddenCount = opts.length - COLLAPSED_COUNT;
+  const shown = expanded ? opts : opts.slice(0, COLLAPSED_COUNT);
 
   return (
     <View style={styles.group}>
       <View style={styles.groupHeader}>
         <Text style={styles.groupName}>{group.name}</Text>
-        <Text style={styles.groupMeta}>{requiredLabel}</Text>
+        {meta ? <Text style={styles.groupMeta}>{meta}</Text> : null}
       </View>
-      {opts.map(opt => (
+      {shown.map(opt => (
         <OptionRow key={opt.id} option={opt} permanent={permanent} daily={daily} />
       ))}
+      {hiddenCount > 0 && (
+        <TouchableOpacity
+          onPress={() => setExpanded(prev => !prev)}
+          activeOpacity={0.7}
+          style={styles.moreToggle}
+        >
+          <Text style={styles.moreToggleText}>
+            {expanded
+              ? t('restaurant.showLessOptions', 'Show less')
+              : t('restaurant.showMoreOptions', '+{{count}} more', { count: hiddenCount })}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
+// Selection hint shown next to the group name. The app has no ordering, so the
+// "required/optional" distinction is dropped — for single-select (incl. size
+// variants) the group name alone is enough; constrained multi-select keeps a
+// quantity hint.
 function describeSelection(group: OptionGroup): string {
   const min = group.min_selections ?? 0;
   const max = group.max_selections ?? null;
-  if (group.selection_type === 'single') {
-    return min >= 1 ? 'pick 1 — required' : 'pick 1 — optional';
-  }
+  if (group.selection_type === 'single') return '';
   // multiple
-  if (min === 0 && max == null) return 'optional';
+  if (min === 0 && max == null) return '';
   if (min === 0 && max != null) return `up to ${max}`;
   if (min === max && max != null) return `pick ${min}`;
   if (max == null) return `at least ${min}`;
@@ -160,9 +185,6 @@ function Chip({ tone, label }: { tone: 'error' | 'warning'; label: string }) {
 const styles = StyleSheet.create({
   container: {
     marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
     gap: spacing.sm,
   },
   group: {
@@ -176,11 +198,11 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: colors.textPrimary,
+    color: colors.darkText,
   },
   groupMeta: {
     fontSize: typography.size.xs,
-    color: colors.textTertiary,
+    color: colors.darkTextMuted,
   },
   optionRow: {
     flexDirection: 'row',
@@ -191,11 +213,11 @@ const styles = StyleSheet.create({
   optionName: {
     flex: 1,
     fontSize: typography.size.sm,
-    color: colors.textPrimary,
+    color: colors.darkText,
   },
   optionNamePreferred: {
     fontWeight: typography.weight.semibold,
-    color: colors.primaryDark,
+    color: colors.accent,
   },
   chips: {
     flexDirection: 'row',
@@ -228,8 +250,16 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: typography.size.xs,
-    color: colors.textSecondary,
+    color: colors.darkTextSecondary,
     fontVariant: ['tabular-nums'],
     marginLeft: spacing.xs,
+  },
+  moreToggle: {
+    paddingVertical: 2,
+  },
+  moreToggleText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.accent,
   },
 });

@@ -416,7 +416,12 @@
       "cardsOnly": "Cards only",
       "cashAndCard": "Cash & card"
     },
+    "optionsGroupLabel": "Options",
+    "showMoreOptions": "+{{count}} more",
+    "showLessOptions": "Show less",
     "price": {
+      "from": "from {{price}}",
+      "perPerson": "{{price}}/person",
       "marketPrice": "Market price",
       "askServer": "Ask server"
     },

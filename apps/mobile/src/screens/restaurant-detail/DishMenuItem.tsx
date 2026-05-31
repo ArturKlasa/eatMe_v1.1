@@ -31,10 +31,10 @@ export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: D
   let priceLabel: string;
   switch (pricePrefix) {
     case 'from':
-      priceLabel = `from $${item.price.toFixed(2)}`;
+      priceLabel = t('restaurant.price.from', { price: `$${item.price.toFixed(2)}` });
       break;
     case 'per_person':
-      priceLabel = `$${item.price.toFixed(2)}/person`;
+      priceLabel = t('restaurant.price.perPerson', { price: `$${item.price.toFixed(2)}` });
       break;
     case 'market_price':
       priceLabel = t('restaurant.price.marketPrice');

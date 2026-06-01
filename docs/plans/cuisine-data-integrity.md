@@ -87,19 +87,29 @@ Highest leverage, no DB migration, self-contained. Every new import produces can
 
 ---
 
-## Phase 2 — Backfill existing data
+## Phase 2 — Backfill existing data — ✅ COMPLETE (2026-05-31)
 
-Fixes restaurants already imported with empty/non-canonical cuisine (incl. the user's test data).
+Diagnostic dry-run revealed the real shape: of 322 restaurants, only 26 had cuisine, **296 were
+empty (all Google-imported)**, and **0** carried non-canonical junk (the old validation *dropped*
+bad values rather than storing them — so there was nothing to normalize).
 
-### 2a. Normalize migration — `infra/supabase/migrations/`
-- One-shot SQL/script: for every restaurant, rewrite `cuisine_types` via the canonical map
-  (`'Cafe'`→`'Café'`, drop unknowns). Implement as a migration that updates rows, or a Node script
-  that reads, runs `normalizeCuisines`, and writes back (keeps one JS policy).
-- Optional: for rows with empty `cuisine_types` **and** a `google_place_id`, re-run Google inference.
+### 2a. Normalize existing — `infra/scripts/backfill-cuisine-types.ts` — ✅ no-op
+- Reads every restaurant, runs `cuisine_types` through a copied `normalizeCuisines`, writes back
+  changed rows. `--dry-run` found **0 rows to change**. Kept as a repeatable guard.
 
-### Verification (Phase 2)
-- Dry-run count of affected rows before/after.
-- Spot-check the previously-empty test restaurant now shows cuisine in the mobile detail view.
+### 2b. Re-infer empties from Google — `infra/scripts/backfill-cuisine-from-google.ts` — ✅ done
+- For each empty-cuisine restaurant with a `google_place_id`, fetches `types` + `primaryType`,
+  runs the expanded `inferCuisineFromGoogleTypes` + `normalizeCuisines`, writes the result.
+  Batched (concurrency 5, 500ms delay); `--dry-run` + `--limit=N` for sampling.
+- 25-row sample (56% hit, accurate, no bad assignments) → full live run: **198/296 populated,
+  0 failed**. DB cuisine coverage **8% → 70%** (26 → 224 of 322).
+
+### Residual (→ Phase 3)
+- **98 restaurants stay empty** — Google only knows them as generic `restaurant`/`bar`. Menu-scan
+  cuisine inference (Phase 3) is what can classify these from their actual dishes.
+
+### Verification (Phase 2) — ✅
+- Post-run DB count: 224/322 with cuisine (70%), 98 empty, 0 write failures.
 
 ---
 

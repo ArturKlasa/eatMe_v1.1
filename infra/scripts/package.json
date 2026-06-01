@@ -5,7 +5,9 @@
   "description": "One-time / batch maintenance scripts for EatMe infrastructure",
   "scripts": {
     "batch-embed": "ts-node batch-embed.ts",
-    "backfill-open-hours": "ts-node backfill-open-hours.ts"
+    "backfill-open-hours": "ts-node backfill-open-hours.ts",
+    "backfill-cuisine-types": "ts-node backfill-cuisine-types.ts",
+    "backfill-cuisine-from-google": "ts-node backfill-cuisine-from-google.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

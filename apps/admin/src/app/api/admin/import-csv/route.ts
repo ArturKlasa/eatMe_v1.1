@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withAdminAuthRoute } from '@/lib/auth/route-wrappers';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { logAdminAction } from '@/lib/audit';
+import { normalizeCuisines } from '@eatme/shared';
 
 const csvRowSchema = z.object({
   name: z.string().min(1, 'name is required'),
@@ -168,12 +169,7 @@ export const POST = withAdminAuthRoute(async (ctx, req: NextRequest) => {
     // Fuzzy dedup check (name similarity + same city)
     const isPossibleDuplicate = await findFuzzyDuplicate(service, row, existingPlaceIds);
 
-    const cuisineArr = row.cuisine_types
-      ? row.cuisine_types
-          .split(',')
-          .map(c => c.trim())
-          .filter(Boolean)
-      : [];
+    const cuisineArr = normalizeCuisines(row.cuisine_types ? row.cuisine_types.split(',') : []);
 
     const insertPayload = {
       name: row.name,

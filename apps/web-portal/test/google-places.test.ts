@@ -32,7 +32,7 @@ describe('inferCuisineFromGoogleTypes', () => {
   it('deduplicates cuisines when multiple types map to the same value', () => {
     // hamburger_restaurant and american_restaurant both map to 'American'
     const result = inferCuisineFromGoogleTypes(['american_restaurant', 'hamburger_restaurant']);
-    expect(result.filter((c) => c === 'American')).toHaveLength(1);
+    expect(result.filter(c => c === 'American')).toHaveLength(1);
   });
 
   it('returns empty array for completely unknown types', () => {
@@ -41,6 +41,29 @@ describe('inferCuisineFromGoogleTypes', () => {
 
   it('returns empty array for empty input', () => {
     expect(inferCuisineFromGoogleTypes([])).toEqual([]);
+  });
+
+  it('maps newly-added exact types to canonical values', () => {
+    expect(inferCuisineFromGoogleTypes(['coffee_shop'])).toEqual(['Café']);
+    expect(inferCuisineFromGoogleTypes(['taiwanese_restaurant'])).toEqual(['Taiwanese']);
+    expect(inferCuisineFromGoogleTypes(['deli'])).toEqual(['Deli']);
+  });
+
+  it('rolls granular subtypes up to a canonical cuisine', () => {
+    expect(inferCuisineFromGoogleTypes(['dim_sum_restaurant'])).toEqual(['Chinese']);
+    expect(inferCuisineFromGoogleTypes(['taco_restaurant'])).toEqual(['Mexican']);
+  });
+
+  it('folds brunch_restaurant into Breakfast', () => {
+    expect(inferCuisineFromGoogleTypes(['brunch_restaurant'])).toEqual(['Breakfast']);
+  });
+
+  it('considers primaryType first, before the types array', () => {
+    expect(inferCuisineFromGoogleTypes([], 'coffee_shop')).toEqual(['Café']);
+    expect(inferCuisineFromGoogleTypes(['italian_restaurant'], 'pizza_restaurant')).toEqual([
+      'Pizza',
+      'Italian',
+    ]);
   });
 });
 
@@ -96,9 +119,7 @@ describe('mapGoogleHoursToOpenHours', () => {
   });
 
   it('handles period with no close (always open)', () => {
-    const periods = [
-      { open: { day: 0, hour: 0, minute: 0 } },
-    ];
+    const periods = [{ open: { day: 0, hour: 0, minute: 0 } }];
     const result = mapGoogleHoursToOpenHours(periods);
     expect(result.sunday).toEqual({ open: '00:00', close: '23:59' });
   });
@@ -111,9 +132,19 @@ describe('mapAddressComponents', () => {
     const components = [
       { longText: 'Mexico', shortText: 'MX', types: ['country'], languageCode: 'en' },
       { longText: '06600', shortText: '06600', types: ['postal_code'], languageCode: 'es' },
-      { longText: 'Ciudad de México', shortText: 'CDMX', types: ['administrative_area_level_1'], languageCode: 'es' },
+      {
+        longText: 'Ciudad de México',
+        shortText: 'CDMX',
+        types: ['administrative_area_level_1'],
+        languageCode: 'es',
+      },
       { longText: 'Cuauhtémoc', shortText: 'Cuauhtémoc', types: ['locality'], languageCode: 'es' },
-      { longText: 'Juárez', shortText: 'Juárez', types: ['neighborhood', 'sublocality_level_1'], languageCode: 'es' },
+      {
+        longText: 'Juárez',
+        shortText: 'Juárez',
+        types: ['neighborhood', 'sublocality_level_1'],
+        languageCode: 'es',
+      },
     ];
     const result = mapAddressComponents(components);
     expect(result.country_code).toBe('MX');
@@ -129,9 +160,7 @@ describe('mapAddressComponents', () => {
   });
 
   it('handles minimal address (just country)', () => {
-    const components = [
-      { longText: 'Mexico', shortText: 'MX', types: ['country'] },
-    ];
+    const components = [{ longText: 'Mexico', shortText: 'MX', types: ['country'] }];
     const result = mapAddressComponents(components);
     expect(result.country_code).toBe('MX');
     expect(result.city).toBeUndefined();
@@ -177,9 +206,7 @@ const fullGooglePlace: GooglePlace = {
     { longText: 'Narvarte Poniente', shortText: 'Narvarte', types: ['neighborhood'] },
   ],
   regularOpeningHours: {
-    periods: [
-      { open: { day: 1, hour: 8, minute: 0 }, close: { day: 1, hour: 22, minute: 0 } },
-    ],
+    periods: [{ open: { day: 1, hour: 8, minute: 0 }, close: { day: 1, hour: 22, minute: 0 } }],
   },
   nationalPhoneNumber: '+52 55 1234 5678',
   websiteUri: 'https://taqueriaelpaisa.com',
@@ -222,7 +249,7 @@ describe('mapGooglePlaceToRestaurant', () => {
     expect(result.phone).toBeUndefined();
     expect(result.website).toBeUndefined();
     expect(result.open_hours).toBeUndefined();
-    expect(result.cuisine_types).toContain('Cafe');
+    expect(result.cuisine_types).toContain('Café');
     expect(result.restaurant_type).toBe('cafe');
   });
 
@@ -301,10 +328,13 @@ describe('nearbySearchRestaurants', () => {
 
   it('returns places and nextPageToken from response', async () => {
     const mockPlaces: GooglePlace[] = [{ id: 'p1', displayName: { text: 'El Paisa' } }];
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ places: mockPlaces, nextPageToken: 'next-token' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ places: mockPlaces, nextPageToken: 'next-token' }),
+      })
+    );
 
     const result = await nearbySearchRestaurants(19.4326, -99.1332, 5000);
     expect(result.places).toHaveLength(1);
@@ -312,10 +342,13 @@ describe('nearbySearchRestaurants', () => {
   });
 
   it('returns nextPageToken as null when not in response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ places: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ places: [] }),
+      })
+    );
 
     const result = await nearbySearchRestaurants(19.4326, -99.1332, 5000);
     expect(result.nextPageToken).toBeNull();
@@ -327,11 +360,14 @@ describe('nearbySearchRestaurants', () => {
   });
 
   it('throws on non-OK response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-      text: async () => 'Bad Request',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => 'Bad Request',
+      })
+    );
 
     await expect(nearbySearchRestaurants(0, 0, 1000)).rejects.toThrow('400');
   });
@@ -375,20 +411,28 @@ describe('textSearchRestaurants', () => {
 
     await textSearchRestaurants('pizza', 19.4, -99.1, 5000);
 
-    const headers = (mockFetch.mock.calls[0] as [string, RequestInit])[1].headers as Record<string, string>;
+    const headers = (mockFetch.mock.calls[0] as [string, RequestInit])[1].headers as Record<
+      string,
+      string
+    >;
     expect(headers['X-Goog-FieldMask']).toContain('places.dineIn');
     expect(headers['X-Goog-FieldMask']).toContain('places.regularOpeningHours');
   });
 
   it('passes pageToken when provided', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ places: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ places: [] }),
+      })
+    );
 
     await textSearchRestaurants('tacos', 0, 0, 1000, 'page-token-xyz');
 
-    const body = JSON.parse((vi.mocked(fetch).mock.calls[0] as [string, RequestInit])[1].body as string);
+    const body = JSON.parse(
+      (vi.mocked(fetch).mock.calls[0] as [string, RequestInit])[1].body as string
+    );
     expect(body.pageToken).toBe('page-token-xyz');
   });
 });
@@ -415,7 +459,7 @@ describe('incrementApiUsage', () => {
     const insertArg = insertMock.mock.calls[0][0] as Record<string, unknown>;
     expect(insertArg.api_calls).toBe(3);
     expect(typeof insertArg.month).toBe('string');
-    expect((insertArg.month as string)).toMatch(/^\d{4}-\d{2}$/);
+    expect(insertArg.month as string).toMatch(/^\d{4}-\d{2}$/);
   });
 
   it('increments existing row for current month', async () => {

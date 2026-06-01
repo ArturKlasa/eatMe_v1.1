@@ -49,14 +49,14 @@ path, the backfill, and menu-scan inference.
 
 ---
 
-## Phase 1 — Clean ingestion (stop the bleed)
+## Phase 1 — Clean ingestion (stop the bleed) — ✅ COMPLETE (2026-05-31)
 
 Highest leverage, no DB migration, self-contained. Every new import produces canonical cuisine.
 
 ### 1a. Shared normalizer — `packages/shared/src/constants/cuisine.ts`
-- Add `normalizeCuisines(input: string[]): string[]` — accent/case-insensitive match back to the
-  canonical-cased value, deduped, drops unmatched. Build a `Map<foldedKey, canonical>` from
-  `ALL_CUISINES` (fold = lowercase + strip diacritics). So `'cafe'`/`'CAFÉ'` → `'Café'`.
+- ✅ DONE: `normalizeCuisines(input)` added to `cuisine.ts` — folds (lowercase + strip diacritics)
+  each input against a `Map<foldedKey, canonical>` of `ALL_CUISINES`, order-preserving, deduped,
+  drops unmatched. `'cafe'`/`'CAFÉ'` → `'Café'`. Unit-tested (6 cases incl. every canonical → itself).
 - ✅ DONE (2026-05-31): added `'Breakfast'`, `'Desserts'`, `'Taiwanese'` to `ALL_CUISINES` +
   matching `filters.cuisines.{breakfast,desserts,taiwanese}` labels in en/es/pl. (`'Brunch'`
   excluded — see decision 1.)
@@ -65,21 +65,25 @@ Highest leverage, no DB migration, self-contained. Every new import produces can
 - ✅ DONE (2026-05-31): `GOOGLE_TYPE_TO_CUISINE` `cafe: 'Café'` (was `'Cafe'`). With 1a's additions,
   `breakfast_restaurant`→`'Breakfast'` and `ice_cream_shop`→`'Desserts'` now resolve to canonical
   values and survive validation. ⚠️ `brunch_restaurant`→`'Brunch'` still non-canonical (decision 1).
-- `inferCuisineFromGoogleTypes(types, primaryType?)`: also consider `primaryType` (decision: include
-  it first, it's the most specific). Run the result through `normalizeCuisines` before returning.
-- `mapGooglePlaceToRestaurant` (`:434`): pass `place.primaryType` through.
+- ✅ DONE: expanded `GOOGLE_TYPE_TO_CUISINE` with ~50 keys (exact 1:1 + curated roll-ups), all
+  canonical values, + an "intentionally unmapped" comment for venue/format types.
+- ✅ DONE: `brunch_restaurant → 'Breakfast'` (decision 1 resolved — folded, not dropped).
+- ✅ DONE: `inferCuisineFromGoogleTypes(types, primaryType?)` now considers `primaryType` first;
+  `mapGooglePlaceToRestaurant` passes `place.primaryType` through.
 
 ### 1c. One validation policy — both import paths
-- `web-portal/lib/import-validation.ts:88-89`: replace the inline `.filter(includes)` with
-  `normalizeCuisines(r.cuisine_types)`.
-- `apps/admin/src/app/api/admin/import-csv/route.ts:171-185`: run the comma-split array through
-  `normalizeCuisines` before insert (currently unvalidated). This closes the junk-in path.
+- ✅ DONE: `web-portal/lib/import-validation.ts` now uses `normalizeCuisines(r.cuisine_types)`
+  (removed the inline `.filter`/`VALID_CUISINES`). Near-misses are canonicalized, not dropped.
+- ✅ DONE: `apps/admin/.../import-csv/route.ts` runs the comma-split array through
+  `normalizeCuisines` before insert — the unvalidated junk-in path is closed.
 
-### Verification (Phase 1)
-- Unit: `normalizeCuisines` — accent fold, case fold, dedupe, drop-unknown.
-- Update `google-places` inference test (primaryType + canonical output).
-- Update/add `import-csv/route.test.ts` (non-canonical + accent inputs → canonical).
-- `turbo check-types`, `turbo lint`, `turbo test` green.
+### Verification (Phase 1) — ✅ all green
+- `normalizeCuisines` unit spec (6 cases); `google-places` inference tests (+5 cases: new maps,
+  roll-up, brunch→Breakfast, primaryType); `import-validation` canonicalization test; admin
+  `csv-import` normalization test (captures the insert payload, 9/9).
+- `@eatme/shared` + `admin` type-check exit 0; web-portal tsc 0 errors in changed files;
+  eslint 0 errors. (Pre-existing & unrelated: 8 `v2-schemas` shared failures; 28 baseline
+  web-portal tsc errors elsewhere.)
 
 ---
 

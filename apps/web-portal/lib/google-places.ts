@@ -58,10 +58,85 @@ const GOOGLE_TYPE_TO_CUISINE: Record<string, string> = {
   vegetarian_restaurant: 'Vegetarian',
   ramen_restaurant: 'Japanese',
   breakfast_restaurant: 'Breakfast',
-  brunch_restaurant: 'Brunch',
-  cafe: 'Café',
+  brunch_restaurant: 'Breakfast', // brunch folded into Breakfast (no separate canonical)
   bakery: 'Bakery',
   ice_cream_shop: 'Desserts',
+  dessert_shop: 'Desserts',
+  dessert_restaurant: 'Desserts',
+  cafe: 'Café',
+  coffee_shop: 'Café',
+  coffee_roastery: 'Café',
+  coffee_stand: 'Café',
+  tea_house: 'Café',
+  deli: 'Deli',
+  sandwich_shop: 'Sandwiches',
+  salad_shop: 'Salad',
+  fast_food_restaurant: 'Fast Food',
+  fine_dining_restaurant: 'Fine Dining',
+  halal_restaurant: 'Halal',
+  fusion_restaurant: 'Fusion',
+  asian_fusion_restaurant: 'Fusion',
+  // Nationality / regional — exact canonical matches
+  afghani_restaurant: 'Afghan',
+  african_restaurant: 'African',
+  argentinian_restaurant: 'Argentine',
+  asian_restaurant: 'Asian',
+  british_restaurant: 'British',
+  cajun_restaurant: 'Cajun',
+  caribbean_restaurant: 'Caribbean',
+  colombian_restaurant: 'Colombian',
+  cuban_restaurant: 'Cuban',
+  ethiopian_restaurant: 'Ethiopian',
+  filipino_restaurant: 'Filipino',
+  german_restaurant: 'German',
+  hawaiian_restaurant: 'Hawaiian',
+  indonesian_restaurant: 'Indonesian',
+  irish_restaurant: 'Irish',
+  irish_pub: 'Irish',
+  latin_american_restaurant: 'Latin American',
+  malaysian_restaurant: 'Malaysian',
+  middle_eastern_restaurant: 'Middle Eastern',
+  persian_restaurant: 'Middle Eastern',
+  israeli_restaurant: 'Middle Eastern',
+  moroccan_restaurant: 'Moroccan',
+  pakistani_restaurant: 'Pakistani',
+  peruvian_restaurant: 'Peruvian',
+  polish_restaurant: 'Polish',
+  portuguese_restaurant: 'Portuguese',
+  russian_restaurant: 'Russian',
+  soul_food_restaurant: 'Soul Food',
+  taiwanese_restaurant: 'Taiwanese',
+  tapas_restaurant: 'Tapas',
+  // Granular subtypes rolled up to a canonical we carry
+  cantonese_restaurant: 'Chinese',
+  dim_sum_restaurant: 'Chinese',
+  chinese_noodle_restaurant: 'Chinese',
+  dumpling_restaurant: 'Chinese',
+  hot_pot_restaurant: 'Chinese',
+  japanese_izakaya_restaurant: 'Japanese',
+  japanese_curry_restaurant: 'Japanese',
+  tonkatsu_restaurant: 'Japanese',
+  yakitori_restaurant: 'Japanese',
+  yakiniku_restaurant: 'Japanese',
+  north_indian_restaurant: 'Indian',
+  south_indian_restaurant: 'Indian',
+  taco_restaurant: 'Mexican',
+  burrito_restaurant: 'Mexican',
+  tex_mex_restaurant: 'Mexican',
+  korean_barbecue_restaurant: 'Korean',
+  gyro_restaurant: 'Middle Eastern',
+  shawarma_restaurant: 'Middle Eastern',
+  falafel_restaurant: 'Middle Eastern',
+  kebab_shop: 'Middle Eastern',
+  fish_and_chips_restaurant: 'British',
+  chicken_restaurant: 'American',
+  hot_dog_restaurant: 'American',
+  chicken_wings_restaurant: 'American',
+  // Intentionally unmapped (venue/format, not a cuisine): bar, pub, brewery, brewpub,
+  // gastropub, beer_garden, wine_bar, winery, cocktail_bar, sports_bar, lounge_bar,
+  // hookah_bar, buffet_restaurant, food_court, meal_takeaway, meal_delivery, diner,
+  // bistro, family_restaurant, cafeteria, snack_bar, candy_store, confectionery,
+  // chocolate_shop, bagel_shop, donut_shop, cake_shop, pastry_shop, juice_shop, acai_shop.
 };
 
 const GOOGLE_TYPE_TO_RESTAURANT_TYPE: Record<string, string> = {
@@ -277,12 +352,13 @@ export async function textSearchRestaurants(
 // ─── Mapping helpers ──────────────────────────────────────────────────────────
 
 /**
- * Infers cuisine types from Google place types array.
- * Returns deduplicated list of known cuisine strings.
+ * Infers cuisine types from a Google place's `types[]` and optional `primaryType`
+ * (considered first). Returns a deduplicated list of canonical cuisine strings.
  */
-export function inferCuisineFromGoogleTypes(types: string[]): string[] {
+export function inferCuisineFromGoogleTypes(types: string[], primaryType?: string): string[] {
   const cuisines: string[] = [];
-  for (const type of types) {
+  const allTypes = primaryType ? [primaryType, ...types] : types;
+  for (const type of allTypes) {
     const cuisine = GOOGLE_TYPE_TO_CUISINE[type];
     if (cuisine && !cuisines.includes(cuisine)) {
       cuisines.push(cuisine);
@@ -424,7 +500,7 @@ export function mapGooglePlaceToRestaurant(place: GooglePlace): MappedRestaurant
   const { city, state, postal_code, country_code, neighbourhood } =
     mapAddressComponents(addressComponents);
 
-  const cuisine_types = inferCuisineFromGoogleTypes(types);
+  const cuisine_types = inferCuisineFromGoogleTypes(types, place.primaryType);
   const restaurant_type = inferRestaurantType(types);
 
   const open_hours = mapGoogleHoursToOpenHours(place.regularOpeningHours?.periods);

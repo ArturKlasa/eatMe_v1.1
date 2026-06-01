@@ -24,21 +24,21 @@ describe('validateImportedRestaurant', () => {
     const r = { ...validRestaurant, name: '' };
     const result = validateImportedRestaurant(r);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'name')).toBe(true);
+    expect(result.errors.some(e => e.field === 'name')).toBe(true);
   });
 
   it('fails when latitude is out of range (91)', () => {
     const r = { ...validRestaurant, latitude: 91 };
     const result = validateImportedRestaurant(r);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'latitude')).toBe(true);
+    expect(result.errors.some(e => e.field === 'latitude')).toBe(true);
   });
 
   it('fails when longitude is out of range (-181)', () => {
     const r = { ...validRestaurant, longitude: -181 };
     const result = validateImportedRestaurant(r);
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'longitude')).toBe(true);
+    expect(result.errors.some(e => e.field === 'longitude')).toBe(true);
   });
 
   it('falls back to "restaurant" for unknown restaurant_type', () => {
@@ -60,6 +60,12 @@ describe('validateImportedRestaurant', () => {
     const result = validateImportedRestaurant(r);
     expect(result.valid).toBe(true);
     expect(result.sanitized.cuisine_types).toHaveLength(0);
+  });
+
+  it('canonicalizes accent/case cuisine variants instead of dropping them', () => {
+    const r = { ...validRestaurant, cuisine_types: ['cafe', 'italian', 'NotACuisine'] };
+    const result = validateImportedRestaurant(r);
+    expect(result.sanitized.cuisine_types).toEqual(['Café', 'Italian']);
   });
 
   it('filters out unknown cuisine types from the list', () => {

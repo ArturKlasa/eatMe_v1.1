@@ -52,6 +52,7 @@ function makeServiceClient(opts?: {
     lng: number | null;
   }>;
   insertResult?: { data: { id: string } | null; error: unknown };
+  onInsert?: (payload: unknown) => void;
 }) {
   const existing = opts?.existingPlaceIds ?? [];
   const nearby = opts?.nearbyCandidates ?? [];
@@ -75,14 +76,17 @@ function makeServiceClient(opts?: {
               ilike: vi.fn().mockResolvedValue({ data: nearby, error: null }),
             }),
           }),
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockImplementation(() => {
-                insertCallCount++;
-                if (insertCallCount === 1) return Promise.resolve(insertRes);
-                return Promise.resolve(makeInsertedId(`rest-new-00${insertCallCount}`));
+          insert: vi.fn().mockImplementation((payload: unknown) => {
+            opts?.onInsert?.(payload);
+            return {
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockImplementation(() => {
+                  insertCallCount++;
+                  if (insertCallCount === 1) return Promise.resolve(insertRes);
+                  return Promise.resolve(makeInsertedId(`rest-new-00${insertCallCount}`));
+                }),
               }),
-            }),
+            };
           }),
         };
       }
@@ -278,5 +282,22 @@ describe('POST /api/admin/import-csv — happy path', () => {
       null,
       expect.objectContaining({ total_inserted: 1 })
     );
+  });
+
+  it('normalizes cuisine_types to canonical values before insert', async () => {
+    const insertedPayloads: Array<Record<string, unknown>> = [];
+    vi.mocked(createAdminServiceClient).mockReturnValue(
+      makeServiceClient({
+        onInsert: p => insertedPayloads.push(p as Record<string, unknown>),
+      }) as never
+    );
+
+    const POST = await importPost();
+    await POST(
+      makeRequest({ rows: [{ name: 'Café Test', cuisine_types: 'cafe, Italian, NotACuisine' }] }),
+      { params: Promise.resolve({}) }
+    );
+
+    expect(insertedPayloads[0]?.cuisine_types).toEqual(['Café', 'Italian']);
   });
 });

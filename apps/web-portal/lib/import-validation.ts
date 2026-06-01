@@ -7,24 +7,17 @@
  */
 
 import { z } from 'zod';
-import { RESTAURANT_TYPES, CUISINES, COUNTRIES } from '@eatme/shared';
+import { RESTAURANT_TYPES, COUNTRIES, normalizeCuisines } from '@eatme/shared';
 import type { MappedRestaurant, ValidationResult, ImportError } from '@/lib/import-types';
 
-const VALID_RESTAURANT_TYPES: string[] = RESTAURANT_TYPES.map((t) => t.value);
-const VALID_COUNTRY_CODES: string[] = COUNTRIES.map((c) => c.value);
-const VALID_CUISINES: string[] = CUISINES as unknown as string[];
+const VALID_RESTAURANT_TYPES: string[] = RESTAURANT_TYPES.map(t => t.value);
+const VALID_COUNTRY_CODES: string[] = COUNTRIES.map(c => c.value);
 
 const mappedRestaurantSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   address: z.string().min(1, 'Address is required'),
-  latitude: z
-    .number()
-    .min(-90, 'Latitude must be >= -90')
-    .max(90, 'Latitude must be <= 90'),
-  longitude: z
-    .number()
-    .min(-180, 'Longitude must be >= -180')
-    .max(180, 'Longitude must be <= 180'),
+  latitude: z.number().min(-90, 'Latitude must be >= -90').max(90, 'Latitude must be <= 90'),
+  longitude: z.number().min(-180, 'Longitude must be >= -180').max(180, 'Longitude must be <= 180'),
   phone: z.string().optional(),
   website: z.string().optional(),
   restaurant_type: z.string(),
@@ -55,7 +48,7 @@ export function validateImportedRestaurant(r: MappedRestaurant): ValidationResul
 
   const result = mappedRestaurantSchema.safeParse(r);
   if (!result.success) {
-    result.error.issues.forEach((issue) => {
+    result.error.issues.forEach(issue => {
       errors.push({
         index: 0,
         field: issue.path.join('.'),
@@ -85,9 +78,7 @@ export function validateImportedRestaurant(r: MappedRestaurant): ValidationResul
       ? r.restaurant_type
       : 'restaurant',
     country_code: VALID_COUNTRY_CODES.includes(r.country_code) ? r.country_code : 'MX',
-    cuisine_types: Array.isArray(r.cuisine_types)
-      ? r.cuisine_types.filter((c) => VALID_CUISINES.includes(c))
-      : [],
+    cuisine_types: normalizeCuisines(r.cuisine_types),
   };
 
   return {

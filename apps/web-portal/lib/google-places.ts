@@ -59,7 +59,7 @@ const GOOGLE_TYPE_TO_CUISINE: Record<string, string> = {
   ramen_restaurant: 'Japanese',
   breakfast_restaurant: 'Breakfast',
   brunch_restaurant: 'Brunch',
-  cafe: 'Cafe',
+  cafe: 'Café',
   bakery: 'Bakery',
   ice_cream_shop: 'Desserts',
 };
@@ -106,7 +106,7 @@ interface GoogleAddressComponent {
 }
 
 interface GoogleOpeningHoursPeriodPoint {
-  day: number;   // 0=Sunday … 6=Saturday
+  day: number; // 0=Sunday … 6=Saturday
   hour: number;
   minute: number;
 }
@@ -155,7 +155,7 @@ async function fetchWithBackoff(url: string, options: RequestInit): Promise<Resp
       return response;
     }
     if (attempt < delays.length) {
-      await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+      await new Promise(resolve => setTimeout(resolve, delays[attempt]));
       lastError = new Error(`Google Places API rate limited (429) after ${attempt + 1} retries`);
     }
   }
@@ -201,18 +201,15 @@ export async function nearbySearchRestaurants(
     body.pageToken = pageToken;
   }
 
-  const response = await fetchWithBackoff(
-    'https://places.googleapis.com/v1/places:searchNearby',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': FIELD_MASK,
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const response = await fetchWithBackoff('https://places.googleapis.com/v1/places:searchNearby', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': FIELD_MASK,
+    },
+    body: JSON.stringify(body),
+  });
 
   if (!response.ok) {
     const text = await response.text();
@@ -255,18 +252,15 @@ export async function textSearchRestaurants(
     body.pageToken = pageToken;
   }
 
-  const response = await fetchWithBackoff(
-    'https://places.googleapis.com/v1/places:searchText',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': FIELD_MASK,
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const response = await fetchWithBackoff('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': FIELD_MASK,
+    },
+    body: JSON.stringify(body),
+  });
 
   if (!response.ok) {
     const text = await response.text();
@@ -332,10 +326,7 @@ export function mapAddressComponents(components: GoogleAddressComponent[]): {
       if (!city || types.includes('locality')) {
         city = comp.longText;
       }
-    } else if (
-      types.includes('neighborhood') ||
-      types.includes('sublocality_level_1')
-    ) {
+    } else if (types.includes('neighborhood') || types.includes('sublocality_level_1')) {
       // Colonia in Mexico City
       if (!neighbourhood) {
         neighbourhood = comp.longText;
@@ -395,11 +386,13 @@ export function mapGoogleHoursToOpenHours(
     if (!key) continue;
 
     // Multiple periods: use earliest open + latest close
-    const earliestOpen = Math.min(...ranges.map((r) => r.openMin));
-    const latestClose = Math.max(...ranges.map((r) => r.closeMin));
+    const earliestOpen = Math.min(...ranges.map(r => r.openMin));
+    const latestClose = Math.max(...ranges.map(r => r.closeMin));
 
     const fmt = (min: number) => {
-      const h = Math.floor(min / 60).toString().padStart(2, '0');
+      const h = Math.floor(min / 60)
+        .toString()
+        .padStart(2, '0');
       const m = (min % 60).toString().padStart(2, '0');
       return `${h}:${m}`;
     };
@@ -482,10 +475,7 @@ export async function getMonthlyApiUsage(
   return { calls: data.api_calls ?? 0, estimatedCost: Number(data.estimated_cost_usd ?? 0) };
 }
 
-export async function incrementApiUsage(
-  supabase: SupabaseClient,
-  calls: number
-): Promise<void> {
+export async function incrementApiUsage(supabase: SupabaseClient, calls: number): Promise<void> {
   const month = currentMonth();
   // Cost: Enterprise Plus tier — $40 per 1,000 calls
   const costPerCall = 0.04;

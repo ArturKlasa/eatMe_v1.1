@@ -113,17 +113,87 @@ bad values rather than storing them — so there was nothing to normalize).
 
 ---
 
-## Phase 3 — Recovery path: menu-scan cuisine inference
+## Phase 3 — Recovery path: cuisine inference from dishes — IN PROGRESS (2026-06-01)
 
-Ongoing backfill so a missing cuisine self-heals on the next scan. Medium effort (AI prompt + write).
+### Research findings (2026-06-01)
 
-### 3a. `web-portal/app/api/menu-scan/route.ts` (and admin equivalent if present)
-- When the target restaurant's `cuisine_types` is empty, ask the model to infer 1–3 cuisines from
-  the scanned dishes/menu, pass through `normalizeCuisines`, and write to `restaurants.cuisine_types`.
-- Never overwrite a non-empty cuisine — inference is a fallback only.
+**Two independent menu-scan engines** (each with its own prompt + save path). Phase 3
+targets the **active** one only (decision: active-only).
+
+| | Extraction | Save | Status |
+|---|---|---|---|
+| **Active** (`apps/admin`, :3001) | edge fn `menu-scan-worker` (`infra/supabase/functions/menu-scan-worker/index.ts`) — dish-level schema, no restaurant field | RPC `admin_confirm_menu_scan` | **← Phase 3 target** |
+| Legacy (`apps/web-portal/app/admin`) | `app/api/menu-scan/route.ts` | `confirm/route.ts` | out of scope |
+
+Neither engine touches `restaurants.cuisine_types` today. The active worker already has
+`restaurant_id` + fetches the restaurant (for currency), so a cuisine write there is a single-file,
+no-migration change.
+
+**Read-only prod diagnostic** (`infra/scripts/diagnose-empty-cuisine.ts`): the 98 empty-cuisine
+restaurants are two distinct populations:
+- **18 already have dishes** (all ≥3) → classifiable **now** from their existing menu. Cuisine is
+  obvious from dish names (Italian / Mexican / Lebanese / wine bars …).
+- **80 are bare Google stubs with 0 dishes** → no menu = invisible in feed. They can only get
+  cuisine *when scanned* — i.e. exactly when the worker self-heal (3b) fires. Not worth a special pass.
+
+### Decisions (locked 2026-06-01)
+- **Active engine only** — skip the legacy web-portal route/confirm.
+- **Worker writes at scan time** — gated on empty, canonical-only, editable later. One edge-fn file,
+  one deploy; self-heals even if the admin abandons the scan. (Alternative — carry inferred cuisine
+  through the job result and write only at confirm — rejected as more plumbing for marginal gain.)
+- **Do both 3a + 3b**; sequence 3a (quick coverage win) → 3b (durable forward fix).
+- Added `OPENAI_API_KEY` to `infra/scripts/.env` (sourced from `apps/admin/.env.local`) for 3a.
+
+### Live update (2026-06-01) — a Google import landed mid-implementation
+Between two diagnostics ~15 min apart the table grew **322 → 455** restaurants (+133, almost all
+generic Google stubs with no cuisine), and menu scans appear to be completing live (empty-with-dishes
+climbing 18 → 22 → 28). Coverage now reads **224/455 (49%)** — *not a regression*: populated count is
+unchanged (224); the denominator grew with empty stubs. Current split of the 231 empties: **28 with
+dishes** (3a targets), **203 dishless stubs** (3b territory — self-heal when scanned). The 3a live
+write is **held** until the scan/import wave settles, then one clean idempotent sweep catches all.
+
+### Status (2026-06-01)
+- **3a — built + dry-run validated, live write HELD.** `backfill-cuisine-from-dishes.ts` +
+  `diagnose-empty-cuisine.ts` written; npm scripts added. Full dry-run: **21/22 populated (95%)**,
+  sensible canonical cuisines, the lone spirits-only bar correctly left empty. Awaiting scan-wave
+  settle before the live run (idempotent — re-runnable).
+- **3b — code complete + TESTED (28/28 green), pending edge-fn redeploy.** `menu-scan-worker/index.ts`:
+  inlined `ALL_CUISINES`/`normalizeCuisines`, added `cuisine_types` to the extraction schema + prompt,
+  cross-page union, and the gated best-effort `maybeWriteRestaurantCuisine` write. Worker tests updated
+  (CANNED_RESULT field, restaurants shim, +2 self-heal tests). Verified with
+  `deno test --node-modules-dir=none -A infra/supabase/functions/menu-scan-worker/test.ts` →
+  **28 passed / 0 failed** (type-check ON). Pending: `supabase functions deploy menu-scan-worker` (user).
+- **Pre-existing test-suite repair (bundled with 3b).** The worker suite was **red on `main`** (3/26
+  passing): `fetchCanonicalSlugs` + `fetchRestaurantCurrency` (added with later features) call
+  `supa.from(...)` but the mock had no `.from`, so every `processJobs` test threw. Also 5 type errors
+  from `openai@4.104` drift (`new Headers()` → `{}`, `.map(makeJob)` arity). Repaired the mocks +
+  type errors so the suite is green again — independent of cuisine, but required to verify 3b. Deno
+  was installed locally (`~/.deno`, v2.8.1) to run it.
+
+### 3a. Backfill the 18 from existing dishes — `infra/scripts/backfill-cuisine-from-dishes.ts`
+- For each empty-cuisine restaurant **with ≥1 dish**: read up to ~40 dish names → one cheap
+  `gpt-4o-mini` call (raw `fetch`, JSON mode — no SDK dep) asking for 1–3 cuisines **from the
+  canonical `ALL_CUISINES` list only** → `normalizeCuisines` (safety gate) → write
+  `restaurants.cuisine_types` when non-empty. Self-contained (inline `ALL_CUISINES` +
+  `normalizeCuisines`), `--dry-run` + `--limit=N`, batched (concurrency 3). Never overwrites a
+  non-empty cuisine. Pure-drinks bars may resolve to nothing canonical → left empty (better than wrong).
+- Stage: **dry-run → sample (`--limit`) → full**. Expected coverage 70% → ~76% (224 → ~242 of 322).
+
+### 3b. Worker self-heal (forward fix) — `infra/supabase/functions/menu-scan-worker/index.ts`
+- Add top-level `cuisine_types: string[]` to the worker's local `MenuExtractionSchema`; instruct the
+  model (in `buildExtractionPrompt`) to infer 1–3 cuisines for the restaurant **from the canonical
+  list** (inline `ALL_CUISINES` copy, like currency/PRIMARY_PROTEINS are inlined). Inference rides
+  the existing per-page vision call — no extra OpenAI cost.
+- In `runExtraction`: union cuisines across pages; in `processJobs`: extend the restaurant fetch to
+  also read `cuisine_types`, and **if empty**, `normalizeCuisines(...)` + `update` it after a
+  successful extraction (before `complete_menu_scan_job`). Never overwrite non-empty.
+- Covers the 80 stubs as they get scanned + every future generic import (which Phase 1 can't fix —
+  Google has no cuisine for them). Requires an edge-fn redeploy (user action).
 
 ### Verification (Phase 3)
-- Scan a menu for an empty-cuisine restaurant → cuisine populated with canonical values.
+- 3a: dry-run shows sensible canonical cuisines for the 18; post-run DB count rises ~224 → ~242.
+- 3b: `deno check` / worker test green; scan a (test) empty-cuisine restaurant → `cuisine_types`
+  populated with canonical values; re-scan a populated restaurant → unchanged.
 
 ---
 

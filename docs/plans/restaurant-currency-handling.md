@@ -1,6 +1,18 @@
 # Restaurant currency handling
 
-**Status:** Planned — awaiting execute approval.
+**Status:** Shipped 2026-06-01.
+- Commit 1: `373912f feat(db): add currency_code to restaurants`
+- Commit 2: `04eab84 feat(shared): canonical currency module in @eatme/shared`
+- Commit 3: `aedbbbe feat(menu-scan): pass restaurant currency into AI prompt`
+- Commit 4: `e1f17a5 feat(admin): country + currency picker on restaurant form; currency-aware price inputs`
+- Commit 5: `3c0309e feat(mobile): render dish prices in restaurant currency`
+
+**Known follow-up:** the `feed` Edge Function builds dish payloads from the
+`generate_candidates` SQL RPC, which currently does not surface
+`restaurants.currency_code`. Dish prices rendered in the swipe feed therefore
+fall back to USD via `formatPrice(amount, undefined)` until that RPC is
+migrated. Acceptable interim state per the plan's "Risks + mitigations" table.
+
 **Date:** 2026-05-24 (decimal policy updated 2026-05-25)
 **Driver:** "Mobile shows `$25.00` for a 25 PLN dish" — `country_code` is a free-text field with no picker, no `currency_code` column anywhere, and mobile's `formatPrice` is sourced from the device locale rather than the restaurant.
 

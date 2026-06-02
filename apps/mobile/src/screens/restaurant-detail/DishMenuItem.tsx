@@ -10,6 +10,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { useTranslation } from 'react-i18next';
+import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
 import { DishRatingBadge } from '../../components/DishRatingBadge';
 import { classifyDish } from '../../utils/menuFilterUtils';
 import { type PermanentFilters } from '../../stores/filterStore';
@@ -20,21 +21,36 @@ interface DishMenuItemProps {
   item: DishWithGroups;
   permanentFilters: PermanentFilters;
   dishRatings: Map<string, DishRating>;
+  /** ISO 4217 from the parent restaurant. Optional/string because stale cache
+   *  or older Edge Function deploys may not include it; formatPrice falls back
+   *  to USD when missing. */
+  currencyCode?: string | null;
   onPress: (item: DishWithGroups) => void;
 }
 
-export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: DishMenuItemProps) {
+export function DishMenuItem({
+  item,
+  permanentFilters,
+  dishRatings,
+  currencyCode,
+  onPress,
+}: DishMenuItemProps) {
   const { t } = useTranslation();
+
+  const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
+    ? currencyCode
+    : undefined;
+  const formattedPrice = formatPrice(item.price, currency);
 
   const rating = dishRatings.get(item.id);
   const pricePrefix = item.display_price_prefix;
   let priceLabel: string;
   switch (pricePrefix) {
     case 'from':
-      priceLabel = t('restaurant.price.from', { price: `$${item.price.toFixed(2)}` });
+      priceLabel = t('restaurant.price.from', { price: formattedPrice });
       break;
     case 'per_person':
-      priceLabel = t('restaurant.price.perPerson', { price: `$${item.price.toFixed(2)}` });
+      priceLabel = t('restaurant.price.perPerson', { price: formattedPrice });
       break;
     case 'market_price':
       priceLabel = t('restaurant.price.marketPrice');
@@ -43,7 +59,7 @@ export function DishMenuItem({ item, permanentFilters, dishRatings, onPress }: D
       priceLabel = t('restaurant.price.askServer');
       break;
     default:
-      priceLabel = `$${item.price.toFixed(2)}`;
+      priceLabel = formattedPrice;
   }
 
   // Portion size (migration 145; 'oz' added migration 148). Renders inline

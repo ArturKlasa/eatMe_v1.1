@@ -280,6 +280,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             }
           }}
           restaurantId={restaurantId}
+          currencyCode={restaurant?.currency_code ?? null}
           existingOpinion={userDishOpinions.get(selectedDish.id) ?? null}
           onRated={opinion => {
             setUserDishOpinions(prev => new Map(prev).set(selectedDish.id, opinion));

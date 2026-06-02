@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
 import { useAuthStore } from '../stores/authStore';
 import { pickImage, takePhoto, uploadDishPhoto } from '../services/dishPhotoService';
 import { toggleFavorite, isFavorited } from '../services/favoritesService';
@@ -37,12 +38,18 @@ const KIND_BADGE: Record<string, string> = {
   // 'standard' intentionally has no badge
 };
 
-// Render an option's price: absolute when price_override is set (e.g. size
-// variants), otherwise the +/- delta. Mirrors ModifierGroupsList.formatPrice.
-function formatOptionPrice(opt: OptionGroup['options'][number]): string | null {
-  if (opt.price_override != null) return `$${opt.price_override.toFixed(2)}`;
-  if (opt.price_delta !== 0)
-    return `${opt.price_delta > 0 ? '+' : ''}$${opt.price_delta.toFixed(2)}`;
+// Render an option's price in the restaurant's currency: absolute when
+// price_override is set (e.g. size variants), otherwise the signed delta.
+// Mirrors ModifierGroupsList.formatOptionPrice.
+function formatOptionPrice(
+  opt: OptionGroup['options'][number],
+  currency: SupportedCurrency | undefined
+): string | null {
+  if (opt.price_override != null) return formatPrice(opt.price_override, currency);
+  if (opt.price_delta !== 0) {
+    const sign = opt.price_delta > 0 ? '+' : '';
+    return `${sign}${formatPrice(opt.price_delta, currency)}`;
+  }
   return null;
 }
 
@@ -68,6 +75,10 @@ interface DishPhotoModalProps {
   photos: DishPhoto[];
   onPhotoAdded?: () => void;
   restaurantId?: string;
+  /** ISO 4217 from the parent restaurant. Drives the header price label + each
+   *  option's price chip. Optional/string because older caller stacks may not
+   *  thread it through; formatPrice falls back to USD when missing. */
+  currencyCode?: string | null;
   existingOpinion?: DishOpinion | null;
   onRated?: (opinion: DishOpinion, tags: DishTag[]) => void;
 }
@@ -87,9 +98,14 @@ export function DishPhotoModal({
   photos,
   onPhotoAdded,
   restaurantId,
+  currencyCode,
   existingOpinion = null,
   onRated,
 }: DishPhotoModalProps) {
+  const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
+    ? currencyCode
+    : undefined;
+  const formattedDishPrice = formatPrice(dishPrice, currency);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -205,13 +221,12 @@ export function DishPhotoModal({
               </Text>
               <Text style={styles.dishPrice}>
                 {displayPricePrefix === 'from' &&
-                  t('restaurant.price.from', { price: `$${dishPrice.toFixed(2)}` })}
+                  t('restaurant.price.from', { price: formattedDishPrice })}
                 {displayPricePrefix === 'per_person' &&
-                  t('restaurant.price.perPerson', { price: `$${dishPrice.toFixed(2)}` })}
+                  t('restaurant.price.perPerson', { price: formattedDishPrice })}
                 {displayPricePrefix === 'market_price' && t('restaurant.price.marketPrice')}
                 {displayPricePrefix === 'ask_server' && t('restaurant.price.askServer')}
-                {(!displayPricePrefix || displayPricePrefix === 'exact') &&
-                  `$${dishPrice.toFixed(2)}`}
+                {(!displayPricePrefix || displayPricePrefix === 'exact') && formattedDishPrice}
               </Text>
             </View>
             {/* Like / save button */}
@@ -361,7 +376,7 @@ export function DishPhotoModal({
                               userAllergens.length > 0
                                 ? optAllergens.filter((a: string) => userAllergens.includes(a))
                                 : [];
-                            const priceLabel = formatOptionPrice(opt);
+                            const priceLabel = formatOptionPrice(opt, currency);
                             return (
                               <View key={opt.id} style={styles.optionListRow}>
                                 <View style={styles.optionListRowMain}>

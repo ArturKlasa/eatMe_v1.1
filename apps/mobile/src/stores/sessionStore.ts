@@ -51,6 +51,7 @@ interface SessionState {
     name: string;
     cuisine: string;
     imageUrl?: string;
+    currencyCode?: string | null;
   }) => void;
 
   // Get recently viewed restaurants for rating prompt
@@ -250,6 +251,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
           name: restaurant.name,
           cuisine: restaurant.cuisine,
           imageUrl: restaurant.imageUrl,
+          currencyCode: restaurant.currencyCode ?? null,
           viewedAt: new Date(),
           viewedDishes: [],
         };

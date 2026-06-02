@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
 import { colors, typography, spacing, borderRadius } from '../../styles/theme';
 import { RecentlyViewedRestaurant, RecentlyViewedDish } from '../../types/rating';
 
@@ -53,9 +54,10 @@ export function SelectDishesScreen({
     onContinue(selectedDishes);
   };
 
-  const formatPrice = (price: number) => {
-    return `$${price.toFixed(2)}`;
-  };
+  const currency: SupportedCurrency | undefined = isSupportedCurrency(restaurant.currencyCode)
+    ? restaurant.currencyCode
+    : undefined;
+  const formatDishPrice = (price: number) => formatPrice(price, currency);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,7 +89,7 @@ export function SelectDishesScreen({
                   {dish.name}
                 </Text>
               </View>
-              <Text style={styles.dishPrice}>{formatPrice(dish.price)}</Text>
+              <Text style={styles.dishPrice}>{formatDishPrice(dish.price)}</Text>
             </TouchableOpacity>
           );
         })}

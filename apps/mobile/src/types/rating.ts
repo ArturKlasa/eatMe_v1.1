@@ -83,6 +83,10 @@ export interface RecentlyViewedRestaurant {
   name: string;
   cuisine: string;
   imageUrl?: string;
+  /** ISO 4217 from the original restaurant. Drives the price label in
+   *  SelectDishesScreen. Optional because legacy entries cached before
+   *  migration 147 may not carry it; formatPrice falls back to USD. */
+  currencyCode?: string | null;
   viewedAt: Date;
   viewedDishes: RecentlyViewedDish[];
 }

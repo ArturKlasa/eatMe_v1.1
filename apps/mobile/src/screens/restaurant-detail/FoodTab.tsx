@@ -186,6 +186,7 @@ export function FoodTab({
                             item={dish}
                             permanentFilters={permanentFilters}
                             dishRatings={dishRatings}
+                            currencyCode={restaurant.currency_code}
                             onPress={onDishPress}
                           />
                           {(dish.option_groups?.length ?? 0) > 0 && (
@@ -195,6 +196,7 @@ export function FoodTab({
                                 permanent={permanentFilters}
                                 daily={dailyFilters}
                                 basePrice={dish.price ?? 0}
+                                currencyCode={restaurant.currency_code}
                               />
                             </View>
                           )}

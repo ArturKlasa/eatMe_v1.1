@@ -18,6 +18,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
 import { colors, spacing, typography, borderRadius } from '@/styles/theme';
 import { classifyOption } from '../../utils/menuFilterUtils';
 import type { OptionGroup, Option } from '../../lib/supabase';
@@ -31,9 +32,21 @@ interface Props {
   permanent: PermanentFilters;
   daily: DailyFilters;
   basePrice: number;
+  /** ISO 4217 from the parent restaurant. Drives the option-row price chip; falls
+   *  back to USD via formatPrice() when missing. */
+  currencyCode?: string | null;
 }
 
-export function ModifierGroupsList({ groups, permanent, daily, basePrice: _basePrice }: Props) {
+export function ModifierGroupsList({
+  groups,
+  permanent,
+  daily,
+  basePrice: _basePrice,
+  currencyCode,
+}: Props) {
+  const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
+    ? currencyCode
+    : undefined;
   // Filter out inactive groups + sort by display_order. Same shape the rest of
   // the screen uses (see useRestaurantDetail.handleDishPress).
   const visible = groups
@@ -46,7 +59,13 @@ export function ModifierGroupsList({ groups, permanent, daily, basePrice: _baseP
   return (
     <View style={styles.container}>
       {visible.map(group => (
-        <GroupSection key={group.id} group={group} permanent={permanent} daily={daily} />
+        <GroupSection
+          key={group.id}
+          group={group}
+          permanent={permanent}
+          daily={daily}
+          currency={currency}
+        />
       ))}
     </View>
   );
@@ -56,10 +75,12 @@ function GroupSection({
   group,
   permanent,
   daily,
+  currency,
 }: {
   group: OptionGroup;
   permanent: PermanentFilters;
   daily: DailyFilters;
+  currency: SupportedCurrency | undefined;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -82,7 +103,13 @@ function GroupSection({
         {meta ? <Text style={styles.groupMeta}>{meta}</Text> : null}
       </View>
       {shown.map(opt => (
-        <OptionRow key={opt.id} option={opt} permanent={permanent} daily={daily} />
+        <OptionRow
+          key={opt.id}
+          option={opt}
+          permanent={permanent}
+          daily={daily}
+          currency={currency}
+        />
       ))}
       {hiddenCount > 0 && (
         <TouchableOpacity
@@ -121,10 +148,12 @@ function OptionRow({
   option,
   permanent,
   daily,
+  currency,
 }: {
   option: Option;
   permanent: PermanentFilters;
   daily: DailyFilters;
+  currency: SupportedCurrency | undefined;
 }) {
   const cls = classifyOption(
     {
@@ -140,7 +169,7 @@ function OptionRow({
   const hasDietConflict = cls.stripsDietaryTags.length > 0;
   const isPreferredProtein = cls.matchesDailyMeatType;
 
-  const priceLabel = formatPrice(option);
+  const priceLabel = formatOptionPrice(option, currency);
 
   return (
     <View style={styles.optionRow}>
@@ -161,11 +190,15 @@ function OptionRow({
   );
 }
 
-function formatPrice(option: Option): string | null {
-  if (option.price_override != null) return `$${option.price_override.toFixed(2)}`;
+// Wraps formatPrice() so option price overrides render as the absolute amount
+// and deltas keep their explicit sign. The shared formatPrice handles all the
+// currency-specific decimal + symbol logic; here we just choose what to format
+// and whether to prefix a '+'.
+function formatOptionPrice(option: Option, currency: SupportedCurrency | undefined): string | null {
+  if (option.price_override != null) return formatPrice(option.price_override, currency);
   if (option.price_delta && option.price_delta !== 0) {
     const sign = option.price_delta > 0 ? '+' : '';
-    return `${sign}$${option.price_delta.toFixed(2)}`;
+    return `${sign}${formatPrice(option.price_delta, currency)}`;
   }
   return null;
 }

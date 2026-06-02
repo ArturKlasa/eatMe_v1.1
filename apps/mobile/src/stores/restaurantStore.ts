@@ -277,6 +277,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           id, name, address, city, postal_code, cuisine_types, rating, phone,
           website, open_hours, image_url, payment_methods, is_active,
           delivery_available, takeout_available, dine_in_available,
+          currency_code,
           menus (
             id, name, description, display_order, is_active, menu_type, schedule_type,
             menu_categories (

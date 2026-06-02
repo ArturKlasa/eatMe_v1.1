@@ -36,6 +36,9 @@ interface RestaurantWithDistance {
   address: string;
   city?: string;
   country_code?: string;
+  // ISO 4217 (NOT NULL in DB after migration 147). Already streamed through
+  // because the SELECT uses `*`; declared here so TS consumers can read it.
+  currency_code?: string;
   cuisine_types: string[];
   restaurant_type: string;
   rating: number;

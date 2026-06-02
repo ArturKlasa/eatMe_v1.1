@@ -140,6 +140,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
             name: data.name,
             cuisine: data.cuisine_types?.[0] || 'Restaurant',
             imageUrl: data.image_url ?? undefined,
+            currencyCode: data.currency_code ?? null,
           });
         }
       } catch (err) {

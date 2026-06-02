@@ -25,6 +25,10 @@ export interface RestaurantWithDistance {
   address: string;
   city?: string;
   country_code?: string;
+  /** ISO 4217 (NOT NULL in DB after migration 147). Optional here because
+   *  older Edge Function deploys may not include it; formatPrice() silently
+   *  falls back to USD when absent. */
+  currency_code?: string;
   cuisine_types: string[];
   restaurant_type: string;
   rating: number;

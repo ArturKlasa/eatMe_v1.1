@@ -153,10 +153,12 @@ dishes** (3a targets), **203 dishless stubs** (3b territory — self-heal when s
 write is **held** until the scan/import wave settles, then one clean idempotent sweep catches all.
 
 ### Status (2026-06-01)
-- **3a — built + dry-run validated, live write HELD.** `backfill-cuisine-from-dishes.ts` +
-  `diagnose-empty-cuisine.ts` written; npm scripts added. Full dry-run: **21/22 populated (95%)**,
-  sensible canonical cuisines, the lone spirits-only bar correctly left empty. Awaiting scan-wave
-  settle before the live run (idempotent — re-runnable).
+- **3a — DONE (live run complete 2026-06-02).** `backfill-cuisine-from-dishes.ts` +
+  `diagnose-empty-cuisine.ts` (committed). Two idempotent live passes populated **28 restaurants**
+  (21 + a 7-straggler sweep after more scans completed); coverage **224 → 252 / 455**. Every menu'd
+  restaurant is now classified **except _Bad melody_** (a spirits-only bar with no inferable food
+  cuisine — correctly left empty). The remaining 202 empties are dishless Google stubs → Phase 3b
+  territory (classified if/when their menus are scanned).
 - **3b — code complete + TESTED (28/28 green), pending edge-fn redeploy.** `menu-scan-worker/index.ts`:
   inlined `ALL_CUISINES`/`normalizeCuisines`, added `cuisine_types` to the extraction schema + prompt,
   cross-page union, and the gated best-effort `maybeWriteRestaurantCuisine` write. Worker tests updated

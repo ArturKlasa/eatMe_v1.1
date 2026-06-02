@@ -136,6 +136,11 @@ const MenuExtractionSchema = z.object({
   // mixed/uncertain. Used by admin review to flag mismatch with country-derived
   // source language.
   detected_language: z.string().nullable(),
+  // Restaurant-level cuisine inferred from THIS page's dishes (Phase 3b). 1–3
+  // canonical values from ALL_CUISINES; empty when the page gives no clear
+  // signal (e.g. a drinks-only page). Unioned across pages in runExtraction,
+  // normalized, then written to restaurants.cuisine_types only when it is empty.
+  cuisine_types: z.array(z.string()),
 });
 
 type MenuExtractionResult = z.infer<typeof MenuExtractionSchema>;
@@ -180,6 +185,102 @@ function resolveCurrency(code: string | null | undefined): CurrencyInfo {
   const info = CURRENCY_NAMES[upper];
   if (!info) return fallback;
   return { code: upper, name: info.name, symbol: info.symbol };
+}
+
+// ── Cuisine (inlined — Deno edge runtime can't import workspace packages) ─────
+//
+// Mirror of packages/shared/src/constants/cuisine.ts (ALL_CUISINES +
+// normalizeCuisines). Keep in lockstep — if you add a cuisine to the shared
+// module, mirror it here. Used to (a) constrain the extraction prompt to
+// canonical values and (b) gate what gets written to restaurants.cuisine_types.
+
+const ALL_CUISINES = [
+  'Afghan',
+  'African',
+  'American',
+  'Argentine',
+  'Asian',
+  'BBQ',
+  'Bakery',
+  'Brazilian',
+  'Breakfast',
+  'British',
+  'Café',
+  'Cajun',
+  'Caribbean',
+  'Chinese',
+  'Colombian',
+  'Comfort Food',
+  'Cuban',
+  'Deli',
+  'Desserts',
+  'Ethiopian',
+  'Fast Food',
+  'Filipino',
+  'Fine Dining',
+  'French',
+  'Fusion',
+  'German',
+  'Greek',
+  'Halal',
+  'Hawaiian',
+  'Healthy',
+  'Indian',
+  'Indonesian',
+  'International',
+  'Irish',
+  'Italian',
+  'Jamaican',
+  'Japanese',
+  'Korean',
+  'Kosher',
+  'Latin American',
+  'Lebanese',
+  'Malaysian',
+  'Mediterranean',
+  'Mexican',
+  'Middle Eastern',
+  'Moroccan',
+  'Nepalese',
+  'Pakistani',
+  'Peruvian',
+  'Pizza',
+  'Polish',
+  'Portuguese',
+  'Russian',
+  'Salad',
+  'Sandwiches',
+  'Seafood',
+  'Soul Food',
+  'Southern',
+  'Spanish',
+  'Steakhouse',
+  'Sushi',
+  'Taiwanese',
+  'Tapas',
+  'Thai',
+  'Turkish',
+  'Vegan',
+  'Vegetarian',
+  'Vietnamese',
+  'Other',
+] as const;
+
+const CUISINE_DIACRITICS = new RegExp('[\\u0300-\\u036f]', 'g');
+const foldCuisine = (s: string): string =>
+  s.normalize('NFD').replace(CUISINE_DIACRITICS, '').trim().toLowerCase();
+const CANONICAL_BY_FOLD = new Map<string, string>(ALL_CUISINES.map(c => [foldCuisine(c), c]));
+
+// Canonicalize arbitrary cuisine strings: accent/case-insensitive, order-preserving,
+// deduplicated; unknown values dropped. The single gate every cuisine write runs through.
+function normalizeCuisines(input: readonly string[] | null | undefined): string[] {
+  const out: string[] = [];
+  for (const raw of input ?? []) {
+    if (typeof raw !== 'string') continue;
+    const canonical = CANONICAL_BY_FOLD.get(foldCuisine(raw));
+    if (canonical && !out.includes(canonical)) out.push(canonical);
+  }
+  return out;
 }
 
 // ── Prompt ───────────────────────────────────────────────────────────────────
@@ -300,6 +401,13 @@ After extracting all dishes, also output:
 - detected_language: ISO-639-1 code of the menu's primary language (e.g. "en", "es", "pl",
     "fr", "it", "de", "pt", "ja", "zh"). Use null if the menu mixes languages or the language
     is unclear from the text.
+- cuisine_types: 1–3 cuisines that best describe THIS restaurant overall, inferred from the
+    dishes, ordered most representative first. Choose ONLY from this exact list, copied verbatim
+    (case-sensitive, keep accents):
+    ${ALL_CUISINES.join(', ')}
+    Prefer a specific national cuisine (e.g. "Mexican", "Italian", "Lebanese") over a broad one
+    ("International", "Other", "Asian") when the dishes clearly point to it. Output an empty array
+    when the dishes give no clear cuisine signal (e.g. a page of only drinks) — do NOT guess.
 
 Canonical menu-category slugs:
 ${slugList}
@@ -447,6 +555,7 @@ async function runExtraction(
 
   const dishes: MenuExtractionResult['dishes'] = [];
   let detectedLanguage: string | null = null;
+  const cuisineTypes: string[] = [];
   let failedPages = 0;
 
   for (let idx = 0; idx < settled.length; idx++) {
@@ -470,6 +579,11 @@ async function runExtraction(
       if (!detectedLanguage && r.value.detected_language) {
         detectedLanguage = r.value.detected_language;
       }
+      // Union this page's cuisine guesses (restaurant-level; a multi-page menu
+      // may only reveal the cuisine on some pages). Normalized on return.
+      for (const c of r.value.cuisine_types ?? []) {
+        if (!cuisineTypes.includes(c)) cuisineTypes.push(c);
+      }
     } else {
       failedPages++;
       const errMsg = r.reason instanceof Error ? r.reason.message : String(r.reason);
@@ -485,7 +599,11 @@ async function runExtraction(
     throw firstReject.reason;
   }
 
-  return { dishes, detected_language: detectedLanguage };
+  return {
+    dishes,
+    detected_language: detectedLanguage,
+    cuisine_types: normalizeCuisines(cuisineTypes).slice(0, 3),
+  };
 }
 
 // deno-lint-ignore no-explicit-any
@@ -523,6 +641,47 @@ async function fetchRestaurantCurrency(supa: any, restaurantId: string): Promise
     return resolveCurrency('USD');
   }
   return resolveCurrency(data.currency_code);
+}
+
+// Self-heal a restaurant's cuisine from an extraction (Phase 3b). Writes
+// restaurants.cuisine_types ONLY when it is currently empty — never overwrites a
+// human- or import-set value. Canonical-gated via normalizeCuisines. Best-effort:
+// any failure is logged and swallowed so it can never fail an otherwise-good scan.
+// deno-lint-ignore no-explicit-any
+async function maybeWriteRestaurantCuisine(
+  supa: any,
+  restaurantId: string,
+  inferred: string[]
+): Promise<void> {
+  try {
+    const canonical = normalizeCuisines(inferred).slice(0, 3);
+    if (canonical.length === 0) return; // nothing canonical to write
+
+    const { data, error } = await supa
+      .from('restaurants')
+      .select('cuisine_types')
+      .eq('id', restaurantId)
+      .single();
+    if (error || !data) return;
+
+    const existing = Array.isArray(data.cuisine_types) ? data.cuisine_types : [];
+    if (existing.length > 0) return; // never overwrite an existing cuisine
+
+    const { error: upErr } = await supa
+      .from('restaurants')
+      .update({ cuisine_types: canonical })
+      .eq('id', restaurantId);
+    if (upErr) {
+      console.warn(`cuisine self-heal failed for ${restaurantId}: ${upErr.message}`);
+    } else {
+      console.log(`cuisine self-heal: set ${JSON.stringify(canonical)} for ${restaurantId}`);
+    }
+  } catch (e) {
+    console.warn(
+      `cuisine self-heal threw for ${restaurantId}:`,
+      e instanceof Error ? e.message : String(e)
+    );
+  }
 }
 
 // ── Core worker logic ─────────────────────────────────────────────────────────
@@ -579,6 +738,10 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
       }
 
       const result = await runExtraction(openai, job.attempts, imageBase64List, prompt);
+
+      // Phase 3b: self-heal this restaurant's cuisine from the scan when it has
+      // none yet (gated empty, canonical-only, best-effort — never fails the job).
+      await maybeWriteRestaurantCuisine(supa, job.restaurant_id, result.cuisine_types);
 
       const { error: completeError } = await supa.rpc('complete_menu_scan_job', {
         p_id: job.id,

@@ -1,5 +1,9 @@
 // test.ts — Deno integration tests for menu-scan-worker
-// Run with: deno test supabase/functions/menu-scan-worker/test.ts --allow-env
+// Run with (from repo root):
+//   deno test --node-modules-dir=none -A infra/supabase/functions/menu-scan-worker/test.ts
+//   • --node-modules-dir=none → resolve npm deps from Deno's global cache; without it Deno 2
+//     finds the monorepo node_modules, switches to "manual" mode, and fails to resolve npm:openai.
+//   • -A → index.ts top-level Deno.serve needs --allow-net (more than the old --allow-env).
 //
 // Tests mock Supabase + OpenAI deps so no live DB or API key is needed.
 
@@ -52,6 +56,9 @@ const CANNED_RESULT = {
   // the canonical "uncertain" value). Keeping it here avoids assertEquals
   // tripping on the missing-vs-null difference.
   detected_language: null,
+  // Phase 3b: runExtraction unions + normalizes per-page cuisine guesses onto
+  // the merged result. Single page → this value passes through normalizeCuisines.
+  cuisine_types: ['Seafood'],
 };
 
 function makeJob(id: string, overrides: Record<string, unknown> = {}) {
@@ -77,8 +84,18 @@ function makeSupaMock(options: {
   jobs?: ReturnType<typeof makeJob>[];
   onComplete?: (id: string, result: unknown) => void;
   onFail?: (id: string, error: string, maxAttempts: number) => void;
+  // Phase 3b: existing cuisine the restaurants shim returns. Defaults non-empty
+  // so existing tests skip the self-heal write; set to [] to exercise it.
+  restaurantCuisine?: string[] | null;
+  onCuisineUpdate?: (id: string, cuisines: string[]) => void;
 }) {
-  const { jobs = [], onComplete, onFail } = options;
+  const {
+    jobs = [],
+    onComplete,
+    onFail,
+    restaurantCuisine = ['Italian'],
+    onCuisineUpdate,
+  } = options;
   let claimIndex = 0;
 
   return {
@@ -96,6 +113,33 @@ function makeSupaMock(options: {
         return { data: null, error: null };
       }
       return { data: null, error: null };
+    },
+    // Phase 3b: minimal restaurants table shim for the cuisine self-heal.
+    from: (table: string) => {
+      if (table === 'restaurants') {
+        return {
+          select: (_cols: string) => ({
+            eq: (_col: string, _val: unknown) => ({
+              single: async () => ({ data: { cuisine_types: restaurantCuisine }, error: null }),
+            }),
+          }),
+          update: (patch: { cuisine_types: string[] }) => ({
+            eq: async (_col: string, id: string) => {
+              onCuisineUpdate?.(id, patch.cuisine_types);
+              return { error: null };
+            },
+          }),
+        };
+      }
+      // canonical_menu_categories (fetchCanonicalSlugs) + any other table:
+      // support .select().eq().order() resolving to an empty set.
+      return {
+        select: (_cols: string) => ({
+          eq: (_col: string, _val: unknown) => ({
+            order: async (_c: string, _o: unknown) => ({ data: [], error: null }),
+          }),
+        }),
+      };
     },
     storage: {
       from: (_bucket: string) => ({
@@ -129,16 +173,11 @@ function makeOpenAIMock(
                 400,
                 { message: 'schema violation' },
                 'Bad Request',
-                new Headers()
+                {}
               );
             }
             if (rateLimitOnCall !== undefined && callCount === rateLimitOnCall) {
-              throw new OpenAI.RateLimitError(
-                429,
-                { message: 'rate limit' },
-                'Rate Limit',
-                new Headers()
-              );
+              throw new OpenAI.RateLimitError(429, { message: 'rate limit' }, 'Rate Limit', {});
             }
             return { choices: [{ message: { parsed: result } }] };
           },
@@ -180,7 +219,7 @@ Deno.test('pending → processing → needs_review: job transitions correctly', 
 Deno.test(
   'concurrency: 5 pending jobs processed with no double-claims (MAX_PER_TICK cap)',
   async () => {
-    const jobs = ['job-001', 'job-002', 'job-003', 'job-004', 'job-005'].map(makeJob);
+    const jobs = ['job-001', 'job-002', 'job-003', 'job-004', 'job-005'].map(id => makeJob(id));
     const claimed = new Set<string>();
     let claimIndex = 0;
 
@@ -198,6 +237,20 @@ Deno.test(
           if (fn === 'complete_menu_scan_job') return { data: null, error: null };
           if (fn === 'fail_menu_scan_job') return { data: null, error: null };
           return { data: null, error: null };
+        },
+        from: (table: string) => {
+          if (table === 'restaurants') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: async () => ({ data: { cuisine_types: ['x'] }, error: null }),
+                }),
+              }),
+            };
+          }
+          return {
+            select: () => ({ eq: () => ({ order: async () => ({ data: [], error: null }) }) }),
+          };
         },
         storage: {
           from: (_b: string) => ({
@@ -256,12 +309,7 @@ Deno.test('retry: RateLimitError exhausted → job ends in failed after max atte
       chat: {
         completions: {
           parse: async () => {
-            throw new OpenAI.RateLimitError(
-              429,
-              { message: 'rate limit' },
-              'Rate Limit',
-              new Headers()
-            );
+            throw new OpenAI.RateLimitError(429, { message: 'rate limit' }, 'Rate Limit', {});
           },
         },
       },
@@ -526,12 +574,7 @@ Deno.test('multi-image: all 3 pages fail with RateLimitError → job ends in err
     },
   });
 
-  const rateLimitErr = new OpenAI.RateLimitError(
-    429,
-    { message: 'rate limit' },
-    'Rate Limit',
-    new Headers()
-  );
+  const rateLimitErr = new OpenAI.RateLimitError(429, { message: 'rate limit' }, 'Rate Limit', {});
   const openai = makeOpenAIMockSequence([rateLimitErr, rateLimitErr, rateLimitErr]);
 
   const result = await processJobs({ supa, openai });
@@ -1134,4 +1177,62 @@ Deno.test('fixture: combo meal with bundled_items', async () => {
   assertEquals(captured.bundled_items[0].name, 'cheeseburger');
   assertEquals(captured.bundled_items[1].note, 'or sweet potato fries');
   assertEquals(captured.modifier_groups.length, 0);
+});
+
+// ── Phase 3b: restaurant cuisine self-heal ────────────────────────────────────
+//
+// The worker writes restaurants.cuisine_types from the inferred cuisines ONLY
+// when the restaurant currently has none — gated empty, canonical-only, and
+// best-effort (a write failure must never fail the scan job).
+
+Deno.test(
+  'cuisine self-heal: empty restaurant cuisine → inferred cuisine written + normalized',
+  async () => {
+    const job = makeJob('job-cuisine', { restaurant_id: 'rest-1' });
+    const updates: Array<{ id: string; cuisines: string[] }> = [];
+
+    const supa = makeSupaMock({
+      jobs: [job],
+      restaurantCuisine: [], // empty → eligible for self-heal
+      onCuisineUpdate: (id, cuisines) => updates.push({ id, cuisines }),
+    });
+
+    // Page emits messy cuisine guesses; normalizeCuisines must canonicalize +
+    // dedupe + drop the junk value.
+    const openai = makeOpenAIMockSequence([
+      {
+        dishes: makeCannedDishes(1, 0),
+        detected_language: 'es',
+        cuisine_types: ['mexican', 'Mexican', 'NotACuisine'],
+      },
+    ]);
+
+    const result = await processJobs({ supa, openai });
+
+    assertEquals(result.processed, ['job-cuisine']);
+    assertEquals(result.errors.length, 0);
+    assertEquals(updates.length, 1);
+    assertEquals(updates[0].id, 'rest-1');
+    assertEquals(updates[0].cuisines, ['Mexican']);
+  }
+);
+
+Deno.test('cuisine self-heal: non-empty restaurant cuisine is never overwritten', async () => {
+  const job = makeJob('job-cuisine-skip', { restaurant_id: 'rest-2' });
+  const updates: Array<{ id: string; cuisines: string[] }> = [];
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    restaurantCuisine: ['Thai'], // already set → must NOT be overwritten
+    onCuisineUpdate: (id, cuisines) => updates.push({ id, cuisines }),
+  });
+
+  const openai = makeOpenAIMockSequence([
+    { dishes: makeCannedDishes(1, 0), detected_language: 'en', cuisine_types: ['Italian'] },
+  ]);
+
+  const result = await processJobs({ supa, openai });
+
+  assertEquals(result.processed, ['job-cuisine-skip']);
+  assertEquals(updates.length, 0); // skipped — never overwrites
 });

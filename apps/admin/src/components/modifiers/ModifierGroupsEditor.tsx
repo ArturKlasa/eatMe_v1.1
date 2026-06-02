@@ -1,12 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { ALLERGENS, DIETARY_TAGS, PRIMARY_PROTEINS } from '@eatme/shared';
+import {
+  ALLERGENS,
+  DIETARY_TAGS,
+  PRIMARY_PROTEINS,
+  getCurrencyInfo,
+  isSupportedCurrency,
+} from '@eatme/shared';
 import type { EditableModifierGroup, EditableModifierOption } from './editableTypes';
 
 interface Props {
   groups: EditableModifierGroup[];
   saving: boolean;
+  // ISO 4217 from the parent restaurant. Used to render the currency symbol
+  // next to the price_delta + price_override inputs so admins know which
+  // currency the number is in. Falls back to USD ('$') if absent.
+  currencyCode: string;
   onAddGroup: () => void;
   onRemoveGroup: (groupIdx: number) => void;
   onMoveGroup: (from: number, to: number) => void;
@@ -24,6 +34,7 @@ interface Props {
 export function ModifierGroupsEditor({
   groups,
   saving,
+  currencyCode,
   onAddGroup,
   onRemoveGroup,
   onMoveGroup,
@@ -33,6 +44,9 @@ export function ModifierGroupsEditor({
   onMoveOption,
   onUpdateOption,
 }: Props) {
+  const currencySymbol = isSupportedCurrency(currencyCode)
+    ? getCurrencyInfo(currencyCode).symbol
+    : '$';
   return (
     <div className="rounded border border-dashed border-amber-200 bg-amber-50/40 p-2 space-y-2 dark:border-amber-900/40 dark:bg-amber-950/20">
       <div className="flex items-center justify-between">
@@ -64,6 +78,7 @@ export function ModifierGroupsEditor({
               isFirst={groupIdx === 0}
               isLast={groupIdx === groups.length - 1}
               saving={saving}
+              currencySymbol={currencySymbol}
               onRemoveGroup={onRemoveGroup}
               onMoveGroup={onMoveGroup}
               onUpdateGroup={onUpdateGroup}
@@ -85,6 +100,7 @@ interface GroupRowProps {
   isFirst: boolean;
   isLast: boolean;
   saving: boolean;
+  currencySymbol: string;
   onRemoveGroup: (groupIdx: number) => void;
   onMoveGroup: (from: number, to: number) => void;
   onUpdateGroup: (groupIdx: number, patch: Partial<EditableModifierGroup>) => void;
@@ -104,6 +120,7 @@ function GroupRow({
   isFirst,
   isLast,
   saving,
+  currencySymbol,
   onRemoveGroup,
   onMoveGroup,
   onUpdateGroup,
@@ -243,6 +260,7 @@ function GroupRow({
                 isFirst={optIdx === 0}
                 isLast={optIdx === group.options.length - 1}
                 saving={saving}
+                currencySymbol={currencySymbol}
                 onRemoveOption={onRemoveOption}
                 onMoveOption={onMoveOption}
                 onUpdateOption={onUpdateOption}
@@ -262,6 +280,7 @@ interface OptionRowProps {
   isFirst: boolean;
   isLast: boolean;
   saving: boolean;
+  currencySymbol: string;
   onRemoveOption: (groupIdx: number, optIdx: number) => void;
   onMoveOption: (groupIdx: number, from: number, to: number) => void;
   onUpdateOption: (
@@ -278,6 +297,7 @@ function OptionRow({
   isFirst,
   isLast,
   saving,
+  currencySymbol,
   onRemoveOption,
   onMoveOption,
   onUpdateOption,
@@ -301,40 +321,50 @@ function OptionRow({
           className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
         />
         <span className="text-[10px] text-muted-foreground">+</span>
-        <input
-          aria-label="Price delta"
-          type="number"
-          step="0.01"
-          // Empty input == no surcharge (state 0). Rendering "" instead of "0"
-          // lets the user clear the field; placeholder shows the implied default.
-          value={option.price_delta || ''}
-          onChange={e =>
-            onUpdateOption(groupIdx, optIdx, {
-              price_delta: e.target.value === '' ? 0 : Number(e.target.value) || 0,
-            })
-          }
-          disabled={saving}
-          placeholder="0"
-          title="Surcharge above the dish base price (blank = no extra)"
-          className="w-16 rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
-        />
+        <div className="flex items-stretch rounded border border-border bg-background overflow-hidden w-20">
+          <span className="px-1 flex items-center text-[10px] text-muted-foreground bg-muted/40 border-r border-border">
+            {currencySymbol}
+          </span>
+          <input
+            aria-label="Price delta"
+            type="number"
+            step="0.01"
+            // Empty input == no surcharge (state 0). Rendering "" instead of "0"
+            // lets the user clear the field; placeholder shows the implied default.
+            value={option.price_delta || ''}
+            onChange={e =>
+              onUpdateOption(groupIdx, optIdx, {
+                price_delta: e.target.value === '' ? 0 : Number(e.target.value) || 0,
+              })
+            }
+            disabled={saving}
+            placeholder="0"
+            title="Surcharge above the dish base price (blank = no extra)"
+            className="w-full min-w-0 bg-transparent px-1.5 py-1 text-xs focus:outline-none disabled:opacity-50"
+          />
+        </div>
         <span className="text-[10px] text-muted-foreground">or =</span>
-        <input
-          aria-label="Price override"
-          type="number"
-          step="0.01"
-          min="0"
-          value={option.price_override ?? ''}
-          onChange={e =>
-            onUpdateOption(groupIdx, optIdx, {
-              price_override: e.target.value === '' ? null : Math.max(0, Number(e.target.value)),
-            })
-          }
-          disabled={saving}
-          placeholder="—"
-          title="Absolute price (replaces the base price; leave blank to use delta)"
-          className="w-16 rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
-        />
+        <div className="flex items-stretch rounded border border-border bg-background overflow-hidden w-20">
+          <span className="px-1 flex items-center text-[10px] text-muted-foreground bg-muted/40 border-r border-border">
+            {currencySymbol}
+          </span>
+          <input
+            aria-label="Price override"
+            type="number"
+            step="0.01"
+            min="0"
+            value={option.price_override ?? ''}
+            onChange={e =>
+              onUpdateOption(groupIdx, optIdx, {
+                price_override: e.target.value === '' ? null : Math.max(0, Number(e.target.value)),
+              })
+            }
+            disabled={saving}
+            placeholder="—"
+            title="Absolute price (replaces the base price; leave blank to use delta)"
+            className="w-full min-w-0 bg-transparent px-1.5 py-1 text-xs focus:outline-none disabled:opacity-50"
+          />
+        </div>
         <label
           className="flex items-center gap-1 text-[11px] text-muted-foreground"
           title="Pre-selected by default"

@@ -39,6 +39,7 @@ type JobRow = {
   restaurant_id: string;
   restaurant_name: string | null;
   restaurant_country_code: string | null;
+  restaurant_currency_code: string;
   status: string;
   attempts: number;
   last_error: string | null;
@@ -299,6 +300,7 @@ export function AdminJobShell({
             jobId={job.id}
             initialDishes={dishes}
             countryCode={job.restaurant_country_code}
+            currencyCode={job.restaurant_currency_code}
             detectedLanguage={detectedLanguage}
             existingCategories={reviewContext.existingCategories}
             canonicalCategories={reviewContext.canonicalCategories}

@@ -10,6 +10,7 @@ import {
 } from '@/lib/auth/dal';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
+import { LocationCurrencySection } from './LocationCurrencySection';
 import { MenusSection } from './MenusSection';
 import { OpeningHoursSection } from './OpeningHoursSection';
 import { PublishSection } from './PublishSection';
@@ -112,6 +113,16 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         />
       </section>
 
+      {/* Country + currency — editable inline. Drives all price-input
+          rendering downstream (DishRowEditor, AddDishButton, ModifierGroupsEditor,
+          ReviewDishEditor). */}
+      <LocationCurrencySection
+        restaurantId={restaurant.id}
+        restaurantName={restaurant.name}
+        countryCode={restaurant.country_code}
+        currencyCode={restaurant.currency_code}
+      />
+
       {/* Opening hours — editable inline */}
       <OpeningHoursSection restaurantId={restaurant.id} openHours={restaurant.open_hours} />
 
@@ -131,6 +142,7 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         dishCategoryOptions={dishCategoryOptions}
         canonicalCategoryOptions={canonicalCategoryOptions}
         sourceLanguageCode={sourceLanguageCode}
+        currencyCode={restaurant.currency_code}
       />
 
       {/* Scan additional menu — drafts will land in this restaurant's menu */}

@@ -42,6 +42,9 @@ interface Props {
   // to AddCategoryButton so newly-created menu_categories carry the right
   // source_language_code + name_translations.
   sourceLanguageCode: string;
+  // ISO 4217 from restaurants.currency_code. Threaded down to every dish-price
+  // render + input so amounts display in the restaurant's currency.
+  currencyCode: string;
 }
 
 function CategoryBlock({
@@ -49,6 +52,7 @@ function CategoryBlock({
   restaurantId,
   menus,
   dishCategoryOptions,
+  currencyCode,
   draggable,
   onDishUpdated,
   onCategoryUpdated,
@@ -59,6 +63,7 @@ function CategoryBlock({
   restaurantId: string;
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
+  currencyCode: string;
   // Whether the drag handle is shown — false when the menu has a lone category.
   draggable: boolean;
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
@@ -110,6 +115,7 @@ function CategoryBlock({
               restaurantId={restaurantId}
               menus={menus}
               dishCategoryOptions={dishCategoryOptions}
+              currencyCode={currencyCode}
               onUpdated={next => onDishUpdated(d.id, next)}
               onDishCategoryCreated={onDishCategoryCreated}
             />
@@ -123,6 +129,7 @@ function CategoryBlock({
         menuCategoryId={category.id}
         categoryLabel={category.name}
         dishCategoryOptions={dishCategoryOptions}
+        currencyCode={currencyCode}
         onCreated={onDishCreated}
         onDishCategoryCreated={onDishCategoryCreated}
       />
@@ -137,6 +144,7 @@ function MenuBlock({
   dishCategoryOptions,
   canonicalCategoryOptions,
   sourceLanguageCode,
+  currencyCode,
   onDishUpdated,
   onCategoryUpdated,
   onMenuUpdated,
@@ -151,6 +159,7 @@ function MenuBlock({
   dishCategoryOptions: DishCategoryOption[];
   canonicalCategoryOptions: CanonicalCategoryOption[];
   sourceLanguageCode: string;
+  currencyCode: string;
   onDishUpdated: (dishId: string, next: AdminMenuDish) => void;
   onCategoryUpdated: (next: AdminMenuCategory) => void;
   onMenuUpdated: (next: AdminMenu) => void;
@@ -214,6 +223,7 @@ function MenuBlock({
                   restaurantId={restaurantId}
                   menus={menus}
                   dishCategoryOptions={dishCategoryOptions}
+                  currencyCode={currencyCode}
                   draggable={menu.categories.length > 1}
                   onDishUpdated={onDishUpdated}
                   onCategoryUpdated={onCategoryUpdated}
@@ -246,6 +256,7 @@ export function MenusSection({
   dishCategoryOptions: initialDishCategoryOptions,
   canonicalCategoryOptions,
   sourceLanguageCode,
+  currencyCode,
 }: Props) {
   // Local state holds the optimistic copy. Edits go here first, then persist.
   // revalidatePath in the action will refresh the server data on next nav.
@@ -457,6 +468,7 @@ export function MenusSection({
                 restaurantId={restaurantId}
                 menus={menus}
                 dishCategoryOptions={dishCategoryOptions}
+                currencyCode={currencyCode}
                 onUpdated={next => handleDishUpdated(d.id, next)}
                 onDishCategoryCreated={handleDishCategoryCreated}
               />
@@ -475,6 +487,7 @@ export function MenusSection({
             dishCategoryOptions={dishCategoryOptions}
             canonicalCategoryOptions={canonicalCategoryOptions}
             sourceLanguageCode={sourceLanguageCode}
+            currencyCode={currencyCode}
             onDishUpdated={handleDishUpdated}
             onCategoryUpdated={handleCategoryUpdated}
             onMenuUpdated={handleMenuUpdated}

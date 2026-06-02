@@ -5,6 +5,8 @@ import {
   PRIMARY_PROTEINS,
   DINING_FORMATS,
   DINING_FORMAT_META,
+  getCurrencyInfo,
+  isSupportedCurrency,
   type DiningFormat,
 } from '@eatme/shared';
 import type { AdminMenuDish, DishCategoryOption } from '@/lib/auth/dal';
@@ -22,6 +24,9 @@ interface Props {
   // when there's no parent category.
   categoryLabel: string;
   dishCategoryOptions: DishCategoryOption[];
+  // ISO 4217 from the parent restaurant. Shown next to the price input so the
+  // admin knows which currency the number represents.
+  currencyCode: string;
   onCreated: (dish: AdminMenuDish) => void;
   // Bubbles up so MenusSection can append the new category to its lifted
   // state — every sibling row's combobox sees it without a page reload.
@@ -42,9 +47,13 @@ export function AddDishButton({
   menuCategoryId,
   categoryLabel,
   dishCategoryOptions,
+  currencyCode,
   onCreated,
   onDishCategoryCreated,
 }: Props) {
+  const currencySymbol = isSupportedCurrency(currencyCode)
+    ? getCurrencyInfo(currencyCode).symbol
+    : '$';
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState('');
@@ -185,16 +194,22 @@ export function AddDishButton({
 
       <div className="grid grid-cols-3 gap-2">
         <label className="text-xs">
-          <span className="block text-muted-foreground mb-0.5">Price</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={price}
-            onChange={e => setPrice(e.target.value)}
-            placeholder="—"
-            className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
-          />
+          <span className="block text-muted-foreground mb-0.5">Price ({currencyCode})</span>
+          <div className="flex items-stretch rounded-md border border-input bg-background overflow-hidden">
+            <span className="px-1.5 flex items-center text-xs text-muted-foreground bg-muted/40 border-r border-input">
+              {currencySymbol}
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={e => setPrice(e.target.value)}
+              placeholder="—"
+              aria-label={`Price (${currencyCode})`}
+              className="flex-1 min-w-0 bg-transparent px-2 py-1 text-sm focus:outline-none"
+            />
+          </div>
         </label>
 
         <label

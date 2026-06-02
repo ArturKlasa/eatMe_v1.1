@@ -6,7 +6,11 @@ import {
   PRIMARY_PROTEINS,
   DINING_FORMATS,
   DINING_FORMAT_META,
+  formatPrice,
+  getCurrencyInfo,
+  isSupportedCurrency,
   type DiningFormat,
+  type SupportedCurrency,
 } from '@eatme/shared';
 import type {
   AdminMenu,
@@ -38,6 +42,10 @@ interface Props {
   restaurantId: string;
   menus: AdminMenu[];
   dishCategoryOptions: DishCategoryOption[];
+  // ISO 4217 from the parent restaurant. Drives formatPrice() output + the
+  // currency badge next to the price input. Drilled in via prop rather than
+  // re-fetched per row.
+  currencyCode: string;
   onUpdated: (next: AdminMenuDish) => void;
   // Bubbles up so MenusSection can append the new category to its lifted
   // state — every sibling row's combobox sees it without a page reload.
@@ -50,16 +58,23 @@ function statusBadgeClass(status: string) {
   return 'bg-gray-100 text-gray-600';
 }
 
-function formatPrice(price: number | null): string {
+// formatPriceCell: nullable-price wrapper around @eatme/shared formatPrice.
+// Falls back to USD when the parent passes an unsupported currency string —
+// shouldn't happen in practice (restaurants.currency_code is CHECK-constrained)
+// but keeps the render path total.
+function formatPriceCell(price: number | null, currencyCode: string): string {
   if (price == null) return '—';
-  return price.toFixed(2);
+  const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
+    ? currencyCode
+    : undefined;
+  return formatPrice(price, currency);
 }
 
 // Sub-list shown beneath each dish row. Modifier groups render via
 // <ModifierGroupsSummary> (read-only); clicking the row enters edit mode
 // where <ModifierGroupsEditor> appears for editing. Variants and courses
 // remain read-only here (kept until Phase 7 drops those tables).
-function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
+function DishRowSubList({ dish, currencyCode }: { dish: AdminMenuDish; currencyCode: string }) {
   const hasModifiers = dish.modifier_groups.length > 0;
   const hasBundled = (dish.bundled_items?.length ?? 0) > 0;
   const hasVariants = dish.is_parent && dish.variants.length > 0;
@@ -68,7 +83,9 @@ function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
 
   return (
     <div className="ml-4 mt-1 space-y-1.5">
-      {hasModifiers && <ModifierGroupsSummary groups={dish.modifier_groups} />}
+      {hasModifiers && (
+        <ModifierGroupsSummary groups={dish.modifier_groups} currencyCode={currencyCode} />
+      )}
 
       {hasBundled && (
         <ul className="space-y-0.5 border-l border-emerald-300/50 pl-3 dark:border-emerald-900/40">
@@ -93,7 +110,9 @@ function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
             <li key={v.id} className="flex items-baseline gap-2 text-xs text-muted-foreground">
               <span className="text-blue-600/70 dark:text-blue-300/70">↳</span>
               <span className="flex-1">{v.name}</span>
-              <span className="tabular-nums w-16 text-right">{formatPrice(v.price)}</span>
+              <span className="tabular-nums w-20 text-right">
+                {formatPriceCell(v.price, currencyCode)}
+              </span>
             </li>
           ))}
         </ul>
@@ -120,7 +139,9 @@ function DishRowSubList({ dish }: { dish: AdminMenuDish }) {
                     >
                       <span className="flex-1">• {it.option_label}</span>
                       {it.price_delta !== 0 && (
-                        <span className="tabular-nums">+{formatPrice(it.price_delta)}</span>
+                        <span className="tabular-nums">
+                          +{formatPriceCell(it.price_delta, currencyCode)}
+                        </span>
                       )}
                     </li>
                   ))}
@@ -139,9 +160,12 @@ export function DishRowEditor({
   restaurantId,
   menus,
   dishCategoryOptions,
+  currencyCode,
   onUpdated,
   onDishCategoryCreated,
 }: Props) {
+  const currencyInfo = isSupportedCurrency(currencyCode) ? getCurrencyInfo(currencyCode) : null;
+  const currencySymbol = currencyInfo?.symbol ?? '$';
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -275,8 +299,8 @@ export function DishRowEditor({
           className="flex w-full items-baseline gap-2 text-left text-sm hover:bg-muted/30 rounded px-1 -mx-1"
         >
           <span className="flex-1 text-foreground">{dish.name}</span>
-          <span className="tabular-nums text-muted-foreground w-16 text-right">
-            {formatPrice(dish.price)}
+          <span className="tabular-nums text-muted-foreground w-20 text-right">
+            {formatPriceCell(dish.price, currencyCode)}
           </span>
           <span
             className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${statusBadgeClass(dish.status)}`}
@@ -333,7 +357,7 @@ export function DishRowEditor({
             {dish.dish_category_name ?? '—'}
           </span>
         </button>
-        <DishRowSubList dish={dish} />
+        <DishRowSubList dish={dish} currencyCode={currencyCode} />
       </li>
     );
   }
@@ -385,20 +409,29 @@ export function DishRowEditor({
           <option value="pcs">pcs</option>
           <option value="oz">oz</option>
         </select>
-        <input
-          type="number"
-          value={draft.price ?? ''}
-          step="0.01"
-          min="0"
-          onChange={e =>
-            setDraft({
-              ...draft,
-              price: e.target.value === '' ? null : parseFloat(e.target.value),
-            })
-          }
-          placeholder="0.00"
-          className="rounded-md border border-input bg-background px-2 py-1 text-sm w-24"
-        />
+        <div
+          className="flex items-stretch rounded-md border border-input bg-background overflow-hidden w-28"
+          title={`Price in ${currencyCode}`}
+        >
+          <span className="px-1.5 flex items-center text-xs text-muted-foreground bg-muted/40 border-r border-input">
+            {currencySymbol}
+          </span>
+          <input
+            type="number"
+            value={draft.price ?? ''}
+            step="0.01"
+            min="0"
+            onChange={e =>
+              setDraft({
+                ...draft,
+                price: e.target.value === '' ? null : parseFloat(e.target.value),
+              })
+            }
+            placeholder="0.00"
+            aria-label={`Price (${currencyCode})`}
+            className="flex-1 min-w-0 bg-transparent px-2 py-1 text-sm focus:outline-none"
+          />
+        </div>
       </div>
 
       <textarea
@@ -521,6 +554,7 @@ export function DishRowEditor({
         <ModifierGroupsEditor
           groups={draftGroups}
           saving={isPending}
+          currencyCode={currencyCode}
           onAddGroup={() => setDraftGroups(g => addGroup(g))}
           onRemoveGroup={i => setDraftGroups(g => removeGroup(g, i))}
           onMoveGroup={(from, to) => setDraftGroups(g => moveGroup(g, from, to))}
@@ -589,14 +623,20 @@ export function DishRowEditor({
         </div>
       )}
 
-      <DishRowSubList dish={dish} />
+      <DishRowSubList dish={dish} currencyCode={currencyCode} />
     </li>
   );
 }
 
 // Collapsible summary of a dish's modifier groups, rendered in the read-only
 // row. Editing happens in the expanded edit-mode form via <ModifierGroupsEditor>.
-function ModifierGroupsSummary({ groups }: { groups: AdminMenuModifierGroup[] }) {
+function ModifierGroupsSummary({
+  groups,
+  currencyCode,
+}: {
+  groups: AdminMenuModifierGroup[];
+  currencyCode: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   if (groups.length === 0) return null;
 
@@ -639,11 +679,13 @@ function ModifierGroupsSummary({ groups }: { groups: AdminMenuModifierGroup[] })
                         {o.name}
                       </span>
                       {o.price_override != null ? (
-                        <span className="tabular-nums">= {o.price_override.toFixed(2)}</span>
+                        <span className="tabular-nums">
+                          = {formatPriceCell(o.price_override, currencyCode)}
+                        </span>
                       ) : o.price_delta !== 0 ? (
                         <span className="tabular-nums">
                           {o.price_delta > 0 ? '+' : ''}
-                          {o.price_delta.toFixed(2)}
+                          {formatPriceCell(o.price_delta, currencyCode)}
                         </span>
                       ) : null}
                     </li>

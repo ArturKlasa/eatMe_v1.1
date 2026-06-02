@@ -9,6 +9,8 @@ import {
   SUPPORTED_LANGUAGES,
   isSupportedLanguage,
   DEFAULT_LANGUAGE,
+  getCurrencyInfo,
+  isSupportedCurrency,
   type DiningFormat,
   type SupportedLanguage,
 } from '@eatme/shared';
@@ -38,6 +40,10 @@ interface Props {
   jobId: string;
   initialDishes: ExtractedDish[];
   countryCode: string | null;
+  // ISO 4217 from the parent restaurant. Used to render the currency symbol
+  // next to each dish-price input + the label so admin knows which currency
+  // the AI extracted into.
+  currencyCode: string;
   detectedLanguage: string | null;
   existingCategories: RestaurantCategoryOption[];
   canonicalCategories: CanonicalCategoryOption[];
@@ -210,12 +216,16 @@ export function ReviewDishEditor({
   jobId,
   initialDishes,
   countryCode,
+  currencyCode,
   detectedLanguage,
   existingCategories,
   canonicalCategories,
   dishCategories: initialDishCategories,
   dishCategoryMatches,
 }: Props) {
+  const currencySymbol = isSupportedCurrency(currencyCode)
+    ? getCurrencyInfo(currencyCode).symbol
+    : '$';
   const canonicalSlugSet = useMemo(
     () => new Set(canonicalCategories.map(c => c.slug)),
     [canonicalCategories]
@@ -688,21 +698,27 @@ export function ReviewDishEditor({
 
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <label className="flex flex-col gap-1 text-xs">
-                      <span className="text-muted-foreground">Price</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={d.price ?? ''}
-                        onChange={e =>
-                          update(d._id, {
-                            price: e.target.value === '' ? null : Number(e.target.value),
-                          })
-                        }
-                        disabled={d._deleted || saving}
-                        placeholder="—"
-                        className="rounded border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-50"
-                      />
+                      <span className="text-muted-foreground">Price ({currencyCode})</span>
+                      <div className="flex items-stretch rounded border border-border bg-background overflow-hidden">
+                        <span className="px-1.5 flex items-center text-xs text-muted-foreground bg-muted/40 border-r border-border">
+                          {currencySymbol}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={d.price ?? ''}
+                          onChange={e =>
+                            update(d._id, {
+                              price: e.target.value === '' ? null : Number(e.target.value),
+                            })
+                          }
+                          disabled={d._deleted || saving}
+                          placeholder="—"
+                          aria-label={`Price (${currencyCode})`}
+                          className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm focus:outline-none disabled:opacity-50"
+                        />
+                      </div>
                     </label>
 
                     <label className="flex flex-col gap-1 text-xs">
@@ -922,6 +938,7 @@ export function ReviewDishEditor({
                     <ModifierGroupsEditor
                       groups={d.modifier_groups}
                       saving={saving}
+                      currencyCode={currencyCode}
                       onAddGroup={() => addModifierGroup(d._id)}
                       onRemoveGroup={idx => removeModifierGroup(d._id, idx)}
                       onMoveGroup={(from, to) => moveModifierGroup(d._id, from, to)}

@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { SUPPORTED_CURRENCIES } from '@eatme/shared';
 import { withAdminAuth, type ActionResult } from '@/lib/auth/wrappers';
 import { logAdminAction } from '@/lib/audit';
 import { createAdminServiceClient } from '@/lib/supabase/server';
@@ -164,6 +165,15 @@ const adminBasicsSchema = z.object({
   website: z.string().optional(),
   city: z.string().optional(),
   address: z.string().optional(),
+  // country_code: ISO 3166-1 alpha-2, uppercase. Free-text empty string allowed
+  // so admin can clear it. When set, currency_code should track in the UI but
+  // the admin can override (see plan: locked decision 3).
+  country_code: z
+    .string()
+    .regex(/^[A-Z]{2}$/, 'Country code must be ISO alpha-2 uppercase (e.g. MX)')
+    .optional()
+    .or(z.literal('')),
+  currency_code: z.enum(SUPPORTED_CURRENCIES).optional(),
 });
 
 export const updateAdminRestaurantBasics = withAdminAuth(
@@ -184,7 +194,7 @@ export const updateAdminRestaurantBasics = withAdminAuth(
 
     const { data: current } = await service
       .from('restaurants')
-      .select('name, description, city, phone, website, address')
+      .select('name, description, city, phone, website, address, country_code, currency_code')
       .eq('id', id)
       .maybeSingle();
 
@@ -196,6 +206,11 @@ export const updateAdminRestaurantBasics = withAdminAuth(
       ...(d.address !== undefined ? { address: d.address || '' } : {}),
       ...(d.phone !== undefined ? { phone: d.phone || null } : {}),
       ...(d.website !== undefined ? { website: d.website || null } : {}),
+      ...(d.country_code !== undefined ? { country_code: d.country_code || null } : {}),
+      // currency_code is NOT NULL on the DB — only include in the payload when
+      // explicitly set so callers that only edit name/description don't accidentally
+      // wipe it. Empty string is never valid (Zod enum rejects).
+      ...(d.currency_code !== undefined ? { currency_code: d.currency_code } : {}),
     };
 
     const { error } = await service

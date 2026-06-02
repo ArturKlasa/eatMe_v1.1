@@ -89,6 +89,10 @@ export type AdminRestaurantDetail = {
   city: string | null;
   state: string | null;
   country_code: string | null;
+  /** ISO 4217. Backfilled by migration 147, NOT NULL on the DB. The TS type
+   *  stays string (no null) so render code can pass it straight to
+   *  formatPrice without a defensive `?? 'USD'`. */
+  currency_code: string;
   postal_code: string | null;
   neighbourhood: string | null;
   location: unknown;
@@ -120,6 +124,7 @@ const RESTAURANT_DETAIL_COLS = [
   'city',
   'state',
   'country_code',
+  'currency_code',
   'postal_code',
   'neighbourhood',
   'location',
@@ -175,6 +180,10 @@ export type AdminMenuScanJobDetail = AdminMenuScanJobRow & {
   saved_dish_ids: unknown;
   saved_at: string | null;
   restaurant_country_code: string | null;
+  /** Mirrors restaurants.currency_code so the review UI can render extracted
+   *  prices in the right currency without a second fetch. NOT NULL on the DB
+   *  (migration 147); typed string for direct pass-through to formatPrice. */
+  restaurant_currency_code: string;
 };
 
 export type CanonicalCategoryOption = {
@@ -263,7 +272,7 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
   const { data, error } = await supabase
     .from('menu_scan_jobs')
     .select(
-      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name, country_code)'
+      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name, country_code, currency_code)'
     )
     .eq('id', id)
     .maybeSingle();
@@ -271,13 +280,18 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
   if (error || !data) return null;
 
   const row = data as Record<string, unknown>;
-  const restaurant = row.restaurants as { name: string; country_code: string | null } | null;
+  const restaurant = row.restaurants as {
+    name: string;
+    country_code: string | null;
+    currency_code: string | null;
+  } | null;
 
   return {
     id: row.id as string,
     restaurant_id: row.restaurant_id as string,
     restaurant_name: restaurant?.name ?? null,
     restaurant_country_code: restaurant?.country_code ?? null,
+    restaurant_currency_code: restaurant?.currency_code ?? 'USD',
     created_by: row.created_by as string,
     status: row.status as string,
     attempts: row.attempts as number,

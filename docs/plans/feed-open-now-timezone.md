@@ -1,8 +1,10 @@
 # Feed open-now timezone fix
 
-**Status:** Implemented (2026-06-03). Migration 149 applied to prod by the user. Feed + import
-(lat/lng-precise `tz-lookup`) done and type-clean. **Pending: `supabase functions deploy feed`**
-(activates the fix) + the next `apps/admin` deploy (carries `places.ts`).
+**Status:** Shipped (2026-06-03). Migration 149 applied; **feed deployed** (open-now now evaluated
+in each restaurant's IANA zone). `backfill-restaurant-timezone.ts` set **247 rows** to precise zones
+→ published-restaurant timezone coverage **100%** (104 → 138); open-now corrected (**50 → 14** at
+~midnight CDMX as the false "open" rows dropped out). `diagnose-open-now.ts` is the read-only check.
+Pending only: next `apps/admin` deploy (carries `places.ts` for new imports).
 **Owner:** solo (commit straight to `main`)
 
 ## Problem

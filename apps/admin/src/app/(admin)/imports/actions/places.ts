@@ -6,6 +6,7 @@ import type { ActionResult } from '@/lib/auth/wrappers';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { logAdminAction } from '@/lib/audit';
 import { mapGoogleOpeningHours, type GoogleRegularOpeningHours } from '@/lib/google/openingHours';
+import { deriveTimezone } from '@/lib/timezone';
 
 const PLACES_API_BASE = 'https://places.googleapis.com/v1/places:searchNearby';
 const MAX_ROWS_CAP = 1_000;
@@ -165,6 +166,10 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
         // open_hours is treated as permanently closed and its dishes are
         // excluded from the mobile feed. {} when Google has no hours data.
         open_hours: mapGoogleOpeningHours(place.regularOpeningHours),
+        // Lat/lng-precise IANA zone so the feed evaluates open_hours in the
+        // restaurant's own local time (feed isOpenNow). Null → feed falls back
+        // to country_code -> zone. (migration 149)
+        timezone: deriveTimezone(place.location!.latitude, place.location!.longitude),
       };
 
       const { data: inserted, error: insertError } = await service

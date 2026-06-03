@@ -598,26 +598,88 @@ function applyDiversity(dishes: Candidate[], maxPerRestaurant: number): Candidat
   return result;
 }
 
-// ── isOpenNow helper ─────────────────────────────────────────────────────────
-// Ported from apps/mobile/src/utils/i18nUtils.ts — same logic, no dependency.
+// ── Open-now (timezone-correct) ──────────────────────────────────────────────
+//
+// open_hours are stored in each restaurant's LOCAL time. The Edge runtime clock
+// is UTC, so "now" must be evaluated in the restaurant's own IANA zone via Intl —
+// otherwise a CDMX (UTC-6) restaurant reads as closed every evening once UTC
+// rolls past midnight, and the map loses all its dishes. tz comes from
+// restaurants.timezone, falling back to country_code below.
+//
+// COUNTRY_TO_TZ mirrors the SQL backfill in migration 149 — keep in lockstep.
+const COUNTRY_TO_TZ: Record<string, string> = {
+  MX: 'America/Mexico_City',
+  US: 'America/New_York',
+  CA: 'America/Toronto',
+  BR: 'America/Sao_Paulo',
+  CO: 'America/Bogota',
+  AR: 'America/Argentina/Buenos_Aires',
+  CL: 'America/Santiago',
+  EC: 'America/Guayaquil',
+  SV: 'America/El_Salvador',
+  PA: 'America/Panama',
+  GB: 'Europe/London',
+  IE: 'Europe/Dublin',
+  PT: 'Europe/Lisbon',
+  ES: 'Europe/Madrid',
+  FR: 'Europe/Paris',
+  DE: 'Europe/Berlin',
+  IT: 'Europe/Rome',
+  NL: 'Europe/Amsterdam',
+  BE: 'Europe/Brussels',
+  AT: 'Europe/Vienna',
+  GR: 'Europe/Athens',
+  FI: 'Europe/Helsinki',
+  PL: 'Europe/Warsaw',
+  AU: 'Australia/Sydney',
+  JP: 'Asia/Tokyo',
+};
+
+function resolveTimezone(
+  timezone: string | null | undefined,
+  countryCode: string | null | undefined
+): string | null {
+  return timezone ?? COUNTRY_TO_TZ[(countryCode ?? '').toUpperCase()] ?? null;
+}
+
+// Current weekday (lowercase) + minutes-since-midnight in the given IANA zone.
+function localNowInZone(tz: string): { weekday: string; minutes: number } | null {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const weekday = parts.find(p => p.type === 'weekday')?.value.toLowerCase() ?? '';
+    let hh = Number(parts.find(p => p.type === 'hour')?.value ?? '0');
+    const mm = Number(parts.find(p => p.type === 'minute')?.value ?? '0');
+    if (hh === 24) hh = 0; // some ICU builds emit "24" at midnight
+    if (!weekday || Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return { weekday, minutes: hh * 60 + mm };
+  } catch {
+    return null; // invalid / unknown tz id
+  }
+}
 
 function isOpenNow(
-  openHours: Record<string, { open: string; close: string }> | null | undefined
+  openHours: Record<string, { open: string; close: string }> | null | undefined,
+  tz: string | null | undefined
 ): boolean {
-  if (!openHours) return false;
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const today = days[new Date().getDay()];
-  const entry = openHours[today];
-  if (!entry) return false;
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
+  if (!openHours) return false; // no/empty hours → closed (intentional; see places.ts import)
+  if (!tz) return true; // hours known but zone unknown → show rather than mis-evaluate
+  const now = localNowInZone(tz);
+  if (!now) return true; // bad tz id → show rather than hide
+  const entry = openHours[now.weekday];
+  if (!entry) return false; // closed that day
   const [oh, om] = entry.open.split(':').map(Number);
   const [ch, cm] = entry.close.split(':').map(Number);
   const openMin = oh * 60 + om;
   const closeMin = ch * 60 + cm;
   // Handle overnight spans (e.g. open 22:00, close 02:00)
-  if (closeMin < openMin) return cur >= openMin || cur < closeMin;
-  return cur >= openMin && cur < closeMin;
+  if (closeMin < openMin) return now.minutes >= openMin || now.minutes < closeMin;
+  return now.minutes >= openMin && now.minutes < closeMin;
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
@@ -854,18 +916,24 @@ serve(async (req: Request) => {
     scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     const diversified = applyDiversity(scored, 3);
 
-    // ── Fetch open_hours for all restaurants (shared by dishes + restaurants) ─
+    // ── Fetch open_hours + timezone for all restaurants (shared by dishes + restaurants) ─
 
     const allRids = [...new Set(diversified.map(d => d.restaurant_id))];
-    const openHoursMap = new Map<string, Record<string, { open: string; close: string }> | null>();
+    const openInfoMap = new Map<
+      string,
+      { openHours: Record<string, { open: string; close: string }> | null; tz: string | null }
+    >();
     try {
       const { data: hourRows } = await supabase
         .from('restaurants')
-        .select('id, open_hours')
+        .select('id, open_hours, timezone, country_code')
         .eq('status', 'published')
         .in('id', allRids);
       for (const row of hourRows ?? []) {
-        openHoursMap.set(row.id, row.open_hours ?? null);
+        openInfoMap.set(row.id, {
+          openHours: row.open_hours ?? null,
+          tz: resolveTimezone(row.timezone, row.country_code),
+        });
       }
     } catch (e) {
       console.error('[Feed] open_hours fetch failed (non-fatal):', e);
@@ -876,7 +944,10 @@ serve(async (req: Request) => {
     // Always exclude closed restaurants from recommendations — a dish you can't
     // buy right now is not a useful recommendation. The `filters.openNow` toggle
     // is redundant but preserved for API compatibility.
-    const dishPool = diversified.filter(d => isOpenNow(openHoursMap.get(d.restaurant_id)));
+    const dishPool = diversified.filter(d => {
+      const info = openInfoMap.get(d.restaurant_id);
+      return isOpenNow(info?.openHours, info?.tz);
+    });
 
     const userAllergens = filters.allergens ?? [];
     const dishResult =
@@ -928,6 +999,7 @@ serve(async (req: Request) => {
       for (const d of diversified) {
         const rid = d.restaurant_id;
         if (!restaurantMap.has(rid)) {
+          const info = openInfoMap.get(rid);
           restaurantMap.set(rid, {
             id: rid,
             name: d.restaurant_name,
@@ -936,7 +1008,7 @@ serve(async (req: Request) => {
             distance_km: d.distance_m / 1000,
             score: d.score ?? 0,
             location: d.restaurant_location ?? null,
-            is_open: isOpenNow(openHoursMap.get(rid)),
+            is_open: isOpenNow(info?.openHours, info?.tz),
           });
         } else {
           const ex = restaurantMap.get(rid);

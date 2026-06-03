@@ -9,6 +9,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { formatPrice, isSupportedCurrency } from '@eatme/shared';
 import { mapFooterStyles } from '@/styles';
 
 // Dish type from mobile hooks
@@ -19,6 +20,7 @@ interface Dish {
   restaurantName: string;
   price: number;
   cuisine: string;
+  currencyCode?: string | null;
   imageUrl?: string;
   isAvailable: boolean;
   dietary_tags: string[];
@@ -76,7 +78,12 @@ export const MapFooter: React.FC<MapFooterProps> = ({
               <Text style={mapFooterStyles.restaurantName} numberOfLines={1}>
                 {dish.restaurantName}
               </Text>
-              <Text style={mapFooterStyles.price}>${dish.price}</Text>
+              <Text style={mapFooterStyles.price}>
+                {formatPrice(
+                  dish.price,
+                  isSupportedCurrency(dish.currencyCode) ? dish.currencyCode : undefined
+                )}
+              </Text>
             </View>
 
             <View style={mapFooterStyles.dishFooter}></View>

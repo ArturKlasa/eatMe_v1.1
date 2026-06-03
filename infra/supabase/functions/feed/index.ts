@@ -186,6 +186,7 @@ interface Candidate {
   restaurant_cuisines: string[];
   restaurant_rating: number;
   restaurant_location: Record<string, unknown>;
+  restaurant_currency_code?: string;
   popularity_score: number;
   view_count: number;
   score?: number;
@@ -985,6 +986,7 @@ serve(async (req: Request) => {
                 name: d.restaurant_name,
                 cuisine_types: d.restaurant_cuisines,
                 rating: d.restaurant_rating,
+                currency_code: d.restaurant_currency_code ?? 'USD',
               },
               distance_km: d.distance_m / 1000,
               score: d.score,

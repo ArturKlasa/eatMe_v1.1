@@ -43,6 +43,7 @@ export interface ServerDish {
     name: string;
     cuisine_types: string[];
     rating: number;
+    currency_code?: string;
   };
 
   distance_km?: number;

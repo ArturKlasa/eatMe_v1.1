@@ -237,6 +237,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       price: dish.effective_price ?? dish.price,
       cuisine:
         dish.restaurant?.cuisine_types?.[0] || flatDish.restaurant_cuisines?.[0] || 'Unknown',
+      currencyCode: dish.restaurant?.currency_code ?? null,
       imageUrl: dish.image_url || undefined,
       isAvailable: dish.is_available,
       dietary_tags: dish.effective_dietary_tags ?? dish.dietary_tags ?? [],

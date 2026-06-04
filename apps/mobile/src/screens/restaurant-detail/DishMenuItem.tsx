@@ -15,6 +15,7 @@ import { DishRatingBadge } from '../../components/DishRatingBadge';
 import { classifyDish } from '../../utils/menuFilterUtils';
 import { type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
+import { type DishOpinion } from '../../types/rating';
 import { type DishWithGroups } from './DishGrouping';
 
 interface DishMenuItemProps {
@@ -25,6 +26,9 @@ interface DishMenuItemProps {
    *  or older Edge Function deploys may not include it; formatPrice falls back
    *  to USD when missing. */
   currencyCode?: string | null;
+  /** The signed-in user's most recent opinion for this dish, if any. Drives the
+   *  "You loved it" indicator when 'liked'. */
+  userOpinion?: DishOpinion | null;
   onPress: (item: DishWithGroups) => void;
 }
 
@@ -33,6 +37,7 @@ export function DishMenuItem({
   permanentFilters,
   dishRatings,
   currencyCode,
+  userOpinion,
   onPress,
 }: DishMenuItemProps) {
   const { t } = useTranslation();
@@ -101,6 +106,11 @@ export function DishMenuItem({
               totalRatings={rating.totalRatings}
               topTags={rating.topTags}
             />
+          )}
+          {userOpinion === 'liked' && (
+            <View style={styles.lovedPill}>
+              <Text style={styles.lovedText}>👍 {t('restaurant.youLovedIt')}</Text>
+            </View>
           )}
         </View>
         <Text style={styles.menuItemPrice}>{fullPriceLabel}</Text>

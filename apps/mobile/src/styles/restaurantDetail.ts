@@ -374,6 +374,19 @@ export const restaurantDetailStyles = StyleSheet.create({
     color: '#888888',
     fontWeight: '500' as const,
   },
+  lovedPill: {
+    backgroundColor: `${colors.success}20`,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  lovedText: {
+    fontSize: 10,
+    color: colors.success,
+    fontWeight: '500' as const,
+  },
 
   // Address Modal
   addressModal: {

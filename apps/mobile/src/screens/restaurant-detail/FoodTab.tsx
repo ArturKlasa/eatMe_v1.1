@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { type RestaurantWithMenus, type MenuCategoryWithCanonical } from '../../lib/supabase';
 import { useFilterStore, type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
+import { type DishOpinion } from '../../types/rating';
 import { groupDishesByParent, type DishWithGroups } from './DishGrouping';
 import { classifyDish, sortDishesByFilter } from '../../utils/menuFilterUtils';
 import { DishMenuItem } from './DishMenuItem';
@@ -26,6 +27,7 @@ interface FoodTabProps {
   restaurant: RestaurantWithMenus;
   categoryDishes: Map<string, DishWithGroups[] | 'loading' | 'error'>;
   dishRatings: Map<string, DishRating>;
+  userDishOpinions: Map<string, DishOpinion>;
   permanentFilters: PermanentFilters;
   loadCategoryDishes: (categoryId: string) => void;
   onDishPress: (dish: DishWithGroups) => void;
@@ -66,6 +68,7 @@ export function FoodTab({
   restaurant,
   categoryDishes,
   dishRatings,
+  userDishOpinions,
   permanentFilters,
   loadCategoryDishes,
   onDishPress,
@@ -187,6 +190,7 @@ export function FoodTab({
                             permanentFilters={permanentFilters}
                             dishRatings={dishRatings}
                             currencyCode={restaurant.currency_code}
+                            userOpinion={userDishOpinions.get(dish.id) ?? null}
                             onPress={onDishPress}
                           />
                           {(dish.option_groups?.length ?? 0) > 0 && (

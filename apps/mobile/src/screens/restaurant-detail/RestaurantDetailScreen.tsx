@@ -212,6 +212,7 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           restaurant={restaurant}
           categoryDishes={categoryDishes}
           dishRatings={dishRatings}
+          userDishOpinions={userDishOpinions}
           permanentFilters={permanentFilters}
           loadCategoryDishes={loadCategoryDishes}
           onDishPress={handleDishPress}

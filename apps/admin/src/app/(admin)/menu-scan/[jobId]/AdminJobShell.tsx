@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useReducer } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/browser';
 import { replayMenuScan, adminUpdateJobStatus } from '../actions/menuScan';
@@ -29,6 +29,120 @@ function StatusBadge({ status }: { status: string }) {
     >
       {status}
     </span>
+  );
+}
+
+// Sticky source-image preview shown beside the dish list. `page` is synced by
+// AdminJobShell from the focused dish's source_image_index, so the operator can
+// eyeball each dish against the page it came from. The in-column image stays
+// fit-to-width (the narrow column can't show fine print); clicking it opens a
+// full-screen lightbox — same overlay the thumbnail strip uses.
+//
+// `sticky` lives on the <aside> grid item (not an inner div) on purpose: the
+// grid is `items-start`, so the aside shrinks to its content. Putting sticky on
+// a child would leave it no room to slide. The aside's containing block is the
+// (tall) grid row, so it pins correctly.
+function ReviewSourcePanel({
+  imageUrls,
+  page,
+  onPage,
+}: {
+  imageUrls: MenuScanImageUrl[];
+  page: number;
+  onPage: (p: number) => void;
+}) {
+  const [lightbox, setLightbox] = useState(false);
+  const img = imageUrls[page];
+
+  // Esc closes the lightbox. Window listener so it works regardless of focus.
+  useEffect(() => {
+    if (!lightbox) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightbox(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lightbox]);
+
+  return (
+    <aside className="hidden self-start lg:sticky lg:top-4 lg:block">
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            Source · page {page + 1} / {imageUrls.length}
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              disabled={!img}
+              className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted disabled:opacity-40"
+              title="Open full size"
+            >
+              Enlarge
+            </button>
+            <button
+              type="button"
+              onClick={() => onPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+              className="rounded border border-border px-2 py-0.5 text-sm hover:bg-muted disabled:opacity-40"
+              aria-label="Previous page"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => onPage(Math.min(imageUrls.length - 1, page + 1))}
+              disabled={page >= imageUrls.length - 1}
+              className="rounded border border-border px-2 py-0.5 text-sm hover:bg-muted disabled:opacity-40"
+              aria-label="Next page"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        <div className="max-h-[calc(100vh-9rem)] overflow-auto rounded border border-border bg-muted/30">
+          {img ? (
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              className="block w-full cursor-zoom-in"
+              aria-label="Enlarge source page"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.url}
+                alt={`Source page ${page + 1}`}
+                loading="lazy"
+                className="w-full"
+              />
+            </button>
+          ) : (
+            <p className="p-4 text-xs text-muted-foreground">No source image for this page.</p>
+          )}
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Follows the focused dish · click to enlarge.
+        </p>
+      </div>
+
+      {lightbox && img && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Source page (full size)"
+          onClick={() => setLightbox(false)}
+          className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-6"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={img.url}
+            alt={`Source page ${page + 1} (full size)`}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
+      )}
+    </aside>
   );
 }
 
@@ -116,6 +230,10 @@ export function AdminJobShell({
   });
 
   const { job } = state;
+
+  // Source page shown in the synced preview panel — updated as the operator
+  // focuses a dish (each dish carries its source_image_index).
+  const [activePage, setActivePage] = useState(0);
 
   // Realtime subscription
   useEffect(() => {
@@ -286,20 +404,28 @@ export function AdminJobShell({
         <SourceImageStrip images={imageUrls} dishCountsByIndex={dishCountsByIndex} />
       </div>
 
-      {/* Review editor */}
+      {/* Review editor + synced source-image panel */}
       {showEditor && dishes && reviewContext && (
-        <div className="rounded-lg border border-border p-6">
-          <ReviewDishEditor
-            jobId={job.id}
-            initialDishes={dishes}
-            countryCode={job.restaurant_country_code}
-            currencyCode={job.restaurant_currency_code}
-            detectedLanguage={detectedLanguage}
-            existingCategories={reviewContext.existingCategories}
-            canonicalCategories={reviewContext.canonicalCategories}
-            dishCategories={reviewContext.dishCategories}
-            dishCategoryMatches={dishCategoryMatches}
-          />
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_minmax(300px,400px)]">
+          <div className="min-w-0 rounded-lg border border-border p-6">
+            <ReviewDishEditor
+              jobId={job.id}
+              initialDishes={dishes}
+              countryCode={job.restaurant_country_code}
+              currencyCode={job.restaurant_currency_code}
+              detectedLanguage={detectedLanguage}
+              existingCategories={reviewContext.existingCategories}
+              canonicalCategories={reviewContext.canonicalCategories}
+              dishCategories={reviewContext.dishCategories}
+              dishCategoryMatches={dishCategoryMatches}
+              onActiveImageIndexChange={p =>
+                setActivePage(Math.min(Math.max(0, p), imageUrls.length - 1))
+              }
+            />
+          </div>
+          {imageUrls.length > 0 && (
+            <ReviewSourcePanel imageUrls={imageUrls} page={activePage} onPage={setActivePage} />
+          )}
         </div>
       )}
 

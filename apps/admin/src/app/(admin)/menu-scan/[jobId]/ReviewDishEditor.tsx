@@ -49,6 +49,9 @@ interface Props {
   canonicalCategories: CanonicalCategoryOption[];
   dishCategories: DishCategoryOption[];
   dishCategoryMatches: DishCategoryMatch[];
+  // Called with a dish's source_image_index when the operator focuses it, so the
+  // parent can sync the side-by-side source-image preview panel.
+  onActiveImageIndexChange?: (index: number) => void;
 }
 
 function pickName(dict: Record<string, string>, lang: SupportedLanguage, fallback: string): string {
@@ -222,6 +225,7 @@ export function ReviewDishEditor({
   canonicalCategories,
   dishCategories: initialDishCategories,
   dishCategoryMatches,
+  onActiveImageIndexChange,
 }: Props) {
   const currencySymbol = isSupportedCurrency(currencyCode)
     ? getCurrencyInfo(currencyCode).symbol
@@ -641,6 +645,8 @@ export function ReviewDishEditor({
               {group.dishes.map(d => (
                 <li
                   key={d._id}
+                  onFocusCapture={() => onActiveImageIndexChange?.(d.source_image_index)}
+                  onMouseDown={() => onActiveImageIndexChange?.(d.source_image_index)}
                   className={[
                     'rounded border p-3 space-y-2 transition-opacity',
                     d._deleted ? 'border-dashed border-border opacity-50' : 'border-border bg-card',

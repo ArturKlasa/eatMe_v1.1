@@ -155,3 +155,114 @@ export async function toggleFavorite(
     return err(e as Error);
   }
 }
+
+/** Favorited dish with display details (joined from `dishes` + parent restaurant). */
+export interface FavoriteDish {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+  displayPricePrefix?: string;
+  restaurantId: string;
+  restaurantName: string;
+  currencyCode?: string | null;
+}
+
+/** Favorited restaurant with display details (joined from `restaurants`). */
+export interface FavoriteRestaurant {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  cuisine?: string;
+}
+
+export interface FavoritesDetailed {
+  dishes: FavoriteDish[];
+  restaurants: FavoriteRestaurant[];
+}
+
+/**
+ * Fetch the user's favorites with display details, newest-favorited first.
+ *
+ * `getUserFavorites` only returns subject ids; this joins each to its `dishes`
+ * (with parent restaurant name + currency) or `restaurants` row so the Favorites
+ * screen can render cards. Subjects that no longer exist or are unpublished are
+ * skipped silently.
+ */
+export async function getFavoritesDetailed(userId: string): Promise<Result<FavoritesDetailed>> {
+  const favResult = await getUserFavorites(userId);
+  if (!favResult.ok) return favResult;
+
+  const favorites = favResult.data;
+  const dishIds = favorites.filter(f => f.subject_type === 'dish').map(f => f.subject_id);
+  const restaurantIds = favorites
+    .filter(f => f.subject_type === 'restaurant')
+    .map(f => f.subject_id);
+
+  try {
+    const [dishRes, restRes] = await Promise.all([
+      dishIds.length
+        ? supabase
+            .from('dishes')
+            .select(
+              'id, name, price, image_url, display_price_prefix, restaurant_id, restaurant:restaurants(name, currency_code)'
+            )
+            .in('id', dishIds)
+            .eq('status', 'published')
+        : Promise.resolve({ data: [], error: null }),
+      restaurantIds.length
+        ? supabase
+            .from('restaurants')
+            .select('id, name, image_url, cuisine_types')
+            .in('id', restaurantIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    if (dishRes.error) return err(dishRes.error.message);
+    if (restRes.error) return err(restRes.error.message);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dishById = new Map<string, FavoriteDish>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const d of (dishRes.data ?? []) as any[]) {
+      dishById.set(d.id, {
+        id: d.id,
+        name: d.name,
+        price: d.price,
+        imageUrl: d.image_url ?? undefined,
+        displayPricePrefix: d.display_price_prefix ?? undefined,
+        restaurantId: d.restaurant_id,
+        restaurantName: d.restaurant?.name ?? '',
+        currencyCode: d.restaurant?.currency_code ?? undefined,
+      });
+    }
+
+    const restById = new Map<string, FavoriteRestaurant>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (restRes.data ?? []) as any[]) {
+      restById.set(r.id, {
+        id: r.id,
+        name: r.name,
+        imageUrl: r.image_url ?? undefined,
+        cuisine: Array.isArray(r.cuisine_types) ? r.cuisine_types[0] : undefined,
+      });
+    }
+
+    // Re-order to match the favorites list (getUserFavorites is newest-first).
+    const dishes: FavoriteDish[] = [];
+    const restaurants: FavoriteRestaurant[] = [];
+    for (const f of favorites) {
+      if (f.subject_type === 'dish') {
+        const d = dishById.get(f.subject_id);
+        if (d) dishes.push(d);
+      } else {
+        const r = restById.get(f.subject_id);
+        if (r) restaurants.push(r);
+      }
+    }
+
+    return ok({ dishes, restaurants });
+  } catch (e) {
+    return err(e as Error);
+  }
+}

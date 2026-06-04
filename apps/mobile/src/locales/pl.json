@@ -665,6 +665,7 @@
     "editProfile": "Edytuj Profil",
     "customizePreferences": "Dostosuj Preferencje",
     "viewedHistory": "Historia Wyświetlania",
+    "favorites": "Ulubione",
     "dietaryPreferences": "Preferencje Dietetyczne",
     "yourActivity": "Twoja Aktywność",
     "defaultName": "Odkrywca Jedzenia",
@@ -725,7 +726,11 @@
     "addedToFavorites": "Dodano do ulubionych ⭐",
     "removedFromFavorites": "Usunięto z ulubionych",
     "updateFailed": "Nie udało się zaktualizować ulubionych",
-    "signInToAdd": "Proszę się zalogować, aby dodać ulubione"
+    "signInToAdd": "Proszę się zalogować, aby dodać ulubione",
+    "signInRequired": "Zaloguj się, aby zobaczyć ulubione",
+    "loading": "Ładowanie ulubionych...",
+    "dishesSection": "Zapisane dania",
+    "restaurantsSection": "Zapisane restauracje"
   },
   "viewedHistory": {
     "title": "Ostatnio Oglądane",

@@ -665,6 +665,7 @@
     "editProfile": "Editar Perfil",
     "customizePreferences": "Personalizar Preferencias",
     "viewedHistory": "Historial Visitado",
+    "favorites": "Favoritos",
     "dietaryPreferences": "Preferencias Dietéticas",
     "yourActivity": "Tu Actividad",
     "defaultName": "Explorador de Comida",
@@ -725,7 +726,11 @@
     "addedToFavorites": "Agregado a favoritos ⭐",
     "removedFromFavorites": "Removido de favoritos",
     "updateFailed": "Falló la actualización de favoritos",
-    "signInToAdd": "Por favor inicia sesión para agregar favoritos"
+    "signInToAdd": "Por favor inicia sesión para agregar favoritos",
+    "signInRequired": "Inicia sesión para ver tus favoritos",
+    "loading": "Cargando favoritos...",
+    "dishesSection": "Platillos guardados",
+    "restaurantsSection": "Restaurantes guardados"
   },
   "viewedHistory": {
     "title": "Vistos Recientemente",

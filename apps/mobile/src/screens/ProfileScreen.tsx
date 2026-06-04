@@ -193,6 +193,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
                 >
                   <Text style={styles.editButtonText}>{t('profile.viewedHistory')}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.editButton, { marginTop: 8 }]}
+                  onPress={() => navigation.navigate('Favorites')}
+                >
+                  <Text style={styles.editButtonText}>{t('profile.favorites')}</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>

@@ -665,6 +665,7 @@
     "editProfile": "Edit Profile",
     "customizePreferences": "Customize Preferences",
     "viewedHistory": "Viewed History",
+    "favorites": "Favorites",
     "dietaryPreferences": "Dietary Preferences",
     "yourActivity": "Your Activity",
     "defaultName": "Food Explorer",
@@ -725,7 +726,11 @@
     "addedToFavorites": "Added to favorites ⭐",
     "removedFromFavorites": "Removed from favorites",
     "updateFailed": "Failed to update favorites",
-    "signInToAdd": "Please sign in to add favorites"
+    "signInToAdd": "Please sign in to add favorites",
+    "signInRequired": "Please sign in to view favorites",
+    "loading": "Loading favorites...",
+    "dishesSection": "Saved dishes",
+    "restaurantsSection": "Saved restaurants"
   },
   "viewedHistory": {
     "title": "Recently Viewed",

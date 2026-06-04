@@ -9,7 +9,9 @@
     "backfill-cuisine-types": "ts-node backfill-cuisine-types.ts",
     "backfill-cuisine-from-google": "ts-node backfill-cuisine-from-google.ts",
     "backfill-cuisine-from-dishes": "ts-node backfill-cuisine-from-dishes.ts",
-    "diagnose-empty-cuisine": "ts-node diagnose-empty-cuisine.ts"
+    "diagnose-empty-cuisine": "ts-node diagnose-empty-cuisine.ts",
+    "replay-ab": "ts-node replay-menu-scan-ab.ts",
+    "diagnose-scan-trend": "ts-node diagnose-scan-quality-trend.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

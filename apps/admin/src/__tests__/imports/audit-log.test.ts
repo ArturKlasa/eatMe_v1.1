@@ -44,7 +44,7 @@ const SAMPLE_ROWS = [
     resource_type: 'menu_scan_job',
     resource_id: 'job-002',
     old_data: null,
-    new_data: { model: 'gpt-4o-2024-11-20' },
+    new_data: { new_job_id: 'new-job-002' },
     created_at: '2026-04-22T09:00:00Z',
   },
 ];

@@ -13,8 +13,6 @@ import type {
 import { ReviewDishEditor, type ExtractedDish } from './ReviewDishEditor';
 import { SourceImageStrip } from './SourceImageStrip';
 
-type ReplayModel = 'gpt-4o-2024-11-20' | 'gpt-4o-mini';
-
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   processing: 'bg-blue-100 text-blue-800',
@@ -54,7 +52,6 @@ type JobRow = {
 
 type State = {
   job: JobRow;
-  selectedModel: ReplayModel;
   replayLoading: boolean;
   replayError: string | null;
   replayNewJobId: string | null;
@@ -64,7 +61,6 @@ type State = {
 
 type Action =
   | { type: 'JOB_UPDATED'; job: Partial<JobRow> }
-  | { type: 'SET_MODEL'; model: ReplayModel }
   | { type: 'REPLAY_START' }
   | { type: 'REPLAY_SUCCESS'; newJobId: string }
   | { type: 'REPLAY_ERROR'; message: string }
@@ -76,8 +72,6 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'JOB_UPDATED':
       return { ...state, job: { ...state.job, ...action.job } };
-    case 'SET_MODEL':
-      return { ...state, selectedModel: action.model };
     case 'REPLAY_START':
       return { ...state, replayLoading: true, replayError: null, replayNewJobId: null };
     case 'REPLAY_SUCCESS':
@@ -114,7 +108,6 @@ export function AdminJobShell({
 }: Props) {
   const [state, dispatch] = useReducer(reducer, {
     job: initialJob,
-    selectedModel: 'gpt-4o-2024-11-20',
     replayLoading: false,
     replayError: null,
     replayNewJobId: null,
@@ -149,7 +142,7 @@ export function AdminJobShell({
 
   const handleReplay = async () => {
     dispatch({ type: 'REPLAY_START' });
-    const result = await replayMenuScan(job.id, { model: state.selectedModel });
+    const result = await replayMenuScan(job.id);
     if (result.ok) {
       dispatch({ type: 'REPLAY_SUCCESS', newJobId: result.data.newJobId });
     } else {
@@ -383,24 +376,11 @@ export function AdminJobShell({
       <div className="rounded-lg border border-border p-6 space-y-4">
         <h2 className="text-sm font-semibold">Replay</h2>
         <p className="text-xs text-muted-foreground">
-          Creates a new pending job with the same input images and fires the worker immediately.
+          Creates a new pending job with the same input images and fires the worker immediately. It
+          runs on the current worker model.
         </p>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <label htmlFor="replay-model" className="text-sm font-medium">
-            Model
-          </label>
-          <select
-            id="replay-model"
-            value={state.selectedModel}
-            onChange={e => dispatch({ type: 'SET_MODEL', model: e.target.value as ReplayModel })}
-            className="rounded border border-border px-2 py-1.5 text-sm bg-background"
-            disabled={state.replayLoading}
-          >
-            <option value="gpt-4o-2024-11-20">gpt-4o-2024-11-20</option>
-            <option value="gpt-4o-mini">gpt-4o-mini</option>
-          </select>
-
           <button
             type="button"
             onClick={() => void handleReplay()}

@@ -92,7 +92,7 @@ describe('replayMenuScan — auth', () => {
       },
     } as never);
 
-    const result = await replayMenuScan('job-uuid-001', { model: 'gpt-4o-2024-11-20' });
+    const result = await replayMenuScan('job-uuid-001');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.formError).toBe('FORBIDDEN');
   });
@@ -106,7 +106,7 @@ describe('replayMenuScan — auth', () => {
       },
     } as never);
 
-    const result = await replayMenuScan('job-uuid-001', { model: 'gpt-4o-2024-11-20' });
+    const result = await replayMenuScan('job-uuid-001');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.formError).toBe('UNAUTHENTICATED');
   });
@@ -116,23 +116,15 @@ describe('replayMenuScan — validation', () => {
   it('returns NOT_FOUND when job does not exist', async () => {
     vi.mocked(createAdminServiceClient).mockReturnValue(makeServiceClient(null) as never);
 
-    const result = await replayMenuScan('non-existent-job', { model: 'gpt-4o-2024-11-20' });
+    const result = await replayMenuScan('non-existent-job');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.formError).toBe('NOT_FOUND');
-  });
-
-  it('returns INVALID_MODEL for an unrecognised model string', async () => {
-    const result = await replayMenuScan('job-uuid-001', {
-      model: 'gpt-3.5-turbo' as 'gpt-4o-2024-11-20',
-    });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.formError).toBe('INVALID_MODEL');
   });
 });
 
 describe('replayMenuScan — happy path', () => {
   it('creates a new job, fires the worker, logs audit, and returns newJobId', async () => {
-    const result = await replayMenuScan('job-uuid-001', { model: 'gpt-4o-2024-11-20' });
+    const result = await replayMenuScan('job-uuid-001');
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -147,7 +139,7 @@ describe('replayMenuScan — happy path', () => {
   });
 
   it('writes audit log with action=replay_menu_scan', async () => {
-    await replayMenuScan('job-uuid-001', { model: 'gpt-4o-mini' });
+    await replayMenuScan('job-uuid-001');
 
     expect(logAdminAction).toHaveBeenCalledWith(
       expect.anything(),
@@ -156,14 +148,14 @@ describe('replayMenuScan — happy path', () => {
       'menu_scan_job',
       'job-uuid-001',
       expect.anything(),
-      expect.objectContaining({ model: 'gpt-4o-mini' })
+      expect.objectContaining({ new_job_id: 'new-job-uuid-001' })
     );
   });
 
   it('still returns ok=true when worker fetch fails (best-effort)', async () => {
     mockFetch.mockRejectedValueOnce(new Error('network error'));
 
-    const result = await replayMenuScan('job-uuid-001', { model: 'gpt-4o-2024-11-20' });
+    const result = await replayMenuScan('job-uuid-001');
     expect(result.ok).toBe(true);
   });
 });
@@ -174,7 +166,7 @@ describe('replayMenuScan — insert failure', () => {
       makeServiceClient(MOCK_JOB, null, { message: 'constraint violation' }) as never
     );
 
-    const result = await replayMenuScan('job-uuid-001', { model: 'gpt-4o-2024-11-20' });
+    const result = await replayMenuScan('job-uuid-001');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.formError).toBe('CREATE_FAILED');
   });

@@ -13,21 +13,12 @@ import {
 } from '@eatme/shared';
 import { confirmPayloadSchema } from './confirmSchema';
 
-const VALID_REPLAY_MODELS = ['gpt-4o-2024-11-20', 'gpt-4o-mini'] as const;
-type ReplayModel = (typeof VALID_REPLAY_MODELS)[number];
-
 // replayMenuScan: duplicates an existing job's input into a new pending job,
-// then fires a direct POST to the Edge Function to kick off processing immediately.
+// then fires a direct POST to the Edge Function to kick off processing
+// immediately. The worker owns the model (there is no per-job model override),
+// so the replay simply re-runs the same images on the current worker model.
 export const replayMenuScan = withAdminAuth(
-  async (
-    ctx,
-    jobId: string,
-    opts: { model: ReplayModel }
-  ): Promise<ActionResult<{ newJobId: string }>> => {
-    if (!VALID_REPLAY_MODELS.includes(opts.model)) {
-      return { ok: false, formError: 'INVALID_MODEL' };
-    }
-
+  async (ctx, jobId: string): Promise<ActionResult<{ newJobId: string }>> => {
     const service = createAdminServiceClient();
 
     const { data: job } = await service
@@ -47,7 +38,7 @@ export const replayMenuScan = withAdminAuth(
         restaurant_id: (job as Record<string, unknown>).restaurant_id as string,
         created_by: ctx.userId,
         status: 'pending',
-        input: { ...parsedInput.data, model_hint: opts.model },
+        input: parsedInput.data,
       })
       .select('id')
       .single();
@@ -71,7 +62,7 @@ export const replayMenuScan = withAdminAuth(
       'menu_scan_job',
       jobId,
       { status: (job as Record<string, unknown>).status as string },
-      { new_job_id: (newJob as Record<string, unknown>).id, model: opts.model }
+      { new_job_id: (newJob as Record<string, unknown>).id }
     );
 
     revalidatePath('/menu-scan');

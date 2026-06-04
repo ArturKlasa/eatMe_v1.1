@@ -2,7 +2,12 @@
 
 import { Badge } from '@/components/ui/badge';
 import { DIETARY_TAG_COLORS, DIETARY_TAG_COLOR_DEFAULT } from '@/lib/ui-constants';
-import type { DietaryTag } from '@/lib/ingredients';
+
+interface DietaryTag {
+  id: string;
+  name: string;
+  category: keyof typeof DIETARY_TAG_COLORS;
+}
 
 interface DietaryTagBadgesProps {
   dietaryTags: DietaryTag[];

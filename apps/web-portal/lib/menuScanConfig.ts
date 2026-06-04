@@ -1,3 +1,0 @@
-export const CONFIDENCE_THRESHOLD = parseFloat(
-  process.env.NEXT_PUBLIC_MENU_SCAN_CONFIDENCE_THRESHOLD ?? '0.7'
-);

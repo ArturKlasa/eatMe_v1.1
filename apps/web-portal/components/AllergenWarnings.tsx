@@ -3,7 +3,11 @@
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import type { Allergen } from '@/lib/ingredients';
+
+interface Allergen {
+  id: string;
+  name: string;
+}
 
 interface AllergenWarningsProps {
   allergens: Allergen[];

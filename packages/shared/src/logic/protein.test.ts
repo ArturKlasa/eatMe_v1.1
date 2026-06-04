@@ -7,7 +7,6 @@ describe('deriveProteinFields', () => {
     expect(result).toEqual({
       protein_families: [],
       protein_canonical_names: [],
-      dietary_tags_override: null,
     });
   });
 
@@ -16,7 +15,6 @@ describe('deriveProteinFields', () => {
     expect(result).toEqual({
       protein_families: [],
       protein_canonical_names: [],
-      dietary_tags_override: null,
     });
   });
 
@@ -24,77 +22,66 @@ describe('deriveProteinFields', () => {
     const result = deriveProteinFields('chicken');
     expect(result.protein_families).toEqual(['meat', 'poultry']);
     expect(result.protein_canonical_names).toEqual(['chicken']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('goat → meat family', () => {
     const result = deriveProteinFields('goat');
     expect(result.protein_families).toEqual(['meat']);
     expect(result.protein_canonical_names).toEqual(['goat']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('beef → meat family', () => {
     const result = deriveProteinFields('beef');
     expect(result.protein_families).toEqual(['meat']);
     expect(result.protein_canonical_names).toEqual(['beef']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('pork → meat family', () => {
     const result = deriveProteinFields('pork');
     expect(result.protein_families).toEqual(['meat']);
     expect(result.protein_canonical_names).toEqual(['pork']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('lamb → meat family', () => {
     const result = deriveProteinFields('lamb');
     expect(result.protein_families).toEqual(['meat']);
     expect(result.protein_canonical_names).toEqual(['lamb']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('other_meat → meat family', () => {
     const result = deriveProteinFields('other_meat');
     expect(result.protein_families).toEqual(['meat']);
     expect(result.protein_canonical_names).toEqual(['other_meat']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('fish → fish family', () => {
     const result = deriveProteinFields('fish');
     expect(result.protein_families).toEqual(['fish']);
     expect(result.protein_canonical_names).toEqual(['fish']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('shellfish → shellfish family', () => {
     const result = deriveProteinFields('shellfish');
     expect(result.protein_families).toEqual(['shellfish']);
     expect(result.protein_canonical_names).toEqual(['shellfish']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
   it('eggs → eggs family', () => {
     const result = deriveProteinFields('eggs');
     expect(result.protein_families).toEqual(['eggs']);
     expect(result.protein_canonical_names).toEqual(['eggs']);
-    expect(result.dietary_tags_override).toBeNull();
   });
 
-  it('vegetarian → empty families, dietary override vegetarian', () => {
+  it('vegetarian → empty families', () => {
     const result = deriveProteinFields('vegetarian');
     expect(result.protein_families).toEqual([]);
     expect(result.protein_canonical_names).toEqual([]);
-    expect(result.dietary_tags_override).toEqual(['vegetarian']);
   });
 
-  it('vegan → empty families, dietary override vegan + vegetarian', () => {
+  it('vegan → empty families', () => {
     const result = deriveProteinFields('vegan');
     expect(result.protein_families).toEqual([]);
     expect(result.protein_canonical_names).toEqual([]);
-    expect(result.dietary_tags_override).toEqual(['vegan', 'vegetarian']);
   });
 
   it('PRIMARY_PROTEINS covers all 11 values', () => {

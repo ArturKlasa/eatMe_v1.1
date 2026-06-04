@@ -14,7 +14,6 @@ import { DishBasicFields } from './dish/DishBasicFields';
 import { DishCategorySelect } from './dish/DishCategorySelect';
 import { DishSpiceLevel } from './dish/DishSpiceLevel';
 import { DishDietarySection } from './dish/DishDietarySection';
-import { DishIngredientSection } from './dish/DishIngredientSection';
 import { DishKindSelector } from './dish/DishKindSelector';
 import { DishVariantsSection } from './dish/DishVariantsSection';
 import { DishOptionsSection } from './dish/DishOptionsSection';
@@ -22,7 +21,6 @@ import { DishVisibilityFields } from './dish/DishVisibilityFields';
 import { DishPhotoField } from './dish/DishPhotoField';
 import { DishPrimaryProteinSelect } from './dish/DishPrimaryProteinSelect';
 import { DishPrimaryProteinBanner } from './dish/DishPrimaryProteinBanner';
-import { ingredientEntryEnabled } from '@/lib/featureFlags';
 
 // The component supports two modes:
 //   Wizard mode – onSubmit is provided; data stays in local state, no Supabase write.
@@ -75,28 +73,18 @@ export function DishFormDialog({
     },
   });
 
-  const {
-    selectedIngredients,
-    setSelectedIngredients,
-    calculatedAllergens,
-    calculatedDietaryTags,
-    dishType,
-    setDishType,
-    optionGroups,
-    setOptionGroups,
-    handleFormSubmit,
-    handleClose,
-  } = useDishFormData({
-    dish,
-    isOpen,
-    menuType,
-    restaurantId,
-    menuCategoryId,
-    methods,
-    onWizardSubmit,
-    onSuccess,
-    onClose,
-  });
+  const { dishType, setDishType, optionGroups, setOptionGroups, handleFormSubmit, handleClose } =
+    useDishFormData({
+      dish,
+      isOpen,
+      menuType,
+      restaurantId,
+      menuCategoryId,
+      methods,
+      onWizardSubmit,
+      onSuccess,
+      onClose,
+    });
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -149,18 +137,6 @@ export function DishFormDialog({
 
             <DishPrimaryProteinSelect />
             <DishPrimaryProteinBanner />
-
-            {ingredientEntryEnabled() && (
-              <>
-                <Separator />
-                <DishIngredientSection
-                  ingredients={selectedIngredients}
-                  onIngredientsChange={setSelectedIngredients}
-                  calculatedAllergens={calculatedAllergens}
-                  calculatedDietaryTags={calculatedDietaryTags}
-                />
-              </>
-            )}
 
             <Separator />
 

@@ -1,7 +1,5 @@
 export type {
   Location,
-  Ingredient,
-  SelectedIngredient,
   DishKind,
   DishStatus,
   RestaurantStatus,

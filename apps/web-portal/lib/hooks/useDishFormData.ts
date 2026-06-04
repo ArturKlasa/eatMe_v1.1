@@ -3,10 +3,8 @@ import { type UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
 import type { Dish, OptionGroup } from '@eatme/shared';
 import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
-import type { Ingredient, Allergen, DietaryTag } from '@/lib/ingredients';
 import type { DishFormData } from '@eatme/shared';
 import type { RawOptionGroup } from '@/lib/restaurantService';
-import { ingredientEntryEnabled } from '@/lib/featureFlags';
 import { toast } from 'sonner';
 
 interface UseDishFormDataOptions {
@@ -59,9 +57,6 @@ export function useDishFormData({
   onSuccess,
   onClose,
 }: UseDishFormDataOptions) {
-  const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
-  const [calculatedAllergens, setCalculatedAllergens] = useState<Allergen[]>([]);
-  const [calculatedDietaryTags, setCalculatedDietaryTags] = useState<DietaryTag[]>([]);
   const [dishType, setDishType] = useState<'food' | 'drink'>('food');
   const [optionGroups, setOptionGroups] = useState<OptionGroup[]>([]);
 
@@ -102,14 +97,10 @@ export function useDishFormData({
 
       if (dish.id) {
         loadOptionGroups(dish.id);
-        loadIngredients(dish.id);
         if (dish.is_parent) loadVariants(dish.id);
-      } else {
-        setSelectedIngredients([]);
       }
     } else if (!dish && isOpen) {
       reset(DEFAULT_VALUES);
-      setSelectedIngredients([]);
       setOptionGroups([]);
     }
   }, [dish, isOpen, reset]);
@@ -132,58 +123,6 @@ export function useDishFormData({
       );
     } else {
       setOptionGroups([]);
-    }
-  };
-
-  const loadIngredients = async (dishId: string) => {
-    type DishIngredientRow = {
-      ingredient_id: string;
-      quantity: string | null;
-      canonical_ingredient: {
-        id: string;
-        canonical_name: string;
-        ingredient_family_name: string | null;
-        is_vegetarian: boolean | null;
-        is_vegan: boolean | null;
-        ingredient_aliases: Array<{ id: string; display_name: string }>;
-      } | null;
-    };
-
-    const { data } = await supabase
-      .from('dish_ingredients')
-      .select(
-        `
-        ingredient_id,
-        quantity,
-        canonical_ingredient:canonical_ingredients(
-          id,
-          canonical_name,
-          ingredient_family_name,
-          is_vegetarian,
-          is_vegan,
-          ingredient_aliases(id, display_name)
-        )
-      `
-      )
-      .eq('dish_id', dishId);
-
-    if (data && data.length > 0) {
-      const loaded = data.map((row: DishIngredientRow): Ingredient => {
-        const alias = row.canonical_ingredient?.ingredient_aliases?.[0];
-        return {
-          id: alias?.id ?? row.ingredient_id,
-          display_name: alias?.display_name ?? row.canonical_ingredient?.canonical_name ?? '',
-          canonical_ingredient_id: row.ingredient_id,
-          canonical_name: row.canonical_ingredient?.canonical_name,
-          ingredient_family_name: row.canonical_ingredient?.ingredient_family_name ?? undefined,
-          is_vegetarian: row.canonical_ingredient?.is_vegetarian ?? undefined,
-          is_vegan: row.canonical_ingredient?.is_vegan ?? undefined,
-          quantity: row.quantity ?? undefined,
-        };
-      });
-      setSelectedIngredients(loaded);
-    } else {
-      setSelectedIngredients([]);
     }
   };
 
@@ -215,9 +154,6 @@ export function useDishFormData({
 
   const resetAll = useCallback(() => {
     reset();
-    setSelectedIngredients([]);
-    setCalculatedAllergens([]);
-    setCalculatedDietaryTags([]);
     setOptionGroups([]);
   }, [reset]);
 
@@ -244,8 +180,7 @@ export function useDishFormData({
         is_parent: data.is_parent === true,
         variants: (data.variants ?? []) as Dish['variants'],
         option_groups: optionGroups,
-        ...(selectedIngredients.length > 0 ? { selectedIngredients } : {}),
-      } as Dish & { selectedIngredients?: typeof selectedIngredients };
+      };
       onWizardSubmit(localDish);
       resetAll();
       onClose();
@@ -270,11 +205,8 @@ export function useDishFormData({
         primary_protein: data.primary_protein ?? null,
         protein_families: derived.protein_families,
         protein_canonical_names: derived.protein_canonical_names,
-        // primary_protein veg/vegan sets the override; otherwise fall back to form checkboxes.
-        dietary_tags_override:
-          derived.dietary_tags_override ??
-          (data.dietary_tags && data.dietary_tags.length > 0 ? data.dietary_tags : null),
-        allergens_override: data.allergens && data.allergens.length > 0 ? data.allergens : null,
+        dietary_tags: data.dietary_tags ?? [],
+        allergens: data.allergens ?? [],
         calories: !isNaN(data.calories as number) && data.calories != null ? data.calories : null,
         spice_level: data.spice_level && data.spice_level !== 'none' ? data.spice_level : null,
         description_visibility: data.description_visibility ?? 'menu',
@@ -309,48 +241,6 @@ export function useDishFormData({
         toast.success('Dish added successfully');
       }
 
-      // Sync dish_ingredients junction table (gated behind ingredient entry feature flag).
-      if (ingredientEntryEnabled() && selectedIngredients.length > 0) {
-        await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
-
-        const needLookup = selectedIngredients
-          .filter(ing => !ing.concept_id && ing.canonical_ingredient_id)
-          .map(ing => ing.canonical_ingredient_id);
-        const conceptByCanonical = new Map<string, string>();
-        if (needLookup.length > 0) {
-          const { data: conceptRows } = await (
-            supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
-          )('ingredient_concepts')
-            .select('id, legacy_canonical_id')
-            .in('legacy_canonical_id', needLookup);
-          for (const row of (conceptRows ?? []) as unknown as Array<{
-            id: string;
-            legacy_canonical_id: string;
-          }>) {
-            conceptByCanonical.set(row.legacy_canonical_id, row.id);
-          }
-        }
-
-        const ingredientRows = selectedIngredients.map(ing => ({
-          dish_id: dishId,
-          ingredient_id: ing.canonical_ingredient_id,
-          concept_id:
-            ing.concept_id ??
-            (ing.canonical_ingredient_id
-              ? (conceptByCanonical.get(ing.canonical_ingredient_id) ?? null)
-              : null),
-          variant_id: ing.variant_id ?? null,
-          quantity: ing.quantity ?? null,
-        }));
-        const { error: ingError } = await supabase.from('dish_ingredients').insert(ingredientRows);
-        if (ingError) {
-          console.error('[DishForm] Failed to save ingredients:', ingError);
-          toast.warning('Dish saved, but ingredient links could not be updated.');
-        }
-      } else if (ingredientEntryEnabled() && dish?.id) {
-        await supabase.from('dish_ingredients').delete().eq('dish_id', dishId);
-      }
-
       // Sync option_groups + options
       await supabase.from('option_groups').delete().eq('dish_id', dishId);
       if (optionGroups.length > 0) {
@@ -383,7 +273,6 @@ export function useDishFormData({
                 description: opt.description ?? null,
                 price_delta: opt.price_delta ?? 0,
                 calories_delta: opt.calories_delta ?? null,
-                canonical_ingredient_id: opt.canonical_ingredient_id ?? null,
                 is_available: opt.is_available !== false,
                 display_order: oi,
               }))
@@ -450,10 +339,6 @@ export function useDishFormData({
   }, [reset, onClose]);
 
   return {
-    selectedIngredients,
-    setSelectedIngredients,
-    calculatedAllergens,
-    calculatedDietaryTags,
     dishType,
     setDishType,
     optionGroups,

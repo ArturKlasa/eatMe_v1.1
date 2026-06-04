@@ -109,7 +109,6 @@ export const dishSchema = z.object({
             description: z.string().optional(),
             price_delta: z.number().default(0),
             calories_delta: z.number().int().nullable().optional(),
-            canonical_ingredient_id: z.string().uuid().nullable().optional(),
             is_available: z.boolean().default(true),
             display_order: z.number().int().min(0).default(0),
           })

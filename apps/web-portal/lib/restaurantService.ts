@@ -4,15 +4,12 @@ import {
   formatOperatingHours,
   type RestaurantInsert,
 } from './supabase';
-import { addDishIngredients } from './ingredients';
 import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
-import { ingredientEntryEnabled } from './featureFlags';
 import type {
   FormProgress,
   Menu as AppMenu,
   RestaurantType,
   Location as AppLocation,
-  SelectedIngredient,
 } from '@eatme/shared';
 
 export type RawOption = {
@@ -21,7 +18,6 @@ export type RawOption = {
   description?: string | null;
   price_delta: number;
   calories_delta?: number | null;
-  canonical_ingredient_id?: string | null;
   is_available?: boolean | null;
   display_order?: number | null;
 };
@@ -464,7 +460,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
       primary_protein: (dish as { primary_protein?: string | null }).primary_protein ?? null,
       protein_families: derived.protein_families,
       protein_canonical_names: derived.protein_canonical_names,
-      dietary_tags_override: derived.dietary_tags_override,
     };
   };
 
@@ -543,27 +538,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
 
   const insertedDishes = insertedWithDish;
 
-  if (ingredientEntryEnabled()) {
-    await Promise.all(
-      insertedDishes.map(async ({ id: insertedId, dish }) => {
-        if (!dish.selectedIngredients?.length) return;
-        const { error: ingError } = await addDishIngredients(
-          insertedId,
-          dish.selectedIngredients.map((ing: SelectedIngredient) => ({
-            ingredient_id: ing.id,
-            quantity: ing.quantity || null,
-          }))
-        );
-        if (ingError) {
-          console.error(
-            `[RestaurantService] Failed to link ingredients for dish "${dish.name}":`,
-            ingError
-          );
-        }
-      })
-    );
-  }
-
   await Promise.all(
     insertedDishes.map(async ({ id: insertedId, dish }) => {
       if (!dish.option_groups?.length) return;
@@ -612,7 +586,6 @@ async function saveOptionGroupsForDish(
           description: opt.description ?? null,
           price_delta: opt.price_delta ?? 0,
           calories_delta: opt.calories_delta ?? null,
-          canonical_ingredient_id: opt.canonical_ingredient_id ?? null,
           is_available: opt.is_available !== false,
           display_order: oi,
         }))

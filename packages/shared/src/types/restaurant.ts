@@ -15,22 +15,6 @@ export interface Location {
   lng: number;
 }
 
-export interface Ingredient {
-  id: string; // ingredient_alias.id
-  display_name: string; // ingredient_alias.display_name
-  canonical_ingredient_id: string;
-  canonical_name?: string; // flattened from canonical_ingredient.canonical_name
-  ingredient_family_name?: string; // flattened from canonical_ingredient.ingredient_family_name
-  is_vegetarian?: boolean; // flattened from canonical_ingredient.is_vegetarian
-  is_vegan?: boolean; // flattened from canonical_ingredient.is_vegan
-  quantity?: string; // optional quantity when added to a dish
-}
-
-/** UI-only: ingredient selected via IngredientAutocomplete, with optional quantity. */
-export interface SelectedIngredient extends Ingredient {
-  quantity?: string;
-}
-
 /**
  * Canonical 5-value dish composition kind.
  *
@@ -75,7 +59,6 @@ export interface Option {
   /** Price adjustment in the restaurant's local currency; positive = surcharge, negative = discount. */
   price_delta: number;
   calories_delta?: number | null;
-  canonical_ingredient_id?: string | null;
   is_available?: boolean;
   display_order?: number;
   // ── Modifier-model extensions (migration 140) ──────────────────────────────
@@ -170,8 +153,6 @@ export interface Dish {
   display_price_prefix?: DisplayPricePrefix;
   /** Option groups attached to this dish (template/experience types). */
   option_groups?: OptionGroup[];
-  /** UI-only: canonical ingredients selected via autocomplete; not persisted on this object. */
-  selectedIngredients?: SelectedIngredient[];
 
   // ── Modifier-model extensions (migration 141) ──────────────────────────────
   /** UX hint for dining-experience dishes (buffet, course menu, etc.). Null for plated dishes. */

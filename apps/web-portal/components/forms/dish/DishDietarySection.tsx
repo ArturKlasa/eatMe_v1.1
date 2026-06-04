@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Sprout, Leaf } from 'lucide-react';
 import { DIETARY_TAGS, ALLERGENS, RELIGIOUS_REQUIREMENTS } from '@eatme/shared';
 import type { DishFormData } from '@eatme/shared';
-import { ingredientEntryEnabled } from '@/lib/featureFlags';
 
 export function DishDietarySection() {
   const { setValue, control } = useFormContext<DishFormData>();
@@ -102,9 +101,7 @@ export function DishDietarySection() {
         <h3 className="text-sm font-semibold text-foreground">Allergens</h3>
 
         <div>
-          <p className="text-xs text-muted-foreground mb-2">
-            Leave empty to auto-compute from ingredients. Check boxes to override the computed set.
-          </p>
+          <p className="text-xs text-muted-foreground mb-2">Check all that apply.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {ALLERGENS.map(allergen => (
               <div key={allergen.value} className="flex items-center space-x-2">
@@ -129,9 +126,7 @@ export function DishDietarySection() {
       <div className="space-y-4">
         <div>
           <Label className="mb-2 block">Dietary Tags</Label>
-          <p className="text-xs text-muted-foreground mb-2">
-            Leave empty to auto-compute from ingredients. Select tags to override.
-          </p>
+          <p className="text-xs text-muted-foreground mb-2">Select all that apply.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {DIETARY_TAGS.filter(
               tag =>
@@ -157,32 +152,30 @@ export function DishDietarySection() {
         </div>
       </div>
 
-      {ingredientEntryEnabled() && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-foreground">Religious Requirements</h3>
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Religious Requirements</h3>
 
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {RELIGIOUS_REQUIREMENTS.map(tag => (
-                <div key={tag} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`religious-${tag}`}
-                    checked={dietaryTags.includes(tag)}
-                    onCheckedChange={() => toggleDietaryTag(tag)}
-                  />
-                  <Label
-                    htmlFor={`religious-${tag}`}
-                    className="text-sm font-normal cursor-pointer capitalize"
-                  >
-                    {tag}
-                  </Label>
-                </div>
-              ))}
-            </div>
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Select all that apply</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {RELIGIOUS_REQUIREMENTS.map(tag => (
+              <div key={tag} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`religious-${tag}`}
+                  checked={dietaryTags.includes(tag)}
+                  onCheckedChange={() => toggleDietaryTag(tag)}
+                />
+                <Label
+                  htmlFor={`religious-${tag}`}
+                  className="text-sm font-normal cursor-pointer capitalize"
+                >
+                  {tag}
+                </Label>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

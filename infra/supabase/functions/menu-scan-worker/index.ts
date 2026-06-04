@@ -92,6 +92,13 @@ const menuExtractionDishSchema = z.object({
   // (migration 145); DB CHECK enforces both-or-neither.
   portion_amount: z.number().int().positive().nullable(),
   portion_unit: z.enum(['g', 'ml', 'pcs', 'oz']).nullable(),
+  // Verbatim printed size substring the model lifted the portion from (e.g.
+  // "1.5kg", "0.5L", "8 oz", "6 szt.") — the ORIGINAL text, not the normalized
+  // value, so the worker can strip it from the name for ANY unit (kg/L lose
+  // their printed form once normalized to g/ml). Worker-internal: used at
+  // extraction time to clean the name, never a dishes column. Null when
+  // portion_amount is null.
+  portion_source_text: z.string().nullable(),
   // Kept through the Phase 2→4 window so the existing admin review UI keeps
   // rendering. Phase 4 migrates the review UI to consume modifier_groups; Phase 7
   // drops dish_kind from the worker schema.
@@ -290,8 +297,25 @@ interface CanonicalSlug {
   english_name: string;
 }
 
-function buildExtractionPrompt(canonicalSlugs: CanonicalSlug[], currency: CurrencyInfo): string {
+function buildExtractionPrompt(
+  canonicalSlugs: CanonicalSlug[],
+  currency: CurrencyInfo,
+  includeCuisine: boolean
+): string {
   const slugList = canonicalSlugs.map(c => `  - ${c.slug} (${c.english_name})`).join('\n');
+
+  // Cuisine is a whole-restaurant property, so only page 1 is asked to infer it.
+  // Pages 2..N of a multi-page menu skip the 70-item list + the secondary
+  // classification task entirely, keeping the model's attention on dishes.
+  const cuisineBlock = includeCuisine
+    ? `- cuisine_types: 1–3 cuisines that best describe THIS restaurant overall, inferred from the
+    dishes, ordered most representative first. Choose ONLY from this exact list, copied verbatim
+    (case-sensitive, keep accents):
+    ${ALL_CUISINES.join(', ')}
+    Prefer a specific national cuisine (e.g. "Mexican", "Italian", "Lebanese") over a broad one
+    ("International", "Other", "Asian") when the dishes clearly point to it. Output an empty array
+    when the dishes give no clear cuisine signal (e.g. a page of only drinks) — do NOT guess.`
+    : `- cuisine_types: output an empty array []. (Restaurant cuisine is inferred from the first page only.)`;
 
   return `You are a menu-extraction assistant. Extract every dish from the provided menu image(s).
 
@@ -312,18 +336,24 @@ For each dish output exactly these fields:
       "0.5L" / "500ml"             → {amount: 500,  unit: "ml"}
       "8 oz" / "8oz"               → {amount: 8,    unit: "oz"}
       "6 pcs" / "6 szt." / "6 uds" → {amount: 6,    unit: "pcs"}
-    When you set portion_amount/portion_unit, REMOVE that portion text from
-    the name and description so it is not shown twice, and tidy any leftover
-    separators or empty parentheses:
-      "Ribeye Steak 250g"    → name "Ribeye Steak"
-      "Pilsner 0.5L"         → name "Pilsner"
-      "Tomato Soup (300 ml)" → name "Tomato Soup"
+    Keep the name and description EXACTLY as printed — do NOT delete the size
+    text from them even when you set portion_amount/portion_unit. The app
+    removes the duplicated size from the displayed name itself (it uses
+    portion_source_text below to do so).
     Return BOTH null when:
       - no size is shown
+      - the size uses a unit other than g / ml / pcs / oz (e.g. pint, fl oz,
+        cup, quart, lb) — we don't store those; leave the text in the name and
+        set portion_source_text null
       - size is a range ("200–250g") — avoid false precision
       - size is vague ("small", "medium", "large", "regular", "house portion")
       - size refers to a garnish or side note, not the dish itself
     Either both fields are set together or both are null.
+- portion_source_text: the EXACT size substring you read, copied VERBATIM from
+    the name/description — the ORIGINAL printed text, NOT the normalized value.
+    So for "1.5kg" output "1.5kg" here even though portion_amount is 1500; for
+    "0.5L" output "0.5L" even though portion_amount is 500. Examples: "250g",
+    "1.5kg", "0.5L", "8 oz", "6 szt.". Null whenever portion_amount is null.
 - dish_kind: classify as one of:
     standard       — single fixed item
     bundle         — N items sold together at one price
@@ -401,13 +431,7 @@ After extracting all dishes, also output:
 - detected_language: ISO-639-1 code of the menu's primary language (e.g. "en", "es", "pl",
     "fr", "it", "de", "pt", "ja", "zh"). Use null if the menu mixes languages or the language
     is unclear from the text.
-- cuisine_types: 1–3 cuisines that best describe THIS restaurant overall, inferred from the
-    dishes, ordered most representative first. Choose ONLY from this exact list, copied verbatim
-    (case-sensitive, keep accents):
-    ${ALL_CUISINES.join(', ')}
-    Prefer a specific national cuisine (e.g. "Mexican", "Italian", "Lebanese") over a broad one
-    ("International", "Other", "Asian") when the dishes clearly point to it. Output an empty array
-    when the dishes give no clear cuisine signal (e.g. a page of only drinks) — do NOT guess.
+${cuisineBlock}
 
 Canonical menu-category slugs:
 ${slugList}
@@ -439,8 +463,14 @@ async function downloadImageAsBase64(supa: any, img: ImageRef): Promise<string> 
 
 // ── OpenAI extraction ─────────────────────────────────────────────────────────
 
-const PRIMARY_MODEL = 'gpt-4o-2024-11-20';
-const FALLBACK_MODEL = 'gpt-4o-mini';
+// gpt-5.4-mini: modern patch-based vision + low-effort reasoning. Reads small,
+// low-resolution menu text materially better than gpt-4o while costing less.
+// Escalate to 'gpt-5.5' here (a one-line change) if the hardest low-res scans
+// still misread. FALLBACK_MODEL is used ONLY to relieve rate-limit pressure
+// (see extractOneImageWithFallback) — it must stay a gpt-5.x reasoning model so
+// the reasoning_effort / max_completion_tokens params below remain valid.
+const PRIMARY_MODEL = 'gpt-5.4-mini';
+const FALLBACK_MODEL = 'gpt-5-mini';
 
 // Single-image extraction. v2 used to bundle all images into one call, but
 // GPT-4o reliably under-attends to images after the first when sent together
@@ -472,15 +502,27 @@ async function callExtraction(
             type: 'image_url' as const,
             image_url: {
               url: `data:image/jpeg;base64,${base64}`,
-              detail: 'high' as const,
+              // 'original' = full-resolution patches (≤6000px / 10k patches),
+              // the highest-fidelity detail level — best for dense, small-text
+              // menus. On the gpt-5.4 line `auto` resolves to `high`, so we ask
+              // for `original` explicitly. The literal is newer than the SDK's
+              // detail union, hence the cast.
+              detail: 'original' as unknown as 'high',
             },
           },
         ],
       },
     ],
     response_format: zodResponseFormat(MenuExtractionSchema, 'menu_extraction'),
-    max_tokens: 16384,
-    temperature: 0.1,
+    // Reasoning models require max_completion_tokens (not max_tokens), and the
+    // budget is shared with hidden reasoning tokens — keep it generous so a dense
+    // page (70+ dishes ≈ 9k visible tokens) plus reasoning never truncates.
+    max_completion_tokens: 32768,
+    // 'low' reasoning is the sweet spot for transcription: enough to disambiguate
+    // hard reads, not so much that the model reasons its way into a plausible-but-
+    // wrong guess (e.g. inventing a brand name). Reasoning models reject
+    // temperature, so the old temperature: 0.1 is dropped.
+    reasoning_effort: 'low',
   });
 
   const choice = completion.choices[0];
@@ -489,7 +531,7 @@ async function callExtraction(
     // can spot a truncation pattern. Not promoted to error — partial dishes
     // are still better than nothing for that page.
     console.warn(
-      `Page ${pageNumber}/${totalPages} truncated at max_tokens — some dishes may be missing`
+      `Page ${pageNumber}/${totalPages} truncated at max_completion_tokens — some dishes may be missing`
     );
   }
 
@@ -498,26 +540,24 @@ async function callExtraction(
   return parsed;
 }
 
-// Per-image call wrapper that mirrors the existing primary→mini fallback
-// behaviour but applies it independently per image instead of per job.
+// Per-image call wrapper. Always runs the primary model — including on retries.
+// (A retry previously downgraded to a weaker mini once jobAttempts >= 2, which
+// traded the misread we were retrying for an even weaker reader; retries now
+// re-run the primary.) The cheaper FALLBACK_MODEL is used ONLY to relieve genuine
+// rate-limit pressure, never as a quality fallback.
 async function extractOneImageWithFallback(
   openai: OpenAI,
-  jobAttempts: number,
   base64: string,
   pageNumber: number,
   totalPages: number,
   prompt: string
 ): Promise<MenuExtractionResult> {
-  const startWithFallback = jobAttempts >= 2;
-  if (startWithFallback) {
-    return await callExtraction(openai, FALLBACK_MODEL, base64, pageNumber, totalPages, prompt);
-  }
   try {
     return await callExtraction(openai, PRIMARY_MODEL, base64, pageNumber, totalPages, prompt);
   } catch (e) {
     if (e instanceof OpenAI.RateLimitError) {
       console.warn(
-        `Page ${pageNumber}/${totalPages}: primary rate-limited; falling back to gpt-4o-mini`
+        `Page ${pageNumber}/${totalPages}: primary rate-limited; falling back to ${FALLBACK_MODEL}`
       );
       return await callExtraction(openai, FALLBACK_MODEL, base64, pageNumber, totalPages, prompt);
     }
@@ -538,24 +578,54 @@ function normalizeText(raw: string | null | undefined): string | null {
   return s;
 }
 
+// Escape a string for safe literal use inside a RegExp.
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Remove the size from the END of a dish name by stripping the model's VERBATIM
+// portion_source_text (e.g. "1.5kg", "0.5L", "8 oz") — the exact printed
+// substring, so this works for every unit including kg/L/pints, which lose their
+// printed form once portion_amount/portion_unit are normalized. Replaces the old
+// prompt-side "rewrite the name" instruction that let the model edit
+// identity-bearing names. Conservative: only a trailing match (optionally wrapped
+// in ()/[] and preceded by a separator) is removed, so an interior or absent size
+// — and identity names like "Quarter Chicken" or '12" Sub' — is left untouched.
+// Returns the original name if there's no source text or stripping would empty it.
+function stripPortionSourceText(name: string, sourceText: string | null | undefined): string {
+  const tok = sourceText?.trim();
+  if (!tok) return name;
+  const core = escapeRegExp(tok).replace(/\s+/g, '\\s*');
+  const re = new RegExp(`[\\s,;·•\\-–—]*[(\\[]?\\s*${core}\\s*[)\\]]?\\s*$`, 'i');
+  if (!re.test(name)) return name;
+  const stripped = name
+    .replace(re, '')
+    .replace(/[(\[]\s*[)\]]\s*$/, '') // tidy a now-empty bracket pair
+    .replace(/[\s,;·•\-–—]+$/, '') // tidy a dangling separator
+    .trim();
+  return stripped.length > 0 ? stripped : name;
+}
+
 async function runExtraction(
   openai: OpenAI,
-  jobAttempts: number,
   imageBase64List: string[],
-  prompt: string
+  promptForPage: (pageIndex: number) => string
 ): Promise<MenuExtractionResult> {
   // Fan out one OpenAI call per image. allSettled so a single page failure
   // (BadRequestError, RateLimitError after fallback, etc.) doesn't discard
   // the other pages' successful extractions.
   const settled = await Promise.allSettled(
     imageBase64List.map((b64, idx) =>
-      extractOneImageWithFallback(openai, jobAttempts, b64, idx + 1, imageBase64List.length, prompt)
+      extractOneImageWithFallback(openai, b64, idx + 1, imageBase64List.length, promptForPage(idx))
     )
   );
 
   const dishes: MenuExtractionResult['dishes'] = [];
   let detectedLanguage: string | null = null;
-  const cuisineTypes: string[] = [];
+  // Cuisine is a whole-restaurant property taken from page 1 only — the only
+  // page given the cuisine-inference instruction (see buildExtractionPrompt's
+  // includeCuisine gate). Pages 2..N are told to emit [].
+  let pageOneCuisine: string[] = [];
   let failedPages = 0;
 
   for (let idx = 0; idx < settled.length; idx++) {
@@ -566,12 +636,13 @@ async function runExtraction(
       // this also fixes the long-standing class of bugs where every dish
       // came back tagged as page 0.
       for (const d of r.value.dishes) {
-        // Also defensively clean the free-text fields: names are trimmed
-        // (never null), and placeholder descriptions ("." / "") collapse to
-        // null so they don't reach the review UI or the DB.
+        // Clean the free-text fields: names stay verbatim (trimmed, never null)
+        // with only the model's exact portion_source_text stripped off the tail —
+        // the model no longer rewrites names. Placeholder descriptions ("." / "")
+        // collapse to null so they don't reach the review UI or the DB.
         dishes.push({
           ...d,
-          name: d.name.trim(),
+          name: stripPortionSourceText(d.name.trim(), d.portion_source_text),
           description: normalizeText(d.description),
           source_image_index: idx,
         });
@@ -579,10 +650,9 @@ async function runExtraction(
       if (!detectedLanguage && r.value.detected_language) {
         detectedLanguage = r.value.detected_language;
       }
-      // Union this page's cuisine guesses (restaurant-level; a multi-page menu
-      // may only reveal the cuisine on some pages). Normalized on return.
-      for (const c of r.value.cuisine_types ?? []) {
-        if (!cuisineTypes.includes(c)) cuisineTypes.push(c);
+      // Cuisine: page 1 only (pages 2..N are prompted to emit []).
+      if (idx === 0) {
+        pageOneCuisine = r.value.cuisine_types ?? [];
       }
     } else {
       failedPages++;
@@ -602,7 +672,7 @@ async function runExtraction(
   return {
     dishes,
     detected_language: detectedLanguage,
-    cuisine_types: normalizeCuisines(cuisineTypes).slice(0, 3),
+    cuisine_types: normalizeCuisines(pageOneCuisine).slice(0, 3),
   };
 }
 
@@ -729,7 +799,11 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
       // Fetch this restaurant's currency once (shared across all pages of
       // the job) and bake it into the per-job prompt. USD fallback on miss.
       const currency = await fetchRestaurantCurrency(supa, job.restaurant_id);
-      const prompt = buildExtractionPrompt(canonicalSlugs, currency);
+      // Page 1 carries the cuisine-inference instruction; later pages don't
+      // (cuisine is a whole-restaurant property — keeps pages 2..N lean so the
+      // model's attention stays on dish extraction).
+      const firstPagePrompt = buildExtractionPrompt(canonicalSlugs, currency, true);
+      const otherPagesPrompt = buildExtractionPrompt(canonicalSlugs, currency, false);
 
       // Download all images for this job
       const imageBase64List: string[] = [];
@@ -737,7 +811,9 @@ export async function processJobs(deps: WorkerDeps): Promise<ProcessResult> {
         imageBase64List.push(await downloadImageAsBase64(supa, imgRef));
       }
 
-      const result = await runExtraction(openai, job.attempts, imageBase64List, prompt);
+      const result = await runExtraction(openai, imageBase64List, idx =>
+        idx === 0 ? firstPagePrompt : otherPagesPrompt
+      );
 
       // Phase 3b: self-heal this restaurant's cuisine from the scan when it has
       // none yet (gated empty, canonical-only, best-effort — never fails the job).

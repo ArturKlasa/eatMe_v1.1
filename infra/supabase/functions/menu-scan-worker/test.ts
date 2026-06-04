@@ -274,24 +274,27 @@ Deno.test(
   }
 );
 
-Deno.test('retry: RateLimitError on primary → immediately falls back to gpt-4o-mini', async () => {
-  const job = makeJob('job-retry');
-  const completed: string[] = [];
+Deno.test(
+  'retry: RateLimitError on primary → immediately falls back to the cheaper model',
+  async () => {
+    const job = makeJob('job-retry');
+    const completed: string[] = [];
 
-  const supa = makeSupaMock({
-    jobs: [job],
-    onComplete: id => completed.push(id),
-  });
+    const supa = makeSupaMock({
+      jobs: [job],
+      onComplete: id => completed.push(id),
+    });
 
-  // First call (primary model) → 429; second call (fallback) → success
-  const openai = makeOpenAIMock({ rateLimitOnCall: 1 });
+    // First call (primary model) → 429; second call (fallback) → success
+    const openai = makeOpenAIMock({ rateLimitOnCall: 1 });
 
-  const result = await processJobs({ supa, openai });
+    const result = await processJobs({ supa, openai });
 
-  assertEquals(result.processed, ['job-retry']);
-  assertEquals(result.errors.length, 0);
-  assertArrayIncludes(completed, ['job-retry']);
-});
+    assertEquals(result.processed, ['job-retry']);
+    assertEquals(result.errors.length, 0);
+    assertArrayIncludes(completed, ['job-retry']);
+  }
+);
 
 Deno.test('retry: RateLimitError exhausted → job ends in failed after max attempts', async () => {
   // Simulate a job that is on its 3rd attempt (attempts=3) with all models failing.
@@ -303,7 +306,8 @@ Deno.test('retry: RateLimitError exhausted → job ends in failed after max atte
     onFail: id => failed.push(id),
   });
 
-  // Both primary and fallback rate-limit (call 1 = fallback since attempts=3 >= 2; call 1 is fallback; throw 429 always)
+  // Persistent rate limits: the primary 429s and the rate-limit fallback 429s too,
+  // on every call → the page fails on every attempt regardless of attempts count.
   const openai = {
     beta: {
       chat: {
@@ -561,7 +565,8 @@ Deno.test('multi-image: page 2 fails, pages 1 and 3 still complete', async () =>
 });
 
 Deno.test('multi-image: all 3 pages fail with RateLimitError → job ends in error', async () => {
-  // attempts >= 2 so each call goes straight to the fallback model. All fallbacks 429.
+  // Every page 429s on the primary, falls back, and 429s again → all 3 pages
+  // reject. 3 pages × (primary + fallback) = 6 rate-limited calls.
   const job = makeMultiImageJob('multi-totalfail', 3, { attempts: 3 });
   const failed: string[] = [];
   const failedMaxAttempts: number[] = [];
@@ -575,7 +580,15 @@ Deno.test('multi-image: all 3 pages fail with RateLimitError → job ends in err
   });
 
   const rateLimitErr = new OpenAI.RateLimitError(429, { message: 'rate limit' }, 'Rate Limit', {});
-  const openai = makeOpenAIMockSequence([rateLimitErr, rateLimitErr, rateLimitErr]);
+  // 6 = one per (page × {primary, rate-limit fallback}); both attempts 429 on every page.
+  const openai = makeOpenAIMockSequence([
+    rateLimitErr,
+    rateLimitErr,
+    rateLimitErr,
+    rateLimitErr,
+    rateLimitErr,
+    rateLimitErr,
+  ]);
 
   const result = await processJobs({ supa, openai });
 
@@ -649,6 +662,9 @@ function makeFixtureDish(overrides: {
   modifier_groups?: ModGroup[];
   primary_protein?: string;
   description?: string | null;
+  portion_amount?: number | null;
+  portion_unit?: string | null;
+  portion_source_text?: string | null;
 }) {
   return {
     name: overrides.name,
@@ -659,6 +675,9 @@ function makeFixtureDish(overrides: {
     bundled_items: overrides.bundled_items ?? [],
     modifier_groups: overrides.modifier_groups ?? [],
     primary_protein: overrides.primary_protein ?? 'chicken',
+    portion_amount: overrides.portion_amount ?? null,
+    portion_unit: overrides.portion_unit ?? null,
+    portion_source_text: overrides.portion_source_text ?? null,
     suggested_category_name: null,
     canonical_category_slug: null,
     suggested_category_description: null,
@@ -706,6 +725,79 @@ Deno.test('normalize: leading stray punctuation is stripped from description', a
   });
   const captured = await runFixture(dish);
   assertEquals(captured.description, 'Creamy roasted tomato');
+});
+
+Deno.test('portion strip: trailing base-unit size removed via verbatim source text', async () => {
+  const dish = makeFixtureDish({
+    name: 'Ribeye Steak 250g',
+    price: 24.0,
+    dish_kind: 'standard',
+    portion_amount: 250,
+    portion_unit: 'g',
+    portion_source_text: '250g',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'Ribeye Steak');
+  assertEquals(captured.portion_amount, 250); // portion itself is untouched
+});
+
+Deno.test('portion strip: kg original is removed even though unit normalized to g', async () => {
+  // The case the verbatim source-text approach exists for: portion_amount is
+  // 1500 g, but the printed "1.5kg" can only be stripped by matching the
+  // ORIGINAL text, not a reconstructed "1500 g" token.
+  const dish = makeFixtureDish({
+    name: 'Sharing Platter 1.5kg',
+    price: 60.0,
+    dish_kind: 'standard',
+    portion_amount: 1500,
+    portion_unit: 'g',
+    portion_source_text: '1.5kg',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'Sharing Platter');
+});
+
+Deno.test('portion strip: parenthesized litre size removed', async () => {
+  const dish = makeFixtureDish({
+    name: 'House Lager (0.5L)',
+    price: 6.0,
+    dish_kind: 'standard',
+    portion_amount: 500,
+    portion_unit: 'ml',
+    portion_source_text: '0.5L',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'House Lager');
+});
+
+Deno.test('portion strip: identity size is preserved when no portion was extracted', async () => {
+  // "Quarter" reads like a size but is part of the dish identity. With no
+  // portion_source_text the name must come back untouched.
+  const dish = makeFixtureDish({
+    name: 'Quarter Chicken',
+    price: 9.0,
+    dish_kind: 'standard',
+    portion_amount: null,
+    portion_unit: null,
+    portion_source_text: null,
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'Quarter Chicken');
+});
+
+Deno.test('portion strip: pint stays in the name (unit not stored, source text null)', async () => {
+  // Pints/fl-oz aren't in the g/ml/pcs/oz taxonomy, so the model returns null
+  // portion + null source text and the size stays in the name verbatim.
+  const dish = makeFixtureDish({
+    name: 'Guinness Pint',
+    price: 7.0,
+    dish_kind: 'standard',
+    portion_amount: null,
+    portion_unit: null,
+    portion_source_text: null,
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'Guinness Pint');
 });
 
 Deno.test('fixture: Pad Thai with required protein choice', async () => {

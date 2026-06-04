@@ -8,12 +8,34 @@ import {
 } from '../types/rating';
 import { debugLog } from '../config/environment';
 import { recordInteraction } from './interactionService';
+import { addToFavorites } from './favoritesService';
 import {
   updateStreak,
   checkAndAwardTrustedTasterBadge,
   StreakResult,
   BadgeResult,
 } from './gamificationService';
+
+/**
+ * Auto-save a "Loved it" (opinion === 'liked') dish to favorites.
+ *
+ * Fire-and-forget and idempotent: the favorites UNIQUE(user_id, subject_type,
+ * subject_id) constraint (migration 151) makes a duplicate insert come back as
+ * 'Already in favorites', which we ignore. Add-only by design — downgrading a
+ * rating to 'okay'/'disliked' never removes the favorite (users remove manually
+ * from the Favorites screen).
+ */
+function autoFavoriteLovedDish(userId: string, dishId: string): void {
+  addToFavorites(userId, 'dish', dishId)
+    .then(r => {
+      if (!r.ok && r.error !== 'Already in favorites') {
+        console.warn('[RatingService] auto-favorite failed (non-fatal):', r.error);
+      }
+    })
+    .catch(e => {
+      console.warn('[RatingService] auto-favorite threw (non-fatal):', (e as Error)?.message);
+    });
+}
 
 /** Upload a photo to Supabase Storage. */
 export async function uploadPhoto(
@@ -136,6 +158,10 @@ export async function saveDishOpinions(
         // separately via user_dish_interactions from the swipe/feed layer.
         if (rating.opinion === 'liked' || rating.opinion === 'okay') {
           recordInteraction(userId, rating.dishId, 'liked');
+        }
+        // "Loved it" auto-saves the dish to favorites (add-only).
+        if (rating.opinion === 'liked') {
+          autoFavoriteLovedDish(userId, rating.dishId);
         }
       }
     }
@@ -387,6 +413,8 @@ export async function submitInContextRating(
 
     if (opinion === 'liked') {
       recordInteraction(userId, dishId, 'liked', sessionId ?? undefined);
+      // "Loved it" auto-saves the dish to favorites (add-only).
+      autoFavoriteLovedDish(userId, dishId);
     } else if (opinion === 'disliked') {
       recordInteraction(userId, dishId, 'disliked', sessionId ?? undefined);
     }

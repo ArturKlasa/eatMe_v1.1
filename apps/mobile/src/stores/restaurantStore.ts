@@ -335,7 +335,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
               options (id, name, description, price_delta, price_override,
                        primary_protein, adds_dietary_tags, removes_dietary_tags,
                        adds_allergens, serves_delta, is_default,
-                       calories_delta, canonical_ingredient_id, is_available, display_order)
+                       calories_delta, is_available, display_order)
             )
           )
         `

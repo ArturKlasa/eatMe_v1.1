@@ -66,7 +66,6 @@ export interface Option {
   serves_delta?: number | null;
   is_default?: boolean | null;
   calories_delta?: number | null;
-  canonical_ingredient_id?: string | null;
   is_available: boolean;
   display_order: number;
 }

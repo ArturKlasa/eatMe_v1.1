@@ -257,19 +257,20 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
           .sort((a: Option, b: Option) => a.display_order - b.display_order),
       }));
     setDishOptionGroups(embedded);
-    setOptionAllergens(new Map());
 
-    const optionsWithIngredient: { optionId: string; ingredientId: string }[] = [];
+    // Per-option allergens come directly from option.adds_allergens (populated
+    // by the menu-scan worker). Phase C retired the canonical_ingredient_allergens
+    // join.
+    const optionAllergenMap = new Map<string, string[]>();
     for (const group of embedded) {
       for (const opt of group.options) {
-        if (opt.canonical_ingredient_id) {
-          optionsWithIngredient.push({
-            optionId: opt.id,
-            ingredientId: opt.canonical_ingredient_id,
-          });
+        if (opt.adds_allergens && opt.adds_allergens.length > 0) {
+          optionAllergenMap.set(opt.id, opt.adds_allergens);
         }
       }
     }
+    if (mountedRef.current) setOptionAllergens(optionAllergenMap);
+
     trackDishView(restaurantId, {
       id: dish.id,
       name: dish.name,
@@ -277,60 +278,23 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       imageUrl: dish.photo_url ?? undefined,
     });
 
-    const [photosResult, allergenResult] = await Promise.allSettled([
-      supabase
-        .from('dish_photos')
-        .select('*')
-        .eq('dish_id', dish.id)
-        .order('created_at', { ascending: false }),
-      optionsWithIngredient.length > 0
-        ? supabase
-            .from('canonical_ingredient_allergens')
-            .select('canonical_ingredient_id, allergen_code')
-            .in(
-              'canonical_ingredient_id',
-              optionsWithIngredient.map(o => o.ingredientId)
-            )
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+    const { data: photosData, error: photosError } = await supabase
+      .from('dish_photos')
+      .select('*')
+      .eq('dish_id', dish.id)
+      .order('created_at', { ascending: false });
 
-    if (photosResult.status === 'fulfilled') {
-      const { data, error } = photosResult.value;
-      if (error) {
-        console.error('Error fetching dish photos:', error);
-        setDishPhotos([]);
-      } else {
-        setDishPhotos(
-          (data || []).map(row => ({
-            ...row,
-            created_at: row.created_at ?? '',
-            updated_at: row.updated_at ?? '',
-          }))
-        );
-      }
-    } else {
+    if (photosError) {
+      console.error('Error fetching dish photos:', photosError);
       setDishPhotos([]);
-    }
-
-    if (allergenResult.status === 'fulfilled') {
-      const { data } = allergenResult.value as {
-        data: { canonical_ingredient_id: string; allergen_code: string }[] | null;
-        error: { message: string } | null;
-      };
-      if (data && data.length > 0) {
-        const byIngredient = new Map<string, string[]>();
-        for (const row of data) {
-          const existing = byIngredient.get(row.canonical_ingredient_id) ?? [];
-          existing.push(row.allergen_code);
-          byIngredient.set(row.canonical_ingredient_id, existing);
-        }
-        const map = new Map<string, string[]>();
-        for (const { optionId, ingredientId } of optionsWithIngredient) {
-          const codes = byIngredient.get(ingredientId);
-          if (codes && codes.length > 0) map.set(optionId, codes);
-        }
-        if (mountedRef.current) setOptionAllergens(map);
-      }
+    } else {
+      setDishPhotos(
+        (photosData || []).map(row => ({
+          ...row,
+          created_at: row.created_at ?? '',
+          updated_at: row.updated_at ?? '',
+        }))
+      );
     }
   };
 

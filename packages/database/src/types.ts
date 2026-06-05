@@ -132,36 +132,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      canonical_ingredient_allergens: {
-        Row: {
-          allergen_id: string;
-          canonical_ingredient_id: string;
-        };
-        Insert: {
-          allergen_id: string;
-          canonical_ingredient_id: string;
-        };
-        Update: {
-          allergen_id?: string;
-          canonical_ingredient_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'canonical_ingredient_allergens_allergen_id_fkey';
-            columns: ['allergen_id'];
-            isOneToOne: false;
-            referencedRelation: 'allergens';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'canonical_ingredient_allergens_canonical_ingredient_id_fkey';
-            columns: ['canonical_ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'canonical_ingredients';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       canonical_ingredient_dietary_tags: {
         Row: {
           canonical_ingredient_id: string;
@@ -177,13 +147,6 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: 'canonical_ingredient_dietary_tags_canonical_ingredient_id_fkey';
-            columns: ['canonical_ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'canonical_ingredients';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'canonical_ingredient_dietary_tags_dietary_tag_id_fkey';
             columns: ['dietary_tag_id'];
             isOneToOne: false;
@@ -191,36 +154,6 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
-      };
-      canonical_ingredients: {
-        Row: {
-          canonical_name: string;
-          created_at: string | null;
-          id: string;
-          ingredient_family_name: string;
-          is_vegan: boolean | null;
-          is_vegetarian: boolean | null;
-          updated_at: string | null;
-        };
-        Insert: {
-          canonical_name: string;
-          created_at?: string | null;
-          id?: string;
-          ingredient_family_name?: string;
-          is_vegan?: boolean | null;
-          is_vegetarian?: boolean | null;
-          updated_at?: string | null;
-        };
-        Update: {
-          canonical_name?: string;
-          created_at?: string | null;
-          id?: string;
-          ingredient_family_name?: string;
-          is_vegan?: boolean | null;
-          is_vegetarian?: boolean | null;
-          updated_at?: string | null;
-        };
-        Relationships: [];
       };
       canonical_menu_categories: {
         Row: {
@@ -251,38 +184,6 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
-      };
-      concept_translations: {
-        Row: {
-          concept_id: string;
-          created_at: string;
-          language: string;
-          name: string;
-          updated_at: string;
-        };
-        Insert: {
-          concept_id: string;
-          created_at?: string;
-          language: string;
-          name: string;
-          updated_at?: string;
-        };
-        Update: {
-          concept_id?: string;
-          created_at?: string;
-          language?: string;
-          name?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'concept_translations_concept_id_fkey';
-            columns: ['concept_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_concepts';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       dietary_tags: {
         Row: {
@@ -488,62 +389,6 @@ export type Database = {
           },
         ];
       };
-      dish_ingredients: {
-        Row: {
-          concept_id: string;
-          created_at: string | null;
-          dish_id: string;
-          ingredient_id: string;
-          quantity: string | null;
-          variant_id: string | null;
-        };
-        Insert: {
-          concept_id: string;
-          created_at?: string | null;
-          dish_id: string;
-          ingredient_id: string;
-          quantity?: string | null;
-          variant_id?: string | null;
-        };
-        Update: {
-          concept_id?: string;
-          created_at?: string | null;
-          dish_id?: string;
-          ingredient_id?: string;
-          quantity?: string | null;
-          variant_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'dish_ingredients_concept_id_fkey';
-            columns: ['concept_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_concepts';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'dish_ingredients_dish_id_fkey';
-            columns: ['dish_id'];
-            isOneToOne: false;
-            referencedRelation: 'dishes';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'dish_ingredients_ingredient_id_fkey';
-            columns: ['ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'canonical_ingredients';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'dish_ingredients_variant_id_fkey';
-            columns: ['variant_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_variants';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       dish_opinions: {
         Row: {
           created_at: string | null;
@@ -646,7 +491,6 @@ export type Database = {
       dishes: {
         Row: {
           allergens: string[] | null;
-          allergens_override: string[] | null;
           available_days: string[] | null;
           available_from: string | null;
           available_hours_end: string | null;
@@ -658,7 +502,6 @@ export type Database = {
           description: string | null;
           description_visibility: string;
           dietary_tags: string[] | null;
-          dietary_tags_override: string[] | null;
           dining_format: string | null;
           dish_category_id: string | null;
           dish_kind: string;
@@ -691,7 +534,6 @@ export type Database = {
         };
         Insert: {
           allergens?: string[] | null;
-          allergens_override?: string[] | null;
           available_days?: string[] | null;
           available_from?: string | null;
           available_hours_end?: string | null;
@@ -703,7 +545,6 @@ export type Database = {
           description?: string | null;
           description_visibility?: string;
           dietary_tags?: string[] | null;
-          dietary_tags_override?: string[] | null;
           dining_format?: string | null;
           dish_category_id?: string | null;
           dish_kind?: string;
@@ -736,7 +577,6 @@ export type Database = {
         };
         Update: {
           allergens?: string[] | null;
-          allergens_override?: string[] | null;
           available_days?: string[] | null;
           available_from?: string | null;
           available_hours_end?: string | null;
@@ -748,7 +588,6 @@ export type Database = {
           description?: string | null;
           description_visibility?: string;
           dietary_tags?: string[] | null;
-          dietary_tags_override?: string[] | null;
           dining_format?: string | null;
           dish_category_id?: string | null;
           dish_kind?: string;
@@ -1057,175 +896,6 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [];
-      };
-      ingredient_aliases: {
-        Row: {
-          canonical_ingredient_id: string;
-          created_at: string | null;
-          display_name: string;
-          id: string;
-          language: string;
-          search_vector: unknown;
-          updated_at: string | null;
-        };
-        Insert: {
-          canonical_ingredient_id: string;
-          created_at?: string | null;
-          display_name: string;
-          id?: string;
-          language?: string;
-          search_vector?: unknown;
-          updated_at?: string | null;
-        };
-        Update: {
-          canonical_ingredient_id?: string;
-          created_at?: string | null;
-          display_name?: string;
-          id?: string;
-          language?: string;
-          search_vector?: unknown;
-          updated_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'ingredient_aliases_canonical_ingredient_id_fkey';
-            columns: ['canonical_ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'canonical_ingredients';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      ingredient_aliases_v2: {
-        Row: {
-          alias_text: string;
-          concept_id: string;
-          created_at: string;
-          id: string;
-          language: string;
-          variant_id: string | null;
-        };
-        Insert: {
-          alias_text: string;
-          concept_id: string;
-          created_at?: string;
-          id?: string;
-          language: string;
-          variant_id?: string | null;
-        };
-        Update: {
-          alias_text?: string;
-          concept_id?: string;
-          created_at?: string;
-          id?: string;
-          language?: string;
-          variant_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'ingredient_aliases_v2_concept_id_fkey';
-            columns: ['concept_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_concepts';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'ingredient_aliases_v2_variant_id_fkey';
-            columns: ['variant_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_variants';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'ingredient_aliases_v2_variant_matches_concept';
-            columns: ['concept_id', 'variant_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_variants';
-            referencedColumns: ['concept_id', 'id'];
-          },
-        ];
-      };
-      ingredient_concepts: {
-        Row: {
-          allergens: string[];
-          created_at: string;
-          family: string;
-          id: string;
-          is_vegan: boolean;
-          is_vegetarian: boolean;
-          legacy_canonical_id: string | null;
-          slug: string;
-          updated_at: string;
-        };
-        Insert: {
-          allergens?: string[];
-          created_at?: string;
-          family?: string;
-          id?: string;
-          is_vegan?: boolean;
-          is_vegetarian?: boolean;
-          legacy_canonical_id?: string | null;
-          slug: string;
-          updated_at?: string;
-        };
-        Update: {
-          allergens?: string[];
-          created_at?: string;
-          family?: string;
-          id?: string;
-          is_vegan?: boolean;
-          is_vegetarian?: boolean;
-          legacy_canonical_id?: string | null;
-          slug?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'ingredient_concepts_legacy_canonical_id_fkey';
-            columns: ['legacy_canonical_id'];
-            isOneToOne: false;
-            referencedRelation: 'canonical_ingredients';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      ingredient_variants: {
-        Row: {
-          concept_id: string;
-          created_at: string;
-          id: string;
-          is_default: boolean;
-          modifier: string | null;
-          needs_review: boolean;
-          updated_at: string;
-        };
-        Insert: {
-          concept_id: string;
-          created_at?: string;
-          id?: string;
-          is_default?: boolean;
-          modifier?: string | null;
-          needs_review?: boolean;
-          updated_at?: string;
-        };
-        Update: {
-          concept_id?: string;
-          created_at?: string;
-          id?: string;
-          is_default?: boolean;
-          modifier?: string | null;
-          needs_review?: boolean;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'ingredient_variants_concept_id_fkey';
-            columns: ['concept_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_concepts';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       menu_categories: {
         Row: {
@@ -1570,7 +1240,6 @@ export type Database = {
           adds_allergens: string[];
           adds_dietary_tags: string[];
           calories_delta: number | null;
-          canonical_ingredient_id: string | null;
           created_at: string | null;
           description: string | null;
           display_order: number;
@@ -1590,7 +1259,6 @@ export type Database = {
           adds_allergens?: string[];
           adds_dietary_tags?: string[];
           calories_delta?: number | null;
-          canonical_ingredient_id?: string | null;
           created_at?: string | null;
           description?: string | null;
           display_order?: number;
@@ -1610,7 +1278,6 @@ export type Database = {
           adds_allergens?: string[];
           adds_dietary_tags?: string[];
           calories_delta?: number | null;
-          canonical_ingredient_id?: string | null;
           created_at?: string | null;
           description?: string | null;
           display_order?: number;
@@ -1627,13 +1294,6 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [
-          {
-            foreignKeyName: 'options_canonical_ingredient_id_fkey';
-            columns: ['canonical_ingredient_id'];
-            isOneToOne: false;
-            referencedRelation: 'canonical_ingredients';
-            referencedColumns: ['id'];
-          },
           {
             foreignKeyName: 'options_option_group_id_fkey';
             columns: ['option_group_id'];
@@ -1789,6 +1449,7 @@ export type Database = {
           suspended_by: string | null;
           suspension_reason: string | null;
           takeout_available: boolean | null;
+          timezone: string | null;
           updated_at: string | null;
           website: string | null;
         };
@@ -1828,6 +1489,7 @@ export type Database = {
           suspended_by?: string | null;
           suspension_reason?: string | null;
           takeout_available?: boolean | null;
+          timezone?: string | null;
           updated_at?: string | null;
           website?: string | null;
         };
@@ -1867,6 +1529,7 @@ export type Database = {
           suspended_by?: string | null;
           suspension_reason?: string | null;
           takeout_available?: boolean | null;
+          timezone?: string | null;
           updated_at?: string | null;
           website?: string | null;
         };
@@ -2306,38 +1969,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      variant_translations: {
-        Row: {
-          created_at: string;
-          language: string;
-          name: string;
-          updated_at: string;
-          variant_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          language: string;
-          name: string;
-          updated_at?: string;
-          variant_id: string;
-        };
-        Update: {
-          created_at?: string;
-          language?: string;
-          name?: string;
-          updated_at?: string;
-          variant_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'variant_translations_variant_id_fkey';
-            columns: ['variant_id'];
-            isOneToOne: false;
-            referencedRelation: 'ingredient_variants';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
     };
     Views: {
       admin_dashboard_stats: {
@@ -2669,11 +2300,6 @@ export type Database = {
         Args: { p_id: string; p_result: Json };
         Returns: undefined;
       };
-      compute_dish_allergens: { Args: { p_dish_id: string }; Returns: string[] };
-      compute_dish_dietary_tags: {
-        Args: { p_dish_id: string };
-        Returns: string[];
-      };
       compute_dish_protein_families: {
         Args: { p_dish_id: string };
         Returns: undefined;
@@ -2790,6 +2416,7 @@ export type Database = {
           reachable_protein_families: string[];
           reachable_proteins: string[];
           restaurant_cuisines: string[];
+          restaurant_currency_code: string;
           restaurant_id: string;
           restaurant_location: Json;
           restaurant_name: string;
@@ -3088,7 +2715,6 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: undefined;
       };
-      refresh_dish_dietary: { Args: { p_dish_id: string }; Returns: undefined };
       refresh_dish_ratings_summary: { Args: never; Returns: undefined };
       refresh_materialized_views: { Args: never; Returns: undefined };
       refresh_restaurant_ratings_summary: { Args: never; Returns: undefined };

@@ -322,7 +322,12 @@ function buildExtractionPrompt(
 This restaurant's prices are in ${currency.name} (${currency.symbol}, ISO code: ${currency.code}). Extract numeric values only — strip the "${currency.symbol}" symbol (and any other currency markers) if they appear next to a price.
 
 For each dish output exactly these fields:
-- name: dish name exactly as written on the menu
+- name: the dish name as printed, EXCEPT when printed in ALL CAPITALS — then
+    convert to natural title case (capitalize principal words; keep articles,
+    conjunctions and short prepositions lowercase unless first). Preserve
+    acronyms and brand names in caps (BBQ, BLT, IPA, NY). Adjust capitalization
+    ONLY — never translate, reorder, add or drop words. E.g.
+    "GRILLED SEA BASS" → "Grilled Sea Bass"; "BBQ PORK RIBS" → "BBQ Pork Ribs".
 - description: brief description if shown. Output null when there is no
     description — never output a placeholder such as ".", "-", or "N/A".
 - price: numeric price (no currency symbol), null if not shown
@@ -336,8 +341,8 @@ For each dish output exactly these fields:
       "0.5L" / "500ml"             → {amount: 500,  unit: "ml"}
       "8 oz" / "8oz"               → {amount: 8,    unit: "oz"}
       "6 pcs" / "6 szt." / "6 uds" → {amount: 6,    unit: "pcs"}
-    Keep the name and description EXACTLY as printed — do NOT delete the size
-    text from them even when you set portion_amount/portion_unit. The app
+    Keep the size text in the name and description — do NOT delete it even when
+    you set portion_amount/portion_unit. The app
     removes the duplicated size from the displayed name itself (it uses
     portion_source_text below to do so).
     Return BOTH null when:

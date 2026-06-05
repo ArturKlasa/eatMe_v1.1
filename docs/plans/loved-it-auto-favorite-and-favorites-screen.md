@@ -1,21 +1,22 @@
 # "Loved it" → auto-favorite + real Favorites screen
 
-Status: code complete (2026-06-04) — pending prod migration apply + on-device verification
-Scope approved: **A + B**
+Status: shipped (2026-06-04) — committed + pushed; favorites constraint applied to prod
+Scope approved: **A + B** (+ follow-up: "You loved it" menu indicator)
 
 ## Done
-- Migration `151` (+ reverse) written. Read-only dup check ran against prod:
-  **0 favorites rows / 0 duplicates** → constraint applies cleanly.
+- Favorites unique constraint applied to prod. Originally shipped as `151`, then
+  **renumbered to `154` and made idempotent** to resolve a number collision with the
+  ingredient-pipeline's `151_retire_ingredient_triggers.sql`. Pre-apply dup check:
+  **0 favorites rows / 0 duplicates**.
 - Plan A: `ratingService.autoFavoriteLovedDish` wired into `submitInContextRating`
   (in-context) and `saveDishOpinions` (full flow), `liked`-only, add-only.
 - Plan B: `favoritesService.getFavoritesDetailed`, rebuilt `FavoritesScreen`,
   Profile entry point, en/es/pl strings.
-- `tsc --noEmit` clean for all touched files.
+- Follow-up: "You loved it" pill on restaurant menu rows (DishMenuItem/FoodTab).
+- `tsc --noEmit` clean. Commits: 83a4708, 8b498a2, 851b866 (+ migration renumber).
 
 ## Remaining (user)
-1. Apply migration `151_favorites_unique_constraint.sql` to prod.
-2. On-device verification (see Verification below).
-3. Commit when ready.
+1. On-device verification (see Verification below).
 
 ## Background / findings
 
@@ -53,7 +54,7 @@ branch is dead code, and `isFavorited` uses `.single()` which errors on duplicat
 
 ## Plan A — auto-favorite on "Loved it" + integrity guard
 
-### A1. Migration `151_favorites_unique_constraint.sql` (+ `151_REVERSE_ONLY_…`)
+### A1. Migration `154_favorites_unique_constraint.sql` (+ `154_REVERSE_ONLY_…`; shipped as 151)
 - Delete duplicate `favorites` rows, keeping earliest (`created_at`, tie-break `id`).
 - `ADD CONSTRAINT favorites_user_subject_unique UNIQUE (user_id, subject_type, subject_id)`.
 - Drop redundant `idx_favorites_user_subject` (left-prefix of the new unique index).
@@ -95,7 +96,7 @@ Add a **Favorites** button next to "Viewed History" → `navigation.navigate('Fa
   (reuse existing `favorites.title/subtitle/empty/emptyMessage`).
 
 ## Rollout / ordering
-1. Apply migration 151 (after dup check) — makes `addToFavorites` idempotent.
+1. Apply migration 154 (after dup check) — makes `addToFavorites` idempotent.
 2. Ship mobile code (A2 + B). Code is safe pre-migration but could create duplicate
    rows until the constraint exists, so prefer migration first.
 

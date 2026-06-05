@@ -196,9 +196,9 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                   ].map(protein => {
                     const isSelected =
                       protein.key === 'vegetarian'
-                        ? localFilters.dietPreference.vegetarian
+                        ? localFilters.dietPreference === 'vegetarian'
                         : protein.key === 'vegan'
-                          ? localFilters.dietPreference.vegan
+                          ? localFilters.dietPreference === 'vegan'
                           : localFilters.proteinTypes[
                               protein.key as keyof typeof localFilters.proteinTypes
                             ];
@@ -211,24 +211,19 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
                           if (protein.key === 'vegetarian') {
                             setLocalFilters(prev => ({
                               ...prev,
-                              dietPreference: {
-                                ...prev.dietPreference,
-                                vegetarian: !prev.dietPreference.vegetarian,
-                              },
+                              dietPreference:
+                                prev.dietPreference === 'vegetarian' ? 'all' : 'vegetarian',
                             }));
                           } else if (protein.key === 'vegan') {
                             setLocalFilters(prev => ({
                               ...prev,
-                              dietPreference: {
-                                ...prev.dietPreference,
-                                vegan: !prev.dietPreference.vegan,
-                              },
+                              dietPreference: prev.dietPreference === 'vegan' ? 'all' : 'vegan',
                             }));
                           } else {
-                            // Selecting a protein type resets diet preferences and toggles the protein
+                            // Selecting a protein type resets diet preference and toggles the protein
                             setLocalFilters(prev => ({
                               ...prev,
-                              dietPreference: { vegetarian: false, vegan: false },
+                              dietPreference: 'all',
                               proteinTypes: {
                                 ...prev.proteinTypes,
                                 [protein.key]:

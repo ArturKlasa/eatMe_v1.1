@@ -32,8 +32,6 @@ export const dishSchemaV2 = z.object({
   primary_protein: primaryProteinEnum,
   photo_url: z.string().optional(),
   is_available: z.boolean().default(true).optional(),
-  dietary_tags: z.array(z.string()).default([]),
-  allergens: z.array(z.string()).default([]),
   display_price_prefix: z
     .enum(['exact', 'from', 'per_person', 'market_price', 'ask_server'])
     .default('exact'),

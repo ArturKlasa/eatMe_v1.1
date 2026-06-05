@@ -70,8 +70,6 @@ interface DishPhotoModalProps {
   dishKind?: string;
   displayPricePrefix?: string;
   optionGroups?: OptionGroup[];
-  optionAllergens?: Map<string, string[]>;
-  userAllergens?: string[];
   photos: DishPhoto[];
   onPhotoAdded?: () => void;
   restaurantId?: string;
@@ -93,8 +91,6 @@ export function DishPhotoModal({
   dishKind = 'standard',
   displayPricePrefix = 'exact',
   optionGroups = [],
-  optionAllergens = new Map(),
-  userAllergens = [],
   photos,
   onPhotoAdded,
   restaurantId,
@@ -371,11 +367,6 @@ export function DishPhotoModal({
                         </View>
                         <View style={styles.optionList}>
                           {group.options.map(opt => {
-                            const optAllergens = optionAllergens.get(opt.id) ?? [];
-                            const triggered =
-                              userAllergens.length > 0
-                                ? optAllergens.filter((a: string) => userAllergens.includes(a))
-                                : [];
                             const priceLabel = formatOptionPrice(opt, currency);
                             return (
                               <View key={opt.id} style={styles.optionListRow}>
@@ -385,11 +376,6 @@ export function DishPhotoModal({
                                     <Text style={styles.optionPrice}>{priceLabel}</Text>
                                   )}
                                 </View>
-                                {triggered.length > 0 && (
-                                  <Text style={styles.optionAllergenWarning}>
-                                    ⚠️ {triggered.join(', ')}
-                                  </Text>
-                                )}
                               </View>
                             );
                           })}
@@ -614,11 +600,6 @@ const styles = StyleSheet.create({
   optionPrice: {
     fontSize: typography.size.xs,
     color: colors.accent,
-  },
-  optionAllergenWarning: {
-    fontSize: typography.size.xs,
-    color: colors.warning ?? '#F59E0B',
-    marginTop: 2,
   },
   optionList: {
     gap: spacing.xs,

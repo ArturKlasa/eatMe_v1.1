@@ -60,8 +60,7 @@
     "mustBeLoggedIn": "You must be logged in to submit ratings",
     "comingSoon": "Coming Soon",
     "searchComingSoon": "Search for restaurants feature coming soon!",
-    "rewardsComingSoon": "Rewards screen coming soon!",
-    "loading": "Loading..."
+    "rewardsComingSoon": "Rewards screen coming soon!"
   },
   "navigation": {
     "home": "Home",
@@ -250,9 +249,6 @@
     "personalPreferences": "Personal preference filters",
     "dietPreferenceTitle": "🥕 Diet Preference",
     "excludeTitle": "🚫 Exclude",
-    "allergiesTitle": "⚠️ Allergies",
-    "dietPreferencesTitle": "🍃 Diet Preferences",
-    "religiousRestrictionsTitle": "🕌 Religious Restrictions",
     "facilitiesTitle": "🏪 Restaurant Facilities",
     "quickFilters": "Quick Filters",
     "calorieRange": "Calorie Range",
@@ -274,31 +270,7 @@
       "noFish": "No Fish",
       "noSeafood": "No Seafood",
       "noEggs": "No Eggs",
-      "noDairy": "No Dairy",
       "noSpicy": "No Spicy"
-    },
-    "allergy": {
-      "lactose": "Lactose",
-      "gluten": "Gluten",
-      "peanuts": "Peanuts",
-      "soy": "Soy",
-      "sesame": "Sesame",
-      "shellfish": "Shellfish",
-      "nuts": "Nuts"
-    },
-    "dietType": {
-      "diabetic": "Suitable for Diabetics",
-      "keto": "Keto Diet",
-      "paleo": "Paleo Diet",
-      "lowCarb": "Low-carb Diet",
-      "pescatarian": "Pescatarian"
-    },
-    "religious": {
-      "halal": "Halal",
-      "hindu": "Hindu",
-      "kosher": "Kosher",
-      "jain": "Jain",
-      "buddhist": "Buddhist"
     },
     "facility": {
       "familyFriendly": "Family Friendly",
@@ -892,14 +864,6 @@
     "proteinFish": "🐟 Fish",
     "proteinSeafood": "🦐 Seafood",
     "proteinEgg": "🥚 Egg",
-    "allergiesQuestion": "Any food allergies? 🚫",
-    "allergiesHint": "We'll help you avoid these",
-    "allergyNuts": "🥜 Nuts",
-    "allergyDairy": "🥛 Dairy",
-    "allergyGluten": "🌾 Gluten",
-    "allergyShellfish": "🦞 Shellfish",
-    "allergySoy": "🫘 Soy",
-    "allergyEggs": "🥚 Eggs",
     "continue": "Continue →",
     "back": "← Back",
     "complete": "Complete! 🎉",

@@ -74,8 +74,6 @@ interface MapDish {
   description: string;
   imageUrl?: string;
   rating: number;
-  dietary_tags: string[];
-  allergens: string[];
 }
 
 /**
@@ -178,8 +176,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
             description: '',
             imageUrl: dish.image_url || undefined,
             rating: r.rating || 0,
-            dietary_tags: dish.dietary_tags || [],
-            allergens: dish.allergens || [],
           });
         }
       }
@@ -240,8 +236,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       currencyCode: dish.restaurant?.currency_code ?? null,
       imageUrl: dish.image_url || undefined,
       isAvailable: dish.is_available,
-      dietary_tags: dish.effective_dietary_tags ?? dish.dietary_tags ?? [],
-      allergens: dish.effective_allergens ?? dish.allergens ?? [],
     };
   }
 
@@ -395,8 +389,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     cuisine: string;
     imageUrl?: string;
     isAvailable: boolean;
-    dietary_tags: string[];
-    allergens: string[];
   }) => {
     rootNavigation.navigate('RestaurantDetail', { restaurantId: dish.restaurantId });
   };

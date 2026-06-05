@@ -47,46 +47,8 @@ echo ""
 echo "---"
 echo ""
 
-# Test 3: With dietary filters
-echo "Test 3: Vegan-friendly restaurants"
-curl -s -X POST "${FUNCTION_URL}" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${ANON_KEY}" \
-  -d '{
-    "latitude": 40.7128,
-    "longitude": -74.0060,
-    "radiusKm": 10,
-    "limit": 5,
-    "filters": {
-      "dietaryTags": ["vegan"]
-    }
-  }' | jq '.totalCount, .restaurants[0].menus[0].dishes | length'
-
-echo ""
-echo "---"
-echo ""
-
-# Test 4: With allergen exclusion
-echo "Test 4: Exclude peanut allergens"
-curl -s -X POST "${FUNCTION_URL}" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${ANON_KEY}" \
-  -d '{
-    "latitude": 40.7128,
-    "longitude": -74.0060,
-    "radiusKm": 10,
-    "limit": 5,
-    "filters": {
-      "excludeAllergens": ["peanuts"]
-    }
-  }' | jq '.totalCount'
-
-echo ""
-echo "---"
-echo ""
-
-# Test 5: Full response (pretty print)
-echo "Test 5: Full response sample"
+# Test 3: Full response (pretty print)
+echo "Test 3: Full response sample"
 curl -s -X POST "${FUNCTION_URL}" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${ANON_KEY}" \

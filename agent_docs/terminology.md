@@ -13,11 +13,13 @@
 - **Dish Options**: Variants of a dish (e.g., size, spice level) with optional price modifiers
 - **Enrichment**: AI-generated descriptions, tags, and embeddings for dishes
 
-## Dietary & Allergens
+## Food Classification
 
-- **Dietary Tags**: Labels like `vegetarian`, `vegan`, `gluten-free`, `halal`, `kosher`
-- **Allergens**: FDA top-9 allergens auto-calculated from ingredients via Postgres triggers
-- **Ingredients Master**: Curated ingredient list with pre-mapped allergen and dietary metadata
+- **Primary Protein**: The single classification axis for dishes — an 11-value enum (`chicken`, `beef`, `pork`, `lamb`, `goat`, `other_meat`, `fish`, `shellfish`, `eggs`, `vegetarian`, `vegan`). Drives feed filtering + daily meat-type filters.
+- **Protein Families**: Derived from `primary_protein` (`meat`, `poultry`, `fish`, `shellfish`, `eggs`) via `deriveProteinFields`. Power the protein-based diet filter — vegetarian = none of meat/poultry/fish/shellfish (eggs OK); vegan = `primary_protein = 'vegan'`.
+- **Diet Preference**: User's `all` / `vegetarian` / `vegan` choice. Permanent = hard exclude (SQL `WHERE`); daily = soft re-rank (JS boost).
+
+> Allergens, dietary-tag vocabularies, and the ingredient pipeline that fed them were **abandoned** (2026-06-05) — EatMe is a protein-based discovery app, not an allergen-safety app. See the root `CLAUDE.md`.
 
 ## Rating System
 

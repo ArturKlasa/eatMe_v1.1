@@ -9,7 +9,12 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useTranslation } from 'react-i18next';
-import { useFilterStore, DAILY_FILTER_PRESETS, type DailyFilters } from '../stores/filterStore';
+import {
+  useFilterStore,
+  DAILY_FILTER_PRESETS,
+  type DailyFilters,
+  type DietPreference,
+} from '../stores/filterStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { getCurrencyInfo, formatPrice } from '../utils/currencyConfig';
 import { commonStyles, theme, filterComponentsStyles } from '@/styles';
@@ -254,11 +259,12 @@ export const DietToggleFilter: React.FC = () => {
   const { daily, setDietPreference, toggleProteinType } = useFilterStore();
   const { t } = useTranslation();
 
-  const dietPreferenceOptions: Array<{ key: keyof DailyFilters['dietPreference']; label: string }> =
-    [
-      { key: 'vegetarian', label: t('filters.dietOption.vegetarian') },
-      { key: 'vegan', label: t('filters.dietOption.vegan') },
-    ];
+  // Single-select SOFT daily diet signal: All / Vegetarian / Vegan.
+  const dietPreferenceOptions: Array<{ key: DietPreference; label: string }> = [
+    { key: 'all', label: t('filters.dietOption.all') },
+    { key: 'vegetarian', label: t('filters.dietOption.vegetarian') },
+    { key: 'vegan', label: t('filters.dietOption.vegan') },
+  ];
 
   const proteinOptions: Array<{
     key: keyof DailyFilters['proteinTypes'];
@@ -284,7 +290,7 @@ export const DietToggleFilter: React.FC = () => {
             key={option.key}
             style={[
               filterComponentsStyles.toggleItem,
-              daily.dietPreference[option.key as keyof typeof daily.dietPreference] && {
+              daily.dietPreference === option.key && {
                 backgroundColor: theme.colors.primary,
               },
             ]}
@@ -293,7 +299,7 @@ export const DietToggleFilter: React.FC = () => {
             <Text
               style={[
                 filterComponentsStyles.toggleText,
-                daily.dietPreference[option.key as keyof typeof daily.dietPreference] && {
+                daily.dietPreference === option.key && {
                   color: theme.colors.white,
                 },
               ]}

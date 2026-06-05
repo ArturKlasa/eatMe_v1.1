@@ -1,6 +1,6 @@
 // Supabase Edge Function: nearby-restaurants
 // Purpose: Find restaurants near user's location with smart filtering
-// Handles: Geospatial search using Haversine formula + dietary/price/cuisine filters
+// Handles: Geospatial search using Haversine formula + price/cuisine filters
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -22,8 +22,6 @@ interface NearbyRestaurantsRequest {
     priceMin?: number;
     priceMax?: number;
     minRating?: number;
-    dietaryTags?: string[]; // filter dishes, not restaurants
-    excludeAllergens?: string[];
     serviceTypes?: string[]; // ['delivery', 'takeout', 'dine_in']
   };
 }
@@ -57,8 +55,6 @@ interface RestaurantWithDistance {
       id: string;
       name: string;
       price: number;
-      dietary_tags?: string[];
-      allergens?: string[];
       spice_level?: 'none' | 'mild' | 'hot';
       is_available: boolean;
     }>;
@@ -107,32 +103,11 @@ function matchesServiceTypes(restaurant: any, serviceTypes?: string[]): boolean 
 }
 
 /**
- * Filter dishes based on dietary tags and allergens
+ * Filter dishes to available items only.
  */
-function filterDishes(dishes: any[], dietaryTags?: string[], excludeAllergens?: string[]): any[] {
+function filterDishes(dishes: any[]): any[] {
   if (!dishes) return [];
-
-  return dishes.filter(dish => {
-    if (!dish.is_available) return false;
-
-    // Check dietary tags (dish must have ALL required tags)
-    if (dietaryTags && dietaryTags.length > 0) {
-      const dishTags = dish.dietary_tags || [];
-      const hasAllTags = dietaryTags.every(tag => dishTags.includes(tag));
-      if (!hasAllTags) return false;
-    }
-
-    // Check allergens (dish must NOT contain any excluded allergens)
-    if (excludeAllergens && excludeAllergens.length > 0) {
-      const dishAllergens = dish.allergens || [];
-      const hasExcludedAllergen = excludeAllergens.some(allergen =>
-        dishAllergens.includes(allergen)
-      );
-      if (hasExcludedAllergen) return false;
-    }
-
-    return true;
-  });
+  return dishes.filter(dish => dish.is_available);
 }
 
 serve(async req => {
@@ -193,8 +168,6 @@ serve(async req => {
             id,
             name,
             price,
-            dietary_tags,
-            allergens,
             spice_level,
             is_available
           )
@@ -250,10 +223,10 @@ serve(async req => {
           restaurant.location.lng
         );
 
-        // Filter dishes if dietary/allergen filters are provided
+        // Keep only available dishes per menu
         const filteredMenus = restaurant.menus?.map((menu: any) => ({
           ...menu,
-          dishes: filterDishes(menu.dishes, filters?.dietaryTags, filters?.excludeAllergens),
+          dishes: filterDishes(menu.dishes),
         }));
 
         return {
@@ -269,17 +242,6 @@ serve(async req => {
         // Filter by service types
         if (!matchesServiceTypes(restaurant, filters?.serviceTypes)) {
           return false;
-        }
-
-        // If dietary/allergen filters are applied, exclude restaurants with no matching dishes
-        if (
-          (filters?.dietaryTags && filters.dietaryTags.length > 0) ||
-          (filters?.excludeAllergens && filters.excludeAllergens.length > 0)
-        ) {
-          const hasMatchingDishes = restaurant.menus?.some(
-            menu => menu.dishes && menu.dishes.length > 0
-          );
-          if (!hasMatchingDishes) return false;
         }
 
         return true;
@@ -301,9 +263,9 @@ serve(async req => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error('Unexpected error:', err);
-    return new Response(JSON.stringify({ error: 'Internal server error', details: err.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error', details: err?.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

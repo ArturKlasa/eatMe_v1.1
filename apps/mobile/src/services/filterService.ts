@@ -96,25 +96,6 @@ function applyPermanentFilters(
     filterSummary.push(`Diet: ${permanentFilters.dietPreference}`);
   }
 
-  const activeAllergies = Object.entries(permanentFilters.allergies)
-    .filter(([_, active]) => active)
-    .map(([allergy, _]) => allergy);
-
-  if (activeAllergies.length > 0) {
-    // Allergen filtering is enforced at dish level via the feed Edge Function.
-    // At the restaurant level we surface the active constraints in the summary only.
-    filterSummary.push(`Allergies: ${activeAllergies.join(', ')}`);
-  }
-
-  const activeReligious = Object.entries(permanentFilters.religiousRestrictions)
-    .filter(([_, active]) => active)
-    .map(([requirement, _]) => requirement);
-
-  if (activeReligious.length > 0) {
-    // Religious restrictions are enforced at dish level via the feed Edge Function.
-    filterSummary.push(`Religious: ${activeReligious.join(', ')}`);
-  }
-
   const activeFacilities = Object.entries(permanentFilters.facilities)
     .filter(([_, active]) => active)
     .map(([facility, _]) => facility);
@@ -151,11 +132,9 @@ function applyDailyFilters(
     filterSummary.push(`Cuisines: ${dailyFilters.cuisineTypes.join(', ')}`);
   }
 
-  const { vegetarian: wantsVegetarian, vegan: wantsVegan } = dailyFilters.dietPreference;
-  if (wantsVegetarian || wantsVegan) {
-    // Enforced at dish level via the feed Edge Function; summary only here.
-    const labels = [wantsVegetarian && 'Vegetarian', wantsVegan && 'Vegan'].filter(Boolean);
-    filterSummary.push(`Diet: ${labels.join(', ')}`);
+  if (dailyFilters.dietPreference !== 'all') {
+    // Soft signal — applied as a feed re-rank via the Edge Function; summary only here.
+    filterSummary.push(`Diet: ${dailyFilters.dietPreference}`);
   }
 
   // Protein type filters — applied at dish level via the feed Edge Function, surfaced in summary only.
@@ -223,7 +202,7 @@ function getDailyFilterCount(
     count++;
   }
 
-  if (Object.values(dailyFilters.dietPreference).some(Boolean)) {
+  if (dailyFilters.dietPreference !== 'all') {
     count++;
   }
 
@@ -246,17 +225,12 @@ function getDailyFilterCount(
 function getPermanentFilterCount(permanentFilters: PermanentFilters): number {
   let count = 0;
 
-  const activeAllergies = Object.values(permanentFilters.allergies).filter(Boolean);
-  if (activeAllergies.length > 0) {
-    count++;
-  }
-
-  const activeReligious = Object.values(permanentFilters.religiousRestrictions).filter(Boolean);
-  if (activeReligious.length > 0) {
-    count++;
-  }
-
   if (permanentFilters.dietPreference !== 'all') {
+    count++;
+  }
+
+  const activeExclusions = Object.values(permanentFilters.exclude).filter(Boolean);
+  if (activeExclusions.length > 0) {
     count++;
   }
 

@@ -509,8 +509,6 @@ export type AdminMenuModifierOption = {
   price_delta: number;
   price_override: number | null;
   primary_protein: string | null;
-  removes_dietary_tags: string[];
-  adds_allergens: string[];
   serves_delta: number;
   is_default: boolean;
 };
@@ -668,7 +666,7 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
     const { data: groupRows, error: groupError } = await svc
       .from('option_groups')
       .select(
-        'id, dish_id, name, selection_type, min_selections, max_selections, display_in_card, display_order, options(id, name, price_delta, price_override, primary_protein, removes_dietary_tags, adds_allergens, serves_delta, is_default, display_order)'
+        'id, dish_id, name, selection_type, min_selections, max_selections, display_in_card, display_order, options(id, name, price_delta, price_override, primary_protein, serves_delta, is_default, display_order)'
       )
       .in('dish_id', dishIds)
       .order('display_order', { ascending: true });
@@ -687,8 +685,6 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
           price_delta: (o.price_delta as number | null) ?? 0,
           price_override: (o.price_override as number | null) ?? null,
           primary_protein: (o.primary_protein as string | null) ?? null,
-          removes_dietary_tags: (o.removes_dietary_tags as string[] | null) ?? [],
-          adds_allergens: (o.adds_allergens as string[] | null) ?? [],
           serves_delta: (o.serves_delta as number | null) ?? 0,
           is_default: (o.is_default as boolean | null) ?? false,
           display_order: (o.display_order as number | null) ?? 0,

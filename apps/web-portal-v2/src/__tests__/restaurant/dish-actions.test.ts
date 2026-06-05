@@ -93,18 +93,6 @@ describe('createDish', () => {
     }
   });
 
-  it('writes allergens=[] and dietary_tags=[] regardless of input', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
-    const supabase = makeSupabase({ data: { id: 'dish-1' }, error: null });
-    vi.mocked(createServerActionClient).mockResolvedValue(supabase as never);
-
-    await createDish('rest-1', 'cat-1', baseStandardDish);
-
-    const insertCall = (supabase._chain.insert as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(insertCall.allergens).toEqual([]);
-    expect(insertCall.dietary_tags).toEqual([]);
-  });
-
   it('writes status=draft on new dish', async () => {
     mockGetUser.mockResolvedValue({ data: { user: authedUser }, error: null });
     const supabase = makeSupabase({ data: { id: 'dish-1' }, error: null });

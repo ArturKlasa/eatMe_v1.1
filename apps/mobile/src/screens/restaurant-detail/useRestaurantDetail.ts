@@ -62,8 +62,6 @@ export interface RestaurantDetailState {
   setUserDishOpinions: React.Dispatch<React.SetStateAction<Map<string, DishOpinion>>>;
   restaurantRating: RestaurantRating | null;
   categoryDishes: Map<string, 'loading' | 'error' | Dish[]>;
-  optionAllergens: Map<string, string[]>;
-  setOptionAllergens: (map: Map<string, string[]>) => void;
   loadAttempt: number;
   setLoadAttempt: React.Dispatch<React.SetStateAction<number>>;
   setLoading: (v: boolean) => void;
@@ -110,7 +108,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const [categoryDishes, setCategoryDishes] = useState<Map<string, 'loading' | 'error' | Dish[]>>(
     new Map()
   );
-  const [optionAllergens, setOptionAllergens] = useState<Map<string, string[]>>(new Map());
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -258,19 +255,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       }));
     setDishOptionGroups(embedded);
 
-    // Per-option allergens come directly from option.adds_allergens (populated
-    // by the menu-scan worker). Phase C retired the canonical_ingredient_allergens
-    // join.
-    const optionAllergenMap = new Map<string, string[]>();
-    for (const group of embedded) {
-      for (const opt of group.options) {
-        if (opt.adds_allergens && opt.adds_allergens.length > 0) {
-          optionAllergenMap.set(opt.id, opt.adds_allergens);
-        }
-      }
-    }
-    if (mountedRef.current) setOptionAllergens(optionAllergenMap);
-
     trackDishView(restaurantId, {
       id: dish.id,
       name: dish.name,
@@ -321,8 +305,6 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     setUserDishOpinions,
     restaurantRating,
     categoryDishes,
-    optionAllergens,
-    setOptionAllergens,
     loadAttempt,
     setLoadAttempt,
     setLoading,

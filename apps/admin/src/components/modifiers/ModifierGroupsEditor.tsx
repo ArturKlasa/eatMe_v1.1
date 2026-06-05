@@ -1,13 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  ALLERGENS,
-  DIETARY_TAGS,
-  PRIMARY_PROTEINS,
-  getCurrencyInfo,
-  isSupportedCurrency,
-} from '@eatme/shared';
+import { PRIMARY_PROTEINS, getCurrencyInfo, isSupportedCurrency } from '@eatme/shared';
 import type { EditableModifierGroup, EditableModifierOption } from './editableTypes';
 
 interface Props {
@@ -303,10 +297,7 @@ function OptionRow({
   onUpdateOption,
 }: OptionRowProps) {
   const [expanded, setExpanded] = useState(
-    option.primary_protein != null ||
-      option.removes_dietary_tags.length > 0 ||
-      option.adds_allergens.length > 0 ||
-      option.serves_delta !== 0
+    option.primary_protein != null || option.serves_delta !== 0
   );
 
   return (
@@ -459,68 +450,6 @@ function OptionRow({
               className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 disabled:opacity-50"
             />
           </label>
-
-          <div className="col-span-2 space-y-1">
-            <span className="text-muted-foreground">Removes dietary tags:</span>
-            <div className="flex flex-wrap gap-1">
-              {DIETARY_TAGS.map(tag => {
-                const active = option.removes_dietary_tags.includes(tag.value);
-                return (
-                  <button
-                    key={tag.value}
-                    type="button"
-                    disabled={saving}
-                    onClick={() =>
-                      onUpdateOption(groupIdx, optIdx, {
-                        removes_dietary_tags: active
-                          ? option.removes_dietary_tags.filter(t => t !== tag.value)
-                          : [...option.removes_dietary_tags, tag.value],
-                      })
-                    }
-                    className={
-                      'rounded border px-1.5 py-0.5 text-[10px] ' +
-                      (active
-                        ? 'border-rose-400 bg-rose-100 text-rose-900 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-200'
-                        : 'border-border bg-background hover:bg-muted')
-                    }
-                  >
-                    {tag.icon} {tag.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="col-span-2 space-y-1">
-            <span className="text-muted-foreground">Adds allergens:</span>
-            <div className="flex flex-wrap gap-1">
-              {ALLERGENS.map(al => {
-                const active = option.adds_allergens.includes(al.value);
-                return (
-                  <button
-                    key={al.value}
-                    type="button"
-                    disabled={saving}
-                    onClick={() =>
-                      onUpdateOption(groupIdx, optIdx, {
-                        adds_allergens: active
-                          ? option.adds_allergens.filter(t => t !== al.value)
-                          : [...option.adds_allergens, al.value],
-                      })
-                    }
-                    className={
-                      'rounded border px-1.5 py-0.5 text-[10px] ' +
-                      (active
-                        ? 'border-orange-400 bg-orange-100 text-orange-900 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-200'
-                        : 'border-border bg-background hover:bg-muted')
-                    }
-                  >
-                    {al.icon} {al.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       )}
     </li>

@@ -52,11 +52,6 @@ export const modifierOptionSchema = z.object({
   // Override base primary_protein when the option changes the protein source.
   // Null when the option doesn't touch protein (size choice, dressing choice).
   primary_protein: z.enum(PRIMARY_PROTEINS).nullable(),
-  // Tags removed from base when selected (e.g. ['vegetarian','vegan'] for adding
-  // meat to a salad). Empty array when no change.
-  removes_dietary_tags: z.array(z.string()),
-  // Allergens added beyond what the base dish carries. Empty array when none.
-  adds_allergens: z.array(z.string()),
   // Headcount change. 0 when no change.
   serves_delta: z.number().int(),
   // Marks the standard / cheapest option in a required group.
@@ -399,11 +394,6 @@ For each dish output exactly these fields:
         12-wing option has price_override=45, price_delta=0). Otherwise null.
       primary_protein: only when the option CHANGES the dish's protein source
         (e.g. Pad Thai "with chicken" → 'chicken'). Otherwise null.
-      removes_dietary_tags: include ['vegetarian'] when adding meat/fish to a vegetarian base;
-        include ['vegan'] when adding dairy/eggs/honey to a vegan base. Empty array otherwise.
-      adds_allergens: e.g. ['shellfish'] when option adds shrimp, ['dairy'] for adding cheese.
-        Use the standard allergen taxonomy (shellfish, dairy, eggs, peanuts, tree_nuts,
-        gluten, soy, fish, sesame). Empty array otherwise.
       serves_delta: only for options that change headcount (rare). 0 otherwise.
       is_default: set TRUE on exactly one option in each required group — the cheapest /
         standard choice. FALSE for all options in optional groups.
@@ -441,7 +431,7 @@ ${cuisineBlock}
 Canonical menu-category slugs:
 ${slugList}
 
-Do NOT include allergens, dietary tags, ingredients, calorie counts, is_template, or any
+Do NOT include ingredients, calorie counts, is_template, or any
 fields beyond those listed above.`;
 }
 

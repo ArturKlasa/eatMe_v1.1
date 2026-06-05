@@ -11,10 +11,9 @@ import { supabase } from '../lib/supabase';
 import { debugLog } from '../config/environment';
 
 export interface OnboardingFormData {
-  // Step 1: Dietary & Allergies
+  // Step 1: Dietary
   dietType: 'all' | 'vegetarian' | 'vegan';
   proteinPreferences: string[];
-  allergies: string[];
 
   // Step 2: Cuisines & Dishes
   favoriteCuisines: string[];
@@ -74,7 +73,6 @@ const PROMPT_COOLDOWN_HOURS = 24; // Show prompt once per day
 const defaultFormData: OnboardingFormData = {
   dietType: 'all',
   proteinPreferences: [],
-  allergies: [],
   favoriteCuisines: [],
   favoriteDishes: [],
   spiceTolerance: 'none',
@@ -112,11 +110,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     if ('proteinPreferences' in sanitizedData) {
       sanitizedData.proteinPreferences = Array.isArray(sanitizedData.proteinPreferences)
         ? sanitizedData.proteinPreferences
-        : [];
-    }
-    if ('allergies' in sanitizedData) {
-      sanitizedData.allergies = Array.isArray(sanitizedData.allergies)
-        ? sanitizedData.allergies
         : [];
     }
     if ('favoriteCuisines' in sanitizedData) {
@@ -172,7 +165,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         user_id: user.id,
         diet_preference: state.formData.dietType, // canonical column name
         protein_preferences: state.formData.proteinPreferences,
-        allergies: state.formData.allergies,
         favorite_cuisines: state.formData.favoriteCuisines,
         favorite_dishes: state.formData.favoriteDishes,
         spice_tolerance: state.formData.spiceTolerance,
@@ -261,7 +253,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
           // diet_type was dropped in migration 032; diet_preference is the only column
           dietType: (data.diet_preference || 'all') as OnboardingFormData['dietType'],
           proteinPreferences: ensureArray(data.protein_preferences),
-          allergies: ensureArray(data.allergies),
           favoriteCuisines: ensureArray(data.favorite_cuisines),
           favoriteDishes: ensureArray(data.favorite_dishes),
           spiceTolerance: (data.spice_tolerance || 'none') as OnboardingFormData['spiceTolerance'],
@@ -328,7 +319,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         user_id: userId,
         diet_preference: state.formData.dietType, // canonical column name
         protein_preferences: state.formData.proteinPreferences,
-        allergies: state.formData.allergies,
         favorite_cuisines: state.formData.favoriteCuisines,
         favorite_dishes: state.formData.favoriteDishes,
         spice_tolerance: state.formData.spiceTolerance,
@@ -359,9 +349,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         ),
       ];
       if (state.lastSyncedAt !== null) {
-        writes.push(
-          AsyncStorage.setItem(LAST_SYNCED_STORAGE_KEY, String(state.lastSyncedAt))
-        );
+        writes.push(AsyncStorage.setItem(LAST_SYNCED_STORAGE_KEY, String(state.lastSyncedAt)));
       }
       await Promise.all(writes);
     } catch (error) {
@@ -385,9 +373,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     else if (data.favoriteDishes.length > 0) score += 10;
     if (data.spiceTolerance) score += 10;
 
-    // Optional fields
-    if (data.allergies.length > 0) score += 5;
-
     const profileCompletion = Math.min(score, 100);
 
     // Calculate points
@@ -396,7 +381,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     if (data.favoriteCuisines.length >= 5) points += 10;
     if (data.favoriteDishes.length >= 5) points += 10;
     if (data.proteinPreferences.length >= 2) points += 10;
-    if (data.allergies.length > 0) points += 5;
 
     set({
       profileCompletion,

@@ -1,7 +1,7 @@
 # Abandon dish-level allergens + dietary tags
 
-**Status:** Proposed
-**Last updated:** 2026-06-04
+**Status:** Shipped (2026-06-05). All phases complete: shared package, 5 edge functions, mobile, admin, web-portal v1 + v2, and DB migrations **155** (RPC rewrites) + **156** (column/table drops) — edge functions deployed, migrations applied, types regenerated; every consumer type-checks clean. Follow-up **157** drops two stray orphans found in the post-regen sweep (`validate_allergen_codes` RPC + `user_behavior_profiles.preferred_dietary_tags` — the column lives on user_behavior_profiles, not user_preferences as 156 assumed). `eat_together_recommendations.dietary_compatibility` is intentionally kept (active; reflects the surviving `diet_preference`). Diet filtering is protein-based; `diet_preference` + `exclude` survive.
+**Last updated:** 2026-06-05
 **Scope:** Formally retire the allergen and dietary-tag system. Drop the columns on `dishes`, `options`, and `user_preferences`. Drop the standalone `public.allergens` / `public.dietary_tags` lookup tables. Replace `generate_candidates` RPC with a version that no longer accepts allergen/dietary parameters. Strip the related UI from the mobile filter drawer, dish detail screen, admin modifier editor, and owner-facing form. Mirror the changes in `apps/web-portal-v2/` so the paused app stays revivable. `primary_protein` is the sole surviving food-classification axis — the vegan/vegetarian emoji on dish rows + the Diet Preference drawer toggle get rewired to it.
 **Out of scope:** Re-introducing any allergen functionality (no AI-extraction fallback, no manual chip pickers anywhere). If allergen-safety is ever revived as a product pillar, it gets designed fresh.
 **Sequencing:** Single rollout. No real users yet (per session memory), so the cutover can be tight: code commits land first, edge functions redeploy, migration applies. Detailed sequencing in §10.

@@ -322,7 +322,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
         .select(
           `
           dishes (
-            id, name, description, price, dietary_tags, allergens, calories,
+            id, name, description, price, calories,
             spice_level, image_url, is_available, dish_kind, display_price_prefix,
             description_visibility, ingredients_visibility, parent_dish_id, is_parent,
             serves, price_per_person,
@@ -333,8 +333,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
               id, name, description, selection_type, min_selections, max_selections,
               display_order, display_in_card, is_active,
               options (id, name, description, price_delta, price_override,
-                       primary_protein, adds_dietary_tags, removes_dietary_tags,
-                       adds_allergens, serves_delta, is_default,
+                       primary_protein, serves_delta, is_default,
                        calories_delta, is_available, display_order)
             )
           )

@@ -40,8 +40,6 @@ type RawDish = {
   description?: string | null;
   price: number;
   calories?: number | null;
-  dietary_tags?: string[] | null;
-  allergens?: string[] | null;
   spice_level?: string | null;
   image_url?: string | null;
   is_available?: boolean | null;
@@ -444,8 +442,6 @@ async function _insertMenusAndDishes(restaurantId: string, menus: AppMenu[]): Pr
       name: dish.name,
       description: dish.description || null,
       price: dish.price,
-      dietary_tags: dish.dietary_tags || [],
-      allergens: dish.allergens || [],
       calories: dish.calories || null,
       spice_level: dish.spice_level || null,
       image_url: dish.photo_url || null,

@@ -24,16 +24,11 @@ export interface ServerDish {
   spice_level?: 'none' | 'mild' | 'hot';
   is_available: boolean;
 
-  allergens: string[];
-  dietary_tags: string[];
-
   // Phase 5 dish-model fields. The feed function applies default options +
   // user-preference selections and emits the resolved values here. Fallback to
   // base fields when absent (older feed function or non-customisable dish).
   effective_price?: number;
   effective_primary_protein?: string | null;
-  effective_dietary_tags?: string[];
-  effective_allergens?: string[];
   applied_options?: AppliedOption[];
   dining_format?: string | null;
   bundled_items?: Array<{ name: string; note?: string | null }> | null;
@@ -69,12 +64,6 @@ export function composeCardName(dish: ServerDish): string {
   return `${dish.name} with ${descriptors[0]} (+${descriptors.length - 1} more)`;
 }
 
-/** Maps filterStore allergy keys to allergens.code values used in dishes.allergens TEXT[]. */
-const ALLERGY_CODE_MAP: Partial<Record<keyof PermanentFilters['allergies'], string>> = {
-  soy: 'soybeans',
-  nuts: 'tree_nuts',
-};
-
 export interface FeedRequest {
   location: { lat: number; lng: number };
   radius?: number; // km, default 10
@@ -84,8 +73,6 @@ export interface FeedRequest {
     dietPreference?: string; // hard — permanent
     preferredDiet?: string; // soft boost — daily
     calorieRange?: { min: number; max: number }; // soft boost
-    allergens?: string[]; // hard
-    religiousRestrictions?: string[]; // hard
     cuisines?: string[]; // soft boost
     spiceLevel?: string; // soft boost — daily spice preference
     sortBy?: 'closest' | 'bestMatch' | 'highestRated';
@@ -194,17 +181,9 @@ function buildFilters(
   dailyFilters: DailyFilters,
   permanentFilters: PermanentFilters
 ): FeedRequest['filters'] {
-  const activeReligious = (
-    Object.entries(permanentFilters.religiousRestrictions) as [string, boolean][]
-  )
-    .filter(([_, active]) => active)
-    .map(([key]) => key);
-
   // preferredDiet is a soft signal (+0.50 boost), NOT a hard block — non-matching dishes still fill the feed.
   const dailyDietKey =
-    Object.entries(dailyFilters.dietPreference)
-      .filter(([_, active]) => active)
-      .map(([key]) => key)[0] ?? undefined;
+    dailyFilters.dietPreference !== 'all' ? dailyFilters.dietPreference : undefined;
 
   return {
     priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as [number, number],
@@ -213,13 +192,6 @@ function buildFilters(
     calorieRange: dailyFilters.calorieRange.enabled
       ? { min: dailyFilters.calorieRange.min, max: dailyFilters.calorieRange.max }
       : undefined,
-    allergens: Object.entries(permanentFilters.allergies)
-      .filter(([_, active]) => active)
-      .map(
-        ([allergen]) =>
-          ALLERGY_CODE_MAP[allergen as keyof PermanentFilters['allergies']] ?? allergen
-      ),
-    religiousRestrictions: activeReligious.length > 0 ? activeReligious : undefined,
     cuisines: dailyFilters.cuisineTypes.length > 0 ? dailyFilters.cuisineTypes : undefined,
     spiceLevel: dailyFilters.spiceLevel !== 'eitherWay' ? dailyFilters.spiceLevel : undefined,
     dishNames: dailyFilters.meals.length > 0 ? dailyFilters.meals : undefined,
@@ -241,7 +213,6 @@ function buildFilters(
         noFish: ['fish'],
         noSeafood: ['shellfish'],
         noEggs: ['eggs'],
-        noDairy: ['dairy'],
       };
       const families = (Object.entries(permanentFilters.exclude) as [string, boolean][])
         .filter(([_, on]) => on)

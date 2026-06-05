@@ -23,8 +23,6 @@ interface Dish {
   currencyCode?: string | null;
   imageUrl?: string;
   isAvailable: boolean;
-  dietary_tags: string[];
-  allergens: string[];
 }
 
 interface MapFooterProps {

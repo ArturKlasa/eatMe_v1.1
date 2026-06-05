@@ -202,9 +202,6 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
                   price_delta: 0,
                   price_override: null,
                   primary_protein: 'chicken',
-                  removes_dietary_tags: [],
-                  adds_dietary_tags: [],
-                  adds_allergens: [],
                   serves_delta: 0,
                   is_default: true,
                 },
@@ -213,9 +210,6 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
                   price_delta: 3,
                   price_override: null,
                   primary_protein: 'shellfish',
-                  removes_dietary_tags: [],
-                  adds_dietary_tags: [],
-                  adds_allergens: ['shellfish'],
                   serves_delta: 0,
                   is_default: false,
                 },
@@ -264,7 +258,7 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
 
     const { data: options } = await supa
       .from('options')
-      .select('name, price_delta, primary_protein, adds_allergens, is_default, display_order')
+      .select('name, price_delta, primary_protein, is_default, display_order')
       .eq('option_group_id', groupId)
       .order('display_order');
     expect(options?.length).toBe(2);
@@ -364,9 +358,6 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
                   price_delta: 1,
                   price_override: null,
                   primary_protein: null,
-                  removes_dietary_tags: [],
-                  adds_dietary_tags: [],
-                  adds_allergens: ['dairy'],
                   serves_delta: 0,
                   is_default: false,
                 },
@@ -403,9 +394,6 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
                   price_delta: 0,
                   price_override: null,
                   primary_protein: null,
-                  removes_dietary_tags: [],
-                  adds_dietary_tags: [],
-                  adds_allergens: [],
                   serves_delta: 0,
                   is_default: true,
                 },
@@ -504,9 +492,6 @@ describe('admin_replace_dish_modifiers RPC (migration 144)', () => {
               price_delta: 0,
               price_override: null,
               primary_protein: null,
-              removes_dietary_tags: [],
-              adds_dietary_tags: [],
-              adds_allergens: [],
               serves_delta: 0,
               is_default: true,
             },
@@ -555,9 +540,6 @@ describe('admin_replace_dish_modifiers RPC (migration 144)', () => {
               price_delta: 0,
               price_override: null,
               primary_protein: null,
-              removes_dietary_tags: [],
-              adds_dietary_tags: [],
-              adds_allergens: [],
               serves_delta: 0,
               is_default: true,
             },
@@ -566,9 +548,6 @@ describe('admin_replace_dish_modifiers RPC (migration 144)', () => {
               price_delta: 3,
               price_override: null,
               primary_protein: null,
-              removes_dietary_tags: [],
-              adds_dietary_tags: [],
-              adds_allergens: [],
               serves_delta: 1,
               is_default: false,
             },
@@ -586,9 +565,6 @@ describe('admin_replace_dish_modifiers RPC (migration 144)', () => {
               price_delta: 1,
               price_override: null,
               primary_protein: null,
-              removes_dietary_tags: [],
-              adds_dietary_tags: [],
-              adds_allergens: ['dairy'],
               serves_delta: 0,
               is_default: false,
             },

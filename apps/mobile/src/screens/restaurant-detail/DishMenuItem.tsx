@@ -90,10 +90,8 @@ export function DishMenuItem({
         <View style={styles.menuItemNameContainer}>
           <Text style={styles.menuItemName}>
             {item.name}
-            {item.dietary_tags?.includes('vegan') && ' 🌱'}
-            {item.dietary_tags?.includes('vegetarian') &&
-              !item.dietary_tags?.includes('vegan') &&
-              ' 🥬'}
+            {item.primary_protein === 'vegan' && ' 🌱'}
+            {item.primary_protein === 'vegetarian' && ' 🥬'}
           </Text>
           {!passesHardFilters && (
             <View style={styles.notForYouPill}>

@@ -57,8 +57,6 @@ export const modifierOptionSchema = z.object({
   price_delta: z.number(),
   price_override: z.number().nullable(),
   primary_protein: primaryProteinEnum.nullable(),
-  removes_dietary_tags: z.array(z.string()),
-  adds_allergens: z.array(z.string()),
   serves_delta: z.number().int(),
   is_default: z.boolean(),
 });
@@ -79,11 +77,10 @@ export const bundledItemSchema = z.object({
 
 // ── MenuExtractionSchema ─────────────────────────────────────────────────────
 // Used by menu-scan-worker Edge Function via zodResponseFormat(MenuExtractionSchema, 'menu_extraction').
-// Drops allergen/dietary/ingredient extraction, pins dish_kind to the 5-value
-// enum and primary_protein to the 11-value list, adds suggested_category_name,
-// dining_format, bundled_items, modifier_groups. NOTE: a matching local copy lives
-// in supabase/functions/menu-scan-worker/index.ts because the Edge Function
-// (Deno) cannot import from the workspace package.
+// Pins dish_kind to the 5-value enum and primary_protein to the 11-value list,
+// adds suggested_category_name, dining_format, bundled_items, modifier_groups.
+// NOTE: a matching local copy lives in supabase/functions/menu-scan-worker/index.ts
+// because the Edge Function (Deno) cannot import from the workspace package.
 
 const menuExtractionDishSchema = z.object({
   name: z.string(),

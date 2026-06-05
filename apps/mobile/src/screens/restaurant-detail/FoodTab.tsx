@@ -197,7 +197,6 @@ export function FoodTab({
                             <View style={{ paddingHorizontal: spacing.md }}>
                               <ModifierGroupsList
                                 groups={dish.option_groups ?? []}
-                                permanent={permanentFilters}
                                 daily={dailyFilters}
                                 basePrice={dish.price ?? 0}
                                 currencyCode={restaurant.currency_code}

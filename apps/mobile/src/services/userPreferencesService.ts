@@ -2,70 +2,14 @@ import { supabase } from '../lib/supabase';
 import { type Result, ok, err } from '../lib/result';
 import type { PermanentFilters } from '../stores/filterStore';
 
-// Migration 093 unified allergen codes to canonical shorts (soy, nuts) so the
-// filterStore key equals the DB code — no remap needed for allergies.
-
+// Exclude keys map to user_preferences.exclude codes. noMeat persists as the
+// legacy 'vegetarian' code for back-compat with rows written before this change.
 const EXCLUDE_TO_DB: Record<keyof PermanentFilters['exclude'], string> = {
   noMeat: 'vegetarian',
   noFish: 'no_fish',
   noSeafood: 'no_seafood',
   noEggs: 'no_eggs',
-  noDairy: 'dairy_free',
   noSpicy: 'no_spicy',
-};
-
-const DIET_TYPE_TO_DB: Record<keyof PermanentFilters['dietTypes'], string> = {
-  diabetic: 'diabetic',
-  keto: 'keto',
-  paleo: 'paleo',
-  lowCarb: 'low_carb', // camelCase → snake_case
-  pescatarian: 'pescatarian',
-};
-
-const DB_TO_DIET_TYPE: Record<string, keyof PermanentFilters['dietTypes']> = {
-  diabetic: 'diabetic',
-  keto: 'keto',
-  paleo: 'paleo',
-  low_carb: 'lowCarb',
-  pescatarian: 'pescatarian',
-};
-
-// religiousRestrictions keys match dietary_tags.code directly (halal, kosher, hindu, jain, buddhist)
-const RELIGIOUS_KEYS = ['halal', 'hindu', 'kosher', 'jain', 'buddhist'] as const;
-
-const DEFAULT_ALLERGIES: PermanentFilters['allergies'] = {
-  lactose: false,
-  gluten: false,
-  peanuts: false,
-  soy: false,
-  sesame: false,
-  shellfish: false,
-  nuts: false,
-};
-
-const DEFAULT_EXCLUDE: PermanentFilters['exclude'] = {
-  noMeat: false,
-  noFish: false,
-  noSeafood: false,
-  noEggs: false,
-  noDairy: false,
-  noSpicy: false,
-};
-
-const DEFAULT_DIET_TYPES: PermanentFilters['dietTypes'] = {
-  diabetic: false,
-  keto: false,
-  paleo: false,
-  lowCarb: false,
-  pescatarian: false,
-};
-
-const DEFAULT_RELIGIOUS: PermanentFilters['religiousRestrictions'] = {
-  halal: false,
-  hindu: false,
-  kosher: false,
-  jain: false,
-  buddhist: false,
 };
 
 function toCodeSet(arr: string[] | null | undefined): Set<string> {
@@ -75,10 +19,7 @@ function toCodeSet(arr: string[] | null | undefined): Set<string> {
 export interface UserPreferencesDB {
   user_id: string;
   diet_preference: 'all' | 'vegetarian' | 'vegan';
-  allergies: string[] | null;
   exclude: string[] | null;
-  diet_types: string[] | null;
-  religious_restrictions: string[] | null;
   default_max_distance: number;
 }
 
@@ -138,65 +79,25 @@ export async function saveUserPreferences(
 export function permanentFiltersToDb(filters: PermanentFilters): Partial<UserPreferencesDB> {
   return {
     diet_preference: filters.dietPreference,
-    allergies: (
-      Object.entries(filters.allergies) as [keyof PermanentFilters['allergies'], boolean][]
-    )
-      .filter(([_, active]) => active)
-      .map(([key]) => key),
     exclude: (Object.entries(filters.exclude) as [keyof PermanentFilters['exclude'], boolean][])
       .filter(([_, active]) => active)
       .map(([key]) => EXCLUDE_TO_DB[key]),
-    diet_types: (
-      Object.entries(filters.dietTypes) as [keyof PermanentFilters['dietTypes'], boolean][]
-    )
-      .filter(([_, active]) => active)
-      .map(([key]) => DIET_TYPE_TO_DB[key]),
-    religious_restrictions: (Object.entries(filters.religiousRestrictions) as [string, boolean][])
-      .filter(([_, active]) => active)
-      .map(([key]) => key), // keys match dietary_tags.code directly
     default_max_distance: 5,
   };
 }
 
 /** Convert database preferences to filterStore format. */
 export function dbToPermanentFilters(dbPrefs: UserPreferencesDB): Partial<PermanentFilters> {
-  const allergySet = toCodeSet(dbPrefs.allergies);
   const excludeSet = toCodeSet(dbPrefs.exclude);
-  const dietSet = toCodeSet(dbPrefs.diet_types);
-  const religiousSet = toCodeSet(dbPrefs.religious_restrictions);
 
   return {
     dietPreference: dbPrefs.diet_preference ?? 'all',
-    allergies: {
-      lactose: allergySet.has('lactose'),
-      gluten: allergySet.has('gluten'),
-      peanuts: allergySet.has('peanuts'),
-      soy: allergySet.has('soy'),
-      sesame: allergySet.has('sesame'),
-      shellfish: allergySet.has('shellfish'),
-      nuts: allergySet.has('nuts'),
-    },
     exclude: {
       noMeat: excludeSet.has('vegetarian'),
       noFish: excludeSet.has('no_fish'),
       noSeafood: excludeSet.has('no_seafood'),
       noEggs: excludeSet.has('no_eggs'),
-      noDairy: excludeSet.has('dairy_free'),
       noSpicy: excludeSet.has('no_spicy'),
-    },
-    dietTypes: {
-      diabetic: dietSet.has('diabetic'),
-      keto: dietSet.has('keto'),
-      paleo: dietSet.has('paleo'),
-      lowCarb: dietSet.has('low_carb'),
-      pescatarian: dietSet.has('pescatarian'),
-    },
-    religiousRestrictions: {
-      halal: religiousSet.has('halal'),
-      hindu: religiousSet.has('hindu'),
-      kosher: religiousSet.has('kosher'),
-      jain: religiousSet.has('jain'),
-      buddhist: religiousSet.has('buddhist'),
     },
   };
 }

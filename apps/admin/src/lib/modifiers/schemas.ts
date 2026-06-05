@@ -12,8 +12,6 @@ export const modifierOptionSchema = z.object({
   price_delta: z.number().default(0),
   price_override: z.number().nonnegative().nullable().optional(),
   primary_protein: z.enum(PRIMARY_PROTEINS).nullable().optional(),
-  removes_dietary_tags: z.array(z.string().min(1).max(50)).max(20).default([]),
-  adds_allergens: z.array(z.string().min(1).max(50)).max(20).default([]),
   serves_delta: z.number().int().default(0),
   is_default: z.boolean().default(false),
 });

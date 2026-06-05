@@ -3,9 +3,8 @@
  *
  * Renders a dish's option_groups inline beneath the dish row in the restaurant
  * detail screen. Each group becomes a labeled section with its options
- * underneath; per-option chips surface allergy triggers, dietary-tag conflicts,
- * and price deltas resolved against the user's permanent + daily filters via
- * classifyOption().
+ * underneath; an option whose protein matches the user's daily meat-type pick is
+ * highlighted (classifyOption), and a price-delta chip shows the surcharge.
  *
  * Styled for the dark restaurant-detail menu (matches DishMenuItem). Long groups
  * collapse to the first COLLAPSED_COUNT options with an inline "+N more" toggle
@@ -19,17 +18,16 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
-import { colors, spacing, typography, borderRadius } from '@/styles/theme';
+import { colors, spacing, typography } from '@/styles/theme';
 import { classifyOption } from '../../utils/menuFilterUtils';
 import type { OptionGroup, Option } from '../../lib/supabase';
-import type { DailyFilters, PermanentFilters } from '../../stores/filterStore';
+import type { DailyFilters } from '../../stores/filterStore';
 
 // How many options to show before collapsing the rest behind a "+N more" toggle.
 const COLLAPSED_COUNT = 2;
 
 interface Props {
   groups: OptionGroup[];
-  permanent: PermanentFilters;
   daily: DailyFilters;
   basePrice: number;
   /** ISO 4217 from the parent restaurant. Drives the option-row price chip; falls
@@ -37,13 +35,7 @@ interface Props {
   currencyCode?: string | null;
 }
 
-export function ModifierGroupsList({
-  groups,
-  permanent,
-  daily,
-  basePrice: _basePrice,
-  currencyCode,
-}: Props) {
+export function ModifierGroupsList({ groups, daily, basePrice: _basePrice, currencyCode }: Props) {
   const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
     ? currencyCode
     : undefined;
@@ -59,13 +51,7 @@ export function ModifierGroupsList({
   return (
     <View style={styles.container}>
       {visible.map(group => (
-        <GroupSection
-          key={group.id}
-          group={group}
-          permanent={permanent}
-          daily={daily}
-          currency={currency}
-        />
+        <GroupSection key={group.id} group={group} daily={daily} currency={currency} />
       ))}
     </View>
   );
@@ -73,12 +59,10 @@ export function ModifierGroupsList({
 
 function GroupSection({
   group,
-  permanent,
   daily,
   currency,
 }: {
   group: OptionGroup;
-  permanent: PermanentFilters;
   daily: DailyFilters;
   currency: SupportedCurrency | undefined;
 }) {
@@ -103,13 +87,7 @@ function GroupSection({
         {meta ? <Text style={styles.groupMeta}>{meta}</Text> : null}
       </View>
       {shown.map(opt => (
-        <OptionRow
-          key={opt.id}
-          option={opt}
-          permanent={permanent}
-          daily={daily}
-          currency={currency}
-        />
+        <OptionRow key={opt.id} option={opt} daily={daily} currency={currency} />
       ))}
       {hiddenCount > 0 && (
         <TouchableOpacity
@@ -146,28 +124,17 @@ function describeSelection(group: OptionGroup): string {
 
 function OptionRow({
   option,
-  permanent,
   daily,
   currency,
 }: {
   option: Option;
-  permanent: PermanentFilters;
   daily: DailyFilters;
   currency: SupportedCurrency | undefined;
 }) {
-  const cls = classifyOption(
-    {
-      adds_allergens: option.adds_allergens ?? null,
-      removes_dietary_tags: option.removes_dietary_tags ?? null,
-      primary_protein: option.primary_protein ?? null,
-    },
-    permanent,
+  const { matchesDailyMeatType: isPreferredProtein } = classifyOption(
+    { primary_protein: option.primary_protein ?? null },
     daily
   );
-
-  const hasAllergyConflict = cls.triggersAllergy.length > 0;
-  const hasDietConflict = cls.stripsDietaryTags.length > 0;
-  const isPreferredProtein = cls.matchesDailyMeatType;
 
   const priceLabel = formatOptionPrice(option, currency);
 
@@ -178,12 +145,6 @@ function OptionRow({
         {option.name}
       </Text>
       <View style={styles.chips}>
-        {hasAllergyConflict && (
-          <Chip tone="error" label={`allergy: ${cls.triggersAllergy.join(', ')}`} />
-        )}
-        {hasDietConflict && (
-          <Chip tone="warning" label={`removes ${cls.stripsDietaryTags.join(', ')}`} />
-        )}
         {priceLabel && <Text style={styles.price}>{priceLabel}</Text>}
       </View>
     </View>
@@ -201,18 +162,6 @@ function formatOptionPrice(option: Option, currency: SupportedCurrency | undefin
     return `${sign}${formatPrice(option.price_delta, currency)}`;
   }
   return null;
-}
-
-function Chip({ tone, label }: { tone: 'error' | 'warning'; label: string }) {
-  return (
-    <View style={[styles.chip, tone === 'error' ? styles.chipError : styles.chipWarning]}>
-      <Text
-        style={[styles.chipText, tone === 'error' ? styles.chipTextError : styles.chipTextWarning]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -256,30 +205,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-  },
-  chipError: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-  },
-  chipWarning: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FCD34D',
-  },
-  chipText: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.medium,
-  },
-  chipTextError: {
-    color: '#991B1B',
-  },
-  chipTextWarning: {
-    color: '#92400E',
   },
   price: {
     fontSize: typography.size.xs,

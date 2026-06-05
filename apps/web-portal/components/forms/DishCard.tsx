@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Dish } from '@eatme/shared';
-import { Edit, Trash2, Copy, Layers, AlertTriangle } from 'lucide-react';
+import { Edit, Trash2, Copy, Layers } from 'lucide-react';
 import { SPICE_LEVELS, DISH_KIND_META } from '@eatme/shared';
 
 interface DishCardProps {
@@ -126,41 +126,17 @@ export function DishCard({ dish, onEdit, onDelete, onDuplicate }: DishCardProps)
             </div>
           )}
 
-          {/* Tags and Allergens */}
-          <div className="flex flex-wrap gap-2">
-            {/* Spice Level */}
-            {dish.spice_level && dish.spice_level !== 'none' && (
+          {/* Spice Level */}
+          {dish.spice_level && dish.spice_level !== 'none' && (
+            <div className="flex flex-wrap gap-2">
               <Badge
                 variant="outline"
                 className="bg-destructive/10 text-destructive border-destructive/20"
               >
                 {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
               </Badge>
-            )}
-
-            {/* Dietary Tags */}
-            {dish.dietary_tags.map(tag => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="bg-success/10 text-success capitalize"
-              >
-                {tag}
-              </Badge>
-            ))}
-
-            {/* Allergens */}
-            {dish.allergens.map(allergen => (
-              <Badge
-                key={allergen}
-                variant="secondary"
-                className="bg-brand-primary/10 text-brand-primary capitalize"
-              >
-                <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />
-                {allergen}
-              </Badge>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* Photo indicator */}
           {dish.photo_url && (

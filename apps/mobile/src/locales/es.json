@@ -60,8 +60,7 @@
     "mustBeLoggedIn": "Debes iniciar sesión para enviar calificaciones",
     "comingSoon": "Próximamente",
     "searchComingSoon": "¡La función de búsqueda de restaurantes estará disponible pronto!",
-    "rewardsComingSoon": "¡La pantalla de recompensas estará disponible pronto!",
-    "loading": "Cargando..."
+    "rewardsComingSoon": "¡La pantalla de recompensas estará disponible pronto!"
   },
   "navigation": {
     "home": "Inicio",
@@ -250,9 +249,6 @@
     "personalPreferences": "Filtros de preferencias personales",
     "dietPreferenceTitle": "🥕 Preferencia Dietética",
     "excludeTitle": "🚫 Excluir",
-    "allergiesTitle": "⚠️ Alergias",
-    "dietPreferencesTitle": "🍃 Preferencias Dietéticas",
-    "religiousRestrictionsTitle": "🕌 Restricciones Religiosas",
     "facilitiesTitle": "🏪 Instalaciones del Restaurante",
     "quickFilters": "Filtros Rápidos",
     "calorieRange": "Rango de Calorías",
@@ -274,31 +270,7 @@
       "noFish": "Sin Pescado",
       "noSeafood": "Sin Mariscos",
       "noEggs": "Sin Huevos",
-      "noDairy": "Sin Lácteos",
       "noSpicy": "Sin Picante"
-    },
-    "allergy": {
-      "lactose": "Lactosa",
-      "gluten": "Gluten",
-      "peanuts": "Cacahuetes",
-      "soy": "Soya",
-      "sesame": "Sésamo",
-      "shellfish": "Mariscos",
-      "nuts": "Frutos secos"
-    },
-    "dietType": {
-      "diabetic": "Apto para Diabéticos",
-      "keto": "Dieta Keto",
-      "paleo": "Dieta Paleo",
-      "lowCarb": "Dieta Baja en Carbohidratos",
-      "pescatarian": "Pescetariano"
-    },
-    "religious": {
-      "halal": "Halal",
-      "hindu": "Hindú",
-      "kosher": "Kosher",
-      "jain": "Jainismo",
-      "buddhist": "Budista"
     },
     "facility": {
       "familyFriendly": "Apto para Familias",
@@ -892,14 +864,6 @@
     "proteinFish": "🐟 Pescado",
     "proteinSeafood": "🦐 Mariscos",
     "proteinEgg": "🥚 Huevo",
-    "allergiesQuestion": "¿Alguna alergia alimentaria? 🚫",
-    "allergiesHint": "Te ayudaremos a evitar estos",
-    "allergyNuts": "🥜 Nueces",
-    "allergyDairy": "🥛 Lácteos",
-    "allergyGluten": "🌾 Gluten",
-    "allergyShellfish": "🦞 Mariscos",
-    "allergySoy": "🫘 Soya",
-    "allergyEggs": "🥚 Huevos",
     "continue": "Continuar →",
     "back": "← Atrás",
     "complete": "¡Completo! 🎉",

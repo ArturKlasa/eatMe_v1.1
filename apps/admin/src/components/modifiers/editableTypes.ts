@@ -8,8 +8,6 @@ export type ExtractedModifierOption = {
   price_delta: number;
   price_override: number | null;
   primary_protein: Protein | null;
-  removes_dietary_tags: string[];
-  adds_allergens: string[];
   serves_delta: number;
   is_default: boolean;
 };
@@ -57,8 +55,6 @@ export function newEmptyModifierOption(): EditableModifierOption {
     price_delta: 0,
     price_override: null,
     primary_protein: null,
-    removes_dietary_tags: [],
-    adds_allergens: [],
     serves_delta: 0,
     is_default: false,
   };

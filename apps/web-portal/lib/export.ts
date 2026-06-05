@@ -39,8 +39,6 @@ export const exportAsJSON = (data: RestaurantData): void => {
         name: dish.name,
         description: dish.description,
         price: dish.price,
-        dietary_tags: dish.dietary_tags,
-        allergens: dish.allergens,
         photo_url: dish.photo_url || null,
       })),
     };
@@ -74,14 +72,12 @@ export const exportAsJSON = (data: RestaurantData): void => {
  */
 export const exportAsCSV = (dishes: Dish[], restaurantName: string): void => {
   try {
-    const headers = ['Name', 'Description', 'Price', 'Dietary Tags', 'Allergens', 'Photo URL'];
+    const headers = ['Name', 'Description', 'Price', 'Photo URL'];
 
     const rows = dishes.map(dish => [
       escapeCSV(dish.name),
       escapeCSV(dish.description ?? ''),
       dish.price.toFixed(2),
-      escapeCSV(dish.dietary_tags.join('; ')),
-      escapeCSV(dish.allergens.join('; ')),
       dish.photo_url || '',
     ]);
 
@@ -126,8 +122,6 @@ export const downloadCSVTemplate = (): void => {
     'Name',
     'Description',
     'Price',
-    'Dietary Tags (semicolon separated)',
-    'Allergens (semicolon separated)',
     'Ingredients (semicolon separated)',
     'Photo URL (optional)',
   ];
@@ -136,8 +130,6 @@ export const downloadCSVTemplate = (): void => {
     'Margherita Pizza',
     'Classic pizza with fresh mozzarella and basil',
     '16.99',
-    'vegetarian',
-    'dairy; gluten',
     'tomato; mozzarella; basil; olive oil; flour',
     '',
   ];

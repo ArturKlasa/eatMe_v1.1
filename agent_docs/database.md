@@ -8,9 +8,7 @@ EatMe uses Supabase (PostgreSQL 15) with PostGIS for geospatial queries and pgve
 
 - **restaurants** — Restaurant profiles with location (PostGIS POINT), operating hours, cuisine types
 - **menus** — Menu containers belonging to restaurants (one active menu per restaurant)
-- **dishes** — Individual dishes with allergens, dietary tags, price, description, embeddings
-- **ingredients_master** — Master ingredient list with allergen/dietary metadata
-- **dish_ingredients** — Junction table linking dishes to ingredients
+- **dishes** — Individual dishes with `primary_protein` (classification), price, description, embeddings
 - **dish_opinions** — User ratings/opinions on dishes (liked/okay/disliked + tags)
 - **visits** — User visit records for restaurants
 - **profiles** — User profiles extending Supabase auth
@@ -46,8 +44,8 @@ RLS policies on `storage.objects` use `split_part(name, '/', 1)` to extract the 
 
 Migration files in `supabase/migrations/` with numeric prefixes. Use `supabase migration new <name>` to create new migrations. Reverse migrations are named `<number>_REVERSE_ONLY_<name>.sql` and must be pre-written alongside every forward migration.
 
-## Ingredient System
+## Dish Classification
 
-Postgres triggers auto-calculate `dishes.allergens` and `dishes.dietary_tags` when dish ingredients change. The trigger fires on insert/update to `dish_ingredients`.
+Dishes are classified by `primary_protein` (11-value enum, NOT NULL). The legacy ingredient pipeline — `dish_ingredients` + the triggers that auto-calculated `dishes.allergens` / `dishes.dietary_tags` — was retired in migrations 151–153. The dish-level `allergens` / `dietary_tags` columns, the option-level allergen/dietary modifiers, and the `user_preferences` allergen/diet columns were then dropped in migrations 155–156 (allergens + dietary tags are abandoned — EatMe is a protein-based discovery app, not an allergen-safety app). See the root `CLAUDE.md` for the rationale.
 
 See `docs/project/06-database-schema.md` for the complete schema documentation.

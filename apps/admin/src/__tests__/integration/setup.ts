@@ -73,7 +73,7 @@ export default async function globalSetup(): Promise<void> {
 
   const { error: optErr } = await supa
     .from('options')
-    .select('id, price_override, primary_protein, adds_allergens, is_default')
+    .select('id, price_override, primary_protein, is_default')
     .limit(0);
   if (optErr) {
     throw new Error(

@@ -6,6 +6,13 @@
 >
 > **Last updated**: 2026-04-05
 
+> **⚠️ Schema drift (post-2026-04-05):** Two retirements removed tables/columns documented below:
+>
+> 1. **Ingredient pipeline** (migrations 151–153) — dropped `dish_ingredients`, `canonical_ingredients`, `ingredient_concepts`, `canonical_ingredient_allergens`, and the dish-level `*_override` columns.
+> 2. **Allergens + dietary tags** (migrations 155–156) — dropped `dishes.allergens` / `dishes.dietary_tags`, `options.adds_allergens` / `removes_dietary_tags` / `adds_dietary_tags`, `user_preferences.allergies` / `diet_types` / `religious_restrictions` / `preferred_dietary_tags`, and the `allergens` / `dietary_tags` / `canonical_ingredient_dietary_tags` tables. EatMe classifies dishes solely by `primary_protein`; diet filtering is protein-based (vegan = `primary_protein='vegan'`, vegetarian = no meat/poultry/fish/shellfish family). See root `CLAUDE.md` → "Allergens & Dietary Tags — Abandoned".
+>
+> The authoritative live schema is `infra/supabase/migrations/database_schema.sql` + migrations. Sections below describing removed objects are retained for history.
+
 ---
 
 ## Table of Contents

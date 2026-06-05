@@ -1,13 +1,10 @@
 /**
  * Permanent Filters Component - DrawerFilters
  *
- * Comprehensive permanent filtering interface:
+ * Permanent (HARD) filtering interface — excludes non-matching dishes from the feed:
  * 1. Diet Preference: All/Vegetarian/Vegan (single selection)
- * 2. Exclude: No meat, No fish, No seafood, No eggs, No dairy (multiple selection)
- * 3. Allergies: Lactose, Gluten, Peanuts, Soy, Sesame, Shellfish, Nuts (multiple selection)
- * 4. Diet Preferences: Diabetic, Keto, Paleo, Low-carb, Pescatarian (multiple selection)
- * 5. Religious Restrictions: Halal, Hindu, Kosher (multiple selection)
- * 6. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
+ * 2. Exclude: No meat, No fish, No seafood, No eggs, No spicy (multiple selection)
+ * 3. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
  */
 
 import React from 'react';
@@ -31,9 +28,6 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
     permanent,
     setPermanentDietPreference,
     toggleExclude,
-    toggleAllergy,
-    toggleDietType,
-    toggleReligiousRestriction,
     toggleFacility,
     resetPermanentFilters,
   } = useFilterStore();
@@ -133,95 +127,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
         </View>
       </View>
 
-      {/* 3. Allergies - Multiple Selection */}
-      <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.allergiesTitle')}</Text>
-        <View style={drawerFiltersStyles.optionsContainer}>
-          {(Object.keys(permanent.allergies) as (keyof typeof permanent.allergies)[]).map(
-            allergy => (
-              <TouchableOpacity
-                key={allergy}
-                style={[
-                  drawerFiltersStyles.option,
-                  permanent.allergies[allergy] && drawerFiltersStyles.selectedOption,
-                ]}
-                onPress={() => toggleAllergy(allergy)}
-              >
-                <Text
-                  style={[
-                    drawerFiltersStyles.optionText,
-                    permanent.allergies[allergy] && drawerFiltersStyles.selectedText,
-                  ]}
-                >
-                  {t(`filters.allergy.${allergy}`)}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
-        </View>
-      </View>
-
-      {/* 4. Diet Preferences - Multiple Selection */}
-      <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.dietPreferencesTitle')}</Text>
-        <View style={drawerFiltersStyles.optionsContainer}>
-          {(Object.keys(permanent.dietTypes) as (keyof typeof permanent.dietTypes)[]).map(
-            dietType => (
-              <TouchableOpacity
-                key={dietType}
-                style={[
-                  drawerFiltersStyles.option,
-                  permanent.dietTypes[dietType] && drawerFiltersStyles.selectedOption,
-                ]}
-                onPress={() => toggleDietType(dietType)}
-              >
-                <Text
-                  style={[
-                    drawerFiltersStyles.optionText,
-                    permanent.dietTypes[dietType] && drawerFiltersStyles.selectedText,
-                  ]}
-                >
-                  {t(`filters.dietType.${dietType}`)}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
-        </View>
-      </View>
-
-      {/* 5. Religious Restrictions - Multiple Selection */}
-      <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>
-          {t('filters.religiousRestrictionsTitle')}
-        </Text>
-        <View style={drawerFiltersStyles.optionsContainer}>
-          {(
-            Object.keys(
-              permanent.religiousRestrictions
-            ) as (keyof typeof permanent.religiousRestrictions)[]
-          ).map(restriction => (
-            <TouchableOpacity
-              key={restriction}
-              style={[
-                drawerFiltersStyles.option,
-                permanent.religiousRestrictions[restriction] && drawerFiltersStyles.selectedOption,
-              ]}
-              onPress={() => toggleReligiousRestriction(restriction)}
-            >
-              <Text
-                style={[
-                  drawerFiltersStyles.optionText,
-                  permanent.religiousRestrictions[restriction] && drawerFiltersStyles.selectedText,
-                ]}
-              >
-                {t(`filters.religious.${restriction}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* 6. Restaurant Facilities - Multiple Selection */}
+      {/* 3. Restaurant Facilities - Multiple Selection */}
       <View style={drawerFiltersStyles.section}>
         <Text style={drawerFiltersStyles.sectionTitle}>🏪 Restaurant Facilities</Text>
         <View style={drawerFiltersStyles.optionsContainer}>

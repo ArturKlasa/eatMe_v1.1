@@ -13,7 +13,6 @@ import { useDishFormData } from '@/lib/hooks/useDishFormData';
 import { DishBasicFields } from './dish/DishBasicFields';
 import { DishCategorySelect } from './dish/DishCategorySelect';
 import { DishSpiceLevel } from './dish/DishSpiceLevel';
-import { DishDietarySection } from './dish/DishDietarySection';
 import { DishKindSelector } from './dish/DishKindSelector';
 import { DishVariantsSection } from './dish/DishVariantsSection';
 import { DishOptionsSection } from './dish/DishOptionsSection';
@@ -55,8 +54,6 @@ export function DishFormDialog({
       description: '',
       price: 0,
       calories: undefined,
-      dietary_tags: [] as string[],
-      allergens: [] as string[],
       spice_level: 'none' as const,
       photo_url: '',
       is_available: true,
@@ -137,10 +134,6 @@ export function DishFormDialog({
 
             <DishPrimaryProteinSelect />
             <DishPrimaryProteinBanner />
-
-            <Separator />
-
-            <DishDietarySection />
 
             <Separator />
 

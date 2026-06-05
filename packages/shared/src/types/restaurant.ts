@@ -66,12 +66,6 @@ export interface Option {
   price_override?: number | null;
   /** Overrides base dish's primary_protein when this option changes the protein source. */
   primary_protein?: string | null;
-  /** Tags this option ADDS (e.g. ['gluten_free'] for a gluten-free crust upgrade). */
-  adds_dietary_tags?: string[];
-  /** Tags this option REMOVES from the base (e.g. ['vegetarian'] for adding meat). */
-  removes_dietary_tags?: string[];
-  /** Allergens this option introduces beyond the base dish. */
-  adds_allergens?: string[];
   /** Headcount change (0 for most options; +1 for "large" size that serves 2). */
   serves_delta?: number;
   /** Marks the standard / cheapest option in a required group. */
@@ -135,8 +129,6 @@ export interface Dish {
   description?: string;
   price: number;
   calories?: number;
-  dietary_tags: string[];
-  allergens: string[];
   spice_level?: 'none' | 'mild' | 'hot' | null;
   photo_url?: string;
   is_available?: boolean;

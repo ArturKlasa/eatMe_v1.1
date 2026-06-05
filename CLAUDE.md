@@ -46,6 +46,12 @@ Dishes are classified by a single `primary_protein` column (enum, not null) on t
 
 The legacy `dish_ingredients` / `canonical_ingredients` / `ingredient_concepts` pipeline has been retired from the mobile + edge runtime (Phase A, 2026-05-17). The DB tables and triggers still exist; Phase B drops the triggers, Phase C drops the schema. See `docs/plans/ingredient-pipeline-phase-*` for the rollout.
 
+## Allergens & Dietary Tags — Abandoned
+
+EatMe is a **discovery + protein-based filtering app, NOT an allergen-safety app.** `primary_protein` is the sole surviving food-classification axis. The dish-level `allergens` / `dietary_tags` arrays, the option-level `adds_allergens` / `removes_dietary_tags` / `adds_dietary_tags` modifiers, and the `user_preferences` columns `allergies` / `diet_types` / `religious_restrictions` / `preferred_dietary_tags` were always empty (no reliable data-entry path — the sole operator can only supply `primary_protein`) and have been removed across all apps + edge functions (2026-06-05).
+
+Diet filtering is now **protein-derived**: vegan = `primary_protein = 'vegan'`; vegetarian = no `meat`/`poultry`/`fish`/`shellfish` protein family (eggs allowed = lacto-ovo). `user_preferences.diet_preference` + `exclude` survive. Migrations **155** (rewrites `generate_candidates` / `get_group_candidates` / `admin_confirm_menu_scan`) and **156** (drops the columns + the orphaned `allergens` / `dietary_tags` / `canonical_ingredient_dietary_tags` tables) complete the DB removal. See `docs/plans/abandon-allergens-dietary.md`.
+
 ## Dish Kind — Composition Type
 
 Dishes carry a `dish_kind` column (enum, not null default `'standard'`). The canonical 5 values live in `packages/shared/src/constants/menu.ts` (`DISH_KIND_META`) and `packages/shared/src/types/restaurant.ts` (`DishKind` type). Both apps import from `@eatme/shared`.

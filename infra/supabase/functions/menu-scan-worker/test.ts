@@ -639,8 +639,6 @@ interface ModOption {
   price_delta: number;
   price_override: number | null;
   primary_protein: string | null;
-  removes_dietary_tags: string[];
-  adds_allergens: string[];
   serves_delta: number;
   is_default: boolean;
 }
@@ -819,8 +817,6 @@ Deno.test('fixture: Pad Thai with required protein choice', async () => {
             price_delta: 0,
             price_override: null,
             primary_protein: 'chicken',
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: true,
           },
@@ -829,8 +825,6 @@ Deno.test('fixture: Pad Thai with required protein choice', async () => {
             price_delta: 3,
             price_override: null,
             primary_protein: 'shellfish',
-            removes_dietary_tags: [],
-            adds_allergens: ['shellfish'],
             serves_delta: 0,
             is_default: false,
           },
@@ -839,8 +833,6 @@ Deno.test('fixture: Pad Thai with required protein choice', async () => {
             price_delta: 0,
             price_override: null,
             primary_protein: 'vegetarian',
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: false,
           },
@@ -858,9 +850,6 @@ Deno.test('fixture: Pad Thai with required protein choice', async () => {
   const defaults = captured.modifier_groups[0].options.filter((o: ModOption) => o.is_default);
   assertEquals(defaults.length, 1);
   assertEquals(defaults[0].name, 'Chicken');
-  // Shrimp option carries shellfish allergen
-  const shrimp = captured.modifier_groups[0].options.find((o: ModOption) => o.name === 'Shrimp');
-  assertArrayIncludes(shrimp.adds_allergens, ['shellfish']);
 });
 
 Deno.test('fixture: Caesar with optional add-ons', async () => {
@@ -882,8 +871,6 @@ Deno.test('fixture: Caesar with optional add-ons', async () => {
             price_delta: 5,
             price_override: null,
             primary_protein: 'chicken',
-            removes_dietary_tags: ['vegetarian'],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: false, // optional groups have no default
           },
@@ -892,8 +879,6 @@ Deno.test('fixture: Caesar with optional add-ons', async () => {
             price_delta: 7,
             price_override: null,
             primary_protein: 'shellfish',
-            removes_dietary_tags: ['vegetarian'],
-            adds_allergens: ['shellfish'],
             serves_delta: 0,
             is_default: false,
           },
@@ -908,10 +893,6 @@ Deno.test('fixture: Caesar with optional add-ons', async () => {
   // No default in optional groups
   const defaults = captured.modifier_groups[0].options.filter((o: ModOption) => o.is_default);
   assertEquals(defaults.length, 0);
-  // All add-ons strip vegetarian
-  for (const opt of captured.modifier_groups[0].options) {
-    assertArrayIncludes(opt.removes_dietary_tags, ['vegetarian']);
-  }
 });
 
 Deno.test('fixture: Pizza S/M/L sizes with serves_delta', async () => {
@@ -933,8 +914,6 @@ Deno.test('fixture: Pizza S/M/L sizes with serves_delta', async () => {
             price_delta: 0,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: true,
           },
@@ -943,8 +922,6 @@ Deno.test('fixture: Pizza S/M/L sizes with serves_delta', async () => {
             price_delta: 4,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 1, // serves 2 instead of 1
             is_default: false,
           },
@@ -953,8 +930,6 @@ Deno.test('fixture: Pizza S/M/L sizes with serves_delta', async () => {
             price_delta: 8,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 2, // serves 3 instead of 1
             is_default: false,
           },
@@ -996,8 +971,6 @@ Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
             price_delta: 0,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: true,
           },
@@ -1006,8 +979,6 @@ Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
             price_delta: 1,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: false,
           },
@@ -1025,8 +996,6 @@ Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
             price_delta: 0,
             price_override: null,
             primary_protein: 'vegetarian',
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: true,
           },
@@ -1035,8 +1004,6 @@ Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
             price_delta: 2,
             price_override: null,
             primary_protein: 'chicken',
-            removes_dietary_tags: ['vegetarian'],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: false,
           },
@@ -1054,8 +1021,6 @@ Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
             price_delta: 2,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: false,
           },
@@ -1064,8 +1029,6 @@ Deno.test('fixture: build-your-own bowl with multiple groups', async () => {
             price_delta: 0,
             price_override: null,
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: ['peanuts'],
             serves_delta: 0,
             is_default: false,
           },
@@ -1111,8 +1074,6 @@ Deno.test(
               price_delta: 0,
               price_override: null,
               primary_protein: 'vegetarian',
-              removes_dietary_tags: [],
-              adds_allergens: [],
               serves_delta: 0,
               is_default: true,
             },
@@ -1121,8 +1082,6 @@ Deno.test(
               price_delta: 0,
               price_override: null,
               primary_protein: 'fish',
-              removes_dietary_tags: ['vegetarian', 'vegan'],
-              adds_allergens: ['fish'],
               serves_delta: 0,
               is_default: false,
             },
@@ -1140,8 +1099,6 @@ Deno.test(
               price_delta: 0,
               price_override: null,
               primary_protein: 'fish',
-              removes_dietary_tags: [],
-              adds_allergens: ['fish'],
               serves_delta: 0,
               is_default: true,
             },
@@ -1150,8 +1107,6 @@ Deno.test(
               price_delta: 12,
               price_override: null,
               primary_protein: 'lamb',
-              removes_dietary_tags: [],
-              adds_allergens: [],
               serves_delta: 0,
               is_default: false,
             },
@@ -1209,8 +1164,6 @@ Deno.test('fixture: tiered wings with non-linear pricing via price_override', as
             price_delta: 0,
             price_override: null, // base
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 0,
             is_default: true,
           },
@@ -1219,8 +1172,6 @@ Deno.test('fixture: tiered wings with non-linear pricing via price_override', as
             price_delta: 0,
             price_override: 9.0, // 12 wings for $9, not 2× $5
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 1,
             is_default: false,
           },
@@ -1229,8 +1180,6 @@ Deno.test('fixture: tiered wings with non-linear pricing via price_override', as
             price_delta: 0,
             price_override: 16.0, // bulk discount
             primary_protein: null,
-            removes_dietary_tags: [],
-            adds_allergens: [],
             serves_delta: 3,
             is_default: false,
           },

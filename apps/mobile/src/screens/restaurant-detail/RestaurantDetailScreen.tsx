@@ -20,9 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { isRestaurantOpenNow } from '../../utils/i18nUtils';
 import { DishPhotoModal } from '../../components/DishPhotoModal';
 import { RestaurantRatingBadge } from '../../components/RestaurantRatingBadge';
-import { ALLERGY_TO_DB } from '../../utils/menuFilterUtils';
 import { toggleFavorite } from '../../services/favoritesService';
-import { type PermanentFilters } from '../../stores/filterStore';
 import { useRestaurantDetail } from './useRestaurantDetail';
 import { getCurrentDayHours, getPaymentNote } from './RestaurantMetadata';
 import { FoodTab } from './FoodTab';
@@ -58,8 +56,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     setUserDishOpinions,
     restaurantRating,
     categoryDishes,
-    optionAllergens,
-    setOptionAllergens,
     setDishOptionGroups,
     loadAttempt,
     setLoadAttempt,
@@ -252,7 +248,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             setSelectedDish(null);
             setDishPhotos([]);
             setDishOptionGroups([]);
-            setOptionAllergens(new Map());
           }}
           dishId={selectedDish.id}
           dishName={selectedDish.name}
@@ -265,15 +260,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           dishKind={selectedDish.dish_kind ?? 'standard'}
           displayPricePrefix={selectedDish.display_price_prefix ?? 'exact'}
           optionGroups={dishOptionGroups}
-          optionAllergens={optionAllergens}
-          userAllergens={(
-            Object.entries(permanentFilters.allergies) as [
-              keyof PermanentFilters['allergies'],
-              boolean,
-            ][]
-          )
-            .filter(([, v]) => v)
-            .map(([k]) => ALLERGY_TO_DB[k])}
           photos={dishPhotos}
           onPhotoAdded={() => {
             if (selectedDish) {

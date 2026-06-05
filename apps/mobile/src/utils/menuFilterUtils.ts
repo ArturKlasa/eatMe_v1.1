@@ -2,36 +2,32 @@
  * menuFilterUtils.ts
  *
  * Classifies dishes in the restaurant menu view against the user's permanent
- * hard filters (diet, allergens, religious restrictions).
+ * HARD filters (diet preference + protein-family exclusions + spice), all
+ * derived from `primary_protein` now that dish-level dietary_tags/allergens are
+ * retired.
  *
  * This runs entirely in JS on pre-fetched data — no extra network calls needed.
- *
- * Design reference: first-principles-review Part 14
  */
 
+import { deriveProteinFields, type PrimaryProtein } from '@eatme/shared';
 import type { DailyFilters, PermanentFilters } from '../stores/filterStore';
 
-// Migration 093 unified allergen codes to their canonical shorts — filterStore
-// keys are now identical to DB codes. Kept as an identity map so any residual
-// caller (and the RestaurantDetailScreen import below) still works unchanged.
-export const ALLERGY_TO_DB: Record<keyof PermanentFilters['allergies'], string> = {
-  lactose: 'lactose',
-  gluten: 'gluten',
-  peanuts: 'peanuts',
-  soy: 'soy',
-  sesame: 'sesame',
-  shellfish: 'shellfish',
-  nuts: 'nuts',
-};
+// Protein families that disqualify a dish from "vegetarian". Eggs are intentionally
+// excluded — egg-primary dishes count as (lacto-ovo) vegetarian. Mirrors the feed
+// Edge Function's hard/soft diet logic.
+const MEAT_FAMILIES = ['meat', 'poultry', 'fish', 'shellfish'];
 
-// Religious restriction filterStore key → dietary_tag code on dishes
-const RELIGIOUS_TO_TAG: Record<keyof PermanentFilters['religiousRestrictions'], string> = {
-  halal: 'halal',
-  hindu: 'hindu_vegetarian',
-  kosher: 'kosher',
-  jain: 'jain',
-  buddhist: 'buddhist',
-};
+/** Resolve a dish's protein families from its precomputed column or `primary_protein`. */
+function dishProteinFamilies(dish: {
+  primary_protein?: string | null;
+  protein_families?: string[] | null;
+}): string[] {
+  if (Array.isArray(dish.protein_families) && dish.protein_families.length > 0) {
+    return dish.protein_families;
+  }
+  return deriveProteinFields((dish.primary_protein ?? null) as PrimaryProtein | null)
+    .protein_families;
+}
 
 export interface DishClassification {
   /** True if the dish passes ALL of the user's permanent hard filters. */
@@ -39,61 +35,49 @@ export interface DishClassification {
 }
 
 /**
- * Classifies a single dish row against the user's permanent filters.
+ * Classifies a single dish row against the user's permanent HARD filters —
+ * diet preference + protein-family exclusions + spice, all protein-derived.
  *
- * @param dish       Raw dish row from Supabase (must include allergens, dietary_tags)
+ * @param dish       Raw dish row (must include primary_protein; protein_families optional)
  * @param permanent  The user's permanent filter state from filterStore
  */
 export function classifyDish(
   dish: {
-    allergens?: string[] | null;
-    dietary_tags?: string[] | null;
+    primary_protein?: string | null;
+    protein_families?: string[] | null;
+    spice_level?: string | null;
   },
   permanent: PermanentFilters
 ): DishClassification {
-  const allergens: string[] = dish.allergens ?? [];
-  const dietaryTags: string[] = dish.dietary_tags ?? [];
-
-  // ── Hard filter checks ───────────────────────────────────────────────────
+  const families = dishProteinFamilies(dish);
+  const protein = dish.primary_protein ?? null;
 
   let passesHardFilters = true;
 
-  // 1. Diet preference
+  // 1. Diet preference (vegan = strictly 'vegan'; vegetarian = no meat family, eggs OK)
   if (permanent.dietPreference === 'vegan') {
-    if (!dietaryTags.includes('vegan')) passesHardFilters = false;
+    if (protein !== 'vegan') passesHardFilters = false;
   } else if (permanent.dietPreference === 'vegetarian') {
-    if (!dietaryTags.includes('vegetarian') && !dietaryTags.includes('vegan')) {
+    if (MEAT_FAMILIES.some(f => families.includes(f))) passesHardFilters = false;
+  }
+
+  // 2. Protein-family exclusions
+  if (passesHardFilters) {
+    const ex = permanent.exclude;
+    if (ex.noMeat && (families.includes('meat') || families.includes('poultry'))) {
+      passesHardFilters = false;
+    } else if (ex.noFish && families.includes('fish')) {
+      passesHardFilters = false;
+    } else if (ex.noSeafood && families.includes('shellfish')) {
+      passesHardFilters = false;
+    } else if (ex.noEggs && families.includes('eggs')) {
       passesHardFilters = false;
     }
   }
 
-  // 2. Allergen exclusions (only if still passing — avoid redundant checks)
-  if (passesHardFilters) {
-    const activeAllergenCodes = (
-      Object.entries(permanent.allergies) as [keyof PermanentFilters['allergies'], boolean][]
-    )
-      .filter(([, active]) => active)
-      .map(([key]) => ALLERGY_TO_DB[key]);
-
-    if (activeAllergenCodes.some(code => allergens.includes(code))) {
-      passesHardFilters = false;
-    }
-  }
-
-  // 3. Religious restrictions
-  if (passesHardFilters) {
-    const activeRestrictions = (
-      Object.entries(permanent.religiousRestrictions) as [
-        keyof PermanentFilters['religiousRestrictions'],
-        boolean,
-      ][]
-    )
-      .filter(([, active]) => active)
-      .map(([key]) => RELIGIOUS_TO_TAG[key]);
-
-    if (activeRestrictions.some(tag => !dietaryTags.includes(tag))) {
-      passesHardFilters = false;
-    }
+  // 3. Spice exclusion
+  if (passesHardFilters && permanent.exclude.noSpicy && dish.spice_level === 'hot') {
+    passesHardFilters = false;
   }
 
   return { passesHardFilters };
@@ -110,23 +94,14 @@ export function sortDishesByFilter<T extends { passesHardFilters: boolean }>(dis
   });
 }
 
-// ── Modifier-option classification (Phase 5) ─────────────────────────────────
+// ── Modifier-option classification ───────────────────────────────────────────
 
 /**
- * Per-option classification against the active permanent + daily filters.
- *
- * Mobile uses this to annotate option rows in the dish detail screen — e.g.
- * show a red allergy chip on "Add anchovies" for a shellfish-allergic user,
- * or grey out "Add chicken" when the user's permanent dietPreference is vegan.
- *
- * Returns lists rather than booleans so the UI can name the specific tag (e.g.
- * "removes vegan") rather than a generic warning.
+ * Per-option classification against the active daily filters. Mobile uses this
+ * to highlight option rows whose protein matches the user's daily meat-type pick
+ * (e.g. emphasise "Add chicken" when the daily meatTypes.chicken toggle is on).
  */
 export interface OptionClassification {
-  /** Codes from the option's adds_allergens that the user has marked active. */
-  triggersAllergy: string[];
-  /** Codes from the option's removes_dietary_tags that the user requires. */
-  stripsDietaryTags: string[];
   /** True when the option's primary_protein lines up with an active daily meat type. */
   matchesDailyMeatType: boolean;
 }
@@ -155,57 +130,13 @@ function proteinToMeatTypeKey(
   }
 }
 
-// Religious-restriction → dietary_tag map. Same shape as RELIGIOUS_TO_TAG above
-// but with the user-facing filter keys instead of the DB keys for ergonomics.
-const RELIGIOUS_REQUIRED_TAG: Record<keyof PermanentFilters['religiousRestrictions'], string> = {
-  halal: 'halal',
-  hindu: 'hindu_vegetarian',
-  kosher: 'kosher',
-  jain: 'jain',
-  buddhist: 'buddhist',
-};
-
 export function classifyOption(
   option: {
-    adds_allergens?: string[] | null;
-    removes_dietary_tags?: string[] | null;
     primary_protein?: string | null;
   },
-  permanent: PermanentFilters,
   daily: DailyFilters
 ): OptionClassification {
-  const addsAllergens = option.adds_allergens ?? [];
-  const removesTags = option.removes_dietary_tags ?? [];
-
-  // ── Allergy triggers ──────────────────────────────────────────────────────
-  const activeAllergenCodes = (
-    Object.entries(permanent.allergies) as [keyof PermanentFilters['allergies'], boolean][]
-  )
-    .filter(([, active]) => active)
-    .map(([key]) => ALLERGY_TO_DB[key]);
-  const triggersAllergy = addsAllergens.filter(a => activeAllergenCodes.includes(a));
-
-  // ── Dietary-tag strip detection ───────────────────────────────────────────
-  // Build the set of dietary tags the user requires the dish to KEEP. An option
-  // that removes one of these is an explicit conflict.
-  const requiredTags = new Set<string>();
-  if (permanent.dietPreference === 'vegan') requiredTags.add('vegan');
-  if (permanent.dietPreference === 'vegetarian') requiredTags.add('vegetarian');
-  for (const [key, active] of Object.entries(permanent.religiousRestrictions) as [
-    keyof PermanentFilters['religiousRestrictions'],
-    boolean,
-  ][]) {
-    if (active) requiredTags.add(RELIGIOUS_REQUIRED_TAG[key]);
-  }
-  const stripsDietaryTags = removesTags.filter(t => requiredTags.has(t));
-
-  // ── Protein matching ──────────────────────────────────────────────────────
   const meatKey = proteinToMeatTypeKey(option.primary_protein);
   const matchesDailyMeatType = meatKey != null && daily.meatTypes[meatKey] === true;
-
-  return {
-    triggersAllergy,
-    stripsDietaryTags,
-    matchesDailyMeatType,
-  };
+  return { matchesDailyMeatType };
 }

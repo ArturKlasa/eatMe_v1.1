@@ -88,8 +88,6 @@ describeIntegration('drafts are never visible to consumers', () => {
         price: 10,
         dish_kind: 'standard',
         primary_protein: 'other',
-        allergens: [],
-        dietary_tags: [],
       })
       .select('id')
       .single();

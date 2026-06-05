@@ -109,18 +109,11 @@ export function ProfileScreen({ navigation }: ProfileScreenProps) {
       );
     }
 
-    const activeAllergies = Object.entries(permanent.allergies)
+    const activeExclusions = Object.entries(permanent.exclude)
       .filter(([_, active]) => active)
-      .map(([name]) => name.charAt(0).toUpperCase() + name.slice(1));
-    if (activeAllergies.length > 0) {
-      summary.push(`Allergic to ${activeAllergies.join(', ')}`);
-    }
-
-    const activeRestrictions = Object.entries(permanent.religiousRestrictions)
-      .filter(([_, active]) => active)
-      .map(([name]) => name.charAt(0).toUpperCase() + name.slice(1));
-    if (activeRestrictions.length > 0) {
-      summary.push(activeRestrictions.join(', '));
+      .map(([name]) => name.replace(/^no/, 'No '));
+    if (activeExclusions.length > 0) {
+      summary.push(activeExclusions.join(', '));
     }
 
     return summary.length > 0 ? summary : [t('profile.noDietRestrictions')];

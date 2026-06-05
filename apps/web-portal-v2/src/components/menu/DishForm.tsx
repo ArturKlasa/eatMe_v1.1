@@ -78,8 +78,6 @@ function buildDishInput(values: DishFormValues): DishV2Input {
     serves: values.serves,
     is_available: values.is_available,
     dish_category_id: values.dish_category_id || undefined,
-    dietary_tags: [] as string[],
-    allergens: [] as string[],
   };
 
   // Flat schema (Phase 3 collapsed the dish_kind discriminated union). The

@@ -180,8 +180,6 @@ export const POST = withAdminAuthRoute(async (ctx, req: NextRequest) => {
       google_place_id: row.google_place_id || null,
       cuisine_types: cuisineArr.length > 0 ? cuisineArr : null,
       status: 'draft' as const,
-      allergens: [] as string[],
-      dietary_tags: [] as string[],
       ...(row.lat != null && row.lng != null
         ? { location: `POINT(${row.lng} ${row.lat})` as unknown as null }
         : {}),

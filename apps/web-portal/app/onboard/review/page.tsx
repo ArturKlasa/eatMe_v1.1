@@ -11,7 +11,7 @@ import type { FormProgress, Menu, RestaurantType } from '@eatme/shared';
 import type { Location as AppLocation } from '@eatme/shared';
 import { basicInfoSchema } from '@eatme/shared';
 import { SPICE_LEVELS } from '@eatme/shared';
-import { ArrowLeft, CheckCircle2, Edit, Loader2, UtensilsCrossed, BookOpen, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Edit, Loader2, UtensilsCrossed, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRestaurantFull, submitRestaurantProfile } from '@/lib/restaurantService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -147,9 +147,13 @@ function ReviewPageContent() {
           </Card>
           <Card className="p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <Badge variant="secondary" className="text-lg font-bold px-2 py-0">{cuisineCount}</Badge>
+              <Badge variant="secondary" className="text-lg font-bold px-2 py-0">
+                {cuisineCount}
+              </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{cuisineCount === 1 ? 'Cuisine' : 'Cuisines'}</p>
+            <p className="text-sm text-muted-foreground">
+              {cuisineCount === 1 ? 'Cuisine' : 'Cuisines'}
+            </p>
           </Card>
         </div>
 
@@ -299,48 +303,32 @@ function ReviewPageContent() {
                                   )}
                                 </div>
                                 {dish.description && (
-                                  <p className="text-sm text-muted-foreground mt-1">{dish.description}</p>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {dish.description}
+                                  </p>
                                 )}
                               </div>
                             </div>
 
                             {(dish.selectedIngredients?.length ?? 0) > 0 && (
                               <div className="mb-2">
-                                <p className="text-xs font-medium text-muted-foreground">Ingredients:</p>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Ingredients:
+                                </p>
                                 <p className="text-sm text-foreground">
                                   {dish.selectedIngredients!.map(i => i.display_name).join(', ')}
                                 </p>
                               </div>
                             )}
 
-                            {(dish.dietary_tags.length > 0 ||
-                              dish.allergens.length > 0 ||
-                              (dish.spice_level != null && dish.spice_level !== 'none')) && (
+                            {dish.spice_level != null && dish.spice_level !== 'none' && (
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {dish.spice_level != null && dish.spice_level !== 'none' && (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-destructive/10 text-destructive border-destructive/20"
-                                  >
-                                    {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
-                                  </Badge>
-                                )}
-                                {dish.dietary_tags.map(tag => (
-                                  <Badge
-                                    key={tag}
-                                    className="bg-success/10 text-success capitalize"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))}
-                                {dish.allergens.map(allergen => (
-                                  <Badge
-                                    key={allergen}
-                                    className="bg-brand-primary/10 text-brand-primary capitalize"
-                                  >
-                                    <AlertTriangle className="h-3 w-3 inline-block mr-0.5" />{allergen}
-                                  </Badge>
-                                ))}
+                                <Badge
+                                  variant="outline"
+                                  className="bg-destructive/10 text-destructive border-destructive/20"
+                                >
+                                  {SPICE_LEVELS.find(l => l.value === dish.spice_level)?.icon}
+                                </Badge>
                               </div>
                             )}
                           </div>

@@ -81,6 +81,11 @@ const W = {
   quality: 0.1, // content completeness: photos, descriptions, ingredient data
 } as const;
 
+// Protein families that disqualify a dish from "vegetarian". Eggs are intentionally
+// excluded — egg-primary dishes count as (lacto-ovo) vegetarian. Used by both the
+// soft daily diet boost and the hard-diet option filter now that dietary_tags is retired.
+const MEAT_FAMILIES: string[] = ['meat', 'poultry', 'fish', 'shellfish'];
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface FeedRequest {
@@ -92,8 +97,6 @@ interface FeedRequest {
     dietPreference?: string;
     preferredDiet?: string;
     calorieRange?: { min: number; max: number };
-    allergens?: string[];
-    religiousRestrictions?: string[];
     cuisines?: string[];
     spiceLevel?: string;
     spiceTolerance?: string;
@@ -136,8 +139,6 @@ interface ModifierOption {
   price_delta: number;
   price_override: number | null;
   primary_protein: string | null;
-  removes_dietary_tags: string[];
-  adds_allergens: string[];
   serves_delta: number;
   is_default: boolean;
 }
@@ -171,8 +172,6 @@ interface Candidate {
   name: string;
   description: string | null;
   price: number;
-  dietary_tags: string[];
-  allergens: string[];
   calories: number | null;
   spice_level: string | null;
   image_url: string | null;
@@ -286,12 +285,16 @@ function rankCandidates(
     // outrank even a top-rated non-veg dish (base ~1.10) when the daily
     // toggle is on. Only a genuinely poor veg option (base <0.35) would
     // lose to the very best non-veg dish, which is the desired behaviour.
+    // Derived from primary_protein now that dietary_tags is retired: vegetarian =
+    // no meat/poultry/fish/shellfish family (eggs allowed); vegan = primary_protein 'vegan'.
+    // Uses the BASE protein_families (a veg dish with an optional meat add-on is still
+    // fundamentally a veg dish), not the modifier-reach families.
     if (filters.preferredDiet && filters.preferredDiet !== 'all') {
-      const tags = d.dietary_tags ?? [];
+      const families = d.protein_families ?? [];
       const matches =
         filters.preferredDiet === 'vegan'
-          ? tags.includes('vegan')
-          : tags.includes('vegetarian') || tags.includes('vegan');
+          ? d.primary_protein === 'vegan'
+          : !MEAT_FAMILIES.some(f => families.includes(f));
       if (matches) score += 0.5;
     }
 
@@ -438,11 +441,11 @@ function rankCandidates(
 // dominates, then price-delta as a tiebreaker, then is_default as a fallback.
 // Optional groups (min_selections=0) are skipped — they default to "not applied".
 //
-// User hard constraints (allergens, dietPreference) filter the option pool BEFORE
-// scoring. The dish itself is filtered out at SQL-level by required_groups_safe
-// in generate_candidates (migration 142), so this function should always find at
-// least one survivor per required group; if it doesn't, the group is silently
-// skipped (defensive).
+// The user's hard diet filter (dietPreference) drops protein-overriding options
+// from the pool BEFORE scoring, so the auto-selected config stays diet-consistent.
+// The dish itself is filtered at SQL-level by required_groups_safe in
+// generate_candidates, so a required group should always have a survivor; if it
+// doesn't, the group is silently skipped (defensive).
 
 function proteinToFamilies(protein: string | null | undefined): string[] {
   if (!protein) return [];
@@ -473,21 +476,25 @@ interface SelectedConfig {
   applied_options: AppliedOption[];
   effective_price: number;
   effective_primary_protein: string | null;
-  effective_dietary_tags: string[];
-  effective_allergens: string[];
 }
 
-function selectConfigForUser(
-  dish: Candidate,
-  filters: FeedRequest['filters'],
-  userAllergens: string[]
-): SelectedConfig {
+// A modifier option violates a hard diet filter when its primary_protein override
+// would push the dish outside the diet. vegan → only 'vegan' (or no override) is safe;
+// vegetarian → meat/poultry/fish/shellfish overrides are unsafe (eggs/veg/vegan OK).
+function violatesDietHard(protein: string | null | undefined, dietHard: string | null): boolean {
+  if (!dietHard || !protein) return false;
+  if (dietHard === 'vegan') return protein !== 'vegan';
+  return proteinToFamilies(protein).some(f => MEAT_FAMILIES.includes(f));
+}
+
+function selectConfigForUser(dish: Candidate, filters: FeedRequest['filters']): SelectedConfig {
   const applied: AppliedOption[] = [];
   let proteinOverride: string | null = null;
-  const tagsRemoved = new Set<string>();
-  const allergensAdded = new Set<string>();
   let totalDelta = 0;
   let overridePrice: number | null = null;
+
+  const dietHard =
+    filters.dietPreference && filters.dietPreference !== 'all' ? filters.dietPreference : null;
 
   const groups = Array.isArray(dish.modifier_groups) ? dish.modifier_groups : [];
   const sortedGroups = [...groups].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -498,36 +505,15 @@ function selectConfigForUser(
     // add-ons in the dish detail screen.
     if ((group.min_selections ?? 0) < 1) continue;
 
-    const surviving = (group.options ?? []).filter(opt => {
-      // Note: unavailable options are pre-filtered by migration 142's SQL
-      // (`o.is_available = true` in the options subquery), so we don't check
-      // again here.
-      if (
-        Array.isArray(opt.adds_allergens) &&
-        opt.adds_allergens.some(a => userAllergens.includes(a))
-      ) {
-        return false;
-      }
-      if (
-        filters.dietPreference === 'vegetarian' &&
-        Array.isArray(opt.removes_dietary_tags) &&
-        opt.removes_dietary_tags.includes('vegetarian')
-      ) {
-        return false;
-      }
-      if (
-        filters.dietPreference === 'vegan' &&
-        Array.isArray(opt.removes_dietary_tags) &&
-        opt.removes_dietary_tags.includes('vegan')
-      ) {
-        return false;
-      }
-      return true;
-    });
+    // Drop options whose protein override would break the user's hard diet filter,
+    // so the auto-selected config the feed scores against stays diet-consistent.
+    // (Unavailable options are already pre-filtered by the SQL options subquery.)
+    const surviving = (group.options ?? []).filter(
+      opt => !violatesDietHard(opt.primary_protein, dietHard)
+    );
 
-    // If the SQL-level safety check passed but in-JS filters now eliminate all
-    // options (e.g. religious tag mismatch SQL doesn't cover yet), silently skip
-    // the group rather than crash. Required-group enforcement happens at confirm-RPC.
+    // SQL (required_groups_safe) already guarantees a survivor for required groups;
+    // skip defensively if an in-JS edge case eliminates them all.
     if (surviving.length === 0) continue;
 
     const scored = surviving.map(opt => {
@@ -552,10 +538,6 @@ function selectConfigForUser(
     });
 
     if (winner.primary_protein) proteinOverride = winner.primary_protein;
-    if (Array.isArray(winner.removes_dietary_tags))
-      winner.removes_dietary_tags.forEach(t => tagsRemoved.add(t));
-    if (Array.isArray(winner.adds_allergens))
-      winner.adds_allergens.forEach(a => allergensAdded.add(a));
 
     if (winner.price_override !== null && winner.price_override !== undefined) {
       overridePrice = winner.price_override;
@@ -571,8 +553,6 @@ function selectConfigForUser(
     applied_options: applied,
     effective_price,
     effective_primary_protein: proteinOverride ?? dish.primary_protein ?? null,
-    effective_dietary_tags: (dish.dietary_tags ?? []).filter(t => !tagsRemoved.has(t)),
-    effective_allergens: [...new Set([...(dish.allergens ?? []), ...allergensAdded])],
   };
 }
 
@@ -739,7 +719,6 @@ serve(async (req: Request) => {
     let userLikedCuisines: string[] = [];
     let dbSpiceTolerance: string | null = null;
     let dbFavoriteCuisines: string[] = [];
-    let dbReligiousRestrictions: string[] = [];
     let dbPreferredPriceRange: [number, number] | null = null;
 
     let favoritedRestaurantIds = new Set<string>();
@@ -753,7 +732,7 @@ serve(async (req: Request) => {
           .in('interaction_type', ['liked', 'disliked']),
         supabase
           .from('user_preferences')
-          .select('spice_tolerance, favorite_cuisines, religious_restrictions')
+          .select('spice_tolerance, favorite_cuisines')
           .eq('user_id', userId)
           .maybeSingle(),
         supabase
@@ -801,9 +780,6 @@ serve(async (req: Request) => {
         dbFavoriteCuisines = Array.isArray(prefsRes.data.favorite_cuisines)
           ? prefsRes.data.favorite_cuisines
           : [];
-        dbReligiousRestrictions = Array.isArray(prefsRes.data.religious_restrictions)
-          ? prefsRes.data.religious_restrictions
-          : [];
       }
 
       if (behaviorRes.data?.preference_vector) {
@@ -843,9 +819,6 @@ serve(async (req: Request) => {
     const favoriteCuisines = filters.favoriteCuisines?.length
       ? filters.favoriteCuisines
       : dbFavoriteCuisines;
-    const religiousRestrictions = filters.religiousRestrictions?.length
-      ? filters.religiousRestrictions
-      : dbReligiousRestrictions;
     const preferredPriceRange = dbPreferredPriceRange;
     const hardDietTag =
       filters.dietPreference && filters.dietPreference !== 'all' ? filters.dietPreference : null;
@@ -860,9 +833,7 @@ serve(async (req: Request) => {
       p_radius_m: radius * 1000,
       p_preference_vector: preferenceVector ? JSON.stringify(preferenceVector) : null,
       p_disliked_dish_ids: userDislikes.length ? userDislikes : null,
-      p_allergens: filters.allergens?.length ? filters.allergens : null,
       p_diet_tag: hardDietTag,
-      p_religious_tags: religiousRestrictions.length ? religiousRestrictions : null,
       p_exclude_families: filters.excludeFamilies?.length ? filters.excludeFamilies : null,
       p_exclude_spicy: filters.excludeSpicy ?? false,
       p_limit: 200,
@@ -950,12 +921,11 @@ serve(async (req: Request) => {
       return isOpenNow(info?.openHours, info?.tz);
     });
 
-    const userAllergens = filters.allergens ?? [];
     const dishResult =
       mode === 'restaurants'
         ? []
         : dishPool.slice(0, limit).map(d => {
-            const config = selectConfigForUser(d, filters, userAllergens);
+            const config = selectConfigForUser(d, filters);
             return {
               id: d.id,
               restaurant_id: d.restaurant_id,
@@ -967,8 +937,6 @@ serve(async (req: Request) => {
               image_url: d.image_url,
               spice_level: d.spice_level,
               is_available: d.is_available,
-              allergens: d.allergens,
-              dietary_tags: d.dietary_tags,
               dish_kind: d.dish_kind,
               serves: d.serves,
               price_per_person: d.price_per_person,
@@ -979,8 +947,6 @@ serve(async (req: Request) => {
               applied_options: config.applied_options,
               effective_price: config.effective_price,
               effective_primary_protein: config.effective_primary_protein,
-              effective_dietary_tags: config.effective_dietary_tags,
-              effective_allergens: config.effective_allergens,
               restaurant: {
                 id: d.restaurant_id,
                 name: d.restaurant_name,

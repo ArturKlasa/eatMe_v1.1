@@ -46,11 +46,10 @@ export type Dish = Tables<'dishes'>;
 /** A single selectable option within an option group.
  *
  * Phase 4 dish-model rewrite (migration 140) added price_override,
- * primary_protein, adds_dietary_tags, removes_dietary_tags, adds_allergens,
- * serves_delta, is_default to the options table. These power the new
- * modifier-aware dish model — protein-introducing options, allergen warnings
- * derived from option choices, default selections that drive the feed-card
- * descriptor, and tiered pricing via price_override.
+ * primary_protein, serves_delta, is_default to the options table. These power
+ * the modifier-aware dish model — protein-introducing options, default
+ * selections that drive the feed-card descriptor, and tiered pricing via
+ * price_override.
  */
 export interface Option {
   id: string;
@@ -60,9 +59,6 @@ export interface Option {
   price_delta: number;
   price_override?: number | null;
   primary_protein?: string | null;
-  adds_dietary_tags?: string[] | null;
-  removes_dietary_tags?: string[] | null;
-  adds_allergens?: string[] | null;
   serves_delta?: number | null;
   is_default?: boolean | null;
   calories_delta?: number | null;

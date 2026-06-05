@@ -1,7 +1,7 @@
 /**
- * Onboarding Step 1: Dietary & Allergies
+ * Onboarding Step 1: Dietary
  *
- * Collects user's dietary preferences, protein preferences, and allergies.
+ * Collects the user's diet preference (all/vegetarian/vegan) and protein preferences.
  */
 
 import React from 'react';
@@ -25,15 +25,6 @@ const PROTEIN_OPTIONS = [
   { value: 'egg', key: 'proteinEgg', emoji: '🥚' },
 ];
 
-const ALLERGY_OPTIONS = [
-  { value: 'nuts', key: 'allergyNuts', emoji: '🥜' },
-  { value: 'dairy', key: 'allergyDairy', emoji: '🥛' },
-  { value: 'gluten', key: 'allergyGluten', emoji: '🌾' },
-  { value: 'shellfish', key: 'allergyShellfish', emoji: '🦐' },
-  { value: 'eggs', key: 'allergyEggs', emoji: '🥚' },
-  { value: 'soy', key: 'allergySoy', emoji: '🫘' },
-];
-
 export function OnboardingStep1Screen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -47,13 +38,6 @@ export function OnboardingStep1Screen() {
 
   // Additional type validation
   debugLog('[OnboardingStep1] formData:', formData);
-  debugLog(
-    '[OnboardingStep1] allergies type:',
-    typeof formData.allergies,
-    'isArray:',
-    Array.isArray(formData.allergies)
-  );
-  debugLog('[OnboardingStep1] allergies value:', formData.allergies);
 
   // Helper to safely get array values
   const safeArrayValue = (value: unknown): string[] => {
@@ -72,14 +56,6 @@ export function OnboardingStep1Screen() {
       ? current.filter(p => p !== protein)
       : [...current, protein];
     updateFormData({ proteinPreferences: updated });
-  };
-
-  const toggleAllergy = (allergy: string) => {
-    const current = safeArrayValue(formData?.allergies);
-    const updated = current.includes(allergy)
-      ? current.filter(a => a !== allergy)
-      : [...current, allergy];
-    updateFormData({ allergies: updated });
   };
 
   const handleNext = () => {
@@ -164,37 +140,6 @@ export function OnboardingStep1Screen() {
             </View>
           </View>
         )}
-
-        {/* Allergies */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('onboarding.allergiesQuestion')}</Text>
-          <Text style={styles.sectionSubtitle}>{t('onboarding.allergiesHint')}</Text>
-          <View style={styles.optionsGrid}>
-            {ALLERGY_OPTIONS.map(allergy => (
-              <TouchableOpacity
-                key={allergy.value}
-                style={[
-                  styles.optionCard,
-                  safeArrayValue(formData?.allergies).includes(allergy.value) &&
-                    styles.optionCardSelected,
-                ]}
-                onPress={() => toggleAllergy(allergy.value)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.optionEmoji}>{allergy.emoji}</Text>
-                <Text
-                  style={[
-                    styles.optionLabel,
-                    safeArrayValue(formData?.allergies).includes(allergy.value) &&
-                      styles.optionLabelSelected,
-                  ]}
-                >
-                  {t(`onboarding.${allergy.key}`)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>

@@ -57,8 +57,6 @@ export const dishSchema = z.object({
     .positive('Price must be greater than 0')
     .max(10000, 'Price seems unreasonably high'), // cap catches data-entry mistakes, not a business rule
   calories: z.number().min(0).max(5000).optional().or(z.nan()), // RHF number inputs return NaN for empty
-  dietary_tags: z.array(z.string()), // auto-populated by Postgres trigger when ingredient links are saved
-  allergens: z.array(z.string()), // auto-populated by Postgres trigger when ingredient links are saved
   spice_level: z.enum(['none', 'mild', 'hot']).optional().nullable(),
   photo_url: z.string().optional(),
   is_available: z.boolean().optional(),

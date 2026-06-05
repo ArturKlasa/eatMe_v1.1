@@ -248,8 +248,6 @@ describe('dishSchemaV2 (flat schema)', () => {
               price_delta: 0,
               price_override: null,
               primary_protein: 'chicken',
-              removes_dietary_tags: [],
-              adds_allergens: [],
               serves_delta: 0,
               is_default: true,
             },
@@ -289,12 +287,10 @@ describe('dishSchemaV2 (flat schema)', () => {
     }
   });
 
-  it('defaults dietary_tags and allergens to [] and modifier_groups to []', () => {
+  it('defaults modifier_groups to [] and bundled_items/dining_format to null', () => {
     const result = dishSchemaV2.safeParse(baseDishInput);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.dietary_tags).toEqual([]);
-      expect(result.data.allergens).toEqual([]);
       expect(result.data.modifier_groups).toEqual([]);
       expect(result.data.bundled_items).toBeNull();
       expect(result.data.dining_format).toBeNull();
@@ -418,6 +414,8 @@ describe('MenuExtractionSchema', () => {
     name: 'Grilled Salmon',
     description: 'Fresh Atlantic salmon with herbs',
     price: 24.5,
+    portion_amount: null,
+    portion_unit: null,
     dish_kind: 'standard',
     dining_format: null,
     bundled_items: [],

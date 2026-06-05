@@ -70,8 +70,6 @@ export async function seedRestaurant(opts: { name?: string; ownerId: string }): 
       name,
       owner_id: opts.ownerId,
       status: 'draft',
-      allergens: [],
-      dietary_tags: [],
     })
     .select('id')
     .single();

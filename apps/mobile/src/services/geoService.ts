@@ -12,8 +12,6 @@ export interface NearbyRestaurantsRequest {
     priceMin?: number;
     priceMax?: number;
     minRating?: number;
-    dietaryTags?: string[];
-    excludeAllergens?: string[];
     serviceTypes?: string[];
   };
 }
@@ -51,8 +49,6 @@ export interface RestaurantWithDistance {
       name: string;
       price: number;
       image_url?: string | null;
-      dietary_tags?: string[];
-      allergens?: string[];
       spice_level?: 'none' | 'mild' | 'hot';
       is_available: boolean;
     }>;
@@ -63,8 +59,6 @@ type EdgeFunctionFilters = {
   cuisines?: string[];
   priceMin?: number;
   priceMax?: number;
-  dietaryTags?: string[];
-  excludeAllergens?: string[];
   maxDistance?: number;
   proteinTypes?: string[];
   proteinFamilies?: string[];
@@ -78,7 +72,7 @@ export interface NearbyRestaurantsResponse {
   appliedFilters: EdgeFunctionFilters;
 }
 
-function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilters) {
+function buildEdgeFunctionFilters(daily: DailyFilters, _permanent: PermanentFilters) {
   const filters: EdgeFunctionFilters = {};
 
   if (daily.cuisineTypes && daily.cuisineTypes.length > 0) {
@@ -90,26 +84,8 @@ function buildEdgeFunctionFilters(daily: DailyFilters, permanent: PermanentFilte
     filters.priceMax = daily.priceRange.max;
   }
 
-  const dietaryTags: string[] = [];
-  if (permanent.dietPreference === 'vegan') {
-    dietaryTags.push('vegan');
-  } else if (permanent.dietPreference === 'vegetarian') {
-    dietaryTags.push('vegetarian');
-  }
-
-  if (dietaryTags.length > 0) {
-    filters.dietaryTags = dietaryTags;
-  }
-
-  if (permanent.allergies) {
-    const activeAllergens = Object.entries(permanent.allergies)
-      .filter(([_, active]) => active)
-      .map(([allergen]) => allergen);
-    if (activeAllergens.length > 0) {
-      filters.excludeAllergens = activeAllergens;
-    }
-  }
-
+  // Diet/allergen filtering is no longer applied at the (deprecated) nearby-restaurants
+  // layer — dish-level diet filtering happens in the feed Edge Function via primary_protein.
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
 

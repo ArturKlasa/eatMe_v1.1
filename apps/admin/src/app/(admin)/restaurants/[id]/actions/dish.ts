@@ -42,8 +42,7 @@ const adminDishCreateSchema = z.object({
 });
 
 // adminCreateDish: create a new dish under a restaurant. Lands as status='draft',
-// is_available=true, is_template=false. allergens / dietary_tags default to []
-// (per design §2.7 + small-memos G2 — same convention as confirm_menu_scan).
+// is_available=true, is_template=false.
 //
 // menu_category_id may be null — that creates an "uncategorized" dish that
 // surfaces in the orphan section on the restaurant detail page.
@@ -102,8 +101,6 @@ export const adminCreateDish = withAdminAuth(
       status: 'draft' as const,
       is_available: true,
       is_template: false,
-      allergens: [] as string[],
-      dietary_tags: [] as string[],
       dining_format: d.dining_format ?? null,
       bundled_items: d.bundled_items ?? null,
       portion_amount: d.portion_amount ?? null,

@@ -20,8 +20,6 @@ function toEditableOption(o: AdminMenuModifierOption): EditableModifierOption {
     // path). The DB column is constrained to PRIMARY_PROTEINS or null, so the
     // narrowing cast is safe.
     primary_protein: o.primary_protein as Protein | null,
-    removes_dietary_tags: o.removes_dietary_tags,
-    adds_allergens: o.adds_allergens,
     serves_delta: o.serves_delta,
     is_default: o.is_default,
   };
@@ -51,8 +49,6 @@ function toApiOption(o: EditableModifierOption): ApiGroupPayload['options'][numb
     price_delta: o.price_delta,
     price_override: o.price_override,
     primary_protein: o.primary_protein,
-    removes_dietary_tags: o.removes_dietary_tags,
-    adds_allergens: o.adds_allergens,
     serves_delta: o.serves_delta,
     is_default: o.is_default,
   };
@@ -92,8 +88,6 @@ function canonicalize(groups: readonly AnyGroup[]): string {
       price_delta: o.price_delta,
       price_override: o.price_override ?? null,
       primary_protein: o.primary_protein ?? null,
-      removes_dietary_tags: o.removes_dietary_tags,
-      adds_allergens: o.adds_allergens,
       serves_delta: o.serves_delta,
       is_default: o.is_default,
     })),

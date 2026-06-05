@@ -30,9 +30,7 @@ interface GroupMember {
   current_location: { lat: number; lng: number } | null;
   preferences: {
     diet_preference: 'all' | 'vegetarian' | 'vegan';
-    allergies: string[];
     exclude: string[];
-    religious_restrictions: string[];
   };
   preference_vector: number[] | null;
 }
@@ -92,8 +90,6 @@ const DIET_ORDER: Record<string, number> = { all: 0, vegetarian: 1, vegan: 2 };
 
 interface GroupConstraints {
   diet: 'all' | 'vegetarian' | 'vegan';
-  allergens: string[];
-  religious: string[];
 }
 
 function computeGroupConstraints(members: GroupMember[]): GroupConstraints {
@@ -102,10 +98,7 @@ function computeGroupConstraints(members: GroupMember[]): GroupConstraints {
     return DIET_ORDER[d] > DIET_ORDER[strictest] ? d : strictest;
   }, 'all');
 
-  const allergens = [...new Set(members.flatMap(m => m.preferences.allergies ?? []))];
-  const religious = [...new Set(members.flatMap(m => m.preferences.religious_restrictions ?? []))];
-
-  return { diet, allergens, religious };
+  return { diet };
 }
 
 // ── Stage 2: scoring ──────────────────────────────────────────────────────────
@@ -177,14 +170,10 @@ function calculateSearchCenter(
   return { lat: avgLat, lng: avgLng };
 }
 
-function analyzeConflicts(members: GroupMember[], constraints: GroupConstraints): string[] {
+function analyzeConflicts(constraints: GroupConstraints): string[] {
   const conflicts: string[] = [];
   if (constraints.diet === 'vegan')
     conflicts.push('All-vegan filter active — limited restaurant options');
-  if (constraints.allergens.length >= 4)
-    conflicts.push(`${constraints.allergens.length} allergens must be avoided — complex filter`);
-  if (constraints.religious.includes('halal') && constraints.religious.includes('kosher'))
-    conflicts.push('Both halal and kosher required — extremely rare combination');
   return conflicts;
 }
 
@@ -259,7 +248,7 @@ serve(async (req: Request) => {
     const [prefsRes, behaviorRes] = await Promise.all([
       serviceClient
         .from('user_preferences')
-        .select('user_id, diet_preference, allergies, exclude, religious_restrictions')
+        .select('user_id, diet_preference, exclude')
         .in('user_id', memberIds),
       serviceClient
         .from('user_behavior_profiles')
@@ -280,9 +269,7 @@ serve(async (req: Request) => {
         current_location: parseLocation(m.current_location),
         preferences: {
           diet_preference: prefs?.diet_preference ?? 'all',
-          allergies: prefs?.allergies ?? [],
           exclude: prefs?.exclude ?? [],
-          religious_restrictions: prefs?.religious_restrictions ?? [],
         },
         preference_vector: parseVector(beh?.preference_vector),
       };
@@ -307,8 +294,7 @@ serve(async (req: Request) => {
     const vectorMemberCount = members.filter(m => m.preference_vector !== null).length;
 
     console.log(
-      `[GroupRec] diet=${constraints.diet}, allergens=[${constraints.allergens}], ` +
-        `religious=[${constraints.religious}], vectors=${vectorMemberCount}/${members.length}`
+      `[GroupRec] diet=${constraints.diet}, vectors=${vectorMemberCount}/${members.length}`
     );
 
     // 7. Stage 1: get_group_candidates (DB-level hard filter + ANN ordering)
@@ -317,9 +303,7 @@ serve(async (req: Request) => {
       p_lng: searchCenter.lng,
       p_radius_m: radiusKm * 1000,
       p_group_vector: groupVector ? JSON.stringify(groupVector) : null,
-      p_allergens: constraints.allergens.length ? constraints.allergens : null,
       p_diet_tag: constraints.diet !== 'all' ? constraints.diet : null,
-      p_religious_tags: constraints.religious.length ? constraints.religious : null,
       p_limit: 40,
     };
 
@@ -341,7 +325,7 @@ serve(async (req: Request) => {
       pool = (expanded ?? []) as Candidate[];
 
       if (pool.length === 0) {
-        const conflicts = analyzeConflicts(members, constraints);
+        const conflicts = analyzeConflicts(constraints);
         return new Response(
           JSON.stringify({
             recommendations: [],

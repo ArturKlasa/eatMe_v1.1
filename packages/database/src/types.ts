@@ -6,31 +6,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '13.0.5';
   };
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
   public: {
     Tables: {
       admin_audit_log: {
@@ -75,36 +50,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      allergens: {
-        Row: {
-          code: string;
-          created_at: string | null;
-          description: string | null;
-          id: string;
-          name: string;
-          severity: string | null;
-          updated_at: string | null;
-        };
-        Insert: {
-          code: string;
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          name: string;
-          severity?: string | null;
-          updated_at?: string | null;
-        };
-        Update: {
-          code?: string;
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          name?: string;
-          severity?: string | null;
-          updated_at?: string | null;
-        };
-        Relationships: [];
-      };
       app_config: {
         Row: {
           id: boolean;
@@ -131,29 +76,6 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
-      };
-      canonical_ingredient_dietary_tags: {
-        Row: {
-          canonical_ingredient_id: string;
-          dietary_tag_id: string;
-        };
-        Insert: {
-          canonical_ingredient_id: string;
-          dietary_tag_id: string;
-        };
-        Update: {
-          canonical_ingredient_id?: string;
-          dietary_tag_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'canonical_ingredient_dietary_tags_dietary_tag_id_fkey';
-            columns: ['dietary_tag_id'];
-            isOneToOne: false;
-            referencedRelation: 'dietary_tags';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       canonical_menu_categories: {
         Row: {
@@ -182,36 +104,6 @@ export type Database = {
           slug?: string;
           sort_order?: number;
           updated_at?: string;
-        };
-        Relationships: [];
-      };
-      dietary_tags: {
-        Row: {
-          category: string | null;
-          code: string;
-          created_at: string | null;
-          description: string | null;
-          id: string;
-          name: string;
-          updated_at: string | null;
-        };
-        Insert: {
-          category?: string | null;
-          code: string;
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          name: string;
-          updated_at?: string | null;
-        };
-        Update: {
-          category?: string | null;
-          code?: string;
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          name?: string;
-          updated_at?: string | null;
         };
         Relationships: [];
       };
@@ -490,7 +382,6 @@ export type Database = {
       };
       dishes: {
         Row: {
-          allergens: string[] | null;
           available_days: string[] | null;
           available_from: string | null;
           available_hours_end: string | null;
@@ -501,7 +392,6 @@ export type Database = {
           created_at: string | null;
           description: string | null;
           description_visibility: string;
-          dietary_tags: string[] | null;
           dining_format: string | null;
           dish_category_id: string | null;
           dish_kind: string;
@@ -533,7 +423,6 @@ export type Database = {
           updated_at: string | null;
         };
         Insert: {
-          allergens?: string[] | null;
           available_days?: string[] | null;
           available_from?: string | null;
           available_hours_end?: string | null;
@@ -544,7 +433,6 @@ export type Database = {
           created_at?: string | null;
           description?: string | null;
           description_visibility?: string;
-          dietary_tags?: string[] | null;
           dining_format?: string | null;
           dish_category_id?: string | null;
           dish_kind?: string;
@@ -576,7 +464,6 @@ export type Database = {
           updated_at?: string | null;
         };
         Update: {
-          allergens?: string[] | null;
           available_days?: string[] | null;
           available_from?: string | null;
           available_hours_end?: string | null;
@@ -587,7 +474,6 @@ export type Database = {
           created_at?: string | null;
           description?: string | null;
           description_visibility?: string;
-          dietary_tags?: string[] | null;
           dining_format?: string | null;
           dish_category_id?: string | null;
           dish_kind?: string;
@@ -1237,8 +1123,6 @@ export type Database = {
       };
       options: {
         Row: {
-          adds_allergens: string[];
-          adds_dietary_tags: string[];
           calories_delta: number | null;
           created_at: string | null;
           description: string | null;
@@ -1251,13 +1135,10 @@ export type Database = {
           price_delta: number;
           price_override: number | null;
           primary_protein: string | null;
-          removes_dietary_tags: string[];
           serves_delta: number;
           updated_at: string | null;
         };
         Insert: {
-          adds_allergens?: string[];
-          adds_dietary_tags?: string[];
           calories_delta?: number | null;
           created_at?: string | null;
           description?: string | null;
@@ -1270,13 +1151,10 @@ export type Database = {
           price_delta?: number;
           price_override?: number | null;
           primary_protein?: string | null;
-          removes_dietary_tags?: string[];
           serves_delta?: number;
           updated_at?: string | null;
         };
         Update: {
-          adds_allergens?: string[];
-          adds_dietary_tags?: string[];
           calories_delta?: number | null;
           created_at?: string | null;
           description?: string | null;
@@ -1289,7 +1167,6 @@ export type Database = {
           price_delta?: number;
           price_override?: number | null;
           primary_protein?: string | null;
-          removes_dietary_tags?: string[];
           serves_delta?: number;
           updated_at?: string | null;
         };
@@ -1652,7 +1529,6 @@ export type Database = {
           preference_vector: string | null;
           preference_vector_updated_at: string | null;
           preferred_cuisines: string[] | null;
-          preferred_dietary_tags: string[] | null;
           preferred_dish_types: string[] | null;
           preferred_price_range: number[] | null;
           profile_updated_at: string | null;
@@ -1668,7 +1544,6 @@ export type Database = {
           preference_vector?: string | null;
           preference_vector_updated_at?: string | null;
           preferred_cuisines?: string[] | null;
-          preferred_dietary_tags?: string[] | null;
           preferred_dish_types?: string[] | null;
           preferred_price_range?: number[] | null;
           profile_updated_at?: string | null;
@@ -1684,7 +1559,6 @@ export type Database = {
           preference_vector?: string | null;
           preference_vector_updated_at?: string | null;
           preferred_cuisines?: string[] | null;
-          preferred_dietary_tags?: string[] | null;
           preferred_dish_types?: string[] | null;
           preferred_price_range?: number[] | null;
           profile_updated_at?: string | null;
@@ -1760,11 +1634,9 @@ export type Database = {
       };
       user_preferences: {
         Row: {
-          allergies: string[] | null;
           created_at: string | null;
           default_max_distance: number | null;
           diet_preference: string | null;
-          diet_types: string[] | null;
           exclude: string[] | null;
           favorite_cuisines: Json | null;
           favorite_dishes: Json | null;
@@ -1774,18 +1646,15 @@ export type Database = {
           onboarding_completed_at: string | null;
           primary_protein: string | null;
           protein_preferences: Json | null;
-          religious_restrictions: string[] | null;
           service_preferences: Json | null;
           spice_tolerance: string | null;
           updated_at: string | null;
           user_id: string;
         };
         Insert: {
-          allergies?: string[] | null;
           created_at?: string | null;
           default_max_distance?: number | null;
           diet_preference?: string | null;
-          diet_types?: string[] | null;
           exclude?: string[] | null;
           favorite_cuisines?: Json | null;
           favorite_dishes?: Json | null;
@@ -1795,18 +1664,15 @@ export type Database = {
           onboarding_completed_at?: string | null;
           primary_protein?: string | null;
           protein_preferences?: Json | null;
-          religious_restrictions?: string[] | null;
           service_preferences?: Json | null;
           spice_tolerance?: string | null;
           updated_at?: string | null;
           user_id: string;
         };
         Update: {
-          allergies?: string[] | null;
           created_at?: string | null;
           default_max_distance?: number | null;
           diet_preference?: string | null;
-          diet_types?: string[] | null;
           exclude?: string[] | null;
           favorite_cuisines?: Json | null;
           favorite_dishes?: Json | null;
@@ -1816,7 +1682,6 @@ export type Database = {
           onboarding_completed_at?: string | null;
           primary_protein?: string | null;
           protein_preferences?: Json | null;
-          religious_restrictions?: string[] | null;
           service_preferences?: Json | null;
           spice_tolerance?: string | null;
           updated_at?: string | null;
@@ -2250,14 +2115,6 @@ export type Database = {
         };
         Returns: string;
       };
-      calculate_dish_allergens: {
-        Args: { p_dish_id: string };
-        Returns: string[];
-      };
-      calculate_dish_dietary_tags: {
-        Args: { p_dish_id: string };
-        Returns: string[];
-      };
       calculate_distance_km: {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number };
         Returns: number;
@@ -2374,7 +2231,6 @@ export type Database = {
       };
       generate_candidates: {
         Args: {
-          p_allergens?: string[];
           p_current_day?: string;
           p_current_time?: string;
           p_diet_tag?: string;
@@ -2387,15 +2243,12 @@ export type Database = {
           p_lng: number;
           p_preference_vector?: string;
           p_radius_m?: number;
-          p_religious_tags?: string[];
           p_schedule_type?: string;
         };
         Returns: {
-          allergens: string[];
           bundled_items: Json;
           calories: number;
           description: string;
-          dietary_tags: string[];
           dining_format: string;
           dish_kind: string;
           display_price_prefix: string;
@@ -2554,14 +2407,12 @@ export type Database = {
       get_admin_user_counts: { Args: never; Returns: Record<string, unknown> };
       get_group_candidates: {
         Args: {
-          p_allergens?: string[];
           p_diet_tag?: string;
           p_group_vector?: string;
           p_lat: number;
           p_limit?: number;
           p_lng: number;
           p_radius_m?: number;
-          p_religious_tags?: string[];
         };
         Returns: {
           address: string;
@@ -3337,7 +3188,6 @@ export type Database = {
         };
         Returns: boolean;
       };
-      validate_allergen_codes: { Args: { codes: string[] }; Returns: boolean };
     };
     Enums: {
       location_mode: 'host_location' | 'midpoint' | 'max_radius';
@@ -3476,9 +3326,6 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       location_mode: ['host_location', 'midpoint', 'max_radius'],

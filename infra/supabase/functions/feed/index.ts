@@ -195,7 +195,6 @@ interface Candidate {
   // Universal dish structure fields
   parent_dish_id?: string | null;
   serves?: number;
-  price_per_person?: number | null;
   // Modifier-model fields surfaced by migration 142's generate_candidates rewrite.
   // `reachable_*` express the OR of base + every option (modifier reach), used
   // for "is there any way to consume this dish that matches user's daily filters?"
@@ -939,7 +938,6 @@ serve(async (req: Request) => {
               is_available: d.is_available,
               dish_kind: d.dish_kind,
               serves: d.serves,
-              price_per_person: d.price_per_person,
               // v2 modifier-aware fields
               dining_format: d.dining_format ?? null,
               bundled_items: d.bundled_items ?? null,

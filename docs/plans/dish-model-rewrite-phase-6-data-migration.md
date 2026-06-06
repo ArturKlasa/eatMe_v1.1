@@ -45,27 +45,26 @@ Calamar · Pescado · Campechano · Pulpo · Ostión · Camarón
 
 Left as-is they would fall through both conversion filters and then be orphaned by the `DROP COLUMN parent_dish_id` — their children would leak into the consumer feed as loose `standard` dishes. **Fix:** re-tag `standard`→`configurable` as Step 0 of Migration 158 (`WHERE is_parent AND dish_kind='standard'` hits exactly these 6); they then flow through the configurable path. After re-tag: **132 configurable** parents (240 children) + **3 bundle** parents (4 children).
 
-## 3. Migration 158 — conversion (DRY-RUN FIRST)
+## 3. Migration 158 — conversion (GENERATED + DRY-RUN)
 
-Dry-run harness: **`infra/supabase/dry-runs/phase6-data-conversion.dryrun.sql`** — wraps the full conversion in one transaction, prints FK introspection + before/after counts + a per-dish CSV (base price, options, deltas), and ends in `ROLLBACK`. Promote to `migrations/158_*.sql` (flip `ROLLBACK`→`COMMIT`) only after audit.
+**Validated read-only against prod on 2026-06-05** via `infra/scripts/preview-phase6-conversion.ts`, which reads prod and **emits a literal, atomic migration** to `infra/supabase/dry-runs/158_phase6_data_conversion.generated.sql` (every price/delta/portion precomputed — no PL/pgSQL parsing, nothing to mistranslate). Re-generate any time; review + replica dry-run (the file ends in `ROLLBACK`), then flip to `COMMIT` and move to `migrations/`.
 
-Steps (all inside one transaction):
+### Validated logic
+- **Re-tag** `standard`+`is_parent` (6 seafood) **and** all `bundle` parents → `configurable`; everything flows through one path.
+- **Multi (≥2 children) → `option_group` + `options`.** Base price is encoding-aware — the live data mixes both:
+  - **absolute** prices (`MIN(child) > 0`, e.g. seafood Chico/Mediano/Grande) → `base = MIN(child)`, `delta = child − base`.
+  - **deltas** (`MIN(child) = 0`, e.g. PASTA FETUCCINE Pollo $0/Salmon $35) → `base = parent.price`, `delta = child`.
+  - `is_default` = cheapest · `display_order` = rank · `primary_protein` override only when it differs from the parent · group name in source language.
+- **Single / childless → collapse to a plain dish** (no group): `price = parent.price` when > 0 (the menu price) else child price; descriptor → `portion_amount/unit` where parseable (`100 gr`→100 g, `8 pz`→8 pcs, `orden de tres`→3 pcs), else discarded.
+- **Delete** all 244 folded children; converted parents → `is_parent=false` (surfaces them immediately — no feed blackout before 159) + `enrichment_status='none'` (queues re-embed, §4).
 
-0. **Re-tag** the 6 anomalies `standard`→`configurable` (§2).
-1. **Configurable → `option_groups` + `options`** (only for parents that have ≥1 child — no empty groups):
-   - one `option_groups` row per parent: `selection_type='single'`, `min=max=1`, source-language name (Option 2), `display_in_card=false`.
-   - one `options` row per child: `price_delta = child.price − MIN(sibling.price)`, `is_default = (cheapest)`, `display_order = price rank`, `primary_protein = child protein **only when it differs** from the parent` (`NULL` for pure size variants — keeps the override semantics clean).
-   - set parent `price = MIN(child.price)`, `display_price_prefix = 'from'`.
-2. **Bundle → `bundled_items`**: `jsonb_agg({name, note:null})` from children onto the parent.
-3. **Dining format**: `dining_format='buffet'` where `dish_kind='buffet'`; `='course_menu'` where `dish_kind='course_menu'` (defensive — catches any stray tagged rows even though course *data* is empty).
-4. **Queue re-embed**: `enrichment_status='none'` on every converted parent (§4).
-5. **Delete** configurable + bundle children (their data now lives in options / bundled_items), **then set `is_parent=false` on the converted parents** so `generate_candidates` (which excludes `is_parent=true`) surfaces them immediately — this closes what would otherwise be a feed blackout for all 135 dishes in the window between 158 and 159. (The `is_parent` column is still dropped in 159; this just sets the right value in the interim. Childless-configurable parents stay `is_parent=true` and flagged.)
+### Dry-run findings (why the naive plan was wrong)
+- **62 single-child "configurables"** would have become pointless 1-option groups → collapse instead (pizzas→"Grande", pasta→"Con pollo", jamón→"100 gr", vegan notes).
+- **Price encoding is inconsistent** — only 13/132 parents are $0 containers; 119 carry their own price, children sometimes absolute, sometimes deltas. `MIN(child)` alone set PASTA FETUCCINE's base to **$0**. Hence the absolute/delta rule.
+- **51 single-child parent-vs-child price discrepancies > 25%** (pizza $225 vs "Grande" $285; Jamón $350 vs "100 gr" $690). **Decision 2026-06-05: migrate keeping the menu/parent price; emit all 51 as an operator spot-check list** in the SQL footer — not auto-resolved.
 
-**Audit (printed by the dry-run before the deletes, so it shows even if a delete hits an FK):**
-- FK constraints referencing `dishes` (so you see what deleting children touches — favorites especially).
-- per-dish CSV: `name, base_price, prefix, n_options, [{opt, delta, default, protein}]`.
-- flags: configurable parents with 0 children; children with `NULL` price (delta = NULL).
-- before/after row counts: dishes, parents, variant_children, option_groups, options.
+### Projection (refined, validated)
+`dishes 5998 → 5754` (−244) · `option_groups 368 → 434` (+66) · `options 1594 → 1775` (+181) · 11 portions recovered · 0 `$0`-price results.
 
 ## 4. Re-enrichment
 
@@ -123,10 +122,10 @@ Regenerate `@eatme/database` types.
 
 ## 8. Acceptance criteria
 
-- Before/after counts captured (dishes ↓244, option_groups ↑132, options ↑240, bundled_items set on 3).
+- Before/after counts match the generator's projection (dishes −244, option_groups +66, options +181).
 - No orphans: `SELECT count(*) FROM options o WHERE NOT EXISTS (SELECT 1 FROM option_groups g WHERE g.id=o.option_group_id)` = 0.
-- No data loss: every former variant name appears as an option (or bundled_item) name.
-- No NULL-price options unaccounted for (audit flag cleared or consciously accepted).
+- No silent data loss: every multi-variant child becomes an option; single-child descriptors collapse (portions preserved as portion_amount/unit; size words/notes intentionally dropped).
+- The 51 flagged price discrepancies triaged by an operator (kept the menu price; spot-check the genuinely ambiguous ones, e.g. Jamón).
 - All converted dishes reach `enrichment_status='completed'`.
 - Feed sanity: spot-check the 6 seafood dishes + a sample of the 126 — base price = cheapest size, deltas correct, single feed entry per parent.
 - 159 runs clean (no FK errors → confirms children fully removed).

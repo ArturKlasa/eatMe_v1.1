@@ -1,6 +1,20 @@
--- 158_phase6_data_conversion — GENERATED (read-only) from prod by infra/scripts/preview-phase6-conversion.ts
+-- 158_phase6_data_conversion.sql
+-- Created: 2026-06-06
+--
+-- Dish-model rewrite Phase 6 — convert legacy parent/variant dishes into the
+-- modifier model. Generated from prod by infra/scripts/preview-phase6-conversion.ts,
+-- validated via the read-only preview + a replica dry-run (counts matched:
+-- option_groups +66, options +181, dishes -244).
+--
+--   multi (>=2 children) -> option_group + options (absolute/delta base rule);
+--   single/childless     -> collapse to standard (menu price + parsed portions);
+--   244 folded children deleted; converted parents -> is_parent=false, enrichment_status='none'.
+--
+-- 51 single-child price discrepancies kept the menu price — operator spot-check
+-- list in the footer. ⚠ Reverse is manual (no auto-rollback after COMMIT).
+-- Re-embed after applying: infra/scripts/batch-embed.ts (targets enrichment_status none/failed).
 -- Plan: docs/plans/dish-model-rewrite-phase-6-data-migration.md
--- DRY-RUN: ends in ROLLBACK. Review + replica-test, then change ROLLBACK→COMMIT and move to migrations/.
+
 BEGIN;
 
 -- ===== MULTI → option groups (66 dishes) =====
@@ -594,8 +608,7 @@ DELETE FROM dishes WHERE id IN ('fb15b74f-1299-480e-a7aa-67b5a7ae2724','89aee064
 DELETE FROM dishes WHERE id IN ('02312f2b-b433-4a7e-9605-73e6555c24f9','b8d5a229-9eb9-4056-a27e-7a6f0f232da7','01a790da-92b2-4f44-a386-aa036455d555','0ed5e737-8c85-44cc-8bee-db7e36c2a949','8c2b41da-365b-42f5-bf2c-b55f19dcfddb','88c4ceed-611e-407b-81a5-0139d78f1b1b','f83a12bc-075c-4789-8681-bff0ae80347f','2142e6b0-37e2-48c4-8b04-1394e36626e3','0c0c2d6c-7ab2-4c06-9b71-707eba2a16c8','be52d2f6-e33e-4576-9046-bcc6fb44e558','b30f4179-e44c-4840-b081-58c294394c3e','1bd4938d-e139-4f78-b693-ab9605003ed6','5c0d073e-5ab9-485b-bef1-8377b8f82035','29b3b495-c831-4fad-a51d-78b17deb6813','ea8c0ded-800b-4133-9719-092bc6473806','e9f57978-03e4-4a4a-99b9-839a43138cda','ea60015c-a2b2-4e9c-9fbb-9c2723f0ca7a','48767908-b1bd-4810-8ad6-75e3c153ad4c','d0a4bc23-a2b5-421d-9380-d2880fbe460f','6084f773-9a8f-40c7-8b92-ce7e21e1eaec','79d068ab-2307-44a3-884a-a22bfbe4700a','42d207fc-445b-465c-bd5f-bc0bffc65e59','702abf8e-c2d3-43fe-ab9b-2680b505170a','37c0a7ef-c250-4086-8cd8-3389afe83993','e1e40561-f1f9-4a4b-9733-9c6e0d8e57ec','67888f9a-dc6e-46dc-a0ea-f962aa2b0045','a8a37778-ea43-408c-bc11-8fd0b4e26c43','5577f3cf-60ca-4090-ac40-86612b0588f9','815119e0-fc43-4c21-b4c6-da4530bdf20e','31a3ed3b-1b2c-497f-b34e-ac1eb9a9149b','fd310436-248c-4768-bbf6-5692ea140b0a','a234fe49-e96d-427b-8966-7585b2454a06','81cb459e-4cb9-4643-9a43-d57a850f3ebc','9756775d-3c80-4370-a0f1-9dc4b6b4ebb9','0357f028-08d8-4cd9-b1e6-3716edf3665a','f559ac37-66d4-493f-873b-7915638c6c83','a6047bc7-e995-4d40-ab34-46e5a0b30daa','a86d9ce6-e917-4371-bdba-bcb98fcfd8e5','c246204d-94d6-4393-9844-ed7712effe79','4197ba29-61b9-47c1-8f58-816c3bcadbeb','3093e8e7-5329-4307-b910-2b2333aec598','cc785f55-07cf-4797-93c0-8e3627562840','1ff3235d-a560-4fa0-8114-b04e5c3be6c9','8f8ef216-bbe7-496e-b4d3-252353d8469f','1f56977e-cf4b-4c40-8e62-9b76102b46ba','05013798-03ab-48ab-907a-79ee295c9b6f','0b22682d-0433-486e-8819-6116c64c31da','2faf5482-e741-4a13-af5b-5fe5ff8a3218','3562c505-986e-4411-9ce3-1f66352a887b','063e8863-de1f-4186-b025-e103655209b1');
 DELETE FROM dishes WHERE id IN ('4aa19aeb-afeb-4ab8-852d-8baa67645806','83e51309-89fb-4be2-810b-fd8a59cba319','73442071-b85f-4af4-b96f-40012d36cd0d','fd1e9012-c558-4a4d-8f1e-d39692e530ab','deb4f372-00af-4809-91c9-3615a87decde','923b5600-d275-482e-87ad-058f300f1258','9d7fe0f5-8d31-4806-92ac-0b98f5a57b22','83ca4716-ff1f-4760-8df6-ff6125018549','a3db3da6-e5dd-4969-a2d9-e194d5cc1995','0b571a6b-ae16-4f6d-a694-f230490b3e6b','054a7723-2b07-440c-aded-e6cd8283044d','86e68b59-6d09-45f0-a4c4-0c14faa3be3c','f41275d6-0578-44f5-ad23-02d45db7b407','e610be43-992e-4503-bbd2-3739327135d4','91ce41d5-e3b7-40ab-a0d2-e0322c8a023c','684204b8-9c64-4863-92ea-fb3eddd51145','ceae7255-58c8-49e1-853e-2a8af166fa8a','6d5fef96-e7b6-43c6-b9c8-32823cb51864','920e2e3f-ac5b-47d5-bd80-6fed3147eb62','f5fce1dd-67bb-4326-9a49-373feacb6d81','a426c542-3dfe-4afd-8a42-90ac6ee0ad81','349333f1-185c-47f3-a6eb-3e975cd2cd80','60c7a716-66e2-4661-b481-151f058741b7','ddd9e72f-69f5-46a6-9232-4bd177462053','19f9cf58-b0df-4807-b125-639746ad32e0','381074c6-9113-4360-86da-f09f99c4170b','784da3f1-2fd4-4612-a845-44cf36335c6d','074cc89d-c6bd-40f0-ad26-72ea4ebb8fed','3cbefcc8-4a1c-4dc7-b2fb-b3cb2952bc44','131052de-b154-4de7-8090-09f08b016843','c6593ced-3812-4dc6-94a3-36d81ed2f378','c69590a6-89b6-4294-8705-bd610915b640','fd679751-5f08-4c04-bdf4-d5c512c13936','718b7309-c30b-4062-ad58-a9f3bcd3c842','2e321fa8-eb6c-4242-a2d1-dd89f7535cdc','f3e09c5f-0652-4597-8539-8cb4bb0cbf53','c0228346-bde8-42a5-878d-bf3212c84371','f564a599-0947-4e35-b366-4884c186b58a','3ddab5e3-53db-40dc-9dcb-20edc3a54acb','0d60cea2-d0ef-44e0-988d-c1e2b58faba6','ba6d8085-e5f2-4f1a-8fce-bcbdbecf7852','e190e861-baf5-4c00-b306-ad0452532dec','398afc01-ac05-480c-96f8-f7402b9daef7','709b691f-bf8e-4174-8116-b4c2f37ec62b');
 
--- ===== AUDIT =====
-SELECT 'option_groups' AS t, count(*) FROM option_groups UNION ALL SELECT 'options', count(*) FROM options UNION ALL SELECT 'dishes', count(*) FROM dishes UNION ALL SELECT 'still_parent', count(*) FROM dishes WHERE is_parent;
+-- Expected after apply: option_groups 434, options 1775, dishes 5754, is_parent 0.
 
 -- ===== OPERATOR FLAG LIST — 51 single-child price discrepancies (>25%); kept the menu price =====
 --   ENSALADA CESAR: kept $240, variant "+ pechuga de pollo 120 g" was $50
@@ -650,5 +663,4 @@ SELECT 'option_groups' AS t, count(*) FROM option_groups UNION ALL SELECT 'optio
 --   Spicy Miso Ramen Beef: kept $204, variant "Grande" was $260
 --   Salmón: kept $201, variant "Corte grueso" was $276
 
-ROLLBACK;
--- COMMIT;
+COMMIT;

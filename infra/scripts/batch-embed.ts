@@ -81,7 +81,13 @@ async function enrichDish(dishId: string): Promise<EnrichResult> {
   try {
     const res = await fetch(ENRICH_DISH_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // enrich-dish runs with verify_jwt on; the gateway needs the service-role
+        // JWT or it 401s before the function executes (see diagnose-no-dishes.ts).
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
       body: JSON.stringify({ dish_id: dishId }),
     });
 

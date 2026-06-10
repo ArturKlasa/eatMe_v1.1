@@ -300,4 +300,42 @@ describe('POST /api/admin/import-csv — happy path', () => {
 
     expect(insertedPayloads[0]?.cuisine_types).toEqual(['Café', 'Italian']);
   });
+
+  it('country_code column sets country + derived currency on insert', async () => {
+    const insertedPayloads: Array<Record<string, unknown>> = [];
+    vi.mocked(createAdminServiceClient).mockReturnValue(
+      makeServiceClient({
+        onInsert: p => insertedPayloads.push(p as Record<string, unknown>),
+      }) as never
+    );
+
+    const POST = await importPost();
+    await POST(
+      makeRequest({
+        rows: [{ name: 'Taquería Norte', country_code: 'mx' }, { name: 'No Country Diner' }],
+      }),
+      { params: Promise.resolve({}) }
+    );
+
+    // Lowercase input is normalized; currency derived via COUNTRY_TO_CURRENCY.
+    expect(insertedPayloads[0]?.country_code).toBe('MX');
+    expect(insertedPayloads[0]?.currency_code).toBe('MXN');
+    // No country in the row → both omitted so the DB defaults stand.
+    expect(insertedPayloads[1]).not.toHaveProperty('country_code');
+    expect(insertedPayloads[1]).not.toHaveProperty('currency_code');
+  });
+
+  it('rejects a malformed country_code with a per-row error', async () => {
+    const POST = await importPost();
+    const res = await POST(
+      makeRequest({ rows: [{ name: 'Bad Country Café', country_code: 'MEX' }] }),
+      { params: Promise.resolve({}) }
+    );
+    const body = (await res.json()) as {
+      data: { total_inserted: number; errors: Array<{ field: string }> };
+    };
+
+    expect(body.data.total_inserted).toBe(0);
+    expect(body.data.errors.some(e => e.field === 'country_code')).toBe(true);
+  });
 });

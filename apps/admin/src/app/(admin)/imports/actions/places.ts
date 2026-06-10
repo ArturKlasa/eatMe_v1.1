@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { getCurrencyForCountry } from '@eatme/shared';
 import { withAdminAuth } from '@/lib/auth/wrappers';
 import type { ActionResult } from '@/lib/auth/wrappers';
 import { createAdminServiceClient } from '@/lib/supabase/server';
@@ -40,7 +41,16 @@ type PlaceResult = {
   websiteUri?: string;
   types?: string[];
   regularOpeningHours?: GoogleRegularOpeningHours;
+  addressComponents?: Array<{ shortText?: string; longText?: string; types?: string[] }>;
 };
+
+// ISO 3166-1 alpha-2 country from Google's address components, or null when
+// Google didn't return one (rare).
+function countryCodeOf(place: PlaceResult): string | null {
+  const component = place.addressComponents?.find(ac => ac.types?.includes('country'));
+  const code = component?.shortText?.trim().toUpperCase() ?? '';
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
 
 export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GooglePlacesResult>(
   async (ctx, input): Promise<ActionResult<GooglePlacesResult>> => {
@@ -68,6 +78,7 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
       'places.websiteUri',
       'places.types',
       'places.regularOpeningHours',
+      'places.addressComponents',
     ].join(',');
 
     let allPlaces: PlaceResult[] = [];
@@ -139,6 +150,7 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
 
     for (const place of toInsert) {
       const hasCoords = place.location?.latitude != null && place.location?.longitude != null;
+      const country = countryCodeOf(place);
       // restaurants.location is jsonb NOT NULL, with a generated location_point
       // column derived from location->>'lng' / location->>'lat'. We must store
       // {lat, lng}, never a WKT string. allergens/dietary_tags do not exist on
@@ -170,6 +182,14 @@ export const fetchGooglePlaces = withAdminAuth<[FetchGooglePlacesInput], GoogleP
         // restaurant's own local time (feed isOpenNow). Null → feed falls back
         // to country_code -> zone. (migration 149)
         timezone: deriveTimezone(place.location!.latitude, place.location!.longitude),
+        // Country (from Google's address components) drives the currency
+        // default. Without these, every import landed on the column default
+        // 'USD' even in Mexico — migration 147's backfill only covered rows
+        // that existed at migration time (operator issue #4). Unknown country
+        // → omit both and let the DB defaults stand.
+        ...(country
+          ? { country_code: country, currency_code: getCurrencyForCountry(country) }
+          : {}),
       };
 
       const { data: inserted, error: insertError } = await service

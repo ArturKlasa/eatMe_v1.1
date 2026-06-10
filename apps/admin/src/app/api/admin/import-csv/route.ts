@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { withAdminAuthRoute } from '@/lib/auth/route-wrappers';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { logAdminAction } from '@/lib/audit';
-import { normalizeCuisines } from '@eatme/shared';
+import { normalizeCuisines, getCurrencyForCountry } from '@eatme/shared';
 
 const csvRowSchema = z.object({
   name: z.string().min(1, 'name is required'),
@@ -15,6 +15,15 @@ const csvRowSchema = z.object({
   website: z.string().optional().default(''),
   google_place_id: z.string().optional().default(''),
   cuisine_types: z.string().optional().default(''),
+  // Optional ISO 3166-1 alpha-2 country. When present it also derives the
+  // currency default; when absent the restaurants columns keep their defaults
+  // (country null, currency 'USD').
+  country_code: z
+    .string()
+    .trim()
+    .regex(/^([A-Za-z]{2})?$/, 'country_code must be a 2-letter ISO code')
+    .optional()
+    .default(''),
 });
 
 type CsvRow = z.infer<typeof csvRowSchema>;
@@ -170,6 +179,7 @@ export const POST = withAdminAuthRoute(async (ctx, req: NextRequest) => {
     const isPossibleDuplicate = await findFuzzyDuplicate(service, row, existingPlaceIds);
 
     const cuisineArr = normalizeCuisines(row.cuisine_types ? row.cuisine_types.split(',') : []);
+    const country = row.country_code ? row.country_code.toUpperCase() : null;
 
     const insertPayload = {
       name: row.name,
@@ -183,6 +193,9 @@ export const POST = withAdminAuthRoute(async (ctx, req: NextRequest) => {
       ...(row.lat != null && row.lng != null
         ? { location: `POINT(${row.lng} ${row.lat})` as unknown as null }
         : {}),
+      // Country drives the currency default (same rule as the Places import);
+      // omitted → DB defaults stand (country null, currency 'USD').
+      ...(country ? { country_code: country, currency_code: getCurrencyForCountry(country) } : {}),
     };
 
     const { data: newRow, error: insertError } = await service

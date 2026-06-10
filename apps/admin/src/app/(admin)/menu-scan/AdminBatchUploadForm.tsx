@@ -2,7 +2,13 @@
 
 import { useState, useRef, useCallback, useReducer } from 'react';
 import { supabase } from '@/lib/supabase/browser';
-import { uploadMenuScanPage, type StorageClient } from '@/lib/upload';
+import {
+  uploadMenuScanPage,
+  findLowResFiles,
+  lowResKey,
+  LOW_RES_LONG_SIDE_PX,
+  type StorageClient,
+} from '@/lib/upload';
 import { adminCreateMenuScanJob, skipMenuScanRestaurant } from './actions/menuScan';
 
 export type RestaurantOption = {
@@ -171,6 +177,9 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
 
   const [pdfLoading, setPdfLoading] = useState(false);
   const [skipping, setSkipping] = useState(false);
+  // lowResKey(file) → long-side px for selected files under the resolution
+  // threshold. Warning only — small sources misread long before they error.
+  const [lowRes, setLowRes] = useState<ReadonlyMap<string, number>>(new Map());
 
   const defaultRestaurant = state.options.find(r => r.id === state.defaultRestaurantId) ?? null;
 
@@ -198,6 +207,7 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
       if (!incoming) return;
       const filesArray = Array.from(incoming);
       const normalFiles: File[] = [];
+      const added: File[] = [];
 
       for (const f of filesArray) {
         if (!isAccepted(f)) continue;
@@ -205,6 +215,7 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
           setPdfLoading(true);
           try {
             const rasterised = await rasterisePdf(f);
+            added.push(...rasterised);
             dispatch({
               type: 'ADD_FILES',
               files: rasterised,
@@ -221,10 +232,19 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
       }
 
       if (normalFiles.length > 0) {
+        added.push(...normalFiles);
         dispatch({
           type: 'ADD_FILES',
           files: normalFiles,
           defaultRestaurantId: state.defaultRestaurantId,
+        });
+      }
+
+      // Resolution probe runs after the list renders — warnings appear as they
+      // resolve, never blocking selection.
+      if (added.length > 0) {
+        void findLowResFiles(added).then(found => {
+          if (found.size > 0) setLowRes(prev => new Map([...prev, ...found]));
         });
       }
     },
@@ -410,6 +430,14 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
               className="flex items-center gap-2 rounded border border-border px-3 py-2 text-sm"
             >
               <span className="truncate max-w-[200px] shrink-0">{entry.file.name}</span>
+              {lowRes.has(lowResKey(entry.file)) && (
+                <span
+                  className="shrink-0 rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] font-medium text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200"
+                  title={`Longest side is ${lowRes.get(lowResKey(entry.file))}px — below ${LOW_RES_LONG_SIDE_PX}px the scan often misreads names and prices. Use a higher-resolution photo if possible.`}
+                >
+                  ⚠ low-res {lowRes.get(lowResKey(entry.file))}px
+                </span>
+              )}
               <select
                 aria-label={`Restaurant for ${entry.file.name}`}
                 value={entry.restaurantId}
@@ -438,6 +466,14 @@ export function AdminBatchUploadForm({ restaurantOptions }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {state.entries.some(e => lowRes.has(lowResKey(e.file))) && (
+        <p className="rounded border border-yellow-300 bg-yellow-50 p-2 text-xs text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-900/10 dark:text-yellow-200">
+          ⚠ Some pages are low-resolution (under {LOW_RES_LONG_SIDE_PX}px). Small text often gets
+          misread — invented names, wrong prices. Rephotograph or rescan those pages larger if you
+          can; scanning anyway will still work.
+        </p>
       )}
 
       {/* Job status list after submit */}

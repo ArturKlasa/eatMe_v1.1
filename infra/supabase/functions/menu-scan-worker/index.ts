@@ -336,10 +336,11 @@ For each dish output exactly these fields:
       "0.5L" / "500ml"             → {amount: 500,  unit: "ml"}
       "8 oz" / "8oz"               → {amount: 8,    unit: "oz"}
       "6 pcs" / "6 szt." / "6 uds" → {amount: 6,    unit: "pcs"}
-    Keep the size text in the name and description — do NOT delete it even when
-    you set portion_amount/portion_unit. The app
-    removes the duplicated size from the displayed name itself (it uses
-    portion_source_text below to do so).
+    Copy the printed text verbatim: do NOT delete the size from the name or
+    description when you set portion_amount/portion_unit, and NEVER add the
+    size to a field where it is not printed (a size printed only in the name
+    must not appear in the description). The app removes the duplicated size
+    from the displayed text itself (it uses portion_source_text below to do so).
     Return BOTH null when:
       - no size is shown
       - the size uses a unit other than g / ml / pcs / oz (e.g. pint, fl oz,
@@ -369,9 +370,17 @@ For each dish output exactly these fields:
       'sampler'            — fixed selection presented as one item (mixed grill, charcuterie board)
     Otherwise output null.
 - bundled_items: items pre-included with the dish that the customer does NOT pick from a list.
-    Use this for combo meals and fixed accompaniments. Examples:
+    Use this for combo meals and fixed accompaniments. Decide by the WORDING, not the format:
+      - Inclusion / accompaniment language → bundled_items, even when written as a sentence:
+        "incluye arroz y frijoles", "viene con papas", "acompañado de ensalada",
+        "includes side salad", "served with fries", "+ papas y refresco".
+      - Composition / preparation language → description ONLY, never bundled_items:
+        "preparados con tocino y chorizo", "a base de maíz", "con salsa de chipotle" —
+        ingredients the dish is made of are NOT bundled items.
+    Examples:
       "Burger meal: burger + fries + drink" → [{"name":"burger","note":null},{"name":"fries","note":null},{"name":"drink","note":null}]
       "Steak frites (includes side salad)"  → [{"name":"side salad","note":null}]
+      "Tacos preparados con tocino y chorizo" → [] (composition — keep it in the description)
     Output an empty array [] when the dish has no bundled items. Each item is {name, note?}.
     Do NOT use bundled_items for customer choices — use modifier_groups for those.
 - modifier_groups: customer-selectable choices. Extract one group per "choose your X",
@@ -389,9 +398,13 @@ For each dish output exactly these fields:
       options: list of choices (each with the fields below)
     Option fields:
       name: the choice label exactly as printed
-      price_delta: signed surcharge in the menu's currency (0 for the base/included option)
-      price_override: ONLY for non-linear quantity pricing (e.g. "12 wings for $45" → the
-        12-wing option has price_override=45, price_delta=0). Otherwise null.
+      price_delta: signed surcharge in the menu's currency. When an option has its own
+        printed price next to it, capture that price — NEVER default a printed price to 0.
+        Use 0 ONLY when the menu shows no price for the option or marks it as included at
+        no extra charge (e.g. the base option of a required group).
+      price_override: when the option's printed price REPLACES the base price instead of
+        adding to it (e.g. non-linear quantity pricing: "12 wings for $45" → the 12-wing
+        option has price_override=45, price_delta=0). Otherwise null.
       primary_protein: only when the option CHANGES the dish's protein source
         (e.g. Pad Thai "with chicken" → 'chicken'). Otherwise null.
       serves_delta: only for options that change headcount (rare). 0 otherwise.
@@ -472,6 +485,13 @@ const FALLBACK_MODEL = 'gpt-5-mini';
 // with detail:'high' — pages 2..N would come back empty. Mirroring v1's
 // per-image pattern (apps/web-portal/app/api/menu-scan/route.ts) gives each
 // page the model's full attention.
+// Per-page extraction outcome: the parsed result plus whether the output hit
+// the completion-token ceiling (some dishes may be missing from that page).
+interface PageExtraction {
+  result: MenuExtractionResult;
+  truncated: boolean;
+}
+
 async function callExtraction(
   openai: OpenAI,
   model: string,
@@ -479,7 +499,7 @@ async function callExtraction(
   pageNumber: number,
   totalPages: number,
   prompt: string
-): Promise<MenuExtractionResult> {
+): Promise<PageExtraction> {
   const pageContext =
     totalPages > 1
       ? `This is page ${pageNumber} of ${totalPages}. Extract every dish on THIS page only.`
@@ -521,10 +541,11 @@ async function callExtraction(
   });
 
   const choice = completion.choices[0];
-  if (choice?.finish_reason === 'length') {
-    // Single-image output rarely hits 16K tokens, but log if it does so we
-    // can spot a truncation pattern. Not promoted to error — partial dishes
-    // are still better than nothing for that page.
+  const truncated = choice?.finish_reason === 'length';
+  if (truncated) {
+    // Not promoted to error — partial dishes are still better than nothing for
+    // that page. Surfaced via truncated_pages in result_json so the review UI
+    // can warn the operator that dishes may be missing.
     console.warn(
       `Page ${pageNumber}/${totalPages} truncated at max_completion_tokens — some dishes may be missing`
     );
@@ -532,7 +553,7 @@ async function callExtraction(
 
   const parsed = choice?.message?.parsed;
   if (!parsed) throw new Error('OpenAI returned no parsed result');
-  return parsed;
+  return { result: parsed, truncated };
 }
 
 // Per-image call wrapper. Always runs the primary model — including on retries.
@@ -546,7 +567,7 @@ async function extractOneImageWithFallback(
   pageNumber: number,
   totalPages: number,
   prompt: string
-): Promise<MenuExtractionResult> {
+): Promise<PageExtraction> {
   try {
     return await callExtraction(openai, PRIMARY_MODEL, base64, pageNumber, totalPages, prompt);
   } catch (e) {
@@ -593,22 +614,71 @@ function escapeRegExp(s: string): string {
 function stripPortionSourceText(name: string, sourceText: string | null | undefined): string {
   const tok = sourceText?.trim();
   if (!tok) return name;
+  const stripped = stripTrailingPortionToken(name, tok);
+  return stripped != null && stripped.length > 0 ? stripped : name;
+}
+
+// Strip a verbatim portion token from the END of `text` (optionally wrapped in
+// ()/[] and preceded by a separator). Returns the cleaned string — possibly ''
+// when the token was the whole text — or null when there is no trailing match.
+function stripTrailingPortionToken(text: string, tok: string): string | null {
   const core = escapeRegExp(tok).replace(/\s+/g, '\\s*');
   const re = new RegExp(`[\\s,;·•\\-–—]*[(\\[]?\\s*${core}\\s*[)\\]]?\\s*$`, 'i');
-  if (!re.test(name)) return name;
-  const stripped = name
+  if (!re.test(text)) return null;
+  return text
     .replace(re, '')
     .replace(/[(\[]\s*[)\]]\s*$/, '') // tidy a now-empty bracket pair
     .replace(/[\s,;·•\-–—]+$/, '') // tidy a dangling separator
     .trim();
-  return stripped.length > 0 ? stripped : name;
 }
+
+// Same trailing strip for the description. Unlike a name, a description may
+// legitimately become empty once the size is removed (the model copied "250g"
+// as the entire description) — that collapses to null. A size sitting
+// mid-sentence ("250g de arrachera con…") is NOT touched: removing it would
+// break the sentence. runExtraction instead drops the structured portion
+// fields whenever the size text stays visible, so the UI's portion chip can
+// never show a size the customer already reads in the text.
+function stripPortionFromDescription(
+  description: string | null,
+  sourceText: string | null | undefined
+): string | null {
+  if (description == null) return null;
+  const tok = sourceText?.trim();
+  if (!tok) return description;
+  const stripped = stripTrailingPortionToken(description, tok);
+  if (stripped == null) return description;
+  return stripped.length > 0 ? stripped : null;
+}
+
+// True when the portion token still appears in the name or description after
+// the trailing strips — i.e. it sits mid-text where stripping would mangle the
+// sentence.
+function portionStillVisible(
+  sourceText: string | null | undefined,
+  name: string,
+  description: string | null
+): boolean {
+  const tok = sourceText?.trim();
+  if (!tok) return false;
+  const re = new RegExp(escapeRegExp(tok).replace(/\s+/g, '\\s*'), 'i');
+  return re.test(name) || (description != null && re.test(description));
+}
+
+// What complete_menu_scan_job stores as result_json: the merged extraction plus
+// per-page health. failed_pages / truncated_pages are 1-based page numbers the
+// review UI uses to warn the operator that dishes may be missing (previously
+// these were console.warn-only and a half-empty scan looked like a clean one).
+type MenuScanJobResult = MenuExtractionResult & {
+  failed_pages: number[];
+  truncated_pages: number[];
+};
 
 async function runExtraction(
   openai: OpenAI,
   imageBase64List: string[],
   promptForPage: (pageIndex: number) => string
-): Promise<MenuExtractionResult> {
+): Promise<MenuScanJobResult> {
   // Fan out one OpenAI call per image. allSettled so a single page failure
   // (BadRequestError, RateLimitError after fallback, etc.) doesn't discard
   // the other pages' successful extractions.
@@ -624,37 +694,53 @@ async function runExtraction(
   // page given the cuisine-inference instruction (see buildExtractionPrompt's
   // includeCuisine gate). Pages 2..N are told to emit [].
   let pageOneCuisine: string[] = [];
-  let failedPages = 0;
+  const failedPages: number[] = [];
+  const truncatedPages: number[] = [];
 
   for (let idx = 0; idx < settled.length; idx++) {
     const r = settled[idx];
     if (r.status === 'fulfilled') {
+      const page = r.value.result;
+      if (r.value.truncated) truncatedPages.push(idx + 1);
       // Override source_image_index from the loop, never trust the AI's value.
       // Each call sees only one image so the model's guess is meaningless;
       // this also fixes the long-standing class of bugs where every dish
       // came back tagged as page 0.
-      for (const d of r.value.dishes) {
+      for (const d of page.dishes) {
         // Clean the free-text fields: names stay verbatim (trimmed, never null)
         // with only the model's exact portion_source_text stripped off the tail —
         // the model no longer rewrites names. Placeholder descriptions ("." / "")
         // collapse to null so they don't reach the review UI or the DB.
+        const name = stripPortionSourceText(d.name.trim(), d.portion_source_text);
+        const description = stripPortionFromDescription(
+          normalizeText(d.description),
+          d.portion_source_text
+        );
+        // The portion chip renders only when the size text was actually removed
+        // from view. If it survives mid-sentence after the trailing strips, drop
+        // the structured portion so the size never shows twice (operator-reported
+        // doubling, 2026-06-09).
+        const visible = portionStillVisible(d.portion_source_text, name, description);
         dishes.push({
           ...d,
-          name: stripPortionSourceText(d.name.trim(), d.portion_source_text),
-          description: normalizeText(d.description),
+          name,
+          description,
+          portion_amount: visible ? null : d.portion_amount,
+          portion_unit: visible ? null : d.portion_unit,
+          portion_source_text: visible ? null : d.portion_source_text,
           suggested_category_description: normalizeText(d.suggested_category_description),
           source_image_index: idx,
         });
       }
-      if (!detectedLanguage && r.value.detected_language) {
-        detectedLanguage = r.value.detected_language;
+      if (!detectedLanguage && page.detected_language) {
+        detectedLanguage = page.detected_language;
       }
       // Cuisine: page 1 only (pages 2..N are prompted to emit []).
       if (idx === 0) {
-        pageOneCuisine = r.value.cuisine_types ?? [];
+        pageOneCuisine = page.cuisine_types ?? [];
       }
     } else {
-      failedPages++;
+      failedPages.push(idx + 1);
       const errMsg = r.reason instanceof Error ? r.reason.message : String(r.reason);
       console.warn(`Page ${idx + 1} extraction failed:`, errMsg);
     }
@@ -663,7 +749,7 @@ async function runExtraction(
   // Total failure → propagate so the existing fail_menu_scan_job path handles
   // retry vs terminal failure (BadRequestError still gets max_attempts=1 in
   // processJobs's catch block).
-  if (dishes.length === 0 && failedPages === settled.length) {
+  if (dishes.length === 0 && failedPages.length === settled.length) {
     const firstReject = settled.find(r => r.status === 'rejected') as PromiseRejectedResult;
     throw firstReject.reason;
   }
@@ -672,6 +758,8 @@ async function runExtraction(
     dishes,
     detected_language: detectedLanguage,
     cuisine_types: normalizeCuisines(pageOneCuisine).slice(0, 3),
+    failed_pages: failedPages,
+    truncated_pages: truncatedPages,
   };
 }
 

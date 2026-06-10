@@ -3,7 +3,13 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/browser';
-import { uploadMenuScanPage, type StorageClient } from '@/lib/upload';
+import {
+  uploadMenuScanPage,
+  findLowResFiles,
+  lowResKey,
+  LOW_RES_LONG_SIDE_PX,
+  type StorageClient,
+} from '@/lib/upload';
 import { adminCreateMenuScanJob } from '../../menu-scan/actions/menuScan';
 
 const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'application/pdf']);
@@ -60,6 +66,9 @@ export function ScanNewMenuSection({ restaurantId, restaurantName }: Props) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'uploading' | 'creating' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  // lowResKey(file) → long-side px for selected files under the resolution
+  // threshold. Warning only — small sources misread long before they error.
+  const [lowRes, setLowRes] = useState<ReadonlyMap<string, number>>(new Map());
 
   const handleFiles = useCallback(async (incoming: FileList | null) => {
     if (!incoming) return;
@@ -84,6 +93,14 @@ export function ScanNewMenuSection({ restaurantId, restaurantName }: Props) {
     }
 
     setFiles(prev => [...prev, ...collected].slice(0, 20));
+
+    // Resolution probe runs after the list renders — warnings appear as they
+    // resolve, never blocking selection.
+    if (collected.length > 0) {
+      void findLowResFiles(collected).then(found => {
+        if (found.size > 0) setLowRes(prev => new Map([...prev, ...found]));
+      });
+    }
   }, []);
 
   const handleSubmit = async () => {
@@ -181,6 +198,14 @@ export function ScanNewMenuSection({ restaurantId, restaurantName }: Props) {
               className="flex items-center gap-2 rounded border border-border px-3 py-1.5 text-xs"
             >
               <span className="truncate flex-1">{f.name}</span>
+              {lowRes.has(lowResKey(f)) && (
+                <span
+                  className="shrink-0 rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] font-medium text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200"
+                  title={`Longest side is ${lowRes.get(lowResKey(f))}px — below ${LOW_RES_LONG_SIDE_PX}px the scan often misreads names and prices. Use a higher-resolution photo if possible.`}
+                >
+                  ⚠ low-res {lowRes.get(lowResKey(f))}px
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))}
@@ -193,6 +218,14 @@ export function ScanNewMenuSection({ restaurantId, restaurantName }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {files.some(f => lowRes.has(lowResKey(f))) && (
+        <p className="rounded border border-yellow-300 bg-yellow-50 p-2 text-xs text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-900/10 dark:text-yellow-200">
+          ⚠ Some pages are low-resolution (under {LOW_RES_LONG_SIDE_PX}px). Small text often gets
+          misread — invented names, wrong prices. Rephotograph or rescan those pages larger if you
+          can; scanning anyway will still work.
+        </p>
       )}
 
       {phase === 'error' && error && (

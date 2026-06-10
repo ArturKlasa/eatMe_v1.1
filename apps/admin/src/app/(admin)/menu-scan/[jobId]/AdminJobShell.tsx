@@ -285,9 +285,16 @@ export function AdminJobShell({
   const resultJson = job.result_json as {
     dishes?: ExtractedDish[];
     detected_language?: string | null;
+    // 1-based page numbers the worker couldn't extract (failed) or whose output
+    // hit the token ceiling (truncated). Absent on jobs scanned before the
+    // worker started recording them (2026-06-09).
+    failed_pages?: number[];
+    truncated_pages?: number[];
   } | null;
   const dishes = resultJson?.dishes ?? null;
   const detectedLanguage = resultJson?.detected_language ?? null;
+  const failedPages = resultJson?.failed_pages ?? [];
+  const truncatedPages = resultJson?.truncated_pages ?? [];
 
   // Per-page dish counts keyed by source_image_index (0-based array position
   // in input.images, matches what the worker passes to the AI). Drives the
@@ -390,6 +397,37 @@ export function AdminJobShell({
           <p className="text-xs text-destructive">{state.statusUpdateError}</p>
         )}
       </div>
+
+      {/* Page-health warning — the worker completes a job even when individual
+          pages fail or truncate (partial results beat none), so missing pages
+          must be called out here or the operator reads a half-empty scan as a
+          clean one. */}
+      {(failedPages.length > 0 || truncatedPages.length > 0) && (
+        <div
+          role="alert"
+          className="rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-900/10 dark:text-yellow-200"
+        >
+          <p className="font-semibold">⚠ Some pages did not extract fully</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs">
+            {failedPages.length > 0 && (
+              <li>
+                Page{failedPages.length === 1 ? '' : 's'} {failedPages.join(', ')} failed completely
+                — no dishes were read from {failedPages.length === 1 ? 'it' : 'them'}.
+              </li>
+            )}
+            {truncatedPages.length > 0 && (
+              <li>
+                Page{truncatedPages.length === 1 ? '' : 's'} {truncatedPages.join(', ')} hit the
+                output limit — the last dishes on{' '}
+                {truncatedPages.length === 1 ? 'that page' : 'those pages'} may be missing.
+              </li>
+            )}
+          </ul>
+          <p className="mt-1 text-xs">
+            Use Replay below to re-run the scan, or compare against the source images before saving.
+          </p>
+        </div>
+      )}
 
       {/* Source-image strip — visible for all statuses so admin can see what
           was scanned (and which pages came back empty). Sits above the review

@@ -38,6 +38,12 @@ const CANNED_RESULT = {
       name: 'Grilled Salmon',
       description: 'Fresh Atlantic salmon',
       price: 24.5,
+      // Portion fields are required (nullable) in the Zod schema, so real model
+      // output always carries them — and runExtraction re-emits them on every
+      // dish. Without them here assertEquals trips on undefined-vs-missing.
+      portion_amount: null,
+      portion_unit: null,
+      portion_source_text: null,
       dish_kind: 'standard',
       dining_format: null,
       bundled_items: [],
@@ -213,7 +219,9 @@ Deno.test('pending → processing → needs_review: job transitions correctly', 
   assertEquals(result.errors.length, 0);
   assertArrayIncludes(completed, ['job-001']);
   assertEquals(failed.length, 0);
-  assertEquals(capturedResult, CANNED_RESULT);
+  // The stored result is the canned extraction plus the per-page health arrays
+  // runExtraction appends (clean single-page scan → both empty).
+  assertEquals(capturedResult, { ...CANNED_RESULT, failed_pages: [], truncated_pages: [] });
 });
 
 Deno.test(
@@ -562,6 +570,57 @@ Deno.test('multi-image: page 2 fails, pages 1 and 3 still complete', async () =>
   // deno-lint-ignore no-explicit-any
   const indices = captured.dishes.map((d: any) => d.source_image_index).sort();
   assertEquals(indices, [0, 0, 2, 2, 2]);
+  // The failed page is recorded in result_json (1-based) so the review UI can
+  // warn that its dishes are missing — previously this was console.warn-only.
+  assertEquals(captured.failed_pages, [2]);
+  assertEquals(captured.truncated_pages, []);
+});
+
+Deno.test('multi-image: token-truncated page is recorded in truncated_pages', async () => {
+  const job = makeMultiImageJob('multi-trunc', 2);
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+
+  // Page 1 hits max_completion_tokens (finish_reason 'length'); page 2 is clean.
+  const pages = [
+    { dishes: makeCannedDishes(2, 0), detected_language: 'en' },
+    { dishes: makeCannedDishes(1, 0), detected_language: null },
+  ];
+  let callIdx = 0;
+  const openai = {
+    beta: {
+      chat: {
+        completions: {
+          parse: async () => {
+            const idx = callIdx++;
+            return {
+              choices: [
+                {
+                  message: { parsed: pages[idx] },
+                  finish_reason: idx === 0 ? 'length' : 'stop',
+                },
+              ],
+            };
+          },
+        },
+      },
+    },
+  } as unknown as OpenAI;
+
+  const result = await processJobs({ supa, openai });
+
+  // Truncation is not an error — partial dishes still complete the job.
+  assertEquals(result.processed, ['multi-trunc']);
+  assertEquals(captured.dishes.length, 3);
+  assertEquals(captured.failed_pages, []);
+  assertEquals(captured.truncated_pages, [1]);
 });
 
 Deno.test('multi-image: all 3 pages fail with RateLimitError → job ends in error', async () => {
@@ -805,6 +864,77 @@ Deno.test('portion strip: identity size is preserved when no portion was extract
   });
   const captured = await runFixture(dish);
   assertEquals(captured.name, 'Quarter Chicken');
+});
+
+Deno.test('portion strip: trailing size also removed from the description', async () => {
+  // Operator-reported doubling (2026-06-09): the size stayed in the description
+  // while the app rendered the portion chip too. Trailing description sizes get
+  // the same conservative strip the name does; portion fields survive.
+  const dish = makeFixtureDish({
+    name: 'Arrachera 250g',
+    price: 32.0,
+    dish_kind: 'standard',
+    description: 'Corte de res a la parrilla 250g',
+    portion_amount: 250,
+    portion_unit: 'g',
+    portion_source_text: '250g',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'Arrachera');
+  assertEquals(captured.description, 'Corte de res a la parrilla');
+  assertEquals(captured.portion_amount, 250);
+  assertEquals(captured.portion_unit, 'g');
+});
+
+Deno.test('portion strip: description that is only the size collapses to null', async () => {
+  const dish = makeFixtureDish({
+    name: 'Sharing Platter 1.5kg',
+    price: 60.0,
+    dish_kind: 'standard',
+    description: '1.5kg',
+    portion_amount: 1500,
+    portion_unit: 'g',
+    portion_source_text: '1.5kg',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, 'Sharing Platter');
+  assertEquals(captured.description, null);
+  assertEquals(captured.portion_amount, 1500);
+});
+
+Deno.test('portion strip: mid-sentence size keeps text, drops portion fields', async () => {
+  // "250g de arrachera con…" can't be stripped without mangling the sentence,
+  // so the text wins and the structured portion is dropped — the chip must
+  // never duplicate a size the customer already reads in the description.
+  const dish = makeFixtureDish({
+    name: 'Tacos de Arrachera',
+    price: 28.0,
+    dish_kind: 'standard',
+    description: '250g de arrachera con guarnición',
+    portion_amount: 250,
+    portion_unit: 'g',
+    portion_source_text: '250g',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, '250g de arrachera con guarnición');
+  assertEquals(captured.portion_amount, null);
+  assertEquals(captured.portion_unit, null);
+  assertEquals(captured.portion_source_text, null);
+});
+
+Deno.test('portion strip: mid-NAME size keeps text, drops portion fields', async () => {
+  const dish = makeFixtureDish({
+    name: '250g Burger con Papas',
+    price: 18.0,
+    dish_kind: 'standard',
+    portion_amount: 250,
+    portion_unit: 'g',
+    portion_source_text: '250g',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.name, '250g Burger con Papas');
+  assertEquals(captured.portion_amount, null);
+  assertEquals(captured.portion_unit, null);
 });
 
 Deno.test('portion strip: pint stays in the name (unit not stored, source text null)', async () => {

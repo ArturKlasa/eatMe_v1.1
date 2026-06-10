@@ -218,16 +218,19 @@ is implemented, and verifies the result before the next one starts.
 
 ## Suggested batching
 
-All items confirmed by user 2026-06-09 (issue 1 deferred to last; each batch
-still gets explicit go-ahead + user verification before the next starts).
+All items confirmed by user 2026-06-09 (each batch still gets explicit
+go-ahead + user verification before the next starts).
 
-| Batch | Items | Theme |
-|---|---|---|
-| 1 | A1–A3, 2, 3, 9, 10 (+15 deploy) | One worker redeploy + upload tweak: prompt hardening + resolution + failure surfacing |
-| 2 | 4a, 4b | Currency defaults + backfill |
-| 3 | 13, 14 | Review-UI ergonomics (client-only) |
-| 4 | 12 | Modifier/bundle scan-attach during review (builds on 13's multi-select) |
-| 5 | 11 | Turkey protein (coordinated DB change) |
-| 6 | 16 | Menu copy tool |
-| last | 1 | Category-merge prompt rule (user: fix last) |
-| later | A4 | Model escalation — only if quality still short after batch 1 |
+| Batch | Items | Theme | Status |
+|---|---|---|---|
+| 1 | A1–A3, 2, 3, 9, 10 (+15 deploy) | One worker redeploy + upload tweak: prompt hardening + resolution + failure surfacing | done — `5e98506`, worker deployed, verified 2026-06-10 |
+| 2 | 4a, 4b | Currency defaults + backfill | done — `6f3b806`, backfill applied (462 rows → MX/MXN) 2026-06-10 |
+| 3 | 13, 14 | Review-UI ergonomics (client-only) | done — `34db6d8`, verified 2026-06-10 |
+| 4 | 12 | Modifier/bundle scan-attach during review (selection-bar bulk + per-dish 📷 button) | done — verified 2026-06-10 |
+| 5 | 11 | Turkey protein (coordinated DB change) | pending |
+| 6 | 16 | Menu copy tool | pending |
+| later | A4 | Model escalation — only if quality still short after batch 1 | conditional |
+
+Issue 1 (category merging) is tracked SEPARATELY from the batch sequence
+(user, 2026-06-10) — it's a worker-prompt change to be tuned on its own
+against real scans, not bundled with a feature batch.

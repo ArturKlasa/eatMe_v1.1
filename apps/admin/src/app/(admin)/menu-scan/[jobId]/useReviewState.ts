@@ -190,6 +190,58 @@ export function applyCopyModifierGroups(
   });
 }
 
+// ── Supplementary-scan attach (operator issue #12) ───────────────────────────
+
+// Merges modifier groups + bundled items extracted by a supplementary scan
+// (adminScanModifierExtras) into each target dish. Wire shapes in, editable
+// shapes (fresh _ids per target) out. Same name-dedup semantics as
+// applyCopyModifierGroups so re-attaching never duplicates.
+export function applyAttachScannedExtras(
+  dishes: EditableDish[],
+  targetDishIds: string[],
+  groups: import('@/components/modifiers/editableTypes').ExtractedModifierGroup[],
+  items: ExtractedBundledItem[]
+): EditableDish[] {
+  if (groups.length === 0 && items.length === 0) return dishes;
+  const targets = new Set(targetDishIds);
+  if (targets.size === 0) return dishes;
+
+  return dishes.map(d => {
+    if (!targets.has(d._id)) return d;
+
+    const existingGroupNames = new Set(
+      d.modifier_groups.map(g => g.name.trim().toLowerCase()).filter(n => n !== '')
+    );
+    const newGroups = groups
+      .filter(g => {
+        const name = g.name.trim().toLowerCase();
+        return name === '' || !existingGroupNames.has(name);
+      })
+      .map(g => ({
+        ...g,
+        _id: `mg-${crypto.randomUUID()}`,
+        options: g.options.map(o => ({ ...o, _id: `mo-${crypto.randomUUID()}` })),
+      }));
+
+    const existingItemNames = new Set(
+      d.bundled_items.map(b => b.name.trim().toLowerCase()).filter(n => n !== '')
+    );
+    const newItems = items
+      .filter(b => {
+        const name = b.name.trim().toLowerCase();
+        return name === '' || !existingItemNames.has(name);
+      })
+      .map(b => ({ ...b, _id: `bi-${crypto.randomUUID()}` }));
+
+    if (newGroups.length === 0 && newItems.length === 0) return d;
+    return {
+      ...d,
+      modifier_groups: [...d.modifier_groups, ...newGroups],
+      bundled_items: [...d.bundled_items, ...newItems],
+    };
+  });
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 // Modifier-group setters compose the pure reducers from
@@ -260,6 +312,12 @@ export function useReviewState(initial: EditableDish[]) {
   const copyModifierGroups = (sourceDishId: string, targetDishIds: string[]) =>
     setDishes(prev => applyCopyModifierGroups(prev, sourceDishId, targetDishIds));
 
+  const attachScannedExtras = (
+    targetDishIds: string[],
+    groups: import('@/components/modifiers/editableTypes').ExtractedModifierGroup[],
+    items: ExtractedBundledItem[]
+  ) => setDishes(prev => applyAttachScannedExtras(prev, targetDishIds, groups, items));
+
   return {
     dishes,
     update,
@@ -276,5 +334,6 @@ export function useReviewState(initial: EditableDish[]) {
     removeBundledItem,
     updateBundledItem,
     copyModifierGroups,
+    attachScannedExtras,
   };
 }

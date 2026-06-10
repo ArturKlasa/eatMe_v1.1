@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   applyAddBundledItem,
+  applyAttachScannedExtras,
   applyCopyModifierGroups,
   applyRemoveBundledItem,
   applyUpdateBundledItem,
@@ -274,5 +275,95 @@ describe('applyCopyModifierGroups (bulk copy, operator issue #13)', () => {
     const dishes = makeDishes();
     expect(applyCopyModifierGroups(dishes, 'nope', ['dish-2'])).toBe(dishes);
     expect(applyCopyModifierGroups(dishes, 'dish-2', ['dish-3'])).toBe(dishes);
+  });
+});
+
+describe('applyAttachScannedExtras (supplementary scan, operator issue #12)', () => {
+  const WIRE_GROUP = {
+    name: 'Elige tu proteína',
+    selection_type: 'single' as const,
+    min_selections: 1,
+    max_selections: 1,
+    display_in_card: true,
+    options: [
+      {
+        name: 'Pollo',
+        price_delta: 0,
+        price_override: null,
+        primary_protein: 'chicken' as const,
+        serves_delta: 0,
+        is_default: true,
+      },
+      {
+        name: 'Arrachera',
+        price_delta: 30,
+        price_override: null,
+        primary_protein: 'beef' as const,
+        serves_delta: 0,
+        is_default: false,
+      },
+    ],
+  };
+  const WIRE_ITEM = { name: 'Papas', note: null };
+
+  function makeDishes(): EditableDish[] {
+    return [
+      makeDish({ _id: 'dish-1', name: 'Burrito' }),
+      makeDish({ _id: 'dish-2', name: 'Quesadilla' }),
+    ];
+  }
+
+  it('attaches groups and items to every target with fresh _ids', () => {
+    const next = applyAttachScannedExtras(
+      makeDishes(),
+      ['dish-1', 'dish-2'],
+      [WIRE_GROUP],
+      [WIRE_ITEM]
+    );
+
+    for (const id of ['dish-1', 'dish-2']) {
+      const d = next.find(x => x._id === id)!;
+      expect(d.modifier_groups).toHaveLength(1);
+      expect(d.modifier_groups[0].name).toBe('Elige tu proteína');
+      expect(d.modifier_groups[0]._id).toMatch(/^mg-/);
+      expect(d.modifier_groups[0].options.map(o => o.name)).toEqual(['Pollo', 'Arrachera']);
+      expect(d.modifier_groups[0].options[1].price_delta).toBe(30);
+      expect(d.bundled_items).toHaveLength(1);
+      expect(d.bundled_items[0].name).toBe('Papas');
+      expect(d.bundled_items[0]._id).toMatch(/^bi-/);
+    }
+    // Each target gets its own clone
+    const [a, b] = next;
+    expect(a.modifier_groups[0]._id).not.toBe(b.modifier_groups[0]._id);
+    expect(a.modifier_groups[0].options[0]._id).not.toBe(b.modifier_groups[0].options[0]._id);
+  });
+
+  it('only touches targeted dishes', () => {
+    const next = applyAttachScannedExtras(makeDishes(), ['dish-2'], [WIRE_GROUP], []);
+    expect(next.find(d => d._id === 'dish-1')!.modifier_groups).toHaveLength(0);
+    expect(next.find(d => d._id === 'dish-2')!.modifier_groups).toHaveLength(1);
+  });
+
+  it('skips groups and items whose name already exists on the target (case-insensitive)', () => {
+    const dishes = makeDishes();
+    dishes[0].modifier_groups = [makeGroup({ name: 'elige tu proteína' })];
+    dishes[0].bundled_items = [{ _id: 'bi-x', name: 'papas', note: null }];
+    const next = applyAttachScannedExtras(dishes, ['dish-1'], [WIRE_GROUP], [WIRE_ITEM]);
+    expect(next.find(d => d._id === 'dish-1')!.modifier_groups).toHaveLength(1);
+    expect(next.find(d => d._id === 'dish-1')!.bundled_items).toHaveLength(1);
+  });
+
+  it('attaching twice does not duplicate', () => {
+    const once = applyAttachScannedExtras(makeDishes(), ['dish-1'], [WIRE_GROUP], [WIRE_ITEM]);
+    const twice = applyAttachScannedExtras(once, ['dish-1'], [WIRE_GROUP], [WIRE_ITEM]);
+    const d = twice.find(x => x._id === 'dish-1')!;
+    expect(d.modifier_groups).toHaveLength(1);
+    expect(d.bundled_items).toHaveLength(1);
+  });
+
+  it('is a no-op with no targets or nothing to attach', () => {
+    const dishes = makeDishes();
+    expect(applyAttachScannedExtras(dishes, [], [WIRE_GROUP], [WIRE_ITEM])).toBe(dishes);
+    expect(applyAttachScannedExtras(dishes, ['dish-1'], [], [])).toBe(dishes);
   });
 });

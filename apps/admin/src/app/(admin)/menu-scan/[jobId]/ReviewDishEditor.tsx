@@ -33,6 +33,7 @@ import {
   type Protein,
 } from './useReviewState';
 import { ModifierGroupsEditor } from '@/components/modifiers/ModifierGroupsEditor';
+import { ScanExtrasPanel } from './ScanExtrasPanel';
 
 export type { ExtractedDish } from './useReviewState';
 
@@ -293,6 +294,7 @@ export function ReviewDishEditor({
     removeBundledItem,
     updateBundledItem,
     copyModifierGroups,
+    attachScannedExtras,
   } = useReviewState(
     useMemo(
       () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
@@ -366,6 +368,23 @@ export function ReviewDishEditor({
   const handleCopyGroups = (sourceDishId: string) => {
     copyModifierGroups(sourceDishId, selectedActiveIds);
     setSelectedIds(new Set());
+  };
+
+  // Supplementary scan-from-image panel (operator issue #12). Two entry
+  // points: the selection bar (bulk — targets the selected dishes, live) and a
+  // per-dish "Scan from image" button in the modifier-groups header (targets
+  // just that dish, no selection needed; panel renders inside its card).
+  const [scanTarget, setScanTarget] = useState<
+    { kind: 'selection' } | { kind: 'dish'; dishId: string } | null
+  >(null);
+
+  const handleScannedExtrasAttach = (
+    targetIds: string[],
+    scannedGroups: Parameters<typeof attachScannedExtras>[1],
+    scannedItems: Parameters<typeof attachScannedExtras>[2]
+  ) => {
+    attachScannedExtras(targetIds, scannedGroups, scannedItems);
+    setScanTarget(null);
   };
 
   const detectedDiffers =
@@ -640,14 +659,40 @@ export function ReviewDishEditor({
             {selectedActiveIds.length === 1 ? '' : 'es'} selected — use &ldquo;Copy modifier
             groups&rdquo; on the dish that has the groups you want to spread.
           </p>
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            className="shrink-0 rounded border border-amber-300 bg-background px-2 py-1 text-xs hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40"
-          >
-            Clear selection
-          </button>
+          <div className="flex shrink-0 gap-2">
+            {scanTarget === null && (
+              <button
+                type="button"
+                onClick={() => setScanTarget({ kind: 'selection' })}
+                disabled={saving}
+                className="rounded border border-amber-300 bg-background px-2 py-1 text-xs hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:hover:bg-amber-900/40"
+              >
+                Scan modifiers from image…
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="rounded border border-amber-300 bg-background px-2 py-1 text-xs hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40"
+            >
+              Clear selection
+            </button>
+          </div>
         </div>
+      )}
+
+      {scanTarget?.kind === 'selection' && (
+        <ScanExtrasPanel
+          currencyCode={currencyCode}
+          targetCount={selectedActiveIds.length}
+          targetLabel={`${selectedActiveIds.length} selected dish${selectedActiveIds.length === 1 ? '' : 'es'}`}
+          saving={saving}
+          onAttach={(scannedGroups, scannedItems) => {
+            handleScannedExtrasAttach(selectedActiveIds, scannedGroups, scannedItems);
+            setSelectedIds(new Set());
+          }}
+          onClose={() => setScanTarget(null)}
+        />
       )}
 
       {groups.map(group => {
@@ -1030,7 +1075,20 @@ export function ReviewDishEditor({
                         onUpdateOption={(gIdx, oIdx, patch) =>
                           updateModifierOption(d._id, gIdx, oIdx, patch)
                         }
+                        onScanFromImage={() => setScanTarget({ kind: 'dish', dishId: d._id })}
                       />
+                      {scanTarget?.kind === 'dish' && scanTarget.dishId === d._id && (
+                        <ScanExtrasPanel
+                          currencyCode={currencyCode}
+                          targetCount={1}
+                          targetLabel={`“${d.name.trim() || 'this dish'}”`}
+                          saving={saving}
+                          onAttach={(scannedGroups, scannedItems) =>
+                            handleScannedExtrasAttach([d._id], scannedGroups, scannedItems)
+                          }
+                          onClose={() => setScanTarget(null)}
+                        />
+                      )}
                       {d.modifier_groups.length > 0 &&
                         selectedActiveIds.some(id => id !== d._id) && (
                           <button

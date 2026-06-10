@@ -23,12 +23,16 @@ interface Props {
     optIdx: number,
     patch: Partial<EditableModifierOption>
   ) => void;
+  // Optional (menu-scan review only): opens the supplementary scan-from-image
+  // panel targeting this dish. Absent on the restaurant-detail editor.
+  onScanFromImage?: () => void;
 }
 
 export function ModifierGroupsEditor({
   groups,
   saving,
   currencyCode,
+  onScanFromImage,
   onAddGroup,
   onRemoveGroup,
   onMoveGroup,
@@ -47,14 +51,27 @@ export function ModifierGroupsEditor({
         <span className="text-xs font-medium text-amber-900 dark:text-amber-200">
           Modifier groups ({groups.length})
         </span>
-        <button
-          type="button"
-          onClick={onAddGroup}
-          disabled={saving}
-          className="rounded border border-amber-300 bg-background px-2 py-0.5 text-xs hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40 disabled:opacity-50"
-        >
-          + Add group
-        </button>
+        <div className="flex gap-1.5">
+          {onScanFromImage && (
+            <button
+              type="button"
+              onClick={onScanFromImage}
+              disabled={saving}
+              title="Extract modifier groups / bundled items from a photo or screenshot and attach them to this dish"
+              className="rounded border border-amber-300 bg-background px-2 py-0.5 text-xs hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40 disabled:opacity-50"
+            >
+              📷 Scan from image
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onAddGroup}
+            disabled={saving}
+            className="rounded border border-amber-300 bg-background px-2 py-0.5 text-xs hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40 disabled:opacity-50"
+          >
+            + Add group
+          </button>
+        </div>
       </div>
 
       {groups.length === 0 ? (

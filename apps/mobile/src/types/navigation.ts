@@ -30,7 +30,9 @@ export type MainStackParamList = {
   Recommendations: { sessionId: string; isHost: boolean };
   VotingResults: { sessionId: string };
   Settings: undefined;
-  RestaurantDetail: { restaurantId: string };
+  // featuredDishId: the dish the user tapped (map marker / footer card /
+  // favorites row) — the menu pins it as a highlighted block at the top.
+  RestaurantDetail: { restaurantId: string; featuredDishId?: string };
 
   OnboardingStep1: undefined;
   OnboardingStep2: undefined;

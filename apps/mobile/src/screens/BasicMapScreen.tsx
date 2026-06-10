@@ -369,7 +369,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     rootNavigation.navigate('RestaurantDetail', { restaurantId: restaurant.id });
   };
 
-  // Called from DishMarkers — navigates to the dish's restaurant, not the dish itself
+  // Called from DishMarkers — opens the dish's restaurant with the dish
+  // featured (pinned) at the top of the menu
   const handleDishMarkerPress = (dish: {
     id: string;
     name: string;
@@ -377,7 +378,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     price: number;
     restaurantId: string;
   }) => {
-    rootNavigation.navigate('RestaurantDetail', { restaurantId: dish.restaurantId });
+    rootNavigation.navigate('RestaurantDetail', {
+      restaurantId: dish.restaurantId,
+      featuredDishId: dish.id,
+    });
   };
 
   // Called from MapFooter recommended dishes (has restaurantId, no coordinates)
@@ -390,7 +394,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     imageUrl?: string;
     isAvailable: boolean;
   }) => {
-    rootNavigation.navigate('RestaurantDetail', { restaurantId: dish.restaurantId });
+    rootNavigation.navigate('RestaurantDetail', {
+      restaurantId: dish.restaurantId,
+      featuredDishId: dish.id,
+    });
   };
 
   const handleMyLocationPress = async () => {

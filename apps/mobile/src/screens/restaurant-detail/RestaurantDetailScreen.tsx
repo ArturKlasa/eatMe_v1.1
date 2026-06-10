@@ -32,7 +32,7 @@ type Props = RootStackScreenProps<'RestaurantDetail'>;
 export function RestaurantDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { restaurantId } = route.params;
+  const { restaurantId, featuredDishId } = route.params;
 
   const {
     restaurant,
@@ -46,6 +46,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     isFavorite,
     favoriteLoading,
     favoritesInitialized,
+    favoriteDishIds,
+    setDishFavorite,
     selectedDish,
     setSelectedDish,
     dishOptionGroups,
@@ -210,6 +212,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           dishRatings={dishRatings}
           userDishOpinions={userDishOpinions}
           permanentFilters={permanentFilters}
+          favoriteDishIds={favoriteDishIds}
+          featuredDishId={featuredDishId}
           loadCategoryDishes={loadCategoryDishes}
           onDishPress={handleDishPress}
         />
@@ -272,6 +276,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           onRated={opinion => {
             setUserDishOpinions(prev => new Map(prev).set(selectedDish.id, opinion));
           }}
+          initialSaved={favoriteDishIds.has(selectedDish.id)}
+          onFavoriteChange={saved => setDishFavorite(selectedDish.id, saved)}
         />
       )}
     </View>

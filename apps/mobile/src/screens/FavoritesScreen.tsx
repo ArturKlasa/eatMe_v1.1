@@ -68,8 +68,8 @@ export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
     }, [translateY, user])
   );
 
-  const openRestaurant = (restaurantId: string) => {
-    navigation.navigate('RestaurantDetail', { restaurantId });
+  const openRestaurant = (restaurantId: string, featuredDishId?: string) => {
+    navigation.navigate('RestaurantDetail', { restaurantId, featuredDishId });
   };
 
   const removeDish = (dishId: string) => {
@@ -150,7 +150,7 @@ export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
                     <TouchableOpacity
                       style={styles.rowMain}
                       activeOpacity={0.7}
-                      onPress={() => openRestaurant(item.restaurantId)}
+                      onPress={() => openRestaurant(item.restaurantId, item.id)}
                     >
                       {item.imageUrl ? (
                         <Image source={{ uri: item.imageUrl }} style={styles.image} />

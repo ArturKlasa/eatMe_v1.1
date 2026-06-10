@@ -7,7 +7,7 @@
  * renders through the same standard row + inline modifier list.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +29,11 @@ interface FoodTabProps {
   dishRatings: Map<string, DishRating>;
   userDishOpinions: Map<string, DishOpinion>;
   permanentFilters: PermanentFilters;
+  /** Dish ids the user has favorited — renders the ❤️ marker on menu rows. */
+  favoriteDishIds: Set<string>;
+  /** Dish the user tapped on the map/favorites to get here — rendered as a
+   *  pinned highlighted block above the menu list (and again in its category). */
+  featuredDishId?: string;
   loadCategoryDishes: (categoryId: string) => void;
   onDishPress: (dish: DishWithGroups) => void;
 }
@@ -70,6 +75,8 @@ export function FoodTab({
   dishRatings,
   userDishOpinions,
   permanentFilters,
+  favoriteDishIds,
+  featuredDishId,
   loadCategoryDishes,
   onDishPress,
 }: FoodTabProps) {
@@ -77,6 +84,27 @@ export function FoodTab({
   const insets = useSafeAreaInsets();
   const locale = i18n.language;
   const dailyFilters = useFilterStore(state => state.daily);
+  const optionsLabel = t('restaurant.optionsGroupLabel');
+
+  // Resolve the featured dish once its category data has lazy-loaded. Legacy
+  // variant children don't render as rows (groupDishesByParent folds them into
+  // their parent), so a variant id resolves to the folded parent row.
+  const featuredDish = useMemo(() => {
+    if (!featuredDishId) return null;
+    for (const state of categoryDishes.values()) {
+      if (!Array.isArray(state)) continue;
+      const dishes = state as DishWithGroups[];
+      const grouped = groupDishesByParent(dishes, optionsLabel);
+      const direct = grouped.find(d => d.id === featuredDishId);
+      if (direct) return direct;
+      const child = dishes.find(d => d.id === featuredDishId);
+      if (child?.parent_dish_id) {
+        const parent = grouped.find(d => d.id === child.parent_dish_id);
+        if (parent) return parent;
+      }
+    }
+    return null;
+  }, [featuredDishId, categoryDishes, optionsLabel]);
 
   // With a single menu the menu-name heading (often the generic "Main Menu"
   // default, or a foreign-language AI-scanned name like "Comidas y Cenas") is
@@ -103,6 +131,31 @@ export function FoodTab({
       contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
       nestedScrollEnabled
     >
+      {/* Featured dish — the one the user tapped to get here */}
+      {featuredDish && (
+        <View style={styles.featuredSection}>
+          <Text style={styles.featuredLabel}>⭐ {t('restaurant.featuredFromSearch')}</Text>
+          <DishMenuItem
+            item={featuredDish}
+            permanentFilters={permanentFilters}
+            dishRatings={dishRatings}
+            currencyCode={restaurant.currency_code}
+            userOpinion={userDishOpinions.get(featuredDish.id) ?? null}
+            isFavorite={favoriteDishIds.has(featuredDish.id)}
+            onPress={onDishPress}
+          />
+          {(featuredDish.option_groups?.length ?? 0) > 0 && (
+            <View style={{ paddingHorizontal: spacing.md }}>
+              <ModifierGroupsList
+                groups={featuredDish.option_groups ?? []}
+                daily={dailyFilters}
+                basePrice={featuredDish.price ?? 0}
+                currencyCode={restaurant.currency_code}
+              />
+            </View>
+          )}
+        </View>
+      )}
       {restaurant.menus?.map(menu => {
         // Single menu → always expanded, no header (the food shows immediately).
         // Multiple menus → collapsible, collapsed by default, so the tab opens
@@ -131,7 +184,7 @@ export function FoodTab({
                 const dishes = Array.isArray(categoryState) ? categoryState : [];
                 const grouped = groupDishesByParent(
                   sortedDishes(dishes as DishWithGroups[], permanentFilters),
-                  t('restaurant.optionsGroupLabel')
+                  optionsLabel
                 );
                 return (
                   <View key={category.id} style={styles.menuCategory}>
@@ -191,6 +244,7 @@ export function FoodTab({
                             dishRatings={dishRatings}
                             currencyCode={restaurant.currency_code}
                             userOpinion={userDishOpinions.get(dish.id) ?? null}
+                            isFavorite={favoriteDishIds.has(dish.id)}
                             onPress={onDishPress}
                           />
                           {(dish.option_groups?.length ?? 0) > 0 && (

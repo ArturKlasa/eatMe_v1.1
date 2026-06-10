@@ -29,6 +29,9 @@ interface DishMenuItemProps {
   /** The signed-in user's most recent opinion for this dish, if any. Drives the
    *  "You loved it" indicator when 'liked'. */
   userOpinion?: DishOpinion | null;
+  /** Whether the dish is in the user's favorites — renders a ❤️ after the name.
+   *  Distinct from userOpinion (saved vs rated). */
+  isFavorite?: boolean;
   onPress: (item: DishWithGroups) => void;
 }
 
@@ -38,6 +41,7 @@ export function DishMenuItem({
   dishRatings,
   currencyCode,
   userOpinion,
+  isFavorite,
   onPress,
 }: DishMenuItemProps) {
   const { t } = useTranslation();
@@ -92,6 +96,7 @@ export function DishMenuItem({
             {item.name}
             {item.primary_protein === 'vegan' && ' 🌱'}
             {item.primary_protein === 'vegetarian' && ' 🥬'}
+            {isFavorite && ' ❤️'}
           </Text>
           {!passesHardFilters && (
             <View style={styles.notForYouPill}>

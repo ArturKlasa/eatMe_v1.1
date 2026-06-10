@@ -17,7 +17,7 @@ import {
 } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { toggleFavorite, isFavorited } from '../../services/favoritesService';
+import { toggleFavorite, isFavorited, getUserFavorites } from '../../services/favoritesService';
 import {
   getDishRatingsBatch,
   getUserDishOpinions,
@@ -45,6 +45,10 @@ export interface RestaurantDetailState {
   isFavorite: boolean;
   favoriteLoading: boolean;
   favoritesInitialized: boolean;
+  /** The user's favorited dish ids (all restaurants — Set lookup by dish id).
+   *  Drives the ❤️ marker on menu rows and the dish sheet's initial heart. */
+  favoriteDishIds: Set<string>;
+  setDishFavorite: (dishId: string, saved: boolean) => void;
   selectedDish: DishWithGroups | null;
   setSelectedDish: (dish: DishWithGroups | null) => void;
   dishOptionGroups: OptionGroup[];
@@ -90,6 +94,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoritesInitialized, setFavoritesInitialized] = useState(false);
+  const [favoriteDishIds, setFavoriteDishIds] = useState<Set<string>>(new Set());
   const [selectedDish, setSelectedDish] = useState<DishWithGroups | null>(null);
   const [dishOptionGroups, setDishOptionGroups] = useState<OptionGroup[]>([]);
   const [dishPhotos, setDishPhotos] = useState<
@@ -147,17 +152,21 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       }
 
       if (!mountedRef.current) return;
-      const [ratingResult, favResult] = await Promise.all([
+      const [ratingResult, favResult, dishFavsResult] = await Promise.all([
         getRestaurantRating(restaurantId).catch(() => null),
         user
           ? isFavorited(user.id, 'restaurant', restaurantId).catch(() => null)
           : Promise.resolve(null),
+        user ? getUserFavorites(user.id, 'dish').catch(() => null) : Promise.resolve(null),
       ]);
       if (!mountedRef.current) return;
       setRestaurantRating(ratingResult);
       if (favResult !== null) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setIsFavorite((favResult as any).ok ? (favResult as any).data : false);
+      }
+      if (dishFavsResult?.ok) {
+        setFavoriteDishIds(new Set(dishFavsResult.data.map(f => f.subject_id)));
       }
       setFavoritesInitialized(true);
     };
@@ -230,6 +239,18 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     return () => clearTimeout(timer);
   }, [selectedDish?.id, user?.id]);
 
+  // Local mirror of a dish's saved state — called when the dish sheet toggles
+  // the heart or a "Loved it" rating auto-favorites, so menu rows update live.
+  const setDishFavorite = React.useCallback((dishId: string, saved: boolean) => {
+    setFavoriteDishIds(prev => {
+      if (prev.has(dishId) === saved) return prev;
+      const next = new Set(prev);
+      if (saved) next.add(dishId);
+      else next.delete(dishId);
+      return next;
+    });
+  }, []);
+
   const handleFavoriteToggle = async (): Promise<void> => {
     setFavoriteLoading(true);
     try {
@@ -294,6 +315,8 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     isFavorite,
     favoriteLoading,
     favoritesInitialized,
+    favoriteDishIds,
+    setDishFavorite,
     selectedDish,
     setSelectedDish,
     dishOptionGroups,

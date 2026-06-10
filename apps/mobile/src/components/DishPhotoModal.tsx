@@ -30,6 +30,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // the reduced height (the old full-screen modal used a full SCREEN_WIDTH square).
 const PHOTO_HEIGHT = Math.round(SCREEN_WIDTH * 0.6);
 
+// With zero photos the sheet shrinks to its content (maxHeight, not fixed
+// height), so the "no photos yet" placeholder gets a compact height instead of
+// the full photo block.
+const PHOTO_HEIGHT_EMPTY = 140;
+
 const KIND_BADGE: Record<string, string> = {
   configurable: '  🔧',
   course_menu: '  🍷',
@@ -79,6 +84,13 @@ interface DishPhotoModalProps {
   currencyCode?: string | null;
   existingOpinion?: DishOpinion | null;
   onRated?: (opinion: DishOpinion, tags: DishTag[]) => void;
+  /** Saved (favorited) state known by the caller. When provided, the heart
+   *  initializes from it without a per-open isFavorited query. */
+  initialSaved?: boolean;
+  /** Fired whenever the saved state changes inside the sheet (heart toggle, or
+   *  the implicit auto-favorite when rating "Loved it") so the caller can keep
+   *  menu-level favorite indicators in sync. */
+  onFavoriteChange?: (saved: boolean) => void;
 }
 
 export function DishPhotoModal({
@@ -97,6 +109,8 @@ export function DishPhotoModal({
   currencyCode,
   existingOpinion = null,
   onRated,
+  initialSaved,
+  onFavoriteChange,
 }: DishPhotoModalProps) {
   const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
     ? currencyCode
@@ -111,16 +125,22 @@ export function DishPhotoModal({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
-  // Check whether the dish is already saved when the modal opens.
+  // Saved state when the modal opens: trust the caller's initialSaved when
+  // provided (re-syncs if it changes, e.g. favorites finish loading after the
+  // sheet opened); otherwise fall back to a per-open isFavorited query.
   useEffect(() => {
     if (!visible || !user) {
       setIsSaved(false);
       return;
     }
+    if (initialSaved !== undefined) {
+      setIsSaved(initialSaved);
+      return;
+    }
     isFavorited(user.id, 'dish', dishId).then(result => {
       if (result.ok) setIsSaved(result.data);
     });
-  }, [visible, dishId, user?.id]);
+  }, [visible, dishId, user?.id, initialSaved]);
 
   const handleLike = async () => {
     if (!user) {
@@ -132,6 +152,7 @@ export function DishPhotoModal({
       const result = await toggleFavorite(user.id, 'dish', dishId);
       if (result.ok) {
         setIsSaved(result.data);
+        onFavoriteChange?.(result.data);
         // Only record 'liked' interaction when saving (not when un-saving)
         if (result.data) {
           recordInteraction(user.id, dishId, 'liked');
@@ -250,7 +271,12 @@ export function DishPhotoModal({
             nestedScrollEnabled
           >
             {/* Main Photo */}
-            <View style={styles.mainPhotoContainer}>
+            <View
+              style={[
+                styles.mainPhotoContainer,
+                photos.length === 0 && styles.mainPhotoContainerEmpty,
+              ]}
+            >
               {photos.length > 0 ? (
                 <ScrollView
                   ref={photoScrollRef}
@@ -337,7 +363,16 @@ export function DishPhotoModal({
                   dishName={dishName}
                   restaurantId={restaurantId}
                   existingOpinion={existingOpinion}
-                  onRated={onRated ?? (() => {})}
+                  onRated={(opinion, tags) => {
+                    // "Loved it" auto-saves to favorites server-side
+                    // (ratingService.autoFavoriteLovedDish) — mirror it here so
+                    // the heart fills immediately instead of on next open.
+                    if (opinion === 'liked' && !isSaved) {
+                      setIsSaved(true);
+                      onFavoriteChange?.(true);
+                    }
+                    onRated?.(opinion, tags);
+                  }}
                 />
               )}
 
@@ -400,7 +435,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    height: '75%',
+    // Adaptive: wraps content (no dead space below dishes without modifiers),
+    // capped at three quarters of the screen — longer content scrolls.
+    maxHeight: '75%',
     backgroundColor: colors.dark,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
@@ -416,7 +453,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   body: {
-    flex: 1,
+    // Size to content so the sheet can shrink (see sheet.maxHeight); shrink —
+    // and become scrollable — when content exceeds the cap.
+    flexGrow: 0,
+    flexShrink: 1,
   },
   header: {
     flexDirection: 'row',
@@ -468,6 +508,9 @@ const styles = StyleSheet.create({
     height: PHOTO_HEIGHT,
     backgroundColor: colors.black,
     position: 'relative',
+  },
+  mainPhotoContainerEmpty: {
+    height: PHOTO_HEIGHT_EMPTY,
   },
   mainPhoto: {
     width: SCREEN_WIDTH,

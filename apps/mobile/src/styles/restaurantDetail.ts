@@ -388,6 +388,26 @@ export const restaurantDetailStyles = StyleSheet.create({
     fontWeight: '500' as const,
   },
 
+  // Featured dish — the dish the user tapped (map / favorites) pinned above
+  // the menu list. Accent border + tint to read as "this is why you're here".
+  featuredSection: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: borderRadius.lg,
+    backgroundColor: `${colors.accent}10`,
+  },
+  featuredLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+  },
+
   // Address Modal
   addressModal: {
     backgroundColor: colors.darkSecondary,

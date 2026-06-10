@@ -714,6 +714,30 @@ Deno.test('normalize: placeholder "." description collapses to null', async () =
   assertEquals(captured.name, 'Ribeye Steak'); // names are trimmed, never null
 });
 
+Deno.test('normalize: placeholder ":" description collapses to null', async () => {
+  // The model shifted its no-value placeholder from "." to ":" once the
+  // prompt forbade "."; the normalizer must catch ANY punctuation-only value.
+  const dish = makeFixtureDish({
+    name: 'Caesar Salad',
+    price: 12.0,
+    dish_kind: 'standard',
+    description: ':',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, null);
+});
+
+Deno.test('normalize: arbitrary punctuation-only description collapses to null', async () => {
+  const dish = makeFixtureDish({
+    name: 'House Burger',
+    price: 15.0,
+    dish_kind: 'standard',
+    description: ' :: -- ',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, null);
+});
+
 Deno.test('normalize: leading stray punctuation is stripped from description', async () => {
   const dish = makeFixtureDish({
     name: 'Tomato Soup',

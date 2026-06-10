@@ -324,7 +324,7 @@ For each dish output exactly these fields:
     ONLY — never translate, reorder, add or drop words. E.g.
     "GRILLED SEA BASS" → "Grilled Sea Bass"; "BBQ PORK RIBS" → "BBQ Pork Ribs".
 - description: brief description if shown. Output null when there is no
-    description — never output a placeholder such as ".", "-", or "N/A".
+    description — never output a placeholder such as ".", ":", "-", or "N/A".
 - price: numeric price (no currency symbol), null if not shown
 - portion_amount + portion_unit: explicit portion size shown on the menu.
     Extract ONLY when explicitly visible in the dish name or description.
@@ -561,16 +561,19 @@ async function extractOneImageWithFallback(
 }
 
 // Normalize an AI-emitted free-text field: trim, drop a leading stray
-// punctuation token (the model sometimes emits "." / "- " as a placeholder
-// for an absent value), and collapse empty / punctuation-only strings to null.
+// punctuation token, and collapse to null any string that contains no letter
+// or digit. The model keeps shifting its placeholder for "no value" (".",
+// then ":") as the prompt forbids each one, so the no-value check must be
+// generic — anything without real content is a placeholder — rather than a
+// list of known placeholder characters.
 function normalizeText(raw: string | null | undefined): string | null {
   if (raw == null) return null;
+  if (!/[\p{L}\p{N}]/u.test(raw)) return null;
   const s = raw
     .trim()
-    .replace(/^[.\-–—·•]+\s*/, '')
+    .replace(/^[.,:;\-–—·•]+\s*/, '')
     .trim();
-  if (s === '' || /^[.\-–—·•]+$/.test(s)) return null;
-  return s;
+  return s === '' ? null : s;
 }
 
 // Escape a string for safe literal use inside a RegExp.
@@ -639,6 +642,7 @@ async function runExtraction(
           ...d,
           name: stripPortionSourceText(d.name.trim(), d.portion_source_text),
           description: normalizeText(d.description),
+          suggested_category_description: normalizeText(d.suggested_category_description),
           source_image_index: idx,
         });
       }

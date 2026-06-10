@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   applyAddBundledItem,
+  applyCopyModifierGroups,
   applyRemoveBundledItem,
   applyUpdateBundledItem,
   type EditableDish,
@@ -193,5 +194,85 @@ describe('applyAddBundledItem / applyRemoveBundledItem / applyUpdateBundledItem'
     expect(next[0].bundled_items[0].name).toBe('Soup');
     expect(next[0].bundled_items[1].name).toBe('Caesar Salad');
     expect(next[0].bundled_items[1].note).toBe('no anchovies');
+  });
+});
+
+describe('applyCopyModifierGroups (bulk copy, operator issue #13)', () => {
+  function makeGroupWithOptions(name: string): EditableModifierGroup {
+    const group = makeGroup({ name });
+    group.options = [
+      { ...newEmptyModifierOption(), name: 'Pollo', price_delta: 0 },
+      { ...newEmptyModifierOption(), name: 'Arrachera', price_delta: 25 },
+    ];
+    return group;
+  }
+
+  function makeDishes(): EditableDish[] {
+    return [
+      makeDish({
+        _id: 'dish-1',
+        name: 'Taco A',
+        modifier_groups: [makeGroupWithOptions('Proteína')],
+      }),
+      makeDish({ _id: 'dish-2', name: 'Taco B' }),
+      makeDish({ _id: 'dish-3', name: 'Taco C' }),
+    ];
+  }
+
+  it('deep-clones all source groups into each target with fresh _ids', () => {
+    const next = applyCopyModifierGroups(makeDishes(), 'dish-1', ['dish-2', 'dish-3']);
+
+    for (const id of ['dish-2', 'dish-3']) {
+      const target = next.find(d => d._id === id)!;
+      expect(target.modifier_groups).toHaveLength(1);
+      expect(target.modifier_groups[0].name).toBe('Proteína');
+      expect(target.modifier_groups[0].options.map(o => o.name)).toEqual(['Pollo', 'Arrachera']);
+      expect(target.modifier_groups[0].options[1].price_delta).toBe(25);
+    }
+
+    const source = next.find(d => d._id === 'dish-1')!;
+    const copy = next.find(d => d._id === 'dish-2')!;
+    // Fresh identities — copies are independent of the source and of each other
+    expect(copy.modifier_groups[0]._id).not.toBe(source.modifier_groups[0]._id);
+    expect(copy.modifier_groups[0].options[0]._id).not.toBe(
+      source.modifier_groups[0].options[0]._id
+    );
+    const other = next.find(d => d._id === 'dish-3')!;
+    expect(copy.modifier_groups[0]._id).not.toBe(other.modifier_groups[0]._id);
+  });
+
+  it('clones are independent — editing the copy does not touch the source', () => {
+    const next = applyCopyModifierGroups(makeDishes(), 'dish-1', ['dish-2']);
+    const copy = next.find(d => d._id === 'dish-2')!;
+    copy.modifier_groups[0].options[0].name = 'MUTATED';
+    const source = next.find(d => d._id === 'dish-1')!;
+    expect(source.modifier_groups[0].options[0].name).toBe('Pollo');
+  });
+
+  it('skips groups whose name already exists on the target (case-insensitive)', () => {
+    const dishes = makeDishes();
+    dishes[1].modifier_groups = [makeGroup({ name: 'proteína' })];
+    const next = applyCopyModifierGroups(dishes, 'dish-1', ['dish-2']);
+    const target = next.find(d => d._id === 'dish-2')!;
+    expect(target.modifier_groups).toHaveLength(1);
+    expect(target.modifier_groups[0].name).toBe('proteína');
+  });
+
+  it('copying twice does not duplicate groups', () => {
+    const once = applyCopyModifierGroups(makeDishes(), 'dish-1', ['dish-2']);
+    const twice = applyCopyModifierGroups(once, 'dish-1', ['dish-2']);
+    expect(twice.find(d => d._id === 'dish-2')!.modifier_groups).toHaveLength(1);
+  });
+
+  it('never copies a dish onto itself, even when selected', () => {
+    const next = applyCopyModifierGroups(makeDishes(), 'dish-1', ['dish-1', 'dish-2']);
+    expect(next.find(d => d._id === 'dish-1')!.modifier_groups).toHaveLength(1);
+    expect(next.find(d => d._id === 'dish-2')!.modifier_groups).toHaveLength(1);
+  });
+
+  it('is a no-op when the source is missing or has no groups', () => {
+    const dishes = makeDishes();
+    expect(applyCopyModifierGroups(dishes, 'nope', ['dish-2'])).toBe(dishes);
+    expect(applyCopyModifierGroups(dishes, 'dish-2', ['dish-3'])).toBe(dishes);
   });
 });

@@ -292,6 +292,7 @@ export function ReviewDishEditor({
     addBundledItem,
     removeBundledItem,
     updateBundledItem,
+    copyModifierGroups,
   } = useReviewState(
     useMemo(
       () => initialDishes.map((d, i) => asEditable(d, i, canonicalSlugSet, matchByQuery)),
@@ -328,6 +329,44 @@ export function ReviewDishEditor({
 
   const activeDishes = useMemo(() => dishes.filter(d => !d._deleted), [dishes]);
   const deletedCount = dishes.length - activeDishes.length;
+
+  // Bulk-copy selection (operator issue #13). Holds dish _ids; deleted dishes
+  // are filtered out at use-time so removing a selected dish can't make it a
+  // silent copy target.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedActiveIds = useMemo(
+    () => activeDishes.filter(d => selectedIds.has(d._id)).map(d => d._id),
+    [activeDishes, selectedIds]
+  );
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // Select-all toggle for one category section: if every active dish in the
+  // section is already selected, deselect them; otherwise select them all.
+  const toggleGroupSelection = (groupDishes: EditableDish[]) => {
+    const ids = groupDishes.filter(d => !d._deleted).map(d => d._id);
+    if (ids.length === 0) return;
+    const allSelected = ids.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleCopyGroups = (sourceDishId: string) => {
+    copyModifierGroups(sourceDishId, selectedActiveIds);
+    setSelectedIds(new Set());
+  };
 
   const detectedDiffers =
     !!detectedLanguage &&
@@ -594,6 +633,23 @@ export function ReviewDishEditor({
         </p>
       )}
 
+      {selectedActiveIds.length > 0 && (
+        <div className="sticky top-2 z-10 flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 shadow-sm dark:border-amber-800 dark:bg-amber-950">
+          <p className="text-xs text-amber-900 dark:text-amber-200">
+            <strong>{selectedActiveIds.length}</strong> dish
+            {selectedActiveIds.length === 1 ? '' : 'es'} selected — use &ldquo;Copy modifier
+            groups&rdquo; on the dish that has the groups you want to spread.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="shrink-0 rounded border border-amber-300 bg-background px-2 py-1 text-xs hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {groups.map(group => {
         const meta = getGroupMeta(group.key);
         const desc = categoryDescriptions.get(group.key) ?? '';
@@ -609,10 +665,23 @@ export function ReviewDishEditor({
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {group.dishes.filter(d => !d._deleted).length} dish
-                  {group.dishes.filter(d => !d._deleted).length === 1 ? '' : 'es'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {group.dishes.filter(d => !d._deleted).length} dish
+                    {group.dishes.filter(d => !d._deleted).length === 1 ? '' : 'es'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupSelection(group.dishes)}
+                    disabled={saving || group.dishes.every(d => d._deleted)}
+                    className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
+                  >
+                    {group.dishes.filter(d => !d._deleted).every(d => selectedIds.has(d._id)) &&
+                    group.dishes.some(d => !d._deleted)
+                      ? 'Deselect all'
+                      : 'Select all'}
+                  </button>
+                </div>
               </div>
               {group.key !== 'none' &&
                 (meta.descriptionLocked ? (
@@ -649,6 +718,15 @@ export function ReviewDishEditor({
                   ].join(' ')}
                 >
                   <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${d.name.trim() || 'dish'} for bulk copy`}
+                      checked={selectedIds.has(d._id)}
+                      onChange={() => toggleSelected(d._id)}
+                      disabled={d._deleted || saving}
+                      title="Select as a target for bulk modifier-group copy"
+                      className="mt-3 h-4 w-4 shrink-0 disabled:opacity-50"
+                    />
                     <input
                       aria-label="Dish name"
                       value={d.name}
@@ -937,21 +1015,37 @@ export function ReviewDishEditor({
 
                   {/* Modifier groups (replaces variants + courses) */}
                   {!d._deleted && (
-                    <ModifierGroupsEditor
-                      groups={d.modifier_groups}
-                      saving={saving}
-                      currencyCode={currencyCode}
-                      onAddGroup={() => addModifierGroup(d._id)}
-                      onRemoveGroup={idx => removeModifierGroup(d._id, idx)}
-                      onMoveGroup={(from, to) => moveModifierGroup(d._id, from, to)}
-                      onUpdateGroup={(idx, patch) => updateModifierGroup(d._id, idx, patch)}
-                      onAddOption={idx => addModifierOption(d._id, idx)}
-                      onRemoveOption={(gIdx, oIdx) => removeModifierOption(d._id, gIdx, oIdx)}
-                      onMoveOption={(gIdx, from, to) => moveModifierOption(d._id, gIdx, from, to)}
-                      onUpdateOption={(gIdx, oIdx, patch) =>
-                        updateModifierOption(d._id, gIdx, oIdx, patch)
-                      }
-                    />
+                    <>
+                      <ModifierGroupsEditor
+                        groups={d.modifier_groups}
+                        saving={saving}
+                        currencyCode={currencyCode}
+                        onAddGroup={() => addModifierGroup(d._id)}
+                        onRemoveGroup={idx => removeModifierGroup(d._id, idx)}
+                        onMoveGroup={(from, to) => moveModifierGroup(d._id, from, to)}
+                        onUpdateGroup={(idx, patch) => updateModifierGroup(d._id, idx, patch)}
+                        onAddOption={idx => addModifierOption(d._id, idx)}
+                        onRemoveOption={(gIdx, oIdx) => removeModifierOption(d._id, gIdx, oIdx)}
+                        onMoveOption={(gIdx, from, to) => moveModifierOption(d._id, gIdx, from, to)}
+                        onUpdateOption={(gIdx, oIdx, patch) =>
+                          updateModifierOption(d._id, gIdx, oIdx, patch)
+                        }
+                      />
+                      {d.modifier_groups.length > 0 &&
+                        selectedActiveIds.some(id => id !== d._id) && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyGroups(d._id)}
+                            disabled={saving}
+                            className="w-full rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                          >
+                            ⧉ Copy {d.modifier_groups.length} modifier group
+                            {d.modifier_groups.length === 1 ? '' : 's'} from this dish to{' '}
+                            {selectedActiveIds.filter(id => id !== d._id).length} selected dish
+                            {selectedActiveIds.filter(id => id !== d._id).length === 1 ? '' : 'es'}
+                          </button>
+                        )}
+                    </>
                   )}
                 </li>
               ))}

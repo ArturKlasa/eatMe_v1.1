@@ -150,6 +150,46 @@ export function applyUpdateBundledItem(
   });
 }
 
+// ── Bulk copy (operator issue #13) ───────────────────────────────────────────
+
+function cloneModifierGroup(g: EditableModifierGroup): EditableModifierGroup {
+  return {
+    ...g,
+    _id: `mg-${crypto.randomUUID()}`,
+    options: g.options.map(o => ({ ...o, _id: `mo-${crypto.randomUUID()}` })),
+  };
+}
+
+// Deep-clones every modifier group of the source dish into each target dish.
+// Groups whose (trimmed, case-insensitive) name already exists on a target are
+// skipped, so copying twice — or onto a dish where the scan already extracted
+// the same group — never duplicates.
+export function applyCopyModifierGroups(
+  dishes: EditableDish[],
+  sourceDishId: string,
+  targetDishIds: string[]
+): EditableDish[] {
+  const source = dishes.find(d => d._id === sourceDishId);
+  if (!source || source.modifier_groups.length === 0) return dishes;
+  const targets = new Set(targetDishIds.filter(id => id !== sourceDishId));
+  if (targets.size === 0) return dishes;
+
+  return dishes.map(d => {
+    if (!targets.has(d._id)) return d;
+    const existingNames = new Set(
+      d.modifier_groups.map(g => g.name.trim().toLowerCase()).filter(n => n !== '')
+    );
+    const clones = source.modifier_groups
+      .filter(g => {
+        const name = g.name.trim().toLowerCase();
+        return name === '' || !existingNames.has(name);
+      })
+      .map(cloneModifierGroup);
+    if (clones.length === 0) return d;
+    return { ...d, modifier_groups: [...d.modifier_groups, ...clones] };
+  });
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 // Modifier-group setters compose the pure reducers from
@@ -217,6 +257,9 @@ export function useReviewState(initial: EditableDish[]) {
     patch: Partial<EditableBundledItem>
   ) => setDishes(prev => applyUpdateBundledItem(prev, dishId, itemIdx, patch));
 
+  const copyModifierGroups = (sourceDishId: string, targetDishIds: string[]) =>
+    setDishes(prev => applyCopyModifierGroups(prev, sourceDishId, targetDishIds));
+
   return {
     dishes,
     update,
@@ -232,5 +275,6 @@ export function useReviewState(initial: EditableDish[]) {
     addBundledItem,
     removeBundledItem,
     updateBundledItem,
+    copyModifierGroups,
   };
 }

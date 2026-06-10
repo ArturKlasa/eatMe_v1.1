@@ -10,6 +10,7 @@ import {
 } from '@/lib/auth/dal';
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
+import { BasicInfoSection } from './BasicInfoSection';
 import { LocationCurrencySection } from './LocationCurrencySection';
 import { MenusSection } from './MenusSection';
 import { OpeningHoursSection } from './OpeningHoursSection';
@@ -42,15 +43,6 @@ function statusBadgeClass(status: string) {
   if (status === 'published') return 'bg-green-100 text-green-800';
   if (status === 'draft') return 'bg-yellow-100 text-yellow-800';
   return 'bg-gray-100 text-gray-600';
-}
-
-function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
-  return (
-    <div className="flex gap-2 text-sm">
-      <span className="w-32 shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-foreground">{value ?? '—'}</span>
-    </div>
-  );
 }
 
 export default async function AdminRestaurantDetailPage({ params }: Props) {
@@ -96,22 +88,20 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Basic info card (read-only) */}
-      <section className="rounded-lg border border-border p-4 space-y-2">
-        <h2 className="font-semibold text-sm mb-3">Basic info</h2>
-        <InfoRow label="ID" value={restaurant.id} />
-        <InfoRow label="Owner" value={restaurant.owner_id} />
-        <InfoRow label="Address" value={restaurant.address} />
-        <InfoRow label="City" value={restaurant.city} />
-        <InfoRow label="Phone" value={restaurant.phone} />
-        <InfoRow label="Website" value={restaurant.website} />
-        <InfoRow label="Type" value={restaurant.restaurant_type} />
-        <InfoRow label="Cuisines" value={restaurant.cuisine_types?.join(', ') ?? null} />
-        <InfoRow
-          label="Created"
-          value={restaurant.created_at ? new Date(restaurant.created_at).toLocaleString() : null}
-        />
-      </section>
+      {/* Basic info card — editable inline (operator issue #14) */}
+      <BasicInfoSection
+        restaurantId={restaurant.id}
+        name={restaurant.name}
+        description={restaurant.description}
+        address={restaurant.address}
+        city={restaurant.city}
+        phone={restaurant.phone}
+        website={restaurant.website}
+        ownerId={restaurant.owner_id}
+        restaurantType={restaurant.restaurant_type}
+        cuisineTypes={restaurant.cuisine_types}
+        createdAt={restaurant.created_at}
+      />
 
       {/* Country + currency — editable inline. Drives all price-input
           rendering downstream (DishRowEditor, AddDishButton, ModifierGroupsEditor,

@@ -11,6 +11,7 @@ import {
 import { createAdminServiceClient } from '@/lib/supabase/server';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
 import { BasicInfoSection } from './BasicInfoSection';
+import { CopyMenuSection } from './CopyMenuSection';
 import { LocationCurrencySection } from './LocationCurrencySection';
 import { MenusSection } from './MenusSection';
 import { OpeningHoursSection } from './OpeningHoursSection';
@@ -134,6 +135,12 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
         sourceLanguageCode={sourceLanguageCode}
         currencyCode={restaurant.currency_code}
       />
+
+      {/* Multi-branch setup: one-time menu copy, only while this restaurant is
+          still empty (the RPC enforces the same guard server-side). */}
+      {menusData.menus.length === 0 && (
+        <CopyMenuSection restaurantId={restaurant.id} restaurantName={restaurant.name} />
+      )}
 
       {/* Scan additional menu — drafts will land in this restaurant's menu */}
       <ScanNewMenuSection restaurantId={restaurant.id} restaurantName={restaurant.name} />

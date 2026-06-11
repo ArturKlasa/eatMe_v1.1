@@ -183,9 +183,10 @@ describe('confirmMenuScanPayloadSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('accepts all 11 valid primary_protein values', () => {
+  it('accepts all 12 valid primary_protein values', () => {
     const proteins = [
       'chicken',
+      'turkey',
       'beef',
       'pork',
       'lamb',
@@ -508,9 +509,10 @@ describe('MenuExtractionSchema', () => {
     }
   });
 
-  it('accepts all 11 valid primary_protein values', () => {
+  it('accepts all 12 valid primary_protein values', () => {
     const proteins = [
       'chicken',
+      'turkey',
       'beef',
       'pork',
       'lamb',
@@ -530,9 +532,9 @@ describe('MenuExtractionSchema', () => {
     }
   });
 
-  it('rejects primary_protein outside the 11-value list', () => {
+  it('rejects primary_protein outside the 12-value list', () => {
     const result = MenuExtractionSchema.safeParse({
-      dishes: [{ ...validDish, primary_protein: 'turkey' }],
+      dishes: [{ ...validDish, primary_protein: 'duck' }],
     });
     expect(result.success).toBe(false);
   });

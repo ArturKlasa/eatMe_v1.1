@@ -227,7 +227,7 @@ go-ahead + user verification before the next starts).
 | 2 | 4a, 4b | Currency defaults + backfill | done — `6f3b806`, backfill applied (462 rows → MX/MXN) 2026-06-10 |
 | 3 | 13, 14 | Review-UI ergonomics (client-only) | done — `34db6d8`, verified 2026-06-10 |
 | 4 | 12 | Modifier/bundle scan-attach during review (selection-bar bulk + per-dish 📷 button) | done — verified 2026-06-10 |
-| 5 | 11 | Turkey protein (coordinated DB change) | pending |
+| 5 | 11 | Turkey protein (coordinated DB change) | done — migration 159 applied 2026-06-11; also created the missing `compute_dish_protein_families` trigger + backfilled 7,104 dishes whose empty `protein_families` let meat dishes pass the vegetarian filter |
 | 6 | 16 | Menu copy tool | pending |
 | later | A4 | Model escalation — only if quality still short after batch 1 | conditional |
 

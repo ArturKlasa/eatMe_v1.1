@@ -17,6 +17,7 @@ import { z } from 'npm:zod@3';
 
 export const PRIMARY_PROTEINS = [
   'chicken',
+  'turkey',
   'beef',
   'pork',
   'lamb',
@@ -411,8 +412,10 @@ For each dish output exactly these fields:
       is_default: set TRUE on exactly one option in each required group — the cheapest /
         standard choice. FALSE for all options in optional groups.
 - primary_protein: the main protein source of the BASE dish — exactly one of:
-    chicken | beef | pork | lamb | goat | other_meat | fish | shellfish | eggs | vegetarian | vegan
+    chicken | turkey | beef | pork | lamb | goat | other_meat | fish | shellfish | eggs | vegetarian | vegan
     Use "vegetarian" for plant-based dishes, "vegan" only when the dish is fully vegan.
+    Turkey is its own value — classify pavo/turkey dishes (e.g. "Pechuga de Pavo")
+    as "turkey", NEVER as "chicken".
     When the dish has a required protein choice, use the cheapest/default option's protein
     (modifier_groups[].options[].primary_protein will override at feed-time).
 - suggested_category_name: the menu section this dish belongs to, written exactly as it appears

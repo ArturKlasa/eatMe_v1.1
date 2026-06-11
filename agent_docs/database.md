@@ -46,6 +46,6 @@ Migration files in `supabase/migrations/` with numeric prefixes. Use `supabase m
 
 ## Dish Classification
 
-Dishes are classified by `primary_protein` (11-value enum, NOT NULL). The legacy ingredient pipeline — `dish_ingredients` + the triggers that auto-calculated `dishes.allergens` / `dishes.dietary_tags` — was retired in migrations 151–153. The dish-level `allergens` / `dietary_tags` columns, the option-level allergen/dietary modifiers, and the `user_preferences` allergen/diet columns were then dropped in migrations 155–156 (allergens + dietary tags are abandoned — EatMe is a protein-based discovery app, not an allergen-safety app). See the root `CLAUDE.md` for the rationale.
+Dishes are classified by `primary_protein` (12-value enum, NOT NULL). `dishes.protein_families` / `protein_canonical_names` are derived from it by the `compute_dish_protein_families` trigger (migration 159). The legacy ingredient pipeline — `dish_ingredients` + the triggers that auto-calculated `dishes.allergens` / `dishes.dietary_tags` — was retired in migrations 151–153. The dish-level `allergens` / `dietary_tags` columns, the option-level allergen/dietary modifiers, and the `user_preferences` allergen/diet columns were then dropped in migrations 155–156 (allergens + dietary tags are abandoned — EatMe is a protein-based discovery app, not an allergen-safety app). See the root `CLAUDE.md` for the rationale.
 
 See `docs/project/06-database-schema.md` for the complete schema documentation.

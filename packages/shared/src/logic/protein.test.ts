@@ -24,6 +24,12 @@ describe('deriveProteinFields', () => {
     expect(result.protein_canonical_names).toEqual(['chicken']);
   });
 
+  it('turkey → meat + poultry families', () => {
+    const result = deriveProteinFields('turkey');
+    expect(result.protein_families).toEqual(['meat', 'poultry']);
+    expect(result.protein_canonical_names).toEqual(['turkey']);
+  });
+
   it('goat → meat family', () => {
     const result = deriveProteinFields('goat');
     expect(result.protein_families).toEqual(['meat']);
@@ -84,7 +90,7 @@ describe('deriveProteinFields', () => {
     expect(result.protein_canonical_names).toEqual([]);
   });
 
-  it('PRIMARY_PROTEINS covers all 11 values', () => {
-    expect(PRIMARY_PROTEINS).toHaveLength(11);
+  it('PRIMARY_PROTEINS covers all 12 values', () => {
+    expect(PRIMARY_PROTEINS).toHaveLength(12);
   });
 });

@@ -123,6 +123,10 @@ function proteinToMeatTypeKey(
       return 'lamb';
     case 'goat':
       return 'goat';
+    // Turkey has no dedicated daily toggle (yet) — it rides under "Other",
+    // same as the feed's 'other' fallback (any meat whose canonical name isn't
+    // chicken/beef/pork/lamb/goat). Product decision 2026-06-11.
+    case 'turkey':
     case 'other_meat':
       return 'other';
     default:

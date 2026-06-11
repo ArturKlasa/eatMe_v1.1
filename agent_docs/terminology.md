@@ -15,7 +15,7 @@
 
 ## Food Classification
 
-- **Primary Protein**: The single classification axis for dishes — an 11-value enum (`chicken`, `beef`, `pork`, `lamb`, `goat`, `other_meat`, `fish`, `shellfish`, `eggs`, `vegetarian`, `vegan`). Drives feed filtering + daily meat-type filters.
+- **Primary Protein**: The single classification axis for dishes — a 12-value enum (`chicken`, `turkey`, `beef`, `pork`, `lamb`, `goat`, `other_meat`, `fish`, `shellfish`, `eggs`, `vegetarian`, `vegan`). Drives feed filtering + daily meat-type filters.
 - **Protein Families**: Derived from `primary_protein` (`meat`, `poultry`, `fish`, `shellfish`, `eggs`) via `deriveProteinFields`. Power the protein-based diet filter — vegetarian = none of meat/poultry/fish/shellfish (eggs OK); vegan = `primary_protein = 'vegan'`.
 - **Diet Preference**: User's `all` / `vegetarian` / `vegan` choice. Permanent = hard exclude (SQL `WHERE`); daily = soft re-rank (JS boost).
 

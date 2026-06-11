@@ -1,5 +1,6 @@
 export const PRIMARY_PROTEINS = [
   'chicken',
+  'turkey',
   'beef',
   'pork',
   'lamb',
@@ -26,6 +27,7 @@ export function deriveProteinFields(p: PrimaryProtein | null | undefined): Deriv
 
   switch (p) {
     case 'chicken':
+    case 'turkey':
       return {
         protein_families: ['meat', 'poultry'],
         protein_canonical_names: [p],

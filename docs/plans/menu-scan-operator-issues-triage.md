@@ -61,6 +61,19 @@ header. Partially mitigated by A1 (headers are often small caps text). Small.
 
 **Priority (user, 2026-06-09): deferred — fix this one LAST.**
 
+**Implemented 2026-06-11** (last of the 16): prompt rules (positional
+attribution + no-merge with null-slug escape) **plus a deterministic backstop**
+`resolveCategorySlugCollisions` in `runExtraction` — the first printed section
+(menu order) to claim a slug keeps it; a later, *different* header claiming the
+same slug loses the slug and falls back to the custom-category path
+(`suggested_category_name` survives verbatim). Headers compared
+case/diacritic-insensitively so a section restated on a later page is not a
+false positive; headerless dishes are skipped (nulling them would dump dishes
+in "uncategorized"). The backstop is the only cross-page enforcement — each
+model call sees one image. 4 Deno tests. Awaiting worker deploy, then tune the
+prompt wording against real bad scans (over-splitting / null-spam is the
+failure mode to watch).
+
 ## 2. Grams doubled in description
 
 Prompt (index.ts:339–342) says "Keep the size text in the name and description —
@@ -228,9 +241,11 @@ go-ahead + user verification before the next starts).
 | 3 | 13, 14 | Review-UI ergonomics (client-only) | done — `34db6d8`, verified 2026-06-10 |
 | 4 | 12 | Modifier/bundle scan-attach during review (selection-bar bulk + per-dish 📷 button) | done — verified 2026-06-10 |
 | 5 | 11 | Turkey protein (coordinated DB change) | done — migration 159 applied 2026-06-11; also created the missing `compute_dish_protein_families` trigger + backfilled 7,104 dishes whose empty `protein_families` let meat dishes pass the vegetarian filter |
-| 6 | 16 | Menu copy tool | implemented 2026-06-11 — migration 160 (`admin_copy_restaurant_menu` deep-copy RPC) + admin UI (CopyMenuSection, shown only while the restaurant has no menus); awaiting migration apply + user verification |
+| 6 | 16 | Menu copy tool | done — `9532a9c`, migration 160 applied + smoke-tested 2026-06-11 |
 | later | A4 | Model escalation — only if quality still short after batch 1 | conditional |
 
 Issue 1 (category merging) is tracked SEPARATELY from the batch sequence
 (user, 2026-06-10) — it's a worker-prompt change to be tuned on its own
-against real scans, not bundled with a feature batch.
+against real scans, not bundled with a feature batch. Implemented 2026-06-11
+(prompt rules + deterministic slug-collision backstop — see §1); pending
+worker deploy + tuning against the next real merged-category scan.

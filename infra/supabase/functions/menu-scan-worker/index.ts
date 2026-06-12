@@ -419,11 +419,20 @@ For each dish output exactly these fields:
     When the dish has a required protein choice, use the cheapest/default option's protein
     (modifier_groups[].options[].primary_protein will override at feed-time).
 - suggested_category_name: the menu section this dish belongs to, written exactly as it appears
-    on the menu (verbatim, in the source language). Null if no section header is shown.
+    on the menu (verbatim, in the source language). A dish belongs to the NEAREST section
+    header printed above it — before carrying the previous dish's section forward, check
+    whether a new header (often small, stylized, or ALL-CAPS text) is printed between the two
+    dishes. Every distinct printed header starts its own section: NEVER merge two different
+    headers into one section, even when they are semantically close (e.g. "Tostadas" printed
+    after "Entradas" is its own section, not part of "Entradas"). Null if no section header
+    is shown.
 - canonical_category_slug: if the section maps cleanly to one of the canonical slugs listed
     below, output that slug exactly. Otherwise output null. Match conservatively — when
     uncertain, prefer null. The slug list is in English but the menu may be in any language;
-    match by meaning, not by spelling.
+    match by meaning, not by spelling. Two DIFFERENT printed headers must never share one
+    slug: if two sections on this page would map to the same slug, give the slug to the
+    closer match and output null for the other — its printed header is preserved via
+    suggested_category_name.
 - suggested_category_description: if the section has a brief subtitle / description on the
     menu (e.g. under a "Hot Dogs" header you see "2 hot dogs de salchicha de pavo con papas"),
     extract it verbatim in the source language. Null if no section description is shown.
@@ -600,6 +609,48 @@ function normalizeText(raw: string | null | undefined): string | null {
   return s === '' ? null : s;
 }
 
+// Normalized key for comparing printed section headers: trim, lowercase, strip
+// diacritics — "ENTRADAS", "Entradas" and "entradas" are the same printed
+// section restated (e.g. on a later page), not two different sections.
+function sectionKey(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+// Deterministic backstop for the category-merge bug (operator issue #1): two
+// DIFFERENT printed headers must never share a canonical slug, or the review
+// UI — which groups dishes by slug — silently collapses one section into the
+// other ("Tostadas" swallowed by "Entradas"). The prompt forbids this per
+// page, but each model call sees a single image, so cross-page collisions can
+// only be caught here. The first section (menu order) to claim a slug keeps
+// it; a LATER, DIFFERENT header claiming the same slug loses the slug — its
+// verbatim header survives in suggested_category_name, so the review UI falls
+// back to creating a custom category instead of merging. Headerless dishes are
+// skipped: they carry no printed section identity to lose, and nulling their
+// slug would dump them in "uncategorized", which is worse than a merge.
+function resolveCategorySlugCollisions(dishes: MenuExtractionResult['dishes']): void {
+  const slugOwner = new Map<string, string>(); // slug → sectionKey of first claimant
+  for (const d of dishes) {
+    if (!d.canonical_category_slug || !d.suggested_category_name) continue;
+    const key = sectionKey(d.suggested_category_name);
+    if (!key) continue;
+    const owner = slugOwner.get(d.canonical_category_slug);
+    if (owner === undefined) {
+      slugOwner.set(d.canonical_category_slug, key);
+    } else if (owner !== key) {
+      console.warn(
+        `category-slug collision: section "${d.suggested_category_name}" also mapped to ` +
+          `"${d.canonical_category_slug}" — keeping the slug on the earlier section and ` +
+          `falling back to a custom category here`
+      );
+      d.canonical_category_slug = null;
+    }
+  }
+}
+
 // Escape a string for safe literal use inside a RegExp.
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -756,6 +807,11 @@ async function runExtraction(
     const firstReject = settled.find(r => r.status === 'rejected') as PromiseRejectedResult;
     throw firstReject.reason;
   }
+
+  // Operator issue #1 backstop: the prompt forbids two different printed
+  // headers sharing a slug, but only within one page — enforce it across the
+  // whole menu so distinct sections can never merge in the review UI.
+  resolveCategorySlugCollisions(dishes);
 
   return {
     dishes,

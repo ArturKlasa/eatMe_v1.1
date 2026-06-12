@@ -684,6 +684,164 @@ Deno.test('multi-image: source_image_index override is authoritative', async () 
   assertEquals(captured.dishes[1].source_image_index, 1);
 });
 
+// ── Category-slug collision backstop (operator issue #1) ─────────────────────
+//
+// Two DIFFERENT printed headers must never share a canonical slug — the review
+// UI groups dishes by slug, so a shared slug silently merges two menu sections
+// ("Tostadas" swallowed by "Entradas"). The prompt forbids it per page;
+// resolveCategorySlugCollisions enforces it across the whole menu.
+
+function makeCategorizedDish(name: string, header: string | null, slug: string | null) {
+  return {
+    name,
+    description: null,
+    price: 10,
+    dish_kind: 'standard',
+    dining_format: null,
+    bundled_items: [],
+    modifier_groups: [],
+    primary_protein: 'chicken',
+    portion_amount: null,
+    portion_unit: null,
+    portion_source_text: null,
+    suggested_category_name: header,
+    canonical_category_slug: slug,
+    suggested_category_description: null,
+    suggested_dish_category: null,
+    source_image_index: 0,
+    confidence: 0.9,
+  };
+}
+
+Deno.test('category backstop: second header sharing a slug falls back to custom', async () => {
+  const job = makeJob('cat-collide');
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+  const openai = makeOpenAIMockSequence([
+    {
+      dishes: [
+        makeCategorizedDish('Ceviche Clásico', 'Entradas', 'appetizers'),
+        makeCategorizedDish('Tostada de Atún', 'Tostadas', 'appetizers'),
+        makeCategorizedDish('Queso Fundido', 'Entradas', 'appetizers'),
+      ],
+      detected_language: 'es',
+    },
+  ]);
+
+  const result = await processJobs({ supa, openai });
+
+  assertEquals(result.processed, ['cat-collide']);
+  // First printed section keeps the slug — including its dishes listed AFTER
+  // the colliding section. The collider loses only the slug; its verbatim
+  // header survives, so the review UI creates a custom "Tostadas" category
+  // instead of merging it into "Entradas".
+  assertEquals(
+    // deno-lint-ignore no-explicit-any
+    captured.dishes.map((d: any) => [d.name, d.canonical_category_slug]),
+    [
+      ['Ceviche Clásico', 'appetizers'],
+      ['Tostada de Atún', null],
+      ['Queso Fundido', 'appetizers'],
+    ]
+  );
+  assertEquals(captured.dishes[1].suggested_category_name, 'Tostadas');
+});
+
+Deno.test('category backstop: cross-page collision is caught too', async () => {
+  // Each model call sees one page, so the prompt rule cannot prevent
+  // "Entradas" (page 1) and "Botanas" (page 2) both mapping to appetizers —
+  // only the worker-side backstop can.
+  const job = makeMultiImageJob('cat-crosspage', 2);
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+  const openai = makeOpenAIMockSequence([
+    {
+      dishes: [makeCategorizedDish('Guacamole', 'Entradas', 'appetizers')],
+      detected_language: 'es',
+    },
+    { dishes: [makeCategorizedDish('Nachos', 'Botanas', 'appetizers')], detected_language: null },
+  ]);
+
+  await processJobs({ supa, openai });
+
+  // deno-lint-ignore no-explicit-any
+  assertEquals(
+    captured.dishes.map((d: any) => d.canonical_category_slug),
+    ['appetizers', null]
+  );
+});
+
+Deno.test('category backstop: same header restated across pages keeps its slug', async () => {
+  // A section header re-printed on a later page (with case/accent drift) is
+  // the SAME section, not a collision — the slug must survive on both pages.
+  const job = makeMultiImageJob('cat-restate', 2);
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+  const openai = makeOpenAIMockSequence([
+    { dishes: [makeCategorizedDish('Espresso', 'CAFÉS', 'coffee')], detected_language: 'es' },
+    { dishes: [makeCategorizedDish('Latte', 'Cafes', 'coffee')], detected_language: null },
+  ]);
+
+  await processJobs({ supa, openai });
+
+  // deno-lint-ignore no-explicit-any
+  assertEquals(
+    captured.dishes.map((d: any) => d.canonical_category_slug),
+    ['coffee', 'coffee']
+  );
+});
+
+Deno.test('category backstop: headerless dishes neither claim nor lose a slug', async () => {
+  // A dish with a slug but no printed header has no section identity to
+  // protect — nulling its slug would dump it in "uncategorized", which is
+  // worse than a merge. It also must not "claim" the slug away from a real
+  // printed section.
+  const job = makeJob('cat-headerless');
+  // deno-lint-ignore no-explicit-any
+  let captured: any;
+  const supa = makeSupaMock({
+    jobs: [job],
+    onComplete: (_id, result) => {
+      captured = result;
+    },
+  });
+  const openai = makeOpenAIMockSequence([
+    {
+      dishes: [
+        makeCategorizedDish('Agua de Jamaica', null, 'drinks'),
+        makeCategorizedDish('Cerveza Artesanal', 'Cervezas', 'drinks'),
+      ],
+      detected_language: 'es',
+    },
+  ]);
+
+  await processJobs({ supa, openai });
+
+  // deno-lint-ignore no-explicit-any
+  assertEquals(
+    captured.dishes.map((d: any) => d.canonical_category_slug),
+    ['drinks', 'drinks']
+  );
+});
+
 // ── v2 modifier-aware fixtures ────────────────────────────────────────────────
 //
 // These fixtures exercise the worker's pass-through behaviour for the new

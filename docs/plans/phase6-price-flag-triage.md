@@ -18,7 +18,9 @@ Columns: **Δ** = variant vs. kept price. Tick **Done** as you clear each.
 
 | Done | Dish | Kept price | Dropped variant | Variant price | Δ | Dish ID |
 |:--:|---|--:|---|--:|--:|---|
-| [ ] | ENSALADA CESAR | $240 | + pechuga de pollo 120 g | $50 | -79% | `8c2fc014-3de7-4d6d-bec1-33468a2f7ff8` |
+| [x] | ENSALADA CESAR | $240 | + pechuga de pollo 120 g | $50 | -79% | `8c2fc014-3de7-4d6d-bec1-33468a2f7ff8` |
+
+> ✅ 2026-06-11 — case 3 (add-on delta): $50 was the *extra* cost, not a standalone price. Kept $240; re-added as option group "Ingrediente extra" (single, min 0/max 1) with option "Pechuga de pollo 120 g" `price_delta=+50`, `primary_protein='chicken'`. Salad with chicken = $290.
 
 ### Casi Esquina Pizza Bar
 

@@ -177,6 +177,29 @@ describe('adminScanModifierExtras — extraction', () => {
     expect(result.data.modifier_groups[0].max_selections).toBe(1);
   });
 
+  it('collapses a zero price_override to null (model emits 0 where null was meant)', async () => {
+    const zeroed = {
+      ...VALID_EXTRACTION,
+      modifier_groups: [
+        {
+          ...VALID_EXTRACTION.modifier_groups[0],
+          options: [
+            { ...VALID_EXTRACTION.modifier_groups[0].options[0], price_override: 0 },
+            { ...VALID_EXTRACTION.modifier_groups[0].options[1], price_override: 165 },
+          ],
+        },
+      ],
+    };
+    mockFetch.mockResolvedValue(openAiResponse(zeroed));
+
+    const result = await adminScanModifierExtras(INPUT);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('unreachable');
+    const options = result.data.modifier_groups[0].options;
+    expect(options[0].price_override).toBeNull(); // bogus 0 collapsed
+    expect(options[1].price_override).toBe(165); // real replacing price kept
+  });
+
   it('fails with OPENAI_ERROR on a non-OK response', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 429, text: async () => 'rate limited' });
     const result = await adminScanModifierExtras(INPUT);

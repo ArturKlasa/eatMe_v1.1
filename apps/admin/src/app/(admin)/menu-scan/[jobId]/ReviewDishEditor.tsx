@@ -110,7 +110,10 @@ function asEditable(
       _id: `mo-${i}-${gi}-${oi}`,
       name: o.name,
       price_delta: o.price_delta,
-      price_override: o.price_override,
+      // Jobs scanned before the worker's zero-override backstop carry 0 where
+      // null was meant — collapse it here so old pending scans render an empty
+      // field instead of a "0" the admin must clear on every option.
+      price_override: o.price_override === 0 ? null : o.price_override,
       primary_protein: o.primary_protein,
       serves_delta: o.serves_delta,
       is_default: o.is_default,

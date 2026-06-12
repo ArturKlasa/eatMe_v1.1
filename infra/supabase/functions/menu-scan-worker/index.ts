@@ -405,7 +405,9 @@ For each dish output exactly these fields:
         no extra charge (e.g. the base option of a required group).
       price_override: when the option's printed price REPLACES the base price instead of
         adding to it (e.g. non-linear quantity pricing: "12 wings for $45" → the 12-wing
-        option has price_override=45, price_delta=0). Otherwise null.
+        option has price_override=45, price_delta=0). Otherwise null — NEVER 0. An option
+        without its own replacing price has price_override=null; 0 would mean picking the
+        option makes the dish free.
       primary_protein: only when the option CHANGES the dish's protein source
         (e.g. Pad Thai "with chicken" → 'chicken'). Otherwise null.
       serves_delta: only for options that change headcount (rare). 0 otherwise.
@@ -651,6 +653,24 @@ function resolveCategorySlugCollisions(dishes: MenuExtractionResult['dishes']): 
   }
 }
 
+// Deterministic backstop for the zero price_override bug (operator-reported
+// 2026-06-12): in practice the model almost never emits null for
+// price_override — options with no own replacing price arrive as 0, which the
+// review UI renders as a literal "0" the admin must clear on every option,
+// and which (when missed) the consumer app shows as the option's absolute
+// price ("MX$0"). A zero override is never a real menu intent — an option
+// that adds nothing is price_delta 0 + override null — so collapse 0 → null
+// here rather than trusting prompt wording alone.
+function normalizeModifierPriceOverrides(dishes: MenuExtractionResult['dishes']): void {
+  for (const d of dishes) {
+    for (const g of d.modifier_groups ?? []) {
+      for (const o of g.options ?? []) {
+        if (o.price_override === 0) o.price_override = null;
+      }
+    }
+  }
+}
+
 // Escape a string for safe literal use inside a RegExp.
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -812,6 +832,10 @@ async function runExtraction(
   // headers sharing a slug, but only within one page — enforce it across the
   // whole menu so distinct sections can never merge in the review UI.
   resolveCategorySlugCollisions(dishes);
+
+  // Zero-override backstop: the prompt says "null, NEVER 0" but the model
+  // reliably fills 0 anyway — collapse it before the result is stored.
+  normalizeModifierPriceOverrides(dishes);
 
   return {
     dishes,

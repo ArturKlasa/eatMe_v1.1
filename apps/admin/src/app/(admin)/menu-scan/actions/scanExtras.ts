@@ -158,7 +158,9 @@ Output exactly two arrays:
         no extra charge (e.g. the base option of a required group).
       price_override: when the option's printed price REPLACES the base price instead of
         adding to it (e.g. non-linear quantity pricing: "12 wings for $45" -> the 12-wing
-        option has price_override=45, price_delta=0). Otherwise null.
+        option has price_override=45, price_delta=0). Otherwise null — NEVER 0. An option
+        without its own replacing price has price_override=null; 0 would mean picking the
+        option makes the dish free.
       primary_protein: only when the option CHANGES the dish's protein source
         (e.g. "with chicken" -> 'chicken'). Otherwise null. One of:
         ${PRIMARY_PROTEINS.join(' | ')}
@@ -191,6 +193,14 @@ function sanitize(extras: ScannedExtras): ScannedExtras {
         ...g,
         min_selections: Math.min(Math.max(0, g.min_selections), max),
         max_selections: max,
+        // The model fills 0 instead of null for options with no replacing
+        // price despite the prompt; a 0 override would render as a literal
+        // "0" in the editor and price the option at 0 for consumers. Same
+        // backstop as the menu-scan worker.
+        options: g.options.map(o => ({
+          ...o,
+          price_override: o.price_override === 0 ? null : o.price_override,
+        })),
       };
     }),
     bundled_items: extras.bundled_items,

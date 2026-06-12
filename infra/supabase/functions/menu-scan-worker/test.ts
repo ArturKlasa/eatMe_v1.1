@@ -1164,6 +1164,59 @@ Deno.test('fixture: Pad Thai with required protein choice', async () => {
   assertEquals(defaults[0].name, 'Chicken');
 });
 
+Deno.test('fixture: zero price_override collapses to null (worker backstop)', async () => {
+  // The model reliably emits 0 instead of null for options with no replacing
+  // price. The review UI renders that as a literal "0" the admin must clear
+  // on every option, and a missed one reaches the consumer app as "picking
+  // this option makes the dish cost 0".
+  const dish = makeFixtureDish({
+    name: 'Alitas',
+    price: 95,
+    dish_kind: 'standard',
+    modifier_groups: [
+      {
+        name: 'Cantidad',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: false,
+        options: [
+          {
+            name: '6 alitas',
+            price_delta: 0,
+            price_override: 0, // model's bogus zero — must collapse to null
+            primary_protein: null,
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: '12 alitas',
+            price_delta: 0,
+            price_override: 165, // real replacing price — untouched
+            primary_protein: null,
+            serves_delta: 0,
+            is_default: false,
+          },
+          {
+            name: 'Extra bañadas',
+            price_delta: 10,
+            price_override: null, // already correct — untouched
+            primary_protein: null,
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+
+  const opts = captured.modifier_groups[0].options;
+  assertEquals(opts[0].price_override, null);
+  assertEquals(opts[1].price_override, 165);
+  assertEquals(opts[2].price_override, null);
+});
+
 Deno.test('fixture: Caesar with optional add-ons', async () => {
   const dish = makeFixtureDish({
     name: 'Caesar Salad',

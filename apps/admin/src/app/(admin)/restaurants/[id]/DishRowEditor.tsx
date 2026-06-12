@@ -18,6 +18,7 @@ import type {
   AdminMenuModifierGroup,
   DishCategoryOption,
 } from '@/lib/auth/dal';
+import { isSuspiciouslyHighPrice, priceWarnMessage } from '@/lib/priceWarnings';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
 import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
 import { ModifierGroupsEditor } from '@/components/modifiers/ModifierGroupsEditor';
@@ -72,14 +73,11 @@ function formatPriceCell(price: number | null, currencyCode: string): string {
 
 // Sub-list shown beneath each dish row. Modifier groups render via
 // <ModifierGroupsSummary> (read-only); clicking the row enters edit mode
-// where <ModifierGroupsEditor> appears for editing. Variants and courses
-// remain read-only here (kept until Phase 7 drops those tables).
+// where <ModifierGroupsEditor> appears for editing.
 function DishRowSubList({ dish, currencyCode }: { dish: AdminMenuDish; currencyCode: string }) {
   const hasModifiers = dish.modifier_groups.length > 0;
   const hasBundled = (dish.bundled_items?.length ?? 0) > 0;
-  const hasVariants = dish.is_parent && dish.variants.length > 0;
-  const hasCourses = dish.dish_kind === 'course_menu' && dish.courses.length > 0;
-  if (!hasModifiers && !hasBundled && !hasVariants && !hasCourses) return null;
+  if (!hasModifiers && !hasBundled) return null;
 
   return (
     <div className="ml-4 mt-1 space-y-1.5">
@@ -98,54 +96,6 @@ function DishRowSubList({ dish, currencyCode }: { dish: AdminMenuDish; currencyC
               <span className="flex-1">{b.name}</span>
               {b.note && (
                 <span className="text-[10px] italic text-muted-foreground/80">{b.note}</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {hasVariants && (
-        <ul className="space-y-0.5 border-l border-blue-300/50 pl-3 dark:border-blue-900/40">
-          {dish.variants.map(v => (
-            <li key={v.id} className="flex items-baseline gap-2 text-xs text-muted-foreground">
-              <span className="text-blue-600/70 dark:text-blue-300/70">↳</span>
-              <span className="flex-1">{v.name}</span>
-              <span className="tabular-nums w-20 text-right">
-                {formatPriceCell(v.price, currencyCode)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {hasCourses && (
-        <ul className="space-y-1 border-l border-purple-300/50 pl-3 dark:border-purple-900/40">
-          {dish.courses.map(c => (
-            <li key={c.id}>
-              <div className="flex items-baseline gap-2 text-xs">
-                <span className="font-medium text-purple-900 dark:text-purple-200">
-                  {c.course_number}. {c.course_name?.trim() || '(unnamed)'}
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  {c.choice_type === 'one_of' ? `pick ${c.required_count}` : 'fixed'}
-                </span>
-              </div>
-              {c.items.length > 0 && (
-                <ul className="ml-3 mt-0.5 space-y-0.5">
-                  {c.items.map(it => (
-                    <li
-                      key={it.id}
-                      className="flex items-baseline gap-2 text-[11px] text-muted-foreground"
-                    >
-                      <span className="flex-1">• {it.option_label}</span>
-                      {it.price_delta !== 0 && (
-                        <span className="tabular-nums">
-                          +{formatPriceCell(it.price_delta, currencyCode)}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
               )}
             </li>
           ))}
@@ -299,7 +249,19 @@ export function DishRowEditor({
           className="flex w-full items-baseline gap-2 text-left text-sm hover:bg-muted/30 rounded px-1 -mx-1"
         >
           <span className="flex-1 text-foreground">{dish.name}</span>
-          <span className="tabular-nums text-muted-foreground w-20 text-right">
+          <span
+            className={`tabular-nums w-20 text-right ${
+              isSuspiciouslyHighPrice(dish.price, currencyCode)
+                ? 'font-medium text-amber-700 dark:text-amber-400'
+                : 'text-muted-foreground'
+            }`}
+            title={
+              isSuspiciouslyHighPrice(dish.price, currencyCode)
+                ? priceWarnMessage(currencyCode)
+                : undefined
+            }
+          >
+            {isSuspiciouslyHighPrice(dish.price, currencyCode) && '⚠ '}
             {formatPriceCell(dish.price, currencyCode)}
           </span>
           <span
@@ -307,21 +269,6 @@ export function DishRowEditor({
           >
             {dish.status}
           </span>
-          {dish.dish_kind !== 'standard' && (
-            <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-              {dish.dish_kind}
-            </span>
-          )}
-          {dish.is_parent && dish.dish_kind !== 'course_menu' && (
-            <span className="inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
-              {dish.variants.length} variant{dish.variants.length === 1 ? '' : 's'}
-            </span>
-          )}
-          {dish.dish_kind === 'course_menu' && (
-            <span className="inline-block rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-800 dark:bg-purple-950/40 dark:text-purple-200">
-              {dish.courses.length} course{dish.courses.length === 1 ? '' : 's'}
-            </span>
-          )}
           {dish.modifier_groups.length > 0 && (
             <span
               className="inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
@@ -338,11 +285,6 @@ export function DishRowEditor({
             >
               {DINING_FORMAT_META[dish.dining_format as DiningFormat]?.icon ?? '🍽️'}{' '}
               {DINING_FORMAT_META[dish.dining_format as DiningFormat]?.label ?? dish.dining_format}
-            </span>
-          )}
-          {dish.is_template && (
-            <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-              template
             </span>
           )}
           {dish.is_available === false && (
@@ -410,7 +352,9 @@ export function DishRowEditor({
           <option value="oz">oz</option>
         </select>
         <div
-          className="flex items-stretch rounded-md border border-input bg-background overflow-hidden w-28"
+          className={`flex items-stretch rounded-md border bg-background overflow-hidden w-28 ${
+            isSuspiciouslyHighPrice(draft.price, currencyCode) ? 'border-amber-500' : 'border-input'
+          }`}
           title={`Price in ${currencyCode}`}
         >
           <span className="px-1.5 flex items-center text-xs text-muted-foreground bg-muted/40 border-r border-input">
@@ -433,6 +377,12 @@ export function DishRowEditor({
           />
         </div>
       </div>
+
+      {isSuspiciouslyHighPrice(draft.price, currencyCode) && (
+        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+          ⚠ {priceWarnMessage(currencyCode)}
+        </p>
+      )}
 
       <textarea
         value={draft.description ?? ''}

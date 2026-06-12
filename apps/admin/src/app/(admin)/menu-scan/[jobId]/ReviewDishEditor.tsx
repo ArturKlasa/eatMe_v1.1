@@ -21,6 +21,7 @@ import type {
   DishCategoryMatch,
 } from '@/lib/auth/dal';
 import { adminConfirmMenuScan } from '../actions/menuScan';
+import { isSuspiciouslyHighPrice, priceWarnMessage } from '@/lib/priceWarnings';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
 import { MenuCategoryCombobox, type MenuCategoryOption } from '@/components/MenuCategoryCombobox';
 import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline';
@@ -827,7 +828,13 @@ export function ReviewDishEditor({
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <label className="flex flex-col gap-1 text-xs">
                       <span className="text-muted-foreground">Price ({currencyCode})</span>
-                      <div className="flex items-stretch rounded border border-border bg-background overflow-hidden">
+                      <div
+                        className={`flex items-stretch rounded border bg-background overflow-hidden ${
+                          isSuspiciouslyHighPrice(d.price, currencyCode)
+                            ? 'border-amber-500'
+                            : 'border-border'
+                        }`}
+                      >
                         <span className="px-1.5 flex items-center text-xs text-muted-foreground bg-muted/40 border-r border-border">
                           {currencySymbol}
                         </span>
@@ -847,6 +854,11 @@ export function ReviewDishEditor({
                           className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm focus:outline-none disabled:opacity-50"
                         />
                       </div>
+                      {isSuspiciouslyHighPrice(d.price, currencyCode) && (
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400">
+                          ⚠ {priceWarnMessage(currencyCode)}
+                        </span>
+                      )}
                     </label>
 
                     <label className="flex flex-col gap-1 text-xs">

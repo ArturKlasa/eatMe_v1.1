@@ -249,3 +249,14 @@ Issue 1 (category merging) is tracked SEPARATELY from the batch sequence
 against real scans, not bundled with a feature batch. Implemented 2026-06-11
 (prompt rules + deterministic slug-collision backstop — see §1); pending
 worker deploy + tuning against the next real merged-category scan.
+
+## Second wave (reported 2026-06-12)
+
+Four follow-up issues, implemented one-by-one the same day:
+
+| # | Issue | Root cause / shape | Status |
+|---|---|---|---|
+| W2-1 | New dish category doesn't stay saved | Not a save bug: `dish_categories` grew to 1,325 active rows and the un-ranged dropdown loaders silently truncated at PostgREST's 1000-row cap, so alphabetically-late categories vanished from the combobox (the dish's `dish_category_id` was stored fine). Fixed by paging `getAllDishCategoryOptions` and reusing it in the review context. | done — `833ba2d` |
+| W2-2 | Modifier price shows "0", hard to remove | The delta field was already blank-by-default (`1c0f0d9`); the visible 0 was `price_override` — the model essentially never emits null (one job: 131/141 options with override=0), and 128 confirmed `options` rows stored it (mobile renders non-null override as the absolute price → "MX$0"). Fixed with prompt rule (null, NEVER 0) + deterministic 0→null backstop in worker AND scan-extras action + review-UI coercion for already-scanned jobs; migration 161 backfills the 128 rows. | done — `57f6fad` + `d829570`; needs worker redeploy + migration 161 |
+| W2-3 | Warn on implausibly high prices | Soft per-currency thresholds (>500 MXN / >50 USD / >100 PLN) in `apps/admin/src/lib/priceWarnings.ts`; amber border + note on scan-review and menu-editor price inputs, marker on the collapsed dish row. Never blocks save. | done — `54845cc` |
+| W2-4 | Checkbox to mark restaurants needing redoing | Migration 162: `restaurants.needs_redo` + `get_admin_restaurants` filter param/column (DROP + CREATE — signature change). Checkbox in scan-review status panel + restaurant page header (audited server action), filter + orange badge in the restaurants list. | done — `a9af342`; needs migration 162 BEFORE running this admin version |

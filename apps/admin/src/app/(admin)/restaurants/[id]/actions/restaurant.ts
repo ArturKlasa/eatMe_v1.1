@@ -158,6 +158,48 @@ export const suspendRestaurant = withAdminAuth(
   }
 );
 
+// setRestaurantNeedsRedo: toggle the operator's "needs redoing" flag
+// (migration 162) — set during scan review when something is slightly off,
+// cleared once the restaurant has been revisited. Surfaced as a filter +
+// badge in the admin restaurants list.
+export const setRestaurantNeedsRedo = withAdminAuth(
+  async (ctx, id: string, needsRedo: boolean): Promise<ActionResult<{ needs_redo: boolean }>> => {
+    if (typeof needsRedo !== 'boolean') return { ok: false, formError: 'VALIDATION' };
+
+    // needs_redo isn't in the generated Database types yet — regenerate after
+    // applying migration 162. Loose cast keeps the rest of the file typed.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const service = createAdminServiceClient() as any;
+
+    const { data: current } = await service
+      .from('restaurants')
+      .select('id, needs_redo')
+      .eq('id', id)
+      .maybeSingle();
+    if (!current) return { ok: false, formError: 'NOT_FOUND' };
+
+    const { error } = await service
+      .from('restaurants')
+      .update({ needs_redo: needsRedo, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return { ok: false, formError: 'UPDATE_FAILED' };
+
+    await logAdminAction(
+      service,
+      { adminId: ctx.userId, adminEmail: ctx.user.email ?? '' },
+      needsRedo ? 'flag_restaurant_needs_redo' : 'clear_restaurant_needs_redo',
+      'restaurant',
+      id,
+      { needs_redo: (current as { needs_redo: boolean | null }).needs_redo ?? false },
+      { needs_redo: needsRedo }
+    );
+
+    revalidatePath(`/restaurants/${id}`, 'page');
+    revalidatePath('/restaurants', 'page');
+    return { ok: true, data: { needs_redo: needsRedo } };
+  }
+);
+
 const adminBasicsSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),

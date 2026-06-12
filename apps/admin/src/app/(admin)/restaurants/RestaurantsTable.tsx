@@ -11,6 +11,7 @@ interface Filters {
   q: string;
   status: string;
   is_active: string;
+  needs_redo: string;
   city: string;
 }
 
@@ -96,6 +97,17 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
           <option value="true">Active only</option>
           <option value="false">Suspended only</option>
         </select>
+
+        <select
+          value={filters.needs_redo}
+          onChange={e => navigate({ needs_redo: e.target.value, page: '1' })}
+          aria-label="Filter by needs-redo flag"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">Redo flag: all</option>
+          <option value="true">Needs redo only</option>
+          <option value="false">Not flagged</option>
+        </select>
       </SearchFilterBar>
 
       <div className="rounded-lg border border-border overflow-hidden">
@@ -118,6 +130,14 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
                   <Link href={`/restaurants/${row.id}`} className="font-medium hover:underline">
                     {row.name}
                   </Link>
+                  {row.needs_redo && (
+                    <span
+                      className="ml-2 inline-block rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-800 dark:bg-orange-950/40 dark:text-orange-300"
+                      title="Flagged by the operator: scan/menu needs revisiting"
+                    >
+                      needs redo
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2 text-muted-foreground">{row.city ?? '—'}</td>
                 <td className="px-4 py-2">

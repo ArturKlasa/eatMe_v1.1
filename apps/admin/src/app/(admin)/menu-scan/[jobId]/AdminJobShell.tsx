@@ -12,6 +12,7 @@ import type {
 } from '@/lib/auth/dal';
 import { ReviewDishEditor, type ExtractedDish } from './ReviewDishEditor';
 import { SourceImageStrip } from './SourceImageStrip';
+import { NeedsRedoCheckbox } from '@/components/NeedsRedoCheckbox';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -152,6 +153,7 @@ type JobRow = {
   restaurant_name: string | null;
   restaurant_country_code: string | null;
   restaurant_currency_code: string;
+  restaurant_needs_redo: boolean;
   status: string;
   attempts: number;
   last_error: string | null;
@@ -330,12 +332,18 @@ export function AdminJobShell({
           {job.restaurant_name && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Restaurant</p>
-              <a
-                href={`/restaurants/${job.restaurant_id}`}
-                className="text-primary hover:underline text-sm"
-              >
-                {job.restaurant_name}
-              </a>
+              <div className="flex items-center gap-3">
+                <a
+                  href={`/restaurants/${job.restaurant_id}`}
+                  className="text-primary hover:underline text-sm"
+                >
+                  {job.restaurant_name}
+                </a>
+                <NeedsRedoCheckbox
+                  restaurantId={job.restaurant_id}
+                  initialValue={job.restaurant_needs_redo}
+                />
+              </div>
             </div>
           )}
           {job.created_at && (

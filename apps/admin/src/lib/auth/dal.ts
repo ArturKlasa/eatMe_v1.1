@@ -282,7 +282,7 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
   const { data, error } = await supabase
     .from('menu_scan_jobs')
     .select(
-      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name, country_code, currency_code)'
+      'id, restaurant_id, created_by, status, attempts, last_error, created_at, updated_at, input, result_json, locked_until, saved_dish_ids, saved_at, restaurants!left(name, country_code, currency_code, needs_redo)'
     )
     .eq('id', id)
     .maybeSingle();
@@ -294,6 +294,7 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
     name: string;
     country_code: string | null;
     currency_code: string | null;
+    needs_redo: boolean | null;
   } | null;
 
   return {
@@ -302,6 +303,7 @@ export async function getAdminMenuScanJobById(id: string): Promise<AdminMenuScan
     restaurant_name: restaurant?.name ?? null,
     restaurant_country_code: restaurant?.country_code ?? null,
     restaurant_currency_code: restaurant?.currency_code ?? 'USD',
+    restaurant_needs_redo: restaurant?.needs_redo ?? false,
     created_by: row.created_by as string,
     status: row.status as string,
     attempts: row.attempts as number,

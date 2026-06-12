@@ -9,6 +9,7 @@ import {
   getCanonicalMenuCategoryOptions,
 } from '@/lib/auth/dal';
 import { createAdminServiceClient } from '@/lib/supabase/server';
+import { NeedsRedoCheckbox } from '@/components/NeedsRedoCheckbox';
 import { AdminSuspensionSection } from './AdminSuspensionSection';
 import { BasicInfoSection } from './BasicInfoSection';
 import { CopyMenuSection } from './CopyMenuSection';
@@ -75,7 +76,8 @@ export default async function AdminRestaurantDetailPage({ params }: Props) {
 
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-xl font-semibold">{restaurant.name}</h1>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          <NeedsRedoCheckbox restaurantId={restaurant.id} initialValue={restaurant.needs_redo} />
           <span
             className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${statusBadgeClass(restaurant.status)}`}
           >

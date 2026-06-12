@@ -35,14 +35,6 @@ const PHOTO_HEIGHT = Math.round(SCREEN_WIDTH * 0.6);
 // the full photo block.
 const PHOTO_HEIGHT_EMPTY = 140;
 
-const KIND_BADGE: Record<string, string> = {
-  configurable: '  🔧',
-  course_menu: '  🍷',
-  buffet: '  🍱',
-  bundle: '  🎁',
-  // 'standard' intentionally has no badge
-};
-
 // Render an option's price in the restaurant's currency: absolute when
 // price_override is set (e.g. size variants), otherwise the signed delta.
 // Mirrors ModifierGroupsList.formatOptionPrice.
@@ -72,7 +64,6 @@ interface DishPhotoModalProps {
   dishName: string;
   dishDescription?: string;
   dishPrice: number;
-  dishKind?: string;
   displayPricePrefix?: string;
   optionGroups?: OptionGroup[];
   photos: DishPhoto[];
@@ -100,7 +91,6 @@ export function DishPhotoModal({
   dishName,
   dishDescription,
   dishPrice,
-  dishKind = 'standard',
   displayPricePrefix = 'exact',
   optionGroups = [],
   photos,
@@ -232,10 +222,7 @@ export function DishPhotoModal({
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
             <View style={styles.headerInfo}>
-              <Text style={styles.dishName}>
-                {dishName}
-                {KIND_BADGE[dishKind] ?? ''}
-              </Text>
+              <Text style={styles.dishName}>{dishName}</Text>
               <Text style={styles.dishPrice}>
                 {displayPricePrefix === 'from' &&
                   t('restaurant.price.from', { price: formattedDishPrice })}

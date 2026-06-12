@@ -2,8 +2,8 @@
  * Restaurant Detail Screen
  *
  * Orchestrator component. All data-loading logic lives in useRestaurantDetail,
- * pure helper functions in RestaurantMetadata, dish grouping in DishGrouping,
- * and rendering in the sub-components:
+ * pure helper functions in RestaurantMetadata, and rendering in the
+ * sub-components:
  *   - FoodTab         — Food & Drinks tab
  *   - HoursMoreTab    — Hours & More tab
  *   - AddressModal    — Address overlay modal
@@ -261,7 +261,6 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
               : undefined
           }
           dishPrice={selectedDish.price}
-          dishKind={selectedDish.dish_kind ?? 'standard'}
           displayPricePrefix={selectedDish.display_price_prefix ?? 'exact'}
           optionGroups={dishOptionGroups}
           photos={dishPhotos}

@@ -119,18 +119,14 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
           name: `Test Pad Thai ${fx.testId}`,
           description: 'Wok-fried rice noodles',
           price: 14.5,
-          dish_kind: 'standard',
           primary_protein: 'chicken',
           source_image_index: 0,
           category_existing_id: null,
           category_canonical_slug: null,
           category_custom_name: 'Mains',
           dish_category_id: null,
-          is_parent: false,
           display_price_prefix: 'exact',
           serves: 1,
-          variant_dishes: [],
-          courses: [],
         },
       ],
       source_language_code: 'en',
@@ -155,10 +151,9 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
     // Verify side effects
     const { data: dishes } = await supa
       .from('dishes')
-      .select('id, name, dish_kind')
+      .select('id, name')
       .eq('restaurant_id', fx.restaurantId);
     expect(dishes?.length).toBe(1);
-    expect(dishes?.[0]).toMatchObject({ dish_kind: 'standard' });
     expect(dishes?.[0].name).toContain('Pad Thai');
 
     const { data: job } = await supa
@@ -177,18 +172,14 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
           name: `Pad Thai with protein choice ${fx.testId}`,
           description: null,
           price: 14.0,
-          dish_kind: 'standard',
           primary_protein: 'chicken',
           source_image_index: 0,
           category_existing_id: null,
           category_canonical_slug: null,
           category_custom_name: 'Mains',
           dish_category_id: null,
-          is_parent: false,
           display_price_prefix: 'exact',
           serves: 1,
-          variant_dishes: [],
-          courses: [],
           modifier_groups: [
             {
               name: 'Choose your protein',
@@ -283,18 +274,14 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
           name: `First save ${fx.testId}`,
           description: null,
           price: 10,
-          dish_kind: 'standard',
           primary_protein: 'vegetarian',
           source_image_index: 0,
           category_existing_id: null,
           category_canonical_slug: null,
           category_custom_name: 'Mains',
           dish_category_id: null,
-          is_parent: false,
           display_price_prefix: 'exact',
           serves: 1,
-          variant_dishes: [],
-          courses: [],
         },
       ],
       source_language_code: 'en',
@@ -333,18 +320,14 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
           name: `Good dish ${fx.testId}`,
           description: null,
           price: 12,
-          dish_kind: 'standard',
           primary_protein: 'chicken',
           source_image_index: 0,
           category_existing_id: null,
           category_canonical_slug: null,
           category_custom_name: 'Mains',
           dish_category_id: null,
-          is_parent: false,
           display_price_prefix: 'exact',
           serves: 1,
-          variant_dishes: [],
-          courses: [],
           modifier_groups: [
             {
               name: 'Add-ons',
@@ -369,18 +352,14 @@ describe('admin_confirm_menu_scan RPC (migration 144)', () => {
           name: `Bad dish ${fx.testId}`,
           description: null,
           price: 14,
-          dish_kind: 'standard',
           primary_protein: 'beef',
           source_image_index: 0,
           category_existing_id: null,
           category_canonical_slug: null,
           category_custom_name: 'Mains',
           dish_category_id: null,
-          is_parent: false,
           display_price_prefix: 'exact',
           serves: 1,
-          variant_dishes: [],
-          courses: [],
           modifier_groups: [
             {
               name: 'Bad group',
@@ -450,7 +429,6 @@ describe('admin_replace_dish_modifiers RPC (migration 144)', () => {
         restaurant_id: fx.restaurantId,
         name: `Target ${fx.testId}`,
         price: 10,
-        dish_kind: 'standard',
         primary_protein: 'chicken',
         status: 'draft',
       })

@@ -198,89 +198,6 @@ export type Database = {
           },
         ];
       };
-      dish_course_items: {
-        Row: {
-          course_id: string;
-          created_at: string | null;
-          id: string;
-          links_to_dish_id: string | null;
-          option_label: string;
-          price_delta: number;
-          sort_order: number;
-        };
-        Insert: {
-          course_id: string;
-          created_at?: string | null;
-          id?: string;
-          links_to_dish_id?: string | null;
-          option_label: string;
-          price_delta?: number;
-          sort_order?: number;
-        };
-        Update: {
-          course_id?: string;
-          created_at?: string | null;
-          id?: string;
-          links_to_dish_id?: string | null;
-          option_label?: string;
-          price_delta?: number;
-          sort_order?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'dish_course_items_course_id_fkey';
-            columns: ['course_id'];
-            isOneToOne: false;
-            referencedRelation: 'dish_courses';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'dish_course_items_links_to_dish_id_fkey';
-            columns: ['links_to_dish_id'];
-            isOneToOne: false;
-            referencedRelation: 'dishes';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      dish_courses: {
-        Row: {
-          choice_type: string;
-          course_name: string | null;
-          course_number: number;
-          created_at: string | null;
-          id: string;
-          parent_dish_id: string;
-          required_count: number;
-        };
-        Insert: {
-          choice_type: string;
-          course_name?: string | null;
-          course_number: number;
-          created_at?: string | null;
-          id?: string;
-          parent_dish_id: string;
-          required_count?: number;
-        };
-        Update: {
-          choice_type?: string;
-          course_name?: string | null;
-          course_number?: number;
-          created_at?: string | null;
-          id?: string;
-          parent_dish_id?: string;
-          required_count?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'dish_courses_parent_dish_id_fkey';
-            columns: ['parent_dish_id'];
-            isOneToOne: false;
-            referencedRelation: 'dishes';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       dish_opinions: {
         Row: {
           created_at: string | null;
@@ -394,7 +311,6 @@ export type Database = {
           description_visibility: string;
           dining_format: string | null;
           dish_category_id: string | null;
-          dish_kind: string;
           display_price_prefix: string;
           embedding: string | null;
           enrichment_status: string;
@@ -402,15 +318,11 @@ export type Database = {
           image_url: string | null;
           ingredients_visibility: string;
           is_available: boolean | null;
-          is_parent: boolean;
-          is_template: boolean;
           menu_category_id: string | null;
           name: string;
-          parent_dish_id: string | null;
           portion_amount: number | null;
           portion_unit: string | null;
           price: number;
-          price_per_person: number | null;
           primary_protein: string | null;
           protein_canonical_names: string[] | null;
           protein_families: string[] | null;
@@ -435,7 +347,6 @@ export type Database = {
           description_visibility?: string;
           dining_format?: string | null;
           dish_category_id?: string | null;
-          dish_kind?: string;
           display_price_prefix?: string;
           embedding?: string | null;
           enrichment_status?: string;
@@ -443,15 +354,11 @@ export type Database = {
           image_url?: string | null;
           ingredients_visibility?: string;
           is_available?: boolean | null;
-          is_parent?: boolean;
-          is_template?: boolean;
           menu_category_id?: string | null;
           name?: string;
-          parent_dish_id?: string | null;
           portion_amount?: number | null;
           portion_unit?: string | null;
           price?: number;
-          price_per_person?: number | null;
           primary_protein?: string | null;
           protein_canonical_names?: string[] | null;
           protein_families?: string[] | null;
@@ -476,7 +383,6 @@ export type Database = {
           description_visibility?: string;
           dining_format?: string | null;
           dish_category_id?: string | null;
-          dish_kind?: string;
           display_price_prefix?: string;
           embedding?: string | null;
           enrichment_status?: string;
@@ -484,15 +390,11 @@ export type Database = {
           image_url?: string | null;
           ingredients_visibility?: string;
           is_available?: boolean | null;
-          is_parent?: boolean;
-          is_template?: boolean;
           menu_category_id?: string | null;
           name?: string;
-          parent_dish_id?: string | null;
           portion_amount?: number | null;
           portion_unit?: string | null;
           price?: number;
-          price_per_person?: number | null;
           primary_protein?: string | null;
           protein_canonical_names?: string[] | null;
           protein_families?: string[] | null;
@@ -517,13 +419,6 @@ export type Database = {
             columns: ['menu_category_id'];
             isOneToOne: false;
             referencedRelation: 'menu_categories';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'dishes_parent_dish_id_fkey';
-            columns: ['parent_dish_id'];
-            isOneToOne: false;
-            referencedRelation: 'dishes';
             referencedColumns: ['id'];
           },
           {
@@ -2161,10 +2056,6 @@ export type Database = {
         Args: { p_dish_id: string };
         Returns: undefined;
       };
-      confirm_menu_scan: {
-        Args: { p_idempotency_key: string; p_job_id: string; p_payload: Json };
-        Returns: Json;
-      };
       disablelongtransactions: { Args: never; Returns: string };
       dishes_within_radius: {
         Args: {
@@ -2250,7 +2141,6 @@ export type Database = {
           calories: number;
           description: string;
           dining_format: string;
-          dish_kind: string;
           display_price_prefix: string;
           distance_m: number;
           enrichment_status: string;
@@ -2259,10 +2149,8 @@ export type Database = {
           is_available: boolean;
           modifier_groups: Json;
           name: string;
-          parent_dish_id: string;
           popularity_score: number;
           price: number;
-          price_per_person: number;
           primary_protein: string;
           protein_canonical_names: string[];
           protein_families: string[];

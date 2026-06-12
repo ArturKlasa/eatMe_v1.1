@@ -16,7 +16,7 @@ import { classifyDish } from '../../utils/menuFilterUtils';
 import { type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { type DishOpinion } from '../../types/rating';
-import { type DishWithGroups } from './DishGrouping';
+import { type DishWithGroups } from './dishTypes';
 
 interface DishMenuItemProps {
   item: DishWithGroups;

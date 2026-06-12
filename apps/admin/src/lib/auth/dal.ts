@@ -28,6 +28,7 @@ export type AdminRestaurantRow = {
   city: string | null;
   status: string;
   is_active: boolean;
+  needs_redo: boolean;
   owner_id: string | null;
   owner_email: string;
   created_at: string | null;
@@ -42,6 +43,7 @@ type AdminRestaurantsRpc = {
       p_status: string | null;
       p_is_active: boolean | null;
       p_city: string | null;
+      p_needs_redo: boolean | null;
       p_limit: number;
       p_offset: number;
     }
@@ -52,12 +54,13 @@ export async function getAdminRestaurants(params: {
   search?: string;
   status?: string;
   is_active?: boolean;
+  needs_redo?: boolean;
   city?: string;
   page?: number;
   limit?: number;
 }): Promise<{ rows: AdminRestaurantRow[]; total: number }> {
   const supabase = await createServerClient();
-  const { search, status, is_active, city, page = 1, limit = 50 } = params;
+  const { search, status, is_active, needs_redo, city, page = 1, limit = 50 } = params;
   const offset = (page - 1) * limit;
 
   const { data, error } = await (supabase as unknown as AdminRestaurantsRpc).rpc(
@@ -67,6 +70,7 @@ export async function getAdminRestaurants(params: {
       p_status: status ?? null,
       p_is_active: is_active ?? null,
       p_city: city ?? null,
+      p_needs_redo: needs_redo ?? null,
       p_limit: limit,
       p_offset: offset,
     }
@@ -107,6 +111,8 @@ export type AdminRestaurantDetail = {
   accepts_reservations: boolean | null;
   status: string;
   is_active: boolean;
+  /** Operator flag: scan/menu needs revisiting (migration 162). */
+  needs_redo: boolean;
   suspended_at: string | null;
   suspended_by: string | null;
   suspension_reason: string | null;
@@ -139,6 +145,7 @@ const RESTAURANT_DETAIL_COLS = [
   'accepts_reservations',
   'status',
   'is_active',
+  'needs_redo',
   'suspended_at',
   'suspended_by',
   'suspension_reason',
@@ -184,6 +191,9 @@ export type AdminMenuScanJobDetail = AdminMenuScanJobRow & {
    *  prices in the right currency without a second fetch. NOT NULL on the DB
    *  (migration 147); typed string for direct pass-through to formatPrice. */
   restaurant_currency_code: string;
+  /** Mirrors restaurants.needs_redo (migration 162) so the review header can
+   *  render the operator's "needs redo" checkbox without a second fetch. */
+  restaurant_needs_redo: boolean;
 };
 
 export type CanonicalCategoryOption = {
@@ -475,22 +485,6 @@ export async function getAdminRestaurantOptions(): Promise<RestaurantOption[]> {
 
 // ── Restaurant Menus (admin verifier view) ────────────────────────────────────
 
-export type AdminMenuCourseItem = {
-  id: string;
-  option_label: string;
-  price_delta: number;
-  sort_order: number;
-};
-
-export type AdminMenuCourse = {
-  id: string;
-  course_number: number;
-  course_name: string | null;
-  choice_type: 'fixed' | 'one_of';
-  required_count: number;
-  items: AdminMenuCourseItem[];
-};
-
 export type AdminMenuModifierOption = {
   id: string;
   name: string;
@@ -518,18 +512,12 @@ export type AdminMenuDish = {
   price: number | null;
   status: string;
   is_available: boolean | null;
-  is_template: boolean;
-  // dish_kind retained through Phase 7. New rows default to 'standard'; the
-  // dining_format field below is the source of truth for new code.
-  dish_kind: string;
   primary_protein: string | null;
   menu_category_id: string | null;
   dish_category_id: string | null;
   dish_category_name: string | null;
   source_image_index: number | null;
   serves: number | null;
-  is_parent: boolean;
-  parent_dish_id: string | null;
   display_price_prefix: string;
   // New flat model (Phase 4):
   dining_format: string | null;
@@ -539,9 +527,6 @@ export type AdminMenuDish = {
   // enforces. portion_unit is one of 'g' | 'ml' | 'pcs' | 'oz'.
   portion_amount: number | null;
   portion_unit: string | null;
-  // Legacy variants/courses kept for display until Phase 7 drops the tables.
-  variants: AdminMenuDish[];
-  courses: AdminMenuCourse[];
 };
 
 export type AdminMenuCategory = {
@@ -588,10 +573,6 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
   const svc = createAdminServiceClient() as any;
 
   // Three independent queries; cheaper to issue in parallel than to nest.
-  // Dishes query no longer filters out parents — multi-kind dishes (bundle,
-  // configurable, course_menu) need their parent rows surfaced so admins can
-  // see + edit the full structure. Variant children are nested under parents
-  // post-fetch; courses are loaded in a follow-up query keyed by parent ids.
   const [menusRes, categoriesRes, dishesRes] = await Promise.all([
     svc
       .from('menus')
@@ -610,7 +591,7 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
     svc
       .from('dishes')
       .select(
-        'id, name, description, price, status, is_available, is_template, dish_kind, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, is_parent, parent_dish_id, display_price_prefix, dining_format, bundled_items, portion_amount, portion_unit, dish_categories!left(id, name)'
+        'id, name, description, price, status, is_available, primary_protein, menu_category_id, dish_category_id, source_image_index, serves, display_price_prefix, dining_format, bundled_items, portion_amount, portion_unit, dish_categories!left(id, name)'
       )
       .eq('restaurant_id', restaurantId)
       .order('name', { ascending: true }),
@@ -625,16 +606,12 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
       price: (r.price as number | null) ?? null,
       status: r.status as string,
       is_available: (r.is_available as boolean | null) ?? null,
-      is_template: (r.is_template as boolean | null) ?? false,
-      dish_kind: r.dish_kind as string,
       primary_protein: (r.primary_protein as string | null) ?? null,
       menu_category_id: (r.menu_category_id as string | null) ?? null,
       dish_category_id: (r.dish_category_id as string | null) ?? null,
       dish_category_name: dc?.name ?? null,
       source_image_index: (r.source_image_index as number | null) ?? null,
       serves: (r.serves as number | null) ?? null,
-      is_parent: (r.is_parent as boolean | null) ?? false,
-      parent_dish_id: (r.parent_dish_id as string | null) ?? null,
       display_price_prefix: (r.display_price_prefix as string | null) ?? 'exact',
       dining_format: (r.dining_format as string | null) ?? null,
       bundled_items:
@@ -642,8 +619,6 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
       portion_amount: (r.portion_amount as number | null) ?? null,
       portion_unit: (r.portion_unit as string | null) ?? null,
       modifier_groups: [],
-      variants: [],
-      courses: [],
     };
   });
 
@@ -695,70 +670,10 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
     }
   }
 
-  // Load courses + items for course_menu parents in a separate batched query.
-  // Scoping by parent_dish_id IN (...) avoids fetching course rows for
-  // restaurants the admin isn't viewing.
-  const courseMenuParentIds = rawDishes
-    .filter(d => d.is_parent && d.dish_kind === 'course_menu')
-    .map(d => d.id);
-
-  const coursesByParent = new Map<string, AdminMenuCourse[]>();
-  if (courseMenuParentIds.length > 0) {
-    const { data: courseRows } = await svc
-      .from('dish_courses')
-      .select(
-        'id, parent_dish_id, course_number, course_name, choice_type, required_count, dish_course_items(id, option_label, price_delta, sort_order)'
-      )
-      .in('parent_dish_id', courseMenuParentIds)
-      .order('course_number', { ascending: true });
-
-    for (const c of (courseRows ?? []) as Array<Record<string, unknown>>) {
-      const items = ((c.dish_course_items as Array<Record<string, unknown>>) ?? [])
-        .map(it => ({
-          id: it.id as string,
-          option_label: it.option_label as string,
-          price_delta: (it.price_delta as number | null) ?? 0,
-          sort_order: (it.sort_order as number | null) ?? 0,
-        }))
-        .sort((a, b) => a.sort_order - b.sort_order);
-      const parentId = c.parent_dish_id as string;
-      const arr = coursesByParent.get(parentId) ?? [];
-      arr.push({
-        id: c.id as string,
-        course_number: c.course_number as number,
-        course_name: (c.course_name as string | null) ?? null,
-        choice_type: c.choice_type as 'fixed' | 'one_of',
-        required_count: (c.required_count as number | null) ?? 1,
-        items,
-      });
-      coursesByParent.set(parentId, arr);
-    }
-  }
-
-  // Group variant children under their parent. Top-level dishes (no parent)
-  // keep an empty variants[]; parents collect their children via parent_dish_id.
-  const variantsByParent = new Map<string, AdminMenuDish[]>();
-  for (const d of rawDishes) {
-    if (d.parent_dish_id == null) continue;
-    const arr = variantsByParent.get(d.parent_dish_id) ?? [];
-    arr.push(d);
-    variantsByParent.set(d.parent_dish_id, arr);
-  }
-
-  for (const d of rawDishes) {
-    if (d.is_parent) {
-      d.variants = variantsByParent.get(d.id) ?? [];
-      d.courses = coursesByParent.get(d.id) ?? [];
-    }
-  }
-
-  // Top-level dishes only — variant children render through their parent.
-  const topLevelDishes = rawDishes.filter(d => d.parent_dish_id == null);
-
   // Bucket dishes by menu_category_id; orphans (NULL) go to a separate list.
   const dishesByCategory = new Map<string, AdminMenuDish[]>();
   const uncategorizedDishes: AdminMenuDish[] = [];
-  for (const d of topLevelDishes) {
+  for (const d of rawDishes) {
     if (d.menu_category_id == null) {
       uncategorizedDishes.push(d);
     } else {

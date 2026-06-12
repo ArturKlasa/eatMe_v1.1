@@ -323,8 +323,8 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
           `
           dishes (
             id, name, description, price, calories,
-            spice_level, image_url, is_available, dish_kind, display_price_prefix,
-            description_visibility, ingredients_visibility, parent_dish_id, is_parent,
+            spice_level, image_url, is_available, display_price_prefix,
+            description_visibility, ingredients_visibility,
             serves,
             primary_protein, dining_format, bundled_items,
             portion_amount, portion_unit,

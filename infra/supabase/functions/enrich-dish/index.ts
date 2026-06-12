@@ -42,11 +42,8 @@ interface DishRow {
   restaurant_id: string;
   name: string;
   description: string | null;
-  dish_kind: string;
   enrichment_status: string;
   updated_at: string;
-  is_parent: boolean;
-  parent_dish_id: string | null;
   primary_protein: string | null;
 }
 
@@ -76,27 +73,18 @@ async function getEmbedding(text: string): Promise<number[]> {
 function buildEmbeddingInput(params: {
   name: string;
   description: string | null;
-  dishKind: string;
   optionGroups: OptionGroupData[];
   cuisineTypes: string[];
-  parentName: string | null;
   primaryProtein: string | null;
 }): string {
-  const { name, description, dishKind, optionGroups, cuisineTypes, parentName, primaryProtein } =
-    params;
+  const { name, description, optionGroups, cuisineTypes, primaryProtein } = params;
 
   const parts: string[] = [];
 
-  if (parentName) {
-    parts.push(`${parentName} — ${name}`);
-  } else {
-    parts.push(name);
-  }
+  parts.push(name);
 
-  const dishType = dishKind !== 'standard' ? dishKind : null;
-  const cuisineStr = cuisineTypes.length > 0 ? cuisineTypes.join(', ') : null;
-  if (dishType || cuisineStr) {
-    parts.push([dishType, cuisineStr].filter(Boolean).join(', '));
+  if (cuisineTypes.length > 0) {
+    parts.push(cuisineTypes.join(', '));
   }
 
   if (description) parts.push(description.slice(0, 300));
@@ -150,7 +138,7 @@ serve(async (req: Request) => {
     const { data: dish, error: dishError } = (await supabase
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, dish_kind, enrichment_status, updated_at, is_parent, parent_dish_id, primary_protein'
+        'id, restaurant_id, name, description, enrichment_status, updated_at, primary_protein'
       )
       .eq('id', dishId)
       .single()) as { data: DishRow | null; error: unknown };
@@ -163,10 +151,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // is_parent skip removed: post-Phase 6 no parent rows exist, and pre-Phase 6
-    // the parent rows are dishes.is_parent=true which carry their own embedding-
-    // worthy metadata (cuisine, category) — re-embedding them is harmless.
-
     const ageSeconds = (Date.now() - new Date(dish.updated_at).getTime()) / 1000;
     if (dish.enrichment_status === 'completed' && ageSeconds < DEBOUNCE_SECONDS) {
       console.log(`[enrich-dish] Already completed ${ageSeconds.toFixed(1)}s ago — skipping`);
@@ -175,18 +159,14 @@ serve(async (req: Request) => {
       });
     }
 
-    const [{ data: optionGroupRows }, { data: restaurantRow }, { data: parentDish }] =
-      await Promise.all([
-        supabase
-          .from('option_groups')
-          .select('name, options(name)')
-          .eq('dish_id', dishId)
-          .eq('is_active', true),
-        supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
-        dish.parent_dish_id
-          ? supabase.from('dishes').select('name').eq('id', dish.parent_dish_id).single()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
+    const [{ data: optionGroupRows }, { data: restaurantRow }] = await Promise.all([
+      supabase
+        .from('option_groups')
+        .select('name, options(name)')
+        .eq('dish_id', dishId)
+        .eq('is_active', true),
+      supabase.from('restaurants').select('cuisine_types').eq('id', dish.restaurant_id).single(),
+    ]);
 
     const optionGroups: OptionGroupData[] = (optionGroupRows ?? []).map((g: any) => ({
       groupName: g.name,
@@ -195,15 +175,11 @@ serve(async (req: Request) => {
 
     const cuisineTypes: string[] = (restaurantRow?.cuisine_types as string[]) ?? [];
 
-    const parentName: string | null = dish.parent_dish_id && parentDish ? parentDish.name : null;
-
     const embeddingInput = buildEmbeddingInput({
       name: dish.name,
       description: dish.description,
-      dishKind: dish.dish_kind,
       optionGroups,
       cuisineTypes,
-      parentName,
       primaryProtein: dish.primary_protein,
     });
 

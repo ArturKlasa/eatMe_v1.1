@@ -176,7 +176,6 @@ interface Candidate {
   spice_level: string | null;
   image_url: string | null;
   is_available: boolean;
-  dish_kind: string;
   display_price_prefix: string;
   enrichment_status: string;
   vector_distance: number | null;
@@ -192,8 +191,6 @@ interface Candidate {
   protein_families?: string[];
   protein_canonical_names?: string[];
   primary_protein?: string | null;
-  // Universal dish structure fields
-  parent_dish_id?: string | null;
   serves?: number;
   // Modifier-model fields surfaced by migration 142's generate_candidates rewrite.
   // `reachable_*` express the OR of base + every option (modifier reach), used
@@ -560,18 +557,9 @@ function selectConfigForUser(dish: Candidate, filters: FeedRequest['filters']): 
 function applyDiversity(dishes: Candidate[], maxPerRestaurant: number): Candidate[] {
   const result: Candidate[] = [];
   const restaurantCounts = new Map<string, number>();
-  const parentCounts = new Map<string, number>();
   for (const d of dishes) {
     const rn = restaurantCounts.get(d.restaurant_id) ?? 0;
     if (rn >= maxPerRestaurant) continue;
-
-    // Max 1 variant per parent_dish_id to avoid flooding feed with variants of the same dish
-    if (d.parent_dish_id) {
-      const pn = parentCounts.get(d.parent_dish_id) ?? 0;
-      if (pn >= 1) continue;
-      parentCounts.set(d.parent_dish_id, pn + 1);
-    }
-
     result.push(d);
     restaurantCounts.set(d.restaurant_id, rn + 1);
   }
@@ -936,7 +924,6 @@ serve(async (req: Request) => {
               image_url: d.image_url,
               spice_level: d.spice_level,
               is_available: d.is_available,
-              dish_kind: d.dish_kind,
               serves: d.serves,
               // v2 modifier-aware fields
               dining_format: d.dining_format ?? null,

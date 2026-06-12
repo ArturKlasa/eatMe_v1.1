@@ -8,10 +8,6 @@ import { createAdminServiceClient } from '@/lib/supabase/server';
 import { PRIMARY_PROTEINS, DINING_FORMATS } from '@eatme/shared';
 import { modifierGroupSchema } from '@/lib/modifiers/schemas';
 
-// dish_kind is deprecated post-Phase-4 (Phase 7 drops the column). Kept here as
-// an optional field on create/update so callers that haven't migrated yet still
-// work. New code should set dining_format instead.
-const DISH_KINDS = ['standard', 'bundle', 'configurable', 'course_menu', 'buffet'] as const;
 const DISH_STATUSES = ['draft', 'published', 'archived'] as const;
 
 const bundledItemSchema = z.object({
@@ -30,7 +26,6 @@ const adminDishCreateSchema = z.object({
   description: z.string().max(2000).nullable().optional(),
   price: z.number().nonnegative().nullable().optional(),
   primary_protein: z.enum(PRIMARY_PROTEINS),
-  dish_kind: z.enum(DISH_KINDS).optional(),
   dish_category_id: z.string().uuid().nullable().optional(),
   dining_format: z.enum(DINING_FORMATS).nullable().optional(),
   bundled_items: z.array(bundledItemSchema).max(50).nullable().optional(),
@@ -42,7 +37,7 @@ const adminDishCreateSchema = z.object({
 });
 
 // adminCreateDish: create a new dish under a restaurant. Lands as status='draft',
-// is_available=true, is_template=false.
+// is_available=true.
 //
 // menu_category_id may be null — that creates an "uncategorized" dish that
 // surfaces in the orphan section on the restaurant detail page.
@@ -96,11 +91,9 @@ export const adminCreateDish = withAdminAuth(
       description: d.description ?? null,
       price: d.price ?? 0,
       primary_protein: d.primary_protein,
-      dish_kind: d.dish_kind ?? 'standard',
       dish_category_id: d.dish_category_id ?? null,
       status: 'draft' as const,
       is_available: true,
-      is_template: false,
       dining_format: d.dining_format ?? null,
       bundled_items: d.bundled_items ?? null,
       portion_amount: d.portion_amount ?? null,
@@ -142,7 +135,6 @@ const adminDishUpdateSchema = z.object({
   status: z.enum(DISH_STATUSES).optional(),
   is_available: z.boolean().optional(),
   primary_protein: z.enum(PRIMARY_PROTEINS).optional(),
-  dish_kind: z.enum(DISH_KINDS).optional(),
   menu_category_id: z.string().uuid().nullable().optional(),
   dish_category_id: z.string().uuid().nullable().optional(),
   dining_format: z.enum(DINING_FORMATS).nullable().optional(),
@@ -175,7 +167,7 @@ export const adminUpdateDish = withAdminAuth(
     const { data: current } = await service
       .from('dishes')
       .select(
-        'id, restaurant_id, name, description, price, status, is_available, primary_protein, dish_kind, menu_category_id, dish_category_id, dining_format, bundled_items, portion_amount, portion_unit'
+        'id, restaurant_id, name, description, price, status, is_available, primary_protein, menu_category_id, dish_category_id, dining_format, bundled_items, portion_amount, portion_unit'
       )
       .eq('id', dishId)
       .eq('restaurant_id', restaurantId)
@@ -213,7 +205,6 @@ export const adminUpdateDish = withAdminAuth(
     if (d.status !== undefined) updatePayload.status = d.status;
     if (d.is_available !== undefined) updatePayload.is_available = d.is_available;
     if (d.primary_protein !== undefined) updatePayload.primary_protein = d.primary_protein;
-    if (d.dish_kind !== undefined) updatePayload.dish_kind = d.dish_kind;
     if (d.menu_category_id !== undefined) updatePayload.menu_category_id = d.menu_category_id;
     if (d.dish_category_id !== undefined) updatePayload.dish_category_id = d.dish_category_id;
     if (d.dining_format !== undefined) updatePayload.dining_format = d.dining_format;

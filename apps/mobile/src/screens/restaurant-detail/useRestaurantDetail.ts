@@ -29,7 +29,7 @@ import { useFilterStore, type PermanentFilters } from '../../stores/filterStore'
 import { useRestaurantStore } from '../../stores/restaurantStore';
 import { type User } from '@supabase/supabase-js';
 import { recordInteraction } from '../../services/interactionService';
-import { type DishWithGroups } from './DishGrouping';
+import { type DishWithGroups } from './dishTypes';
 
 export type { DishRating, RestaurantRating };
 

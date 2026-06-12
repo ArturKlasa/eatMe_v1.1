@@ -56,21 +56,29 @@ export async function getMenusWithCategoriesAndDishes(restaurantId: string, user
     .order('display_order', { ascending: true });
 
   const categoryIds = (categories ?? []).map(c => c.id);
-  const { data: dishes } =
+  // dish_kind / is_template / is_parent were dropped from the schema by
+  // migration 161 (dish-model rewrite Phase 7), after this app was put on ice.
+  // The UI types downstream still expect the two fields, so they are
+  // synthesized with their historical defaults instead of selected.
+  const { data: rawDishes } =
     categoryIds.length > 0
       ? await supabase
           .from('dishes')
           .select(
-            'id, name, description, price, dish_kind, primary_protein, status, is_available, is_template, image_url, menu_category_id, dish_category_id, display_price_prefix, serves'
+            'id, name, description, price, primary_protein, status, is_available, image_url, menu_category_id, dish_category_id, display_price_prefix, serves'
           )
           .in('menu_category_id', categoryIds)
           .neq('status', 'archived')
-          .eq('is_parent', false)
           .order('name', { ascending: true })
       : { data: [] };
+  const dishes = (rawDishes ?? []).map(d => ({
+    ...d,
+    dish_kind: 'standard' as const,
+    is_template: false,
+  }));
 
   type CategoryRow = NonNullable<typeof categories>[number];
-  type DishRow = NonNullable<typeof dishes>[number];
+  type DishRow = (typeof dishes)[number];
 
   const dishesByCategory = ((dishes ?? []) as DishRow[]).reduce(
     (acc, dish) => {

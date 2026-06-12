@@ -2,9 +2,8 @@
  * FoodTab
  *
  * Renders the "Food & Drinks" tab content: the full list of menus,
- * their categories, and lazy-loaded dish rows. Legacy parent/variant dishes are
- * folded into synthetic option groups by groupDishesByParent, so every dish
- * renders through the same standard row + inline modifier list.
+ * their categories, and lazy-loaded dish rows. Every dish renders through the
+ * same standard row + inline modifier list.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -18,7 +17,7 @@ import { type RestaurantWithMenus, type MenuCategoryWithCanonical } from '../../
 import { useFilterStore, type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { type DishOpinion } from '../../types/rating';
-import { groupDishesByParent, type DishWithGroups } from './DishGrouping';
+import { type DishWithGroups } from './dishTypes';
 import { classifyDish, sortDishesByFilter } from '../../utils/menuFilterUtils';
 import { DishMenuItem } from './DishMenuItem';
 import { ModifierGroupsList } from './ModifierGroupsList';
@@ -84,27 +83,17 @@ export function FoodTab({
   const insets = useSafeAreaInsets();
   const locale = i18n.language;
   const dailyFilters = useFilterStore(state => state.daily);
-  const optionsLabel = t('restaurant.optionsGroupLabel');
 
-  // Resolve the featured dish once its category data has lazy-loaded. Legacy
-  // variant children don't render as rows (groupDishesByParent folds them into
-  // their parent), so a variant id resolves to the folded parent row.
+  // Resolve the featured dish once its category data has lazy-loaded.
   const featuredDish = useMemo(() => {
     if (!featuredDishId) return null;
     for (const state of categoryDishes.values()) {
       if (!Array.isArray(state)) continue;
-      const dishes = state as DishWithGroups[];
-      const grouped = groupDishesByParent(dishes, optionsLabel);
-      const direct = grouped.find(d => d.id === featuredDishId);
+      const direct = (state as DishWithGroups[]).find(d => d.id === featuredDishId);
       if (direct) return direct;
-      const child = dishes.find(d => d.id === featuredDishId);
-      if (child?.parent_dish_id) {
-        const parent = grouped.find(d => d.id === child.parent_dish_id);
-        if (parent) return parent;
-      }
     }
     return null;
-  }, [featuredDishId, categoryDishes, optionsLabel]);
+  }, [featuredDishId, categoryDishes]);
 
   // With a single menu the menu-name heading (often the generic "Main Menu"
   // default, or a foreign-language AI-scanned name like "Comidas y Cenas") is
@@ -182,10 +171,7 @@ export function FoodTab({
               menu.menu_categories?.map(category => {
                 const categoryState = categoryDishes.get(category.id);
                 const dishes = Array.isArray(categoryState) ? categoryState : [];
-                const grouped = groupDishesByParent(
-                  sortedDishes(dishes as DishWithGroups[], permanentFilters),
-                  optionsLabel
-                );
+                const sorted = sortedDishes(dishes as DishWithGroups[], permanentFilters);
                 return (
                   <View key={category.id} style={styles.menuCategory}>
                     <TouchableOpacity
@@ -224,11 +210,9 @@ export function FoodTab({
                       </TouchableOpacity>
                     )}
                     {Array.isArray(categoryState) &&
-                      grouped.map(dish => (
+                      sorted.map(dish => (
                         // Row + inline modifier groups below. option_groups[] is loaded by
-                        // fetchCategoryDishes; legacy parent/variant groups are folded into a
-                        // synthetic "Options" group by groupDishesByParent. Empty array →
-                        // ModifierGroupsList renders nothing.
+                        // fetchCategoryDishes. Empty array → ModifierGroupsList renders nothing.
                         <View
                           key={dish.id}
                           style={{

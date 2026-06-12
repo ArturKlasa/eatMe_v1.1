@@ -1,8 +1,8 @@
 # Phase 7 — Cleanup
 
 **Parent plan:** `docs/project/dish-model-rewrite-plan.md`
-**Status:** Proposed
-**Last updated:** 2026-05-17
+**Status:** Proposed — ⚠ this doc predates the 2026-06-05 Phase 6 reconciliation and is partially stale. The authoritative scope for the column drop + DB-function rewrites is **`dish-model-rewrite-phase-6-data-migration.md` §6** (coordinated cutover: `generate_candidates` DROP+CREATE, `admin_confirm_menu_scan` legacy-branch removal, `get_group_candidates` + `embed_recovery_cron` filter cuts, feed/mobile/admin consumer swaps, then the table/column drops — all in one migration, numbered 161+). The `price_per_person` item below is obsolete: it is a never-rendered generated column; callers were already removed in Phase 6 §5 with **no replacement** (`effective_serves` does not exist). ⚠ `admin_confirm_menu_scan` is under active change in the menu-scan work lane — author its rewrite from the live function body at cutover time.
+**Last updated:** 2026-06-11 (status note only; list below unedited)
 **Estimated wall time:** 1 day
 **Reversibility:** Safe after Phase 6 monitoring window (4–6 weeks). All removals target code paths no longer exercised after the destructive cutover.
 

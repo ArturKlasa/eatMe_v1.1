@@ -1,8 +1,8 @@
 # Phase 6 — Data migration
 
 **Parent plan:** `docs/project/dish-model-rewrite-plan.md`
-**Status:** Scoped — reconciled against live schema + a prod census on 2026-06-05. Ready for dry-run.
-**Last updated:** 2026-06-05
+**Status:** ✅ DONE — migration 158 applied to prod (~2026-06-06); re-embed complete (135/135 converted dishes `completed`, embeddings present); acceptance checks passed 2026-06-11 (0 orphan options). Remaining: the 51-flag operator triage (`docs/plans/phase6-price-flag-triage.md`) and the §6 coordinated drop, which is Phase 7 (next free migration number is 161 — 159/160 were consumed by turkey-protein and admin-copy-menu).
+**Last updated:** 2026-06-11
 **Estimated wall time:** ~1.5 days (was 4 — see §0)
 **Reversibility:** ⚠ The *drop* step (Migration 159) is a destructive cutover — run only after the conversion (158) is audited and readers are confirmed on the new shape. The *conversion* (158) is auditable via a dry-run harness that rolls back until a commit flag is flipped.
 

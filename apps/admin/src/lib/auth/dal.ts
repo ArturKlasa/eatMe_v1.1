@@ -318,7 +318,7 @@ export async function getMenuScanReviewContext(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const svc = createAdminServiceClient() as any;
 
-  const [existingRes, canonicalRes, dishCategoriesRes] = await Promise.all([
+  const [existingRes, canonicalRes, dishCategories] = await Promise.all([
     svc
       .from('menu_categories')
       .select(
@@ -332,11 +332,7 @@ export async function getMenuScanReviewContext(
       .select('id, slug, names')
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
-    svc
-      .from('dish_categories')
-      .select('id, name, is_drink')
-      .eq('is_active', true)
-      .order('name', { ascending: true }),
+    getAllDishCategoryOptions(),
   ]);
 
   const existingCategories: RestaurantCategoryOption[] = (existingRes.data ?? []).map(
@@ -355,14 +351,6 @@ export async function getMenuScanReviewContext(
       id: r.id as string,
       slug: r.slug as string,
       names: (r.names as Record<string, string> | null) ?? {},
-    })
-  );
-
-  const dishCategories: DishCategoryOption[] = (dishCategoriesRes.data ?? []).map(
-    (r: Record<string, unknown>) => ({
-      id: r.id as string,
-      name: r.name as string,
-      is_drink: (r.is_drink as boolean | null) ?? false,
     })
   );
 
@@ -820,21 +808,35 @@ export async function getAdminRestaurantMenus(restaurantId: string): Promise<Adm
 }
 
 // All dish_categories for the global filter taxonomy. Used to populate the
-// dish-category dropdown in the admin menu editor. Returns active rows only —
-// inactive categories aren't valid choices for an edit.
+// dish-category dropdowns in the admin menu editor and the menu-scan review.
+// Returns active rows only — inactive categories aren't valid choices for an
+// edit.
+//
+// Paged: the taxonomy outgrew PostgREST's 1000-row response cap (1,325 active
+// rows as of 2026-06), and an un-ranged select silently drops the alphabetical
+// tail — newly created categories looked like they never saved. Name is UNIQUE,
+// so ordering by it keeps the pages stable.
 export async function getAllDishCategoryOptions(): Promise<DishCategoryOption[]> {
   const supabase = createAdminServiceClient();
-  const { data, error } = await supabase
-    .from('dish_categories')
-    .select('id, name, is_drink')
-    .eq('is_active', true)
-    .order('name', { ascending: true });
-  if (error || !data) return [];
-  return data.map(r => ({
-    id: r.id as string,
-    name: r.name as string,
-    is_drink: (r.is_drink as boolean | null) ?? false,
-  }));
+  const PAGE = 1000;
+  const out: DishCategoryOption[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('dish_categories')
+      .select('id, name, is_drink')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data) return out;
+    for (const r of data) {
+      out.push({
+        id: r.id as string,
+        name: r.name as string,
+        is_drink: (r.is_drink as boolean | null) ?? false,
+      });
+    }
+    if (data.length < PAGE) return out;
+  }
 }
 
 // ── Audit Log ─────────────────────────────────────────────────────────────────

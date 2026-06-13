@@ -175,7 +175,11 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
             )}
           </View>
           <RestaurantRatingBadge rating={restaurantRating} showBreakdown={true} />
-          <Text style={styles.cuisineText}>{restaurant.cuisine_types?.join(', ') || ''}</Text>
+          {restaurant.cuisine_types && restaurant.cuisine_types.length > 0 && (
+            <Text style={styles.cuisineText} numberOfLines={1}>
+              {restaurant.cuisine_types.join(', ')}
+            </Text>
+          )}
         </View>
       </View>
 

@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, isSupportedCurrency } from '@eatme/shared';
 import { mapFooterStyles } from '@/styles';
+import { cuisineEmoji } from '@/utils/cuisineEmoji';
 
 // Dish type from mobile hooks
 interface Dish {
@@ -39,14 +40,6 @@ export const MapFooter: React.FC<MapFooterProps> = ({
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
-  const getEmoji = (cuisine: string) => {
-    if (cuisine.includes('Mexican')) return '🌮';
-    if (cuisine.includes('Italian')) return '🍝';
-    if (cuisine.includes('Seafood')) return '🐟';
-    if (cuisine.includes('Contemporary')) return '🍽️';
-    return '🍽️';
-  };
-
   return (
     <View
       style={[mapFooterStyles.container, insets.bottom > 0 && { paddingBottom: insets.bottom }]}
@@ -65,7 +58,7 @@ export const MapFooter: React.FC<MapFooterProps> = ({
             activeOpacity={0.8}
           >
             <View style={mapFooterStyles.dishHeader}>
-              <Text style={mapFooterStyles.dishEmoji}>{getEmoji(dish.cuisine)}</Text>
+              <Text style={mapFooterStyles.dishEmoji}>{cuisineEmoji(dish.cuisine)}</Text>
             </View>
 
             <Text style={mapFooterStyles.dishName} numberOfLines={2}>

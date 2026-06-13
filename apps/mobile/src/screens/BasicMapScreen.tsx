@@ -13,15 +13,12 @@ import { useViewModeStore } from '../stores/viewModeStore';
 import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { estimateAvgPrice } from '../services/filterService';
 import {
   composeCardName,
   getCombinedFeed,
   ServerDish,
   ServerRestaurant,
 } from '../services/edgeFunctionsService';
-import { formatDistance } from '../services/geoService';
-import { isRestaurantOpenNow } from '../utils/i18nUtils';
 import { submitRating, isFirstVisitToRestaurant } from '../services/ratingService';
 import { commonStyles, mapComponentStyles } from '@/styles';
 import { colors, typography, spacing } from '@/styles/theme';
@@ -41,40 +38,6 @@ import { ProfileCompletionBanner } from '../components/ProfileCompletionBanner';
 import { useAuthStore } from '../stores/authStore';
 import { useOnboardingStore } from '../stores/onboardingStore';
 import { DishRatingInput, RestaurantFeedbackInput, type PointsEarned } from '../types/rating';
-
-/** Map-display view model built from DB data. Not the same as the DB Restaurant type — includes pre-computed map fields (coordinates, isOpen, etc.). */
-interface MapRestaurant {
-  id: string;
-  name: string;
-  coordinates: [number, number];
-  cuisine: string;
-  rating: number;
-  /** Estimated average price in local currency (e.g. 20 = ~$20) */
-  avgPrice: number;
-  address: string;
-  description: string;
-  imageUrl?: string;
-  phone?: string;
-  isOpen: boolean;
-  openingHours: { open: string; close: string };
-  distance?: string;
-  /** Raw numeric distance from the Edge Function in km — used for sorting. */
-  distanceKm?: number;
-}
-
-/** Map-display view model for dishes. Not the same as the DB Dish type — includes pre-computed map fields (coordinates, restaurantName, etc.). */
-interface MapDish {
-  id: string;
-  name: string;
-  restaurantId: string;
-  restaurantName: string;
-  price: number;
-  cuisine: string;
-  coordinates: [number, number];
-  description: string;
-  imageUrl?: string;
-  rating: number;
-}
 
 /**
  * BasicMapScreen Component
@@ -113,15 +76,25 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const user = useAuthStore(state => state.user);
   const currentSessionId = useSessionStore(state => state.currentSessionId);
 
-  // Onboarding state
-  const { shouldShowPrompt, isCompleted } = useOnboardingStore();
-  const showOnboardingBanner = user && !isCompleted && shouldShowPrompt();
+  // Onboarding state — narrow selectors + memoized derivation (no whole-store
+  // subscription, no per-render new Date()).
+  const isCompleted = useOnboardingStore(state => state.isCompleted);
+  const lastPromptShown = useOnboardingStore(state => state.lastPromptShown);
+  const showOnboardingBanner = useMemo(
+    () => !!user && !isCompleted && useOnboardingStore.getState().shouldShowPrompt(),
+    [user, isCompleted, lastPromptShown]
+  );
 
-  // Session tracking for rating prompts
+  // Session tracking for rating prompts — subscribe to the raw array, derive the
+  // filtered/sorted list in a memo so RatingFlowModal isn't fed a new array each render.
+  const recentRestaurantsRaw = useSessionStore(state => state.recentRestaurants);
   const getRecentRestaurantsForRating = useSessionStore(
     state => state.getRecentRestaurantsForRating
   );
-  const recentRestaurants = getRecentRestaurantsForRating();
+  const recentRestaurants = useMemo(
+    () => getRecentRestaurantsForRating(),
+    [recentRestaurantsRaw, getRecentRestaurantsForRating]
+  );
   const showRatingBanner = recentRestaurants.length > 0 && !!user;
 
   // Use shallow selectors to reduce re-renders
@@ -129,65 +102,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     useShallow(state => ({ daily: state.daily, permanent: state.permanent }))
   );
   const mode = useViewModeStore(state => state.mode);
-
-  // Convert geospatial results to the MapRestaurant shape used by markers.
-  // This is now the single authoritative source — no fallback DB query.
-  const restaurants = useMemo(() => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const today = days[new Date().getDay()];
-    return nearbyRestaurants.map(r => {
-      const openHours = r.open_hours ?? null;
-      const todayEntry = openHours?.[today] ?? null;
-      return {
-        id: r.id,
-        name: r.name,
-        coordinates: [r.location.lng, r.location.lat] as [number, number],
-        cuisine: r.cuisine_types?.[0] || 'Unknown',
-        rating: r.rating || 0,
-        avgPrice: estimateAvgPrice(r.service_speed, r.restaurant_type),
-        address: r.address,
-        description: '',
-        imageUrl: undefined,
-        phone: r.phone || undefined,
-        isOpen: isRestaurantOpenNow(openHours),
-        openingHours: todayEntry ?? { open: '09:00', close: '22:00' },
-        distance: formatDistance(r.distance),
-        distanceKm: r.distance,
-      };
-    }) as MapRestaurant[];
-  }, [nearbyRestaurants]);
-
-  // Extract dish pins from the geospatial restaurant results.
-  // Dishes are nested inside menus → menu_categories → dishes from the nearby-restaurants Edge Function.
-  const dishes = useMemo(() => {
-    const result: MapDish[] = [];
-    for (const r of nearbyRestaurants) {
-      const coords: [number, number] = [r.location.lng, r.location.lat];
-      for (const menu of r.menus ?? []) {
-        for (const dish of menu.dishes ?? []) {
-          result.push({
-            id: dish.id,
-            name: dish.name,
-            restaurantId: r.id,
-            restaurantName: r.name,
-            price: dish.price,
-            cuisine: r.cuisine_types?.[0] || 'Unknown',
-            coordinates: coords,
-            description: '',
-            imageUrl: dish.image_url || undefined,
-            rating: r.rating || 0,
-          });
-        }
-      }
-    }
-    return result;
-  }, [nearbyRestaurants]);
-
-  // filteredRestaurants is now populated by the Edge Function (getFilteredRestaurants)
-  // via the useEffect below. No client-side filtering is performed here.
-
-  // Extract restaurants for easy access
-  const displayedRestaurants = filteredRestaurants;
 
   // Map edge-function ServerDish results into the shape MapFooter expects.
   // Limit to 5 dishes, at most one per restaurant.
@@ -360,45 +274,49 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   }, [isMapReady, hasPermission, hasAutocentered]);
 
   // Handler functions
-  const handleMarkerPress = (restaurant: {
-    id: string;
-    name: string;
-    coordinates: [number, number];
-    isOpen: boolean;
-  }) => {
-    rootNavigation.navigate('RestaurantDetail', { restaurantId: restaurant.id });
-  };
+  const handleMarkerPress = useCallback(
+    (restaurant: { id: string; name: string; coordinates: [number, number]; isOpen: boolean }) => {
+      rootNavigation.navigate('RestaurantDetail', { restaurantId: restaurant.id });
+    },
+    [rootNavigation]
+  );
 
   // Called from DishMarkers — opens the dish's restaurant with the dish
   // featured (pinned) at the top of the menu
-  const handleDishMarkerPress = (dish: {
-    id: string;
-    name: string;
-    coordinates: [number, number];
-    price: number;
-    restaurantId: string;
-  }) => {
-    rootNavigation.navigate('RestaurantDetail', {
-      restaurantId: dish.restaurantId,
-      featuredDishId: dish.id,
-    });
-  };
+  const handleDishMarkerPress = useCallback(
+    (dish: {
+      id: string;
+      name: string;
+      coordinates: [number, number];
+      price: number;
+      restaurantId: string;
+    }) => {
+      rootNavigation.navigate('RestaurantDetail', {
+        restaurantId: dish.restaurantId,
+        featuredDishId: dish.id,
+      });
+    },
+    [rootNavigation]
+  );
 
   // Called from MapFooter recommended dishes (has restaurantId, no coordinates)
-  const handleDishPress = (dish: {
-    id: string;
-    restaurantId: string;
-    name: string;
-    price: number;
-    cuisine: string;
-    imageUrl?: string;
-    isAvailable: boolean;
-  }) => {
-    rootNavigation.navigate('RestaurantDetail', {
-      restaurantId: dish.restaurantId,
-      featuredDishId: dish.id,
-    });
-  };
+  const handleDishPress = useCallback(
+    (dish: {
+      id: string;
+      restaurantId: string;
+      name: string;
+      price: number;
+      cuisine: string;
+      imageUrl?: string;
+      isAvailable: boolean;
+    }) => {
+      rootNavigation.navigate('RestaurantDetail', {
+        restaurantId: dish.restaurantId,
+        featuredDishId: dish.id,
+      });
+    },
+    [rootNavigation]
+  );
 
   const handleMyLocationPress = async () => {
     debugLog('My Location button pressed');
@@ -439,13 +357,13 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
   };
 
-  const handleMenuPress = () => {
-    setIsMenuVisible(!isMenuVisible);
-  };
+  const handleMenuPress = useCallback(() => {
+    setIsMenuVisible(prev => !prev);
+  }, []);
 
-  const handleDailyFilterPress = () => {
+  const handleDailyFilterPress = useCallback(() => {
     setIsDailyFilterVisible(true);
-  };
+  }, []);
 
   const closeDailyFilter = () => {
     setIsDailyFilterVisible(false);

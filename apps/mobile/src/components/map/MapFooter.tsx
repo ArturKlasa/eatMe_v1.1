@@ -32,11 +32,11 @@ interface MapFooterProps {
   onFilterPress: () => void;
 }
 
-export const MapFooter: React.FC<MapFooterProps> = ({
+export const MapFooter = React.memo<MapFooterProps>(function MapFooter({
   recommendedDishes,
   onDishPress,
   onFilterPress,
-}) => {
+}) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
@@ -102,4 +102,4 @@ export const MapFooter: React.FC<MapFooterProps> = ({
       </View>
     </View>
   );
-};
+});

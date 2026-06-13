@@ -19,12 +19,12 @@ interface MapControlsProps {
 const BUTTON_GAP = 16;
 const BETWEEN_BUTTONS = 60;
 
-export const MapControls: React.FC<MapControlsProps> = ({
+export const MapControls = React.memo<MapControlsProps>(function MapControls({
   onLocationPress,
   onMenuPress,
   locationLoading,
   footerHeight,
-}) => {
+}) {
   const locationBottom = footerHeight + BUTTON_GAP;
   const menuBottom = locationBottom + BETWEEN_BUTTONS;
 
@@ -76,4 +76,4 @@ export const MapControls: React.FC<MapControlsProps> = ({
       </TouchableOpacity>
     </>
   );
-};
+});

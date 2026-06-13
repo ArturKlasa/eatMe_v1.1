@@ -63,6 +63,8 @@ interface RestaurantStore {
   restaurantDetailCache: Map<string, RestaurantDetailCacheEntry>;
   /** In-memory per-category dish cache (5-min TTL). */
   categoryDishesCache: Map<string, CategoryDishCacheEntry>;
+  /** In-memory whole-restaurant dish cache (5-min TTL), keyed by restaurant id. */
+  restaurantDishesCache: Map<string, CategoryDishCacheEntry>;
 
   // Actions
   loadRestaurants: () => Promise<void>;
@@ -81,6 +83,15 @@ interface RestaurantStore {
    */
   fetchCategoryDishes: (
     categoryId: string
+  ) => Promise<{ data: CategoryDish[] | null; error: Error | null }>;
+  /**
+   * Fetch every published dish for a restaurant in a single query (across all
+   * categories), using an in-memory cache (5-min TTL). Replaces the per-category
+   * fan-out on restaurant open. Each dish carries `menu_category_id` so the caller
+   * can group rows back under their category.
+   */
+  fetchAllRestaurantDishes: (
+    restaurantId: string
   ) => Promise<{ data: CategoryDish[] | null; error: Error | null }>;
 
   /**
@@ -117,6 +128,7 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
   error: null,
   restaurantDetailCache: new Map(),
   categoryDishesCache: new Map(),
+  restaurantDishesCache: new Map(),
 
   loadRestaurants: async () => {
     set({ loading: true, error: null });
@@ -352,6 +364,57 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
       const newCache = new Map(cache);
       newCache.set(categoryId, { data: dishes, fetchedAt: Date.now() });
       set({ categoryDishesCache: newCache });
+
+      return { data: dishes, error: null };
+    } catch (err) {
+      return { data: null, error: err as Error };
+    }
+  },
+
+  fetchAllRestaurantDishes: async (restaurantId: string) => {
+    const cache = get().restaurantDishesCache;
+    const entry = cache.get(restaurantId);
+    if (entry && Date.now() - entry.fetchedAt < CATEGORY_DISHES_TTL_MS) {
+      debugLog(`[RestaurantStore] Restaurant-dishes cache hit for ${restaurantId}`);
+      return { data: entry.data, error: null };
+    }
+
+    try {
+      // Single query for every published dish across all of the restaurant's
+      // categories. Mirrors fetchCategoryDishes's column list (so the dish shape is
+      // identical) plus menu_category_id, which the caller groups rows by.
+      const { data, error } = await supabase
+        .from('dishes')
+        .select(
+          `
+          id, name, description, price, calories,
+          spice_level, image_url, is_available, display_price_prefix,
+          description_visibility, ingredients_visibility,
+          serves,
+          primary_protein, dining_format, bundled_items,
+          portion_amount, portion_unit, menu_category_id,
+          available_days, available_hours_start, available_hours_end,
+          option_groups (
+            id, name, description, selection_type, min_selections, max_selections,
+            display_order, display_in_card, is_active,
+            options (id, name, description, price_delta, price_override,
+                     primary_protein, serves_delta, is_default,
+                     calories_delta, is_available, display_order)
+          )
+        `
+        )
+        .eq('restaurant_id', restaurantId)
+        .eq('status', 'published')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        return { data: null, error: new Error(error.message) };
+      }
+
+      const dishes = ((data as unknown as CategoryDish[]) ?? []) as CategoryDish[];
+      const newCache = new Map(cache);
+      newCache.set(restaurantId, { data: dishes, fetchedAt: Date.now() });
+      set({ restaurantDishesCache: newCache });
 
       return { data: dishes, error: null };
     } catch (err) {

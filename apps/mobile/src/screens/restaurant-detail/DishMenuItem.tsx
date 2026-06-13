@@ -12,16 +12,17 @@ import { restaurantDetailStyles as styles } from '@/styles';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
 import { DishRatingBadge } from '../../components/DishRatingBadge';
-import { classifyDish } from '../../utils/menuFilterUtils';
-import { type PermanentFilters } from '../../stores/filterStore';
 import { type DishRating } from '../../services/dishRatingService';
 import { type DishOpinion } from '../../types/rating';
 import { type DishWithGroups } from './dishTypes';
 
 interface DishMenuItemProps {
   item: DishWithGroups;
-  permanentFilters: PermanentFilters;
-  dishRatings: Map<string, DishRating>;
+  /** Precomputed by the parent (classify once); drives the dimmed "not for you" styling. */
+  passesHardFilters: boolean;
+  /** This dish's rating summary, resolved by the parent (null when none). Passing the
+   *  resolved value — not the whole ratings Map — lets React.memo skip unaffected rows. */
+  rating?: DishRating | null;
   /** ISO 4217 from the parent restaurant. Optional/string because stale cache
    *  or older Edge Function deploys may not include it; formatPrice falls back
    *  to USD when missing. */
@@ -35,10 +36,10 @@ interface DishMenuItemProps {
   onPress: (item: DishWithGroups) => void;
 }
 
-export function DishMenuItem({
+export const DishMenuItem = React.memo(function DishMenuItem({
   item,
-  permanentFilters,
-  dishRatings,
+  passesHardFilters,
+  rating,
   currencyCode,
   userOpinion,
   isFavorite,
@@ -51,7 +52,6 @@ export function DishMenuItem({
     : undefined;
   const formattedPrice = formatPrice(item.price, currency);
 
-  const rating = dishRatings.get(item.id);
   const pricePrefix = item.display_price_prefix;
   let priceLabel: string;
   switch (pricePrefix) {
@@ -80,8 +80,6 @@ export function DishMenuItem({
       ? `${item.portion_amount}${portionSpaced ? ' ' : ''}${t(`restaurant.portionUnit.${item.portion_unit}`)}`
       : null;
   const fullPriceLabel = portionLabel ? `${portionLabel} · ${priceLabel}` : priceLabel;
-
-  const { passesHardFilters } = classifyDish(item, permanentFilters);
 
   return (
     <TouchableOpacity
@@ -135,4 +133,4 @@ export function DishMenuItem({
       )}
     </TouchableOpacity>
   );
-}
+});

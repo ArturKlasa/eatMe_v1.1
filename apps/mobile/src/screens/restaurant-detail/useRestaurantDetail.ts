@@ -84,6 +84,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const trackDishView = useSessionStore(state => state.trackDishView);
   const fetchRestaurantDetail = useRestaurantStore(state => state.fetchRestaurantDetail);
   const fetchCategoryDishes = useRestaurantStore(state => state.fetchCategoryDishes);
+  const fetchAllRestaurantDishes = useRestaurantStore(state => state.fetchAllRestaurantDishes);
   const permanentFilters = useFilterStore(state => state.permanent);
 
   const [restaurant, setRestaurant] = useState<RestaurantWithMenus | null>(null);
@@ -220,15 +221,79 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     [fetchCategoryDishes, user?.id]
   );
 
-  // Auto-load all categories in parallel when restaurant metadata arrives
+  // Load EVERY dish for the restaurant in a single query when metadata arrives,
+  // then one ratings + one opinions batch across all dish ids. Replaces the old
+  // per-category fan-out (3 queries × N categories → 3 queries total).
   useEffect(() => {
     if (!restaurant) return;
+    const restaurantPk = restaurant.id;
+    const categoryIds: string[] = [];
     restaurant.menus?.forEach(menu =>
       menu.menu_categories?.forEach(cat => {
-        if (cat?.id) loadCategoryDishes(cat.id);
+        if (cat?.id) categoryIds.push(cat.id);
       })
     );
-  }, [restaurant?.id, loadCategoryDishes]);
+    if (categoryIds.length === 0) return;
+
+    let cancelled = false;
+
+    // Mark every category 'loading' up front (drives FoodTab's spinner per category).
+    setCategoryDishes(prev => {
+      const next = new Map(prev);
+      for (const id of categoryIds) {
+        if (!next.has(id)) next.set(id, 'loading');
+      }
+      return next;
+    });
+
+    (async () => {
+      const { data, error } = await fetchAllRestaurantDishes(restaurantPk);
+      if (cancelled || !mountedRef.current) return;
+
+      if (error || !data) {
+        setCategoryDishes(prev => {
+          const next = new Map(prev);
+          for (const id of categoryIds) next.set(id, 'error');
+          return next;
+        });
+        return;
+      }
+
+      // Group the flat dish list back under its category; categories with no
+      // dishes resolve to an empty array (not 'loading').
+      const byCategory = new Map<string, Dish[]>();
+      for (const id of categoryIds) byCategory.set(id, []);
+      for (const dish of data) {
+        const cid = dish.menu_category_id;
+        if (cid && byCategory.has(cid)) byCategory.get(cid)!.push(dish);
+      }
+      setCategoryDishes(prev => {
+        const next = new Map(prev);
+        for (const [cid, list] of byCategory) next.set(cid, list);
+        return next;
+      });
+
+      // One ratings + one opinions batch across every dish id.
+      const dishIds = data.map(d => d.id);
+      if (dishIds.length === 0) return;
+      const [ratings, opinions] = await Promise.all([
+        getDishRatingsBatch(dishIds),
+        user
+          ? getUserDishOpinions(user.id, dishIds)
+          : Promise.resolve(new Map<string, DishOpinion>()),
+      ]);
+      if (cancelled || !mountedRef.current) return;
+      setDishRatings(prev => new Map([...prev, ...ratings]));
+      if (opinions.size > 0) {
+        setUserDishOpinions(prev => new Map([...prev, ...opinions]));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // user?.id (not the full user object) — same TOKEN_REFRESHED guard as the metadata effect.
+  }, [restaurant?.id, fetchAllRestaurantDishes, user?.id]);
 
   // Record 'viewed' interaction after the dish detail has been open for 3+ seconds.
   useEffect(() => {
@@ -263,45 +328,48 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     }
   };
 
-  const handleDishPress = async (dish: DishWithGroups) => {
-    setSelectedDish(dish);
-    const embedded: OptionGroup[] = (dish.option_groups ?? [])
-      .filter((g: OptionGroup) => g.is_active)
-      .sort((a: OptionGroup, b: OptionGroup) => a.display_order - b.display_order)
-      .map((g: OptionGroup) => ({
-        ...g,
-        options: (g.options ?? [])
-          .filter((o: Option) => o.is_available)
-          .sort((a: Option, b: Option) => a.display_order - b.display_order),
-      }));
-    setDishOptionGroups(embedded);
+  const handleDishPress = React.useCallback(
+    async (dish: DishWithGroups) => {
+      setSelectedDish(dish);
+      const embedded: OptionGroup[] = (dish.option_groups ?? [])
+        .filter((g: OptionGroup) => g.is_active)
+        .sort((a: OptionGroup, b: OptionGroup) => a.display_order - b.display_order)
+        .map((g: OptionGroup) => ({
+          ...g,
+          options: (g.options ?? [])
+            .filter((o: Option) => o.is_available)
+            .sort((a: Option, b: Option) => a.display_order - b.display_order),
+        }));
+      setDishOptionGroups(embedded);
 
-    trackDishView(restaurantId, {
-      id: dish.id,
-      name: dish.name,
-      price: dish.price,
-      imageUrl: dish.photo_url ?? undefined,
-    });
+      trackDishView(restaurantId, {
+        id: dish.id,
+        name: dish.name,
+        price: dish.price,
+        imageUrl: dish.photo_url ?? undefined,
+      });
 
-    const { data: photosData, error: photosError } = await supabase
-      .from('dish_photos')
-      .select('*')
-      .eq('dish_id', dish.id)
-      .order('created_at', { ascending: false });
+      const { data: photosData, error: photosError } = await supabase
+        .from('dish_photos')
+        .select('*')
+        .eq('dish_id', dish.id)
+        .order('created_at', { ascending: false });
 
-    if (photosError) {
-      console.error('Error fetching dish photos:', photosError);
-      setDishPhotos([]);
-    } else {
-      setDishPhotos(
-        (photosData || []).map(row => ({
-          ...row,
-          created_at: row.created_at ?? '',
-          updated_at: row.updated_at ?? '',
-        }))
-      );
-    }
-  };
+      if (photosError) {
+        console.error('Error fetching dish photos:', photosError);
+        setDishPhotos([]);
+      } else {
+        setDishPhotos(
+          (photosData || []).map(row => ({
+            ...row,
+            created_at: row.created_at ?? '',
+            updated_at: row.updated_at ?? '',
+          }))
+        );
+      }
+    },
+    [restaurantId, trackDishView]
+  );
 
   return {
     restaurant,

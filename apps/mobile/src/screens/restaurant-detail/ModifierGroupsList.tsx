@@ -14,7 +14,7 @@
  * near-pure render component (only local expand/collapse state).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
@@ -35,16 +35,25 @@ interface Props {
   currencyCode?: string | null;
 }
 
-export function ModifierGroupsList({ groups, daily, basePrice: _basePrice, currencyCode }: Props) {
+export const ModifierGroupsList = React.memo(function ModifierGroupsList({
+  groups,
+  daily,
+  basePrice: _basePrice,
+  currencyCode,
+}: Props) {
   const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
     ? currencyCode
     : undefined;
   // Filter out inactive groups + sort by display_order. Same shape the rest of
   // the screen uses (see useRestaurantDetail.handleDishPress).
-  const visible = groups
-    .filter(g => g.is_active)
-    .slice()
-    .sort((a, b) => a.display_order - b.display_order);
+  const visible = useMemo(
+    () =>
+      groups
+        .filter(g => g.is_active)
+        .slice()
+        .sort((a, b) => a.display_order - b.display_order),
+    [groups]
+  );
 
   if (visible.length === 0) return null;
 
@@ -55,7 +64,7 @@ export function ModifierGroupsList({ groups, daily, basePrice: _basePrice, curre
       ))}
     </View>
   );
-}
+});
 
 function GroupSection({
   group,
@@ -69,10 +78,14 @@ function GroupSection({
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
-  const opts = (group.options ?? [])
-    .filter(o => o.is_available)
-    .slice()
-    .sort((a, b) => a.display_order - b.display_order);
+  const opts = useMemo(
+    () =>
+      (group.options ?? [])
+        .filter(o => o.is_available)
+        .slice()
+        .sort((a, b) => a.display_order - b.display_order),
+    [group.options]
+  );
 
   if (opts.length === 0) return null;
 

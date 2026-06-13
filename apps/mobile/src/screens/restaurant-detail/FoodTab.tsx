@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantDetailStyles as styles } from '@/styles';
@@ -37,16 +37,8 @@ interface FoodTabProps {
   onDishPress: (dish: DishWithGroups) => void;
 }
 
-function sortedDishes(
-  dishes: DishWithGroups[],
-  permanentFilters: PermanentFilters
-): DishWithGroups[] {
-  const classified = dishes.map(d => ({
-    ...d,
-    passesHardFilters: classifyDish(d, permanentFilters).passesHardFilters,
-  }));
-  return sortDishesByFilter(classified);
-}
+/** A dish row plus its precomputed hard-filter verdict (classified once, here). */
+type ClassifiedDish = DishWithGroups & { passesHardFilters: boolean };
 
 // Display name resolution for menu_categories rows.
 // Order: name_translations[locale] → canonical.names[locale] → canonical.names.en → name (source language).
@@ -95,6 +87,22 @@ export function FoodTab({
     return null;
   }, [featuredDishId, categoryDishes]);
 
+  // Classify + sort each category's dishes ONCE per [data, filters] change, keyed by
+  // category id. Replaces the per-render inline sort; passesHardFilters rides along so
+  // DishMenuItem never re-classifies (it was doing the same work a second time).
+  const sortedByCategory = useMemo(() => {
+    const out = new Map<string, ClassifiedDish[]>();
+    for (const [catId, state] of categoryDishes) {
+      if (!Array.isArray(state)) continue;
+      const classified: ClassifiedDish[] = (state as DishWithGroups[]).map(d => ({
+        ...d,
+        passesHardFilters: classifyDish(d, permanentFilters).passesHardFilters,
+      }));
+      out.set(catId, sortDishesByFilter(classified));
+    }
+    return out;
+  }, [categoryDishes, permanentFilters]);
+
   // With a single menu the menu-name heading (often the generic "Main Menu"
   // default, or a foreign-language AI-scanned name like "Comidas y Cenas") is
   // redundant — it just pushes the categories down. Suppress it so the list
@@ -126,15 +134,15 @@ export function FoodTab({
           <Text style={styles.featuredLabel}>⭐ {t('restaurant.featuredFromSearch')}</Text>
           <DishMenuItem
             item={featuredDish}
-            permanentFilters={permanentFilters}
-            dishRatings={dishRatings}
+            passesHardFilters={classifyDish(featuredDish, permanentFilters).passesHardFilters}
+            rating={dishRatings.get(featuredDish.id) ?? null}
             currencyCode={restaurant.currency_code}
             userOpinion={userDishOpinions.get(featuredDish.id) ?? null}
             isFavorite={favoriteDishIds.has(featuredDish.id)}
             onPress={onDishPress}
           />
           {(featuredDish.option_groups?.length ?? 0) > 0 && (
-            <View style={{ paddingHorizontal: spacing.md }}>
+            <View style={localStyles.modifierWrap}>
               <ModifierGroupsList
                 groups={featuredDish.option_groups ?? []}
                 daily={dailyFilters}
@@ -170,8 +178,7 @@ export function FoodTab({
             {expanded &&
               menu.menu_categories?.map(category => {
                 const categoryState = categoryDishes.get(category.id);
-                const dishes = Array.isArray(categoryState) ? categoryState : [];
-                const sorted = sortedDishes(dishes as DishWithGroups[], permanentFilters);
+                const sorted = sortedByCategory.get(category.id) ?? [];
                 return (
                   <View key={category.id} style={styles.menuCategory}>
                     <TouchableOpacity
@@ -212,27 +219,19 @@ export function FoodTab({
                     {Array.isArray(categoryState) &&
                       sorted.map(dish => (
                         // Row + inline modifier groups below. option_groups[] is loaded by
-                        // fetchCategoryDishes. Empty array → ModifierGroupsList renders nothing.
-                        <View
-                          key={dish.id}
-                          style={{
-                            marginBottom: spacing.base,
-                            paddingBottom: spacing.md,
-                            borderBottomWidth: 1,
-                            borderBottomColor: colors.darkSecondary,
-                          }}
-                        >
+                        // the bulk dish query. Empty array → ModifierGroupsList renders nothing.
+                        <View key={dish.id} style={localStyles.dishRow}>
                           <DishMenuItem
                             item={dish}
-                            permanentFilters={permanentFilters}
-                            dishRatings={dishRatings}
+                            passesHardFilters={dish.passesHardFilters}
+                            rating={dishRatings.get(dish.id) ?? null}
                             currencyCode={restaurant.currency_code}
                             userOpinion={userDishOpinions.get(dish.id) ?? null}
                             isFavorite={favoriteDishIds.has(dish.id)}
                             onPress={onDishPress}
                           />
                           {(dish.option_groups?.length ?? 0) > 0 && (
-                            <View style={{ paddingHorizontal: spacing.md }}>
+                            <View style={localStyles.modifierWrap}>
                               <ModifierGroupsList
                                 groups={dish.option_groups ?? []}
                                 daily={dailyFilters}
@@ -257,3 +256,15 @@ export function FoodTab({
     </ScrollView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  dishRow: {
+    marginBottom: spacing.base,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkSecondary,
+  },
+  modifierWrap: {
+    paddingHorizontal: spacing.md,
+  },
+});

@@ -13,12 +13,12 @@ interface DishRatingBadgeProps {
   likePercentage: number | null;
   totalRatings: number;
   topTags: string[];
-  maxTags?: number;    // default: 2
+  maxTags?: number; // default: 2
   showBadge?: boolean; // default: true — show tier badge if qualified
-  compact?: boolean;   // default: false — for map pin mode
+  compact?: boolean; // default: false — for map pin mode
 }
 
-export function DishRatingBadge({
+export const DishRatingBadge = React.memo(function DishRatingBadge({
   likePercentage,
   totalRatings,
   topTags,
@@ -57,7 +57,7 @@ export function DishRatingBadge({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

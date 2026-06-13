@@ -15,7 +15,7 @@ interface RestaurantRatingBadgeProps {
   showBreakdown?: boolean;
 }
 
-export function RestaurantRatingBadge({
+export const RestaurantRatingBadge = React.memo(function RestaurantRatingBadge({
   rating,
   showBreakdown = false,
 }: RestaurantRatingBadgeProps) {
@@ -108,7 +108,7 @@ export function RestaurantRatingBadge({
       )}
     </View>
   );
-}
+});
 
 interface BreakdownItemProps {
   categoryKey: string;

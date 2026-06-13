@@ -2,6 +2,8 @@
 
 Complete technical reference for the Next.js web portal (`apps/web-portal/`).
 
+> ⚠ **Legacy app — being retired.** Operator work happens in `apps/admin/` (port 3001). Since migration 163 (2026-06-12) dropped `dish_kind`/`parent_dish_id`/`is_template`, this app's dish create/edit and menu-scan confirm flows (which still write those columns — see §6/§7 below) **fail at runtime by design**. This doc describes the code as written, not a working system.
+
 ---
 
 ## Table of Contents

@@ -384,8 +384,6 @@ Central dish entity -- the primary content users swipe on.
 | name                    | text         | NOT NULL, DEFAULT ''                                                       | Dish name                                             |
 | description             | text         |                                                                            | Dish description                                      |
 | price                   | numeric      | NOT NULL, DEFAULT 0                                                        | Price value                                           |
-| dietary_tags            | text[]       | DEFAULT '{}'                                                               | Denormalized dietary tag codes                        |
-| allergens               | text[]       | DEFAULT '{}'                                                               | Denormalized allergen codes                           |
 | calories                | integer      |                                                                            | Calorie count                                         |
 | spice_level             | text         | DEFAULT 'none', CHECK (NULL,'none','mild','hot')                           | Spice heat level                                      |
 | image_url               | text         |                                                                            | Hero image URL                                        |
@@ -393,7 +391,8 @@ Central dish entity -- the primary content users swipe on.
 | dish_category_id        | uuid         | FK -> `dish_categories`                                                    | Global dish category                                  |
 | description_visibility  | text         | NOT NULL, DEFAULT 'menu', CHECK ('menu','detail')                          | Where description is shown                            |
 | ingredients_visibility  | text         | NOT NULL, DEFAULT 'detail', CHECK ('menu','detail','none')                 | Where ingredients list is shown                       |
-| dish_kind               | text         | NOT NULL, DEFAULT 'standard', CHECK ('standard','template','experience')   | Standard dish, template, or experience                |
+| dining_format           | text         | NULL, CHECK ('buffet','course_menu','interactive_table','shared_plates','sampler') | UX layout hint; NULL = normal dish row        |
+| bundled_items           | jsonb        | NULL, CHECK (array)                                                        | Informational "comes with" list of {name, note?}      |
 | display_price_prefix    | text         | NOT NULL, DEFAULT 'exact', CHECK ('exact','from','per_person','market_price','ask_server') | How the price label is displayed   |
 | enrichment_status       | text         | NOT NULL, DEFAULT 'none', CHECK ('none','pending','completed','failed')    | AI enrichment pipeline state                          |
 | enrichment_source       | text         | NOT NULL, DEFAULT 'none', CHECK ('none','ai','manual')                     | Source of enrichment data                             |
@@ -415,7 +414,7 @@ Central dish entity -- the primary content users swipe on.
 **Usage Notes**
 - The `embedding` column powers the vector-ANN recommendation feed via `generate_candidates`.
 - `enrichment_status` tracks the AI enrichment pipeline: `none` -> `pending` -> `completed` | `failed`.
-- `dietary_tags` and `allergens` are denormalized arrays for fast filtering; canonical data lives in junction tables.
+- Allergen/dietary-tag columns were dropped (migration 156, 2026-06-05); the legacy dish-composition columns (`dish_kind`, `parent_dish_id`, `is_parent`, `is_template`, `price_per_person`) and the `dish_courses`/`dish_course_items` tables were dropped (migration 163, 2026-06-12). Customization lives in `option_groups`/`options`.
 
 ---
 

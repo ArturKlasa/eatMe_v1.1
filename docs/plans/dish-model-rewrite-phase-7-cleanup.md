@@ -1,7 +1,7 @@
 # Phase 7 — Cleanup: the coordinated drop
 
 **Parent plan:** `docs/project/dish-model-rewrite-plan.md`
-**Status:** In progress (2026-06-11) — pulled forward by user decision; Phase 6 fully closed same day (conversion + re-embed + 51-flag triage all verified in prod).
+**Status:** ✅ COMPLETE (2026-06-12) — migration 163 applied in prod by user; `verify-phase7.ts` all green (columns/tables gone, all 5 rewritten/dropped functions verified, feed edge fn returns clean rows with modifier_groups). Docs updated per §5. Remaining: user rebuilds mobile dev app; shared shims removal waits for web-portal retirement.
 **Authoritative drop scope:** this doc (supersedes the 2026-05-17 draft and `phase-6 §6` — both under-scoped; see §1).
 **Reversibility:** ⚠ destructive. `163_REVERSE_ONLY` recreates columns/tables + restores prior function bodies, but column *data* is unrecoverable (already migrated to modifier groups by 158 — nothing meaningful is lost).
 

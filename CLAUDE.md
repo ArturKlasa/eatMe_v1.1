@@ -52,20 +52,14 @@ EatMe is a **discovery + protein-based filtering app, NOT an allergen-safety app
 
 Diet filtering is now **protein-derived**: vegan = `primary_protein = 'vegan'`; vegetarian = no `meat`/`poultry`/`fish`/`shellfish` protein family (eggs allowed = lacto-ovo). `user_preferences.diet_preference` + `exclude` survive. Migrations **155** (rewrites `generate_candidates` / `get_group_candidates` / `admin_confirm_menu_scan`) and **156** (drops the columns + the orphaned `allergens` / `dietary_tags` / `canonical_ingredient_dietary_tags` tables) complete the DB removal. See `docs/plans/abandon-allergens-dietary.md`.
 
-## Dish Kind — Composition Type
+## Dish Model — Modifier Groups + dining_format
 
-Dishes carry a `dish_kind` column (enum, not null default `'standard'`). The canonical 5 values live in `packages/shared/src/constants/menu.ts` (`DISH_KIND_META`) and `packages/shared/src/types/restaurant.ts` (`DishKind` type). Both apps import from `@eatme/shared`.
+Every dish is a flat row; composition/customization lives in **modifier groups**: `option_groups` (`selection_type` single/multiple, `min_selections`/`max_selections`, `display_in_card`) + `options` (`price_delta` or `price_override`, `primary_protein`, `is_default`). Two presentation-only columns supplement this:
 
-| Kind | Description |
-|---|---|
-| `standard` | Single fixed item |
-| `bundle` | N items together at one price (formerly `combo`) |
-| `configurable` | Customer selects from slots; use `is_template=true` for reusable shells |
-| `course_menu` | Multi-course sequenced menu; courses stored in `dish_courses` + `dish_course_items` |
-| `buffet` | Flat-rate unlimited access |
+- `dining_format` (nullable text, CHECK) — UX layout hint for mobile: `buffet`, `course_menu`, `interactive_table`, `shared_plates`, `sampler`, or NULL for a normal dish row. Never queried relationally.
+- `bundled_items` (nullable jsonb array of `{name, note?}`) — informational "comes with" list. Pure description.
 
-- `is_template boolean` (default `false`) — marks a dish as a reusable shell excluded from the consumer feed. Used with `configurable` kind (formerly `template` rows).
-- Legacy values (`template`, `experience`, `combo`) were renamed by migration 114 and are no longer valid after migration 115 runs. Use `DISH_KIND_META` (keyed object) for new code; the old `DISH_KINDS` array has been removed.
+The legacy composition model (`dish_kind`, `parent_dish_id`, `is_parent`, `is_template`, `price_per_person` columns + `dish_courses`/`dish_course_items` tables) was **dropped 2026-06-12** (migration 158 converted parent/variant data to modifier groups; migration 163 dropped the schema). Do not reintroduce parent/variant dishes — size and add-on variants are modifier groups (e.g. a `Tamaño` group with price deltas). `DISH_KIND_META`/`DishKind` shims remain in `@eatme/shared` only for the retired `apps/web-portal` (whose dish create/edit is broken post-163 by design); remove them when that app is deleted. See `docs/plans/dish-model-rewrite-phase-7-cleanup.md`.
 
 ## Common Pitfalls
 

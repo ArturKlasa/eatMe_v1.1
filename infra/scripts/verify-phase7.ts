@@ -47,7 +47,7 @@ async function main() {
   const { data: cands, error: gcErr } = await sb.rpc('generate_candidates', {
     p_lat: LAT,
     p_lng: LNG,
-    p_radius_m: 50000,
+    p_radius_m: 5000, // 50km cold-queries past the statement timeout; 5km is plenty for CDMX
     p_limit: 5,
   });
   if (gcErr) {
@@ -64,7 +64,7 @@ async function main() {
   const { data: groups, error: ggErr } = await sb.rpc('get_group_candidates', {
     p_lat: LAT,
     p_lng: LNG,
-    p_radius_m: 50000,
+    p_radius_m: 5000,
     p_limit: 3,
   });
   console.log(

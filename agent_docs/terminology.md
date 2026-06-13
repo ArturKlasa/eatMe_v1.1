@@ -8,10 +8,12 @@
 
 ## Dish Concepts
 
-- **Dish Kind**: Category of dish — `food`, `drink`, `dessert`
 - **Menu Category**: Grouping within a menu (e.g., "Appetizers", "Main Course", "Beverages")
-- **Dish Options**: Variants of a dish (e.g., size, spice level) with optional price modifiers
+- **Modifier Groups**: `option_groups` + `options` — the sole composition/customization model. Sizes, add-ons, and bundle choices are all modifier groups with `price_delta`/`price_override`.
+- **Dining Format**: Nullable UX hint on a dish (`buffet`, `course_menu`, `interactive_table`, `shared_plates`, `sampler`) that switches the mobile layout flavor. NULL = normal dish row.
 - **Enrichment**: AI-generated descriptions, tags, and embeddings for dishes
+
+> The legacy `dish_kind` / parent-variant dish model was dropped 2026-06-12 (migrations 158 + 163). Dishes are flat rows; never nest dishes under a parent.
 
 ## Food Classification
 

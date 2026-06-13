@@ -395,10 +395,6 @@ Central dish entity -- the primary content users swipe on.
 | bundled_items           | jsonb        | NULL, CHECK (array)                                                        | Informational "comes with" list of {name, note?}      |
 | display_price_prefix    | text         | NOT NULL, DEFAULT 'exact', CHECK ('exact','from','per_person','market_price','ask_server') | How the price label is displayed   |
 | enrichment_status       | text         | NOT NULL, DEFAULT 'none', CHECK ('none','pending','completed','failed')    | AI enrichment pipeline state                          |
-| enrichment_source       | text         | NOT NULL, DEFAULT 'none', CHECK ('none','ai','manual')                     | Source of enrichment data                             |
-| enrichment_confidence   | text         | CHECK ('high','medium','low')                                              | Confidence of AI enrichment                           |
-| enrichment_payload      | jsonb        |                                                                            | Raw enrichment output                                 |
-| embedding_input         | text         |                                                                            | Text used to generate the embedding                   |
 | embedding               | vector(1536) |                                                                            | pgvector embedding for dish similarity                |
 | protein_families        | text[]       | DEFAULT '{}'                                                               | Protein family labels (e.g. poultry, seafood)         |
 | protein_canonical_names | text[]       | DEFAULT '{}'                                                               | Canonical protein names (e.g. chicken, salmon)        |
@@ -413,7 +409,8 @@ Central dish entity -- the primary content users swipe on.
 
 **Usage Notes**
 - The `embedding` column powers the vector-ANN recommendation feed via `generate_candidates`.
-- `enrichment_status` tracks the AI enrichment pipeline: `none` -> `pending` -> `completed` | `failed`.
+- `enrichment_status` tracks the AI enrichment pipeline: `none` -> `pending` -> `completed` | `failed`. The `enrich-dish` edge function writes the embedding and flips the status; the recovery cron `_cron_embed_recovery_tick` retries `pending`/`failed` rows.
+- The `enrichment_source`, `enrichment_confidence`, `enrichment_payload`, and `embedding_input` columns were removed when enrichment was simplified to embedding-only — do not reference them.
 - Allergen/dietary-tag columns were dropped (migration 156, 2026-06-05); the legacy dish-composition columns (`dish_kind`, `parent_dish_id`, `is_parent`, `is_template`, `price_per_person`) and the `dish_courses`/`dish_course_items` tables were dropped (migration 163, 2026-06-12). Customization lives in `option_groups`/`options`.
 
 ---

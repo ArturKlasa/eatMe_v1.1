@@ -679,7 +679,14 @@ serve(async (req: Request) => {
     // v2: cache key bumped after modifier-aware rewrite so legacy cached responses
     // without applied_options/effective_* fields are not returned. Old entries
     // expire naturally via TTL (5 min) — no manual flush needed.
-    const cacheKey = `feed:v2:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:${JSON.stringify(filters)}`;
+    //
+    // currentTime is deliberately EXCLUDED from the key: it changes every minute and
+    // would shatter the cache (≥4 misses per 5-min TTL window — hit rate ≈ 0). The RPC
+    // still applies time filtering server-side via p_current_time, and the 300s TTL
+    // bounds any open/closed drift to ≤5 min. currentDayOfWeek is kept — it changes
+    // only daily and correctly separates each day's open-hours / daily menus.
+    const { currentTime: _ignoredInCacheKey, ...cacheFilters } = filters ?? {};
+    const cacheKey = `feed:v2:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:${JSON.stringify(cacheFilters)}`;
     const redis = getRedis();
     if (redis) {
       try {

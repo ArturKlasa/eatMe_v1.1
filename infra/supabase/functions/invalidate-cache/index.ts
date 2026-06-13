@@ -28,6 +28,24 @@ function getRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
+/**
+ * Delete every key matching a glob via SCAN (cursor-paged, non-blocking).
+ * Returns the number of keys deleted. Safe on an empty namespace (returns 0).
+ */
+async function deleteByPattern(redis: Redis, pattern: string): Promise<number> {
+  let cursor = '0';
+  let deleted = 0;
+  do {
+    const [next, keys] = await redis.scan(cursor, { match: pattern, count: 200 });
+    cursor = String(next);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      deleted += keys.length;
+    }
+  } while (cursor !== '0');
+  return deleted;
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -47,56 +65,55 @@ serve(async (req: Request) => {
       });
     }
 
-    let restaurantId: string | null = null;
-
-    if (table === 'restaurants') {
-      // Direct restaurant update
-      restaurantId = record.id;
-    } else if (table === 'menus') {
-      // Menu update — restaurant_id is a direct column
-      restaurantId = record.restaurant_id ?? null;
-    } else if (table === 'dishes') {
-      // Dish update — resolve restaurant_id via menu_category → menu
-      const dishId: string = record.id;
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      const { data } = await supabase
-        .from('dishes')
-        .select('menu_category:menu_categories(menu:menus(restaurant_id))')
-        .eq('id', dishId)
-        .single();
-
-      restaurantId = (data as any)?.menu_category?.menu?.restaurant_id ?? null;
-    } else {
+    // Only restaurants / menus / dishes affect feed output.
+    if (table !== 'restaurants' && table !== 'menus' && table !== 'dishes') {
       console.warn('[invalidate-cache] Unknown table:', table);
       return new Response(JSON.stringify({ skipped: true, reason: 'unknown_table', table }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    if (!restaurantId) {
-      console.warn('[invalidate-cache] Could not resolve restaurantId for', { table, record });
-      return new Response(JSON.stringify({ skipped: true, reason: 'restaurant_id_not_resolved' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // The feed cache key is feed:v2:{user}:{geo}:{filters} — it carries no restaurant_id,
+    // so a single restaurant's edit can't be targeted. Writes here are rare (one operator
+    // editing menus), so clearing the whole feed namespace is the correct, simple choice;
+    // entries recompute lazily on the next feed request.
+    const feedKeysDeleted = await deleteByPattern(redis, 'feed:v2:*');
+
+    // Best-effort: also clear any per-restaurant keys (legacy / other cache paths).
+    let restaurantId: string | null = null;
+    if (table === 'restaurants') {
+      restaurantId = record.id ?? null;
+    } else if (table === 'menus') {
+      restaurantId = record.restaurant_id ?? null;
+    } else {
+      // dishes — resolve restaurant_id via menu_category → menu
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      const { data } = await supabase
+        .from('dishes')
+        .select('menu_category:menu_categories(menu:menus(restaurant_id))')
+        .eq('id', record.id)
+        .single();
+      restaurantId = (data as any)?.menu_category?.menu?.restaurant_id ?? null;
     }
 
-    // Delete known Redis key patterns for this restaurant.
-    // NOTE: The feed/index.ts function does not yet write Redis keys — Redis caching
-    // in the feed is planned but not yet implemented. These key patterns are the
-    // anticipated names for restaurant-level cache entries once it is. Redis DEL
-    // on non-existent keys is a no-op (returns 0), so this is safe to run now.
-    // When Redis caching is added to the feed, the keys written there MUST match
-    // these patterns exactly.
-    const keysToDelete = [`restaurant:${restaurantId}`, `restaurant:cuisines:${restaurantId}`];
+    const restaurantKeys = restaurantId
+      ? [`restaurant:${restaurantId}`, `restaurant:cuisines:${restaurantId}`]
+      : [];
+    if (restaurantKeys.length > 0) {
+      await Promise.all(restaurantKeys.map(k => redis.del(k)));
+    }
 
-    await Promise.all(keysToDelete.map(key => redis.del(key)));
+    console.log('[invalidate-cache] Cleared', {
+      table,
+      restaurantId,
+      feedKeysDeleted,
+      restaurantKeys,
+    });
 
-    console.log('[invalidate-cache] Deleted keys:', keysToDelete, 'for', { table, restaurantId });
-
-    return new Response(JSON.stringify({ deleted: keysToDelete, restaurantId }), {
+    return new Response(JSON.stringify({ feedKeysDeleted, restaurantKeys, restaurantId, table }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {

@@ -69,6 +69,10 @@ export interface RestaurantDetailState {
   loadAttempt: number;
   setLoadAttempt: React.Dispatch<React.SetStateAction<number>>;
   setLoading: (v: boolean) => void;
+  /** True while a pull-to-refresh reload is in flight (drives the FlatList spinner). */
+  refreshing: boolean;
+  /** Clear this restaurant's caches and refetch everything (pull-to-refresh). */
+  refresh: () => void;
   handleFavoriteToggle: () => Promise<void>;
   handleDishPress: (dish: DishWithGroups) => Promise<void>;
   loadCategoryDishes: (categoryId: string) => Promise<void>;
@@ -85,6 +89,9 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const fetchRestaurantDetail = useRestaurantStore(state => state.fetchRestaurantDetail);
   const fetchCategoryDishes = useRestaurantStore(state => state.fetchCategoryDishes);
   const fetchAllRestaurantDishes = useRestaurantStore(state => state.fetchAllRestaurantDishes);
+  const getRestaurantAux = useRestaurantStore(state => state.getRestaurantAux);
+  const setRestaurantAux = useRestaurantStore(state => state.setRestaurantAux);
+  const clearRestaurantCaches = useRestaurantStore(state => state.clearRestaurantCaches);
   const permanentFilters = useFilterStore(state => state.permanent);
 
   const [restaurant, setRestaurant] = useState<RestaurantWithMenus | null>(null);
@@ -114,6 +121,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const [categoryDishes, setCategoryDishes] = useState<Map<string, 'loading' | 'error' | Dish[]>>(
     new Map()
   );
+  const [refreshing, setRefreshing] = useState(false);
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -122,6 +130,22 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       mountedRef.current = false;
     };
   }, []);
+
+  // Stale-while-revalidate: on a reopen within the cache window, paint the non-skeleton
+  // data (restaurant rating, dish rating badges, opinions, favourite hearts) from cache
+  // immediately so it doesn't flash in after a round-trip. The fetch effects below still
+  // run and refresh it (cached value is shown, then overwritten with fresh — usually
+  // identical). Seed only when the cached userId matches the current user.
+  useEffect(() => {
+    const aux = getRestaurantAux(restaurantId);
+    if (!aux || aux.userId !== (user?.id ?? null)) return;
+    setRestaurantRating(aux.restaurantRating);
+    setDishRatings(aux.dishRatings);
+    setUserDishOpinions(aux.userDishOpinions);
+    setFavoriteDishIds(aux.favoriteDishIds);
+    setIsFavorite(aux.isFavorite);
+    setFavoritesInitialized(true);
+  }, [restaurantId, user?.id, getRestaurantAux]);
 
   // Critical-path load: restaurant metadata + non-critical ratings/favourites in parallel
   useEffect(() => {
@@ -170,6 +194,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
         setFavoriteDishIds(new Set(dishFavsResult.data.map(f => f.subject_id)));
       }
       setFavoritesInitialized(true);
+      if (mountedRef.current) setRefreshing(false);
     };
 
     loadAll();
@@ -293,7 +318,35 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       cancelled = true;
     };
     // user?.id (not the full user object) — same TOKEN_REFRESHED guard as the metadata effect.
-  }, [restaurant?.id, fetchAllRestaurantDishes, user?.id]);
+    // loadAttempt — re-run on pull-to-refresh (restaurant.id is unchanged, so it alone wouldn't).
+  }, [restaurant?.id, fetchAllRestaurantDishes, user?.id, loadAttempt]);
+
+  // Mirror the latest non-skeleton snapshot into the aux cache so the next reopen can
+  // seed it instantly. Gated on favoritesInitialized so we never cache the pre-fetch
+  // empty state; runs on every slice change (incl. in-session rating / favourite toggles)
+  // to keep the cache coherent.
+  useEffect(() => {
+    if (!favoritesInitialized) return;
+    setRestaurantAux(restaurantId, {
+      userId: user?.id ?? null,
+      restaurantRating,
+      dishRatings,
+      userDishOpinions,
+      favoriteDishIds,
+      isFavorite,
+      fetchedAt: Date.now(),
+    });
+  }, [
+    restaurantId,
+    user?.id,
+    favoritesInitialized,
+    restaurantRating,
+    dishRatings,
+    userDishOpinions,
+    favoriteDishIds,
+    isFavorite,
+    setRestaurantAux,
+  ]);
 
   // Record 'viewed' interaction after the dish detail has been open for 3+ seconds.
   useEffect(() => {
@@ -315,6 +368,16 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       return next;
     });
   }, []);
+
+  // Pull-to-refresh: drop this restaurant's caches and bump loadAttempt so both the
+  // metadata and the bulk-dish effects re-run against fresh data. Deliberately does NOT
+  // set the screen-level `loading` (which would blank the screen) — the FlatList's
+  // RefreshControl spinner shows instead, cleared when the metadata reload finishes.
+  const refresh = React.useCallback(() => {
+    clearRestaurantCaches(restaurantId);
+    setRefreshing(true);
+    setLoadAttempt(n => n + 1);
+  }, [restaurantId, clearRestaurantCaches]);
 
   const handleFavoriteToggle = async (): Promise<void> => {
     setFavoriteLoading(true);
@@ -399,6 +462,8 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     loadAttempt,
     setLoadAttempt,
     setLoading,
+    refreshing,
+    refresh,
     handleFavoriteToggle,
     handleDishPress,
     loadCategoryDishes,

@@ -62,6 +62,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
     loadAttempt,
     setLoadAttempt,
     setLoading,
+    refreshing,
+    refresh,
     handleDishPress,
     loadCategoryDishes,
     permanentFilters,
@@ -220,6 +222,8 @@ export function RestaurantDetailScreen({ route, navigation }: Props) {
           featuredDishId={featuredDishId}
           loadCategoryDishes={loadCategoryDishes}
           onDishPress={handleDishPress}
+          refreshing={refreshing}
+          onRefresh={refresh}
         />
       )}
 

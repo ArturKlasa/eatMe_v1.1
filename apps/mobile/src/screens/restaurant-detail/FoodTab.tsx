@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantDetailStyles as styles } from '@/styles';
@@ -45,6 +46,9 @@ interface FoodTabProps {
   featuredDishId?: string;
   loadCategoryDishes: (categoryId: string) => void;
   onDishPress: (dish: DishWithGroups) => void;
+  /** Pull-to-refresh wiring (optional). */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 /** A dish row plus its precomputed hard-filter verdict (classified once, here). */
@@ -93,6 +97,8 @@ export function FoodTab({
   featuredDishId,
   loadCategoryDishes,
   onDishPress,
+  refreshing,
+  onRefresh,
 }: FoodTabProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -355,6 +361,16 @@ export function FoodTab({
         <View style={{ padding: spacing['2xl'], alignItems: 'center' }}>
           <Text style={{ color: colors.textSecondary }}>{t('restaurant.noMenuItems')}</Text>
         </View>
+      }
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={!!refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        ) : undefined
       }
       initialNumToRender={8}
       maxToRenderPerBatch={8}

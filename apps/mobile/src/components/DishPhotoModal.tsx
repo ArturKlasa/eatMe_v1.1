@@ -3,7 +3,6 @@ import {
   Modal,
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
@@ -282,7 +282,9 @@ export function DishPhotoModal({
                       key={photo.id}
                       source={{ uri: photo.photo_url }}
                       style={styles.mainPhoto}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={150}
                     />
                   ))}
                 </ScrollView>
@@ -323,7 +325,12 @@ export function DishPhotoModal({
                     selectedPhotoIndex === index && styles.thumbnailSelected,
                   ]}
                 >
-                  <Image source={{ uri: photo.photo_url }} style={styles.thumbnailImage} />
+                  <Image
+                    source={{ uri: photo.photo_url }}
+                    style={styles.thumbnailImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
                 </TouchableOpacity>
               ))}
               <TouchableOpacity

@@ -13,6 +13,9 @@ import {
   type RestaurantWithDistance,
 } from '../services/geoService';
 import { DailyFilters, PermanentFilters } from './filterStore';
+import { type RestaurantRating } from '../services/restaurantRatingService';
+import { type DishRating } from '../services/dishRatingService';
+import { type DishOpinion } from '../types/rating';
 
 /**
  * Zustand store for restaurant and dish data.
@@ -45,6 +48,26 @@ interface CategoryDishCacheEntry {
   data: CategoryDish[];
   fetchedAt: number;
 }
+
+/**
+ * The non-skeleton restaurant-detail data (rating badges, hearts, opinions) cached
+ * per restaurant so a reopen can paint them instantly (stale-while-revalidate).
+ * Keyed with userId so a sign-out/in never shows the previous user's favourites.
+ */
+interface RestaurantAuxEntry {
+  userId: string | null;
+  restaurantRating: RestaurantRating | null;
+  dishRatings: Map<string, DishRating>;
+  userDishOpinions: Map<string, DishOpinion>;
+  favoriteDishIds: Set<string>;
+  isFavorite: boolean;
+  fetchedAt: number;
+}
+
+// Module-level, intentionally NOT in Zustand state: this is a render-irrelevant
+// cache, so reads/writes must not notify store subscribers (see audit R7 on the
+// churn from Map caches living in reactive state).
+const restaurantAuxCache = new Map<string, RestaurantAuxEntry>();
 
 interface RestaurantStore {
   /** Full restaurant records including nested menus/categories/dishes. */
@@ -93,6 +116,13 @@ interface RestaurantStore {
   fetchAllRestaurantDishes: (
     restaurantId: string
   ) => Promise<{ data: CategoryDish[] | null; error: Error | null }>;
+  /** Read the cached non-skeleton detail data for a restaurant, or null if absent/stale. */
+  getRestaurantAux: (restaurantId: string) => RestaurantAuxEntry | null;
+  /** Write the latest non-skeleton detail snapshot for a restaurant into the aux cache. */
+  setRestaurantAux: (restaurantId: string, entry: RestaurantAuxEntry) => void;
+  /** Drop all cached data for a restaurant (detail + whole-restaurant dishes + aux) —
+   *  used by pull-to-refresh to force a full refetch. */
+  clearRestaurantCaches: (restaurantId: string) => void;
 
   /**
    * Fetch restaurants near a fixed latitude/longitude via the feed Edge Function.
@@ -420,5 +450,28 @@ export const useRestaurantStore = create<RestaurantStore>((set, get) => ({
     } catch (err) {
       return { data: null, error: err as Error };
     }
+  },
+
+  getRestaurantAux: (restaurantId: string) => {
+    const entry = restaurantAuxCache.get(restaurantId);
+    if (entry && Date.now() - entry.fetchedAt < RESTAURANT_DETAIL_TTL_MS) {
+      return entry;
+    }
+    return null;
+  },
+
+  setRestaurantAux: (restaurantId: string, entry: RestaurantAuxEntry) => {
+    restaurantAuxCache.set(restaurantId, entry);
+  },
+
+  clearRestaurantCaches: (restaurantId: string) => {
+    restaurantAuxCache.delete(restaurantId);
+    set(state => {
+      const detail = new Map(state.restaurantDetailCache);
+      detail.delete(restaurantId);
+      const dishes = new Map(state.restaurantDishesCache);
+      dishes.delete(restaurantId);
+      return { restaurantDetailCache: detail, restaurantDishesCache: dishes };
+    });
   },
 }));

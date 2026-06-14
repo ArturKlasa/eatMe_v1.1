@@ -239,7 +239,6 @@ export function FoodTab({
                   <ModifierGroupsList
                     groups={dish.option_groups ?? []}
                     daily={dailyFilters}
-                    basePrice={dish.price ?? 0}
                     currencyCode={restaurant.currency_code}
                   />
                 </View>
@@ -321,7 +320,6 @@ export function FoodTab({
                     <ModifierGroupsList
                       groups={dish.option_groups ?? []}
                       daily={dailyFilters}
-                      basePrice={dish.price ?? 0}
                       currencyCode={restaurant.currency_code}
                     />
                   </View>

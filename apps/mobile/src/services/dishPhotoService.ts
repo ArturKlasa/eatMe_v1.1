@@ -124,7 +124,8 @@ export async function getDishPhotos(dishId: string): Promise<DishPhoto[]> {
       return [];
     }
 
-    return data || [];
+    // user_id is nullable in the generated types; DishPhoto.user_id is string — coalesce.
+    return (data ?? []).map(row => ({ ...row, user_id: row.user_id ?? '' }));
   } catch (error) {
     console.error('[DishPhoto] Error in getDishPhotos:', error);
     return [];

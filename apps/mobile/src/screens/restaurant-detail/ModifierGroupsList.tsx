@@ -29,7 +29,6 @@ const COLLAPSED_COUNT = 2;
 interface Props {
   groups: OptionGroup[];
   daily: DailyFilters;
-  basePrice: number;
   /** ISO 4217 from the parent restaurant. Drives the option-row price chip; falls
    *  back to USD via formatPrice() when missing. */
   currencyCode?: string | null;
@@ -38,7 +37,6 @@ interface Props {
 export const ModifierGroupsList = React.memo(function ModifierGroupsList({
   groups,
   daily,
-  basePrice: _basePrice,
   currencyCode,
 }: Props) {
   const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)

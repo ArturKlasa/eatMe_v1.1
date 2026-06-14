@@ -152,7 +152,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     const loadAll = async () => {
       try {
         const timeoutFallback = new Promise<{ data: null; error: Error }>(resolve =>
-          setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 12000)
+          setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 6000)
         );
         const { data, error } = await Promise.race([
           fetchRestaurantDetail(restaurantId),
@@ -414,7 +414,7 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
 
       const { data: photosData, error: photosError } = await supabase
         .from('dish_photos')
-        .select('*')
+        .select('id, photo_url, user_id, created_at, dish_id')
         .eq('dish_id', dish.id)
         .order('created_at', { ascending: false });
 
@@ -424,9 +424,11 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       } else {
         setDishPhotos(
           (photosData || []).map(row => ({
-            ...row,
+            id: row.id,
+            photo_url: row.photo_url,
+            user_id: row.user_id ?? '',
             created_at: row.created_at ?? '',
-            updated_at: row.updated_at ?? '',
+            dish_id: row.dish_id,
           }))
         );
       }

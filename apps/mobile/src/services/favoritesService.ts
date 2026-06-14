@@ -135,22 +135,32 @@ export async function toggleFavorite(
   subjectId: string
 ): Promise<Result<boolean>> {
   try {
-    const checkResult = await isFavorited(userId, subjectType, subjectId);
-    if (!checkResult.ok) return checkResult;
+    // Delete-first: one round-trip to un-favourite. .select() returns the deleted rows, so a
+    // non-empty result means it was favourited (now removed); an empty result means it wasn't,
+    // so we add it. Halves the round-trips on the un-favourite path vs a separate check + mutate.
+    const { data: deleted, error: delError } = (await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', userId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', subjectId)
+      .select('id')) as unknown as {
+      data: { id: string }[] | null;
+      error: { message: string; code: string } | null;
+    };
 
-    if (checkResult.data) {
-      const removeResult = await removeFromFavorites(userId, subjectType, subjectId);
-      if (!removeResult.ok) return removeResult;
+    if (delError) return err(delError.message);
+    if (deleted && deleted.length > 0) {
       return ok(false);
-    } else {
-      const addResult = await addToFavorites(userId, subjectType, subjectId);
-      if (!addResult.ok && addResult.error !== 'Already in favorites') return addResult;
-      // Record 'saved' interaction for dish favourites only (not restaurants)
-      if (subjectType === 'dish') {
-        recordInteraction(userId, subjectId, 'saved');
-      }
-      return ok(true);
     }
+
+    const addResult = await addToFavorites(userId, subjectType, subjectId);
+    if (!addResult.ok && addResult.error !== 'Already in favorites') return addResult;
+    // Record 'saved' interaction for dish favourites only (not restaurants)
+    if (subjectType === 'dish') {
+      recordInteraction(userId, subjectId, 'saved');
+    }
+    return ok(true);
   } catch (e) {
     return err(e as Error);
   }

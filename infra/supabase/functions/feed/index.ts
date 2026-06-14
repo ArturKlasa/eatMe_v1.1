@@ -201,6 +201,11 @@ interface Candidate {
   reachable_protein_families?: string[];
   dining_format?: string | null;
   bundled_items?: Array<{ name: string; note?: string | null }> | null;
+  // Open-hours data folded into generate_candidates (§S3, migration 167) so the
+  // feed no longer needs a second query to compute open-now per restaurant.
+  open_hours?: Record<string, { open: string; close: string }> | null;
+  timezone?: string | null;
+  country_code?: string | null;
 }
 
 // ── Stage 2 scoring ───────────────────────────────────────────────────────────
@@ -882,27 +887,21 @@ serve(async (req: Request) => {
     scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     const diversified = applyDiversity(scored, 3);
 
-    // ── Fetch open_hours + timezone for all restaurants (shared by dishes + restaurants) ─
+    // ── Build open-now map from candidate rows (no extra query) ──────────────
+    // open_hours / timezone / country_code are returned by generate_candidates
+    // (§S3, migration 167), so the per-restaurant open-now data is already in
+    // memory on the candidate rows — the second DB round-trip is gone.
 
-    const allRids = [...new Set(diversified.map(d => d.restaurant_id))];
     const openInfoMap = new Map<
       string,
       { openHours: Record<string, { open: string; close: string }> | null; tz: string | null }
     >();
-    try {
-      const { data: hourRows } = await supabase
-        .from('restaurants')
-        .select('id, open_hours, timezone, country_code')
-        .eq('status', 'published')
-        .in('id', allRids);
-      for (const row of hourRows ?? []) {
-        openInfoMap.set(row.id, {
-          openHours: row.open_hours ?? null,
-          tz: resolveTimezone(row.timezone, row.country_code),
-        });
-      }
-    } catch (e) {
-      console.error('[Feed] open_hours fetch failed (non-fatal):', e);
+    for (const d of diversified) {
+      if (openInfoMap.has(d.restaurant_id)) continue;
+      openInfoMap.set(d.restaurant_id, {
+        openHours: d.open_hours ?? null,
+        tz: resolveTimezone(d.timezone, d.country_code),
+      });
     }
 
     // ── Build dishes result ──────────────────────────────────────────────────

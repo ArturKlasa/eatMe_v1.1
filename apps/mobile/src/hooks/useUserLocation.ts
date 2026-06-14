@@ -6,7 +6,7 @@
  * appropriate fallback UI without duplicating permission-request logic.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { debugLog } from '../config/environment';
 
@@ -44,11 +44,19 @@ export const useUserLocation = () => {
     cachedLocation: null,
   });
 
+  // The location cache lives in a ref, not in `state`, so getCurrentLocation can read
+  // the latest value without closing over a stale `state` — which lets every function
+  // below be a stable useCallback (callers' effects no longer churn on identity).
+  const cacheRef = useRef<{ location: UserLocation | null; lastUpdated: number | null }>({
+    location: null,
+    lastUpdated: null,
+  });
+
   /**
    * Request location permission from the user
    * @returns Promise<boolean> - true if permission granted
    */
-  const requestPermission = async (): Promise<boolean> => {
+  const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
       debugLog('Requesting location permission...');
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -76,7 +84,7 @@ export const useUserLocation = () => {
       debugLog('Location permission error:', errorMessage);
       return false;
     }
-  };
+  }, []);
 
   /**
    * Get current user location with caching
@@ -84,86 +92,95 @@ export const useUserLocation = () => {
    * @param forceRefresh - Force refresh even if cached location is available
    * @returns Promise<UserLocation | null>
    */
-  const getCurrentLocation = async (options?: {
-    accuracy?: Location.LocationAccuracy;
-    forceRefresh?: boolean;
-  }): Promise<UserLocation | null> => {
-    try {
-      // Check if we have a valid cached location and don't need to force refresh
-      const now = Date.now();
-      if (
-        !options?.forceRefresh &&
-        state.cachedLocation &&
-        state.lastUpdated &&
-        now - state.lastUpdated < LOCATION_CACHE_DURATION
-      ) {
+  const getCurrentLocation = useCallback(
+    async (options?: {
+      accuracy?: Location.LocationAccuracy;
+      forceRefresh?: boolean;
+    }): Promise<UserLocation | null> => {
+      try {
+        // Check if we have a valid cached location and don't need to force refresh
+        const now = Date.now();
+        const cache = cacheRef.current;
+        if (
+          !options?.forceRefresh &&
+          cache.location &&
+          cache.lastUpdated &&
+          now - cache.lastUpdated < LOCATION_CACHE_DURATION
+        ) {
+          debugLog(
+            'Using cached location:',
+            `${cache.location.latitude.toFixed(4)}, ${cache.location.longitude.toFixed(4)}`
+          );
+          return cache.location;
+        }
+
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        debugLog('Getting fresh location...');
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: options?.accuracy || Location.LocationAccuracy.Balanced,
+        });
+
+        const userLocation: UserLocation = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          accuracy: location.coords.accuracy || undefined,
+        };
+
+        const timestamp = Date.now();
+        cacheRef.current = { location: userLocation, lastUpdated: timestamp };
+        setState(prev => ({
+          ...prev,
+          location: userLocation,
+          cachedLocation: userLocation,
+          lastUpdated: timestamp,
+          isLoading: false,
+          error: null,
+        }));
+
         debugLog(
-          'Using cached location:',
-          `${state.cachedLocation.latitude.toFixed(4)}, ${state.cachedLocation.longitude.toFixed(4)}`
+          'Fresh location obtained and cached:',
+          `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`
         );
-        return state.cachedLocation;
+        return userLocation;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown location error';
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: `Location error: ${errorMessage}`,
+        }));
+        debugLog('Location error:', errorMessage);
+        return null;
       }
-
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      debugLog('Getting fresh location...');
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: options?.accuracy || Location.LocationAccuracy.Balanced,
-      });
-
-      const userLocation: UserLocation = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy || undefined,
-      };
-
-      const timestamp = Date.now();
-      setState(prev => ({
-        ...prev,
-        location: userLocation,
-        cachedLocation: userLocation,
-        lastUpdated: timestamp,
-        isLoading: false,
-        error: null,
-      }));
-
-      debugLog(
-        'Fresh location obtained and cached:',
-        `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`
-      );
-      return userLocation;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown location error';
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: `Location error: ${errorMessage}`,
-      }));
-      debugLog('Location error:', errorMessage);
-      return null;
-    }
-  };
+    },
+    []
+  );
 
   /**
    * Get user location with permission check and caching
    * @param options - Location options
    * @returns Promise<UserLocation | null>
    */
-  const getLocationWithPermission = async (options?: {
-    accuracy?: Location.LocationAccuracy;
-    forceRefresh?: boolean;
-  }): Promise<UserLocation | null> => {
-    const hasPermission = await requestPermission();
-    if (!hasPermission) {
-      return null;
-    }
-    return getCurrentLocation(options);
-  };
+  const getLocationWithPermission = useCallback(
+    async (options?: {
+      accuracy?: Location.LocationAccuracy;
+      forceRefresh?: boolean;
+    }): Promise<UserLocation | null> => {
+      const hasPermission = await requestPermission();
+      if (!hasPermission) {
+        return null;
+      }
+      return getCurrentLocation(options);
+    },
+    [requestPermission, getCurrentLocation]
+  );
 
   /**
    * Clear current location, cache, and reset state
    */
-  const clearLocation = () => {
+  const clearLocation = useCallback(() => {
+    cacheRef.current = { location: null, lastUpdated: null };
     setState(prev => ({
       ...prev,
       location: null,
@@ -172,7 +189,7 @@ export const useUserLocation = () => {
       error: null,
     }));
     debugLog('Location and cache cleared');
-  };
+  }, []);
 
   // Check permission status on mount
   useEffect(() => {

@@ -199,7 +199,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Eagerly request location on mount so the feed can load without waiting for map auto-centering
   useEffect(() => {
     getLocationWithPermission();
-  }, []);
+  }, [getLocationWithPermission]);
 
   // Refine country/currency from GPS once permission is granted (idempotent — store no-ops if already done).
   useEffect(() => {
@@ -208,7 +208,15 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
   }, [hasPermission]);
 
-  // Fetch dishes + restaurants in a single combined call whenever location or filters change
+  // Fetch dishes + restaurants in a single combined call whenever location or filters change.
+  // Keyed on a primitive signature (rounded coords + serialized filters + user id) rather than
+  // object identity: GPS returns a fresh userLocation object for near-identical coords, and the
+  // filter store spreads new daily/permanent on every interaction, so identity deps re-fire the
+  // /feed call spuriously. ~110m rounding matches the feed cache's geohash granularity.
+  const feedLat = userLocation ? userLocation.latitude.toFixed(3) : null;
+  const feedLng = userLocation ? userLocation.longitude.toFixed(3) : null;
+  const dailyKey = JSON.stringify(daily);
+  const permanentKey = JSON.stringify(permanent);
   useEffect(() => {
     if (!userLocation) return;
 
@@ -243,7 +251,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [userLocation, daily, permanent]);
+    // Deps are the primitive signature, NOT the objects: it IS the semantic identity of
+    // (location, filters, user), and depending on the objects is exactly what re-fires /feed
+    // on identity churn. userLocation/daily/permanent are read from the closure, consistent
+    // with the signature. (The repo has no react-hooks/exhaustive-deps rule, so no disable.)
+  }, [feedLat, feedLng, dailyKey, permanentKey, user?.id]);
 
   // Auto-center map on user location when map is ready and location is available
   useEffect(() => {
@@ -270,8 +282,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     };
 
     autoCenterOnLocation();
-    // Only depend on state flags, not the function itself
-  }, [isMapReady, hasPermission, hasAutocentered]);
+  }, [isMapReady, hasPermission, hasAutocentered, getLocationWithPermission]);
 
   // Handler functions
   const handleMarkerPress = useCallback(
@@ -318,7 +329,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     [rootNavigation]
   );
 
-  const handleMyLocationPress = async () => {
+  const handleMyLocationPress = useCallback(async () => {
     debugLog('My Location button pressed');
 
     if (locationLoading) {
@@ -355,7 +366,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         { text: t('common.ok') },
       ]);
     }
-  };
+  }, [getLocationWithPermission, locationLoading, locationError, t]);
 
   const handleMenuPress = useCallback(() => {
     setIsMenuVisible(prev => !prev);

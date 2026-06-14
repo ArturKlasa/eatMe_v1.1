@@ -110,7 +110,7 @@ export async function checkAndAwardTrustedTasterBadge(userId: string): Promise<B
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .not('tags', 'is', null)
-    .neq('tags', '{}');
+    .neq('tags', '{}' as unknown as string[]); // '{}' = Postgres empty-array literal; tags is text[]
 
   if (!taggedCount || taggedCount < 20) {
     return { earned: false };
@@ -124,12 +124,12 @@ export async function checkAndAwardTrustedTasterBadge(userId: string): Promise<B
     .select('created_at')
     .eq('user_id', userId)
     .not('tags', 'is', null)
-    .neq('tags', '{}')
+    .neq('tags', '{}' as unknown as string[])
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (!earliestRating || new Date(earliestRating.created_at) > threeMonthsAgo) {
+  if (!earliestRating?.created_at || new Date(earliestRating.created_at) > threeMonthsAgo) {
     return { earned: false };
   }
 

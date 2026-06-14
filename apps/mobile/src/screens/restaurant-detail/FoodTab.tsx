@@ -1,14 +1,24 @@
 /**
  * FoodTab
  *
- * Renders the "Food & Drinks" tab content: the full list of menus,
- * their categories, and lazy-loaded dish rows. Every dish renders through the
- * same standard row + inline modifier list.
+ * Renders the "Food & Drinks" tab content: the full list of menus, their
+ * categories, and dish rows. Every dish renders through the same standard row +
+ * inline modifier list.
+ *
+ * The nested menu → category → dish structure is flattened into a single typed-row
+ * array and rendered through a virtualized FlatList, so only on-screen rows mount
+ * (a long menu no longer mounts every DishMenuItem + ModifierGroupsList up front).
  */
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  FlatList,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing } from '@/styles/theme';
@@ -39,6 +49,19 @@ interface FoodTabProps {
 
 /** A dish row plus its precomputed hard-filter verdict (classified once, here). */
 type ClassifiedDish = DishWithGroups & { passesHardFilters: boolean };
+
+type RestaurantMenu = NonNullable<RestaurantWithMenus['menus']>[number];
+
+/** One flattened, virtualizable row of the menu list. */
+type MenuRow =
+  | { key: string; kind: 'featured'; dish: ClassifiedDish }
+  | { key: string; kind: 'menuHeader'; menu: RestaurantMenu; expanded: boolean }
+  | { key: string; kind: 'menuDescription'; text: string }
+  | { key: string; kind: 'categoryHeader'; category: MenuCategoryWithCanonical }
+  | { key: string; kind: 'categoryLoading' }
+  | { key: string; kind: 'categoryError' }
+  | { key: string; kind: 'categoryLoad'; categoryId: string }
+  | { key: string; kind: 'dish'; dish: ClassifiedDish };
 
 // Display name resolution for menu_categories rows.
 // Order: name_translations[locale] → canonical.names[locale] → canonical.names.en → name (source language).
@@ -110,154 +133,248 @@ export function FoodTab({
   // distinguishable (e.g. a food menu vs a separate drinks menu).
   const singleMenu = (restaurant.menus?.length ?? 0) <= 1;
 
-  // Multiple menus render collapsed by default (see the map below): the top of
-  // the tab becomes a compact menu picker instead of every menu stacked open.
+  // Multiple menus render collapsed by default: the top of the tab becomes a
+  // compact menu picker the user expands one at a time.
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
-  const toggleMenu = (menuId: string) =>
+  const toggleMenu = useCallback((menuId: string) => {
     setExpandedMenus(prev => {
       const next = new Set(prev);
       if (next.has(menuId)) next.delete(menuId);
       else next.add(menuId);
       return next;
     });
+  }, []);
+
+  // Flatten menus → categories → dishes into one virtualizable row list. Collapsed
+  // menus contribute only their header; single-menu restaurants stay header-less and
+  // always expanded. The featured dish is pinned on top AND still appears in its
+  // category below (unchanged from the nested-map version).
+  const rows = useMemo<MenuRow[]>(() => {
+    const out: MenuRow[] = [];
+    if (featuredDish) {
+      out.push({
+        key: `featured:${featuredDish.id}`,
+        kind: 'featured',
+        dish: {
+          ...featuredDish,
+          passesHardFilters: classifyDish(featuredDish, permanentFilters).passesHardFilters,
+        },
+      });
+    }
+    for (const menu of restaurant.menus ?? []) {
+      const expanded = singleMenu || expandedMenus.has(menu.id);
+      if (!singleMenu) {
+        out.push({ key: `menuHeader:${menu.id}`, kind: 'menuHeader', menu, expanded });
+      }
+      if (expanded && !singleMenu && menu.description) {
+        out.push({ key: `menuDesc:${menu.id}`, kind: 'menuDescription', text: menu.description });
+      }
+      if (!expanded) continue;
+      for (const category of menu.menu_categories ?? []) {
+        out.push({ key: `catHeader:${category.id}`, kind: 'categoryHeader', category });
+        const state = categoryDishes.get(category.id);
+        if (state === 'loading') {
+          out.push({ key: `catLoading:${category.id}`, kind: 'categoryLoading' });
+        } else if (state === 'error') {
+          out.push({ key: `catError:${category.id}`, kind: 'categoryError' });
+        } else if (state === undefined) {
+          out.push({
+            key: `catLoad:${category.id}`,
+            kind: 'categoryLoad',
+            categoryId: category.id,
+          });
+        } else {
+          for (const dish of sortedByCategory.get(category.id) ?? []) {
+            out.push({ key: `dish:${dish.id}`, kind: 'dish', dish });
+          }
+        }
+      }
+    }
+    return out;
+  }, [
+    restaurant.menus,
+    categoryDishes,
+    sortedByCategory,
+    expandedMenus,
+    singleMenu,
+    featuredDish,
+    permanentFilters,
+  ]);
+
+  // FlatList only re-renders rows when data (rows) or extraData changes. Ratings /
+  // opinions / favourites arrive without changing `rows`, so surface them here; the
+  // memoized DishMenuItem still skips rows whose own resolved props didn't change.
+  const extraData = useMemo(
+    () => ({ dishRatings, userDishOpinions, favoriteDishIds }),
+    [dishRatings, userDishOpinions, favoriteDishIds]
+  );
+
+  const keyExtractor = useCallback((row: MenuRow) => row.key, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: MenuRow }) => {
+      switch (item.kind) {
+        case 'featured': {
+          const dish = item.dish;
+          return (
+            <View style={styles.featuredSection}>
+              <Text style={styles.featuredLabel}>⭐ {t('restaurant.featuredFromSearch')}</Text>
+              <DishMenuItem
+                item={dish}
+                passesHardFilters={dish.passesHardFilters}
+                rating={dishRatings.get(dish.id) ?? null}
+                currencyCode={restaurant.currency_code}
+                userOpinion={userDishOpinions.get(dish.id) ?? null}
+                isFavorite={favoriteDishIds.has(dish.id)}
+                onPress={onDishPress}
+              />
+              {(dish.option_groups?.length ?? 0) > 0 && (
+                <View style={localStyles.modifierWrap}>
+                  <ModifierGroupsList
+                    groups={dish.option_groups ?? []}
+                    daily={dailyFilters}
+                    basePrice={dish.price ?? 0}
+                    currencyCode={restaurant.currency_code}
+                  />
+                </View>
+              )}
+            </View>
+          );
+        }
+        case 'menuHeader':
+          return (
+            <TouchableOpacity
+              style={styles.menuHeader}
+              onPress={() => toggleMenu(item.menu.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.menuHeaderName} numberOfLines={1}>
+                {item.menu.name}
+              </Text>
+              <Text style={styles.menuChevron}>{item.expanded ? '▴' : '▾'}</Text>
+            </TouchableOpacity>
+          );
+        case 'menuDescription':
+          return <Text style={styles.menuDescription}>{item.text}</Text>;
+        case 'categoryHeader': {
+          const desc = resolveCategoryDescription(item.category, locale);
+          return (
+            <TouchableOpacity
+              style={[localStyles.categoryHeaderPad, styles.categoryHeader]}
+              onPress={() => loadCategoryDishes(item.category.id)}
+              activeOpacity={1}
+            >
+              <Text style={styles.categoryName}>{resolveCategoryName(item.category, locale)}</Text>
+              {desc ? <Text style={styles.categoryDescription}>{desc}</Text> : null}
+            </TouchableOpacity>
+          );
+        }
+        case 'categoryLoading':
+          return (
+            <View style={localStyles.categoryRowPad}>
+              <ActivityIndicator size="small" color={colors.accent} style={{ marginVertical: 8 }} />
+            </View>
+          );
+        case 'categoryError':
+          return (
+            <View style={localStyles.categoryRowPad}>
+              <Text style={{ color: colors.textSecondary, padding: 8 }}>{t('common.error')}</Text>
+            </View>
+          );
+        case 'categoryLoad':
+          return (
+            <View style={localStyles.categoryRowPad}>
+              <TouchableOpacity
+                style={{ padding: 8 }}
+                onPress={() => loadCategoryDishes(item.categoryId)}
+              >
+                <Text style={{ color: colors.accent }}>
+                  {t('restaurant.loadDishes', 'Load dishes')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        case 'dish': {
+          const dish = item.dish;
+          return (
+            // categoryRowPad replicates the old menuCategory horizontal inset; the inner
+            // dishRow keeps the divider inset (not full-bleed) exactly as before.
+            <View style={localStyles.categoryRowPad}>
+              <View style={localStyles.dishRow}>
+                <DishMenuItem
+                  item={dish}
+                  passesHardFilters={dish.passesHardFilters}
+                  rating={dishRatings.get(dish.id) ?? null}
+                  currencyCode={restaurant.currency_code}
+                  userOpinion={userDishOpinions.get(dish.id) ?? null}
+                  isFavorite={favoriteDishIds.has(dish.id)}
+                  onPress={onDishPress}
+                />
+                {(dish.option_groups?.length ?? 0) > 0 && (
+                  <View style={localStyles.modifierWrap}>
+                    <ModifierGroupsList
+                      groups={dish.option_groups ?? []}
+                      daily={dailyFilters}
+                      basePrice={dish.price ?? 0}
+                      currencyCode={restaurant.currency_code}
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        }
+        default:
+          return null;
+      }
+    },
+    [
+      t,
+      locale,
+      dishRatings,
+      userDishOpinions,
+      favoriteDishIds,
+      restaurant.currency_code,
+      dailyFilters,
+      onDishPress,
+      loadCategoryDishes,
+      toggleMenu,
+    ]
+  );
 
   return (
-    <ScrollView
+    <FlatList
       style={styles.scrollView}
+      data={rows}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      extraData={extraData}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
-      nestedScrollEnabled
-    >
-      {/* Featured dish — the one the user tapped to get here */}
-      {featuredDish && (
-        <View style={styles.featuredSection}>
-          <Text style={styles.featuredLabel}>⭐ {t('restaurant.featuredFromSearch')}</Text>
-          <DishMenuItem
-            item={featuredDish}
-            passesHardFilters={classifyDish(featuredDish, permanentFilters).passesHardFilters}
-            rating={dishRatings.get(featuredDish.id) ?? null}
-            currencyCode={restaurant.currency_code}
-            userOpinion={userDishOpinions.get(featuredDish.id) ?? null}
-            isFavorite={favoriteDishIds.has(featuredDish.id)}
-            onPress={onDishPress}
-          />
-          {(featuredDish.option_groups?.length ?? 0) > 0 && (
-            <View style={localStyles.modifierWrap}>
-              <ModifierGroupsList
-                groups={featuredDish.option_groups ?? []}
-                daily={dailyFilters}
-                basePrice={featuredDish.price ?? 0}
-                currencyCode={restaurant.currency_code}
-              />
-            </View>
-          )}
-        </View>
-      )}
-      {restaurant.menus?.map(menu => {
-        // Single menu → always expanded, no header (the food shows immediately).
-        // Multiple menus → collapsible, collapsed by default, so the tab opens
-        // as a compact picker the user expands one at a time.
-        const expanded = singleMenu || expandedMenus.has(menu.id);
-        return (
-          <View key={menu.id} style={styles.menuSection}>
-            {!singleMenu && (
-              <TouchableOpacity
-                style={styles.menuHeader}
-                onPress={() => toggleMenu(menu.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.menuHeaderName} numberOfLines={1}>
-                  {menu.name}
-                </Text>
-                <Text style={styles.menuChevron}>{expanded ? '▴' : '▾'}</Text>
-              </TouchableOpacity>
-            )}
-            {expanded && !singleMenu && menu.description && (
-              <Text style={styles.menuDescription}>{menu.description}</Text>
-            )}
-            {expanded &&
-              menu.menu_categories?.map(category => {
-                const categoryState = categoryDishes.get(category.id);
-                const sorted = sortedByCategory.get(category.id) ?? [];
-                return (
-                  <View key={category.id} style={styles.menuCategory}>
-                    <TouchableOpacity
-                      style={styles.categoryHeader}
-                      onPress={() => loadCategoryDishes(category.id)}
-                      activeOpacity={1}
-                    >
-                      <Text style={styles.categoryName}>
-                        {resolveCategoryName(category, locale)}
-                      </Text>
-                      {(() => {
-                        const desc = resolveCategoryDescription(category, locale);
-                        return desc ? <Text style={styles.categoryDescription}>{desc}</Text> : null;
-                      })()}
-                    </TouchableOpacity>
-                    {categoryState === 'loading' && (
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.accent}
-                        style={{ marginVertical: 8 }}
-                      />
-                    )}
-                    {categoryState === 'error' && (
-                      <Text style={{ color: colors.textSecondary, padding: 8 }}>
-                        {t('common.error')}
-                      </Text>
-                    )}
-                    {categoryState === undefined && (
-                      <TouchableOpacity
-                        style={{ padding: 8 }}
-                        onPress={() => loadCategoryDishes(category.id)}
-                      >
-                        <Text style={{ color: colors.accent }}>
-                          {t('restaurant.loadDishes', 'Load dishes')}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    {Array.isArray(categoryState) &&
-                      sorted.map(dish => (
-                        // Row + inline modifier groups below. option_groups[] is loaded by
-                        // the bulk dish query. Empty array → ModifierGroupsList renders nothing.
-                        <View key={dish.id} style={localStyles.dishRow}>
-                          <DishMenuItem
-                            item={dish}
-                            passesHardFilters={dish.passesHardFilters}
-                            rating={dishRatings.get(dish.id) ?? null}
-                            currencyCode={restaurant.currency_code}
-                            userOpinion={userDishOpinions.get(dish.id) ?? null}
-                            isFavorite={favoriteDishIds.has(dish.id)}
-                            onPress={onDishPress}
-                          />
-                          {(dish.option_groups?.length ?? 0) > 0 && (
-                            <View style={localStyles.modifierWrap}>
-                              <ModifierGroupsList
-                                groups={dish.option_groups ?? []}
-                                daily={dailyFilters}
-                                basePrice={dish.price ?? 0}
-                                currencyCode={restaurant.currency_code}
-                              />
-                            </View>
-                          )}
-                        </View>
-                      ))}
-                  </View>
-                );
-              })}
-          </View>
-        );
-      })}
-      {(!restaurant.menus || restaurant.menus.length === 0) && (
+      ListEmptyComponent={
         <View style={{ padding: spacing['2xl'], alignItems: 'center' }}>
           <Text style={{ color: colors.textSecondary }}>{t('restaurant.noMenuItems')}</Text>
         </View>
-      )}
-    </ScrollView>
+      }
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={11}
+      removeClippedSubviews
+      nestedScrollEnabled
+    />
   );
 }
 
 const localStyles = StyleSheet.create({
+  // Replicates the old menuCategory paddingHorizontal for category-scoped rows.
+  categoryRowPad: {
+    paddingHorizontal: spacing.lg,
+  },
+  // Category header: the same horizontal inset plus the old menuCategory paddingTop.
+  categoryHeaderPad: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
   dishRow: {
     marginBottom: spacing.base,
     paddingBottom: spacing.md,

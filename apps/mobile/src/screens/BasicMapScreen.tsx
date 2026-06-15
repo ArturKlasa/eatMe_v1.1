@@ -15,7 +15,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   composeCardName,
-  getCombinedFeed,
+  getCombinedFeedAutoExpand,
   ServerDish,
   ServerRestaurant,
 } from '../services/edgeFunctionsService';
@@ -224,20 +224,23 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     const timeoutId = setTimeout(async () => {
       setFeedLoading(true);
       try {
-        const response = await getCombinedFeed(
+        // Start at 1.5km and auto-expand (→3→5km) only if a radius yields no dishes. Hard-capped
+        // at 5km inside the helper — past that generate_candidates hits the statement timeout.
+        const response = await getCombinedFeedAutoExpand(
           { lat: userLocation.latitude, lng: userLocation.longitude },
           daily,
           permanent,
           user?.id,
-          Math.max(2, daily.maxDistance) // respect user's distance preference (min 2km floor)
+          daily.maxDistance, // ceiling (helper caps at min(5, this))
+          () => cancelled
         );
-        if (!cancelled) {
+        if (!cancelled && response) {
           const dishes = response.dishes ?? [];
           const restaurants = response.restaurants ?? [];
           setFeedDishes(dishes);
           setFilteredRestaurants(restaurants);
           debugLog(
-            `[BasicMapScreen] Feed loaded: ${dishes.length} dishes + ${restaurants.length} restaurants (personalized: ${response.metadata?.personalized})`
+            `[BasicMapScreen] Feed loaded @${response.radiusUsedKm}km: ${dishes.length} dishes + ${restaurants.length} restaurants (personalized: ${response.metadata?.personalized})`
           );
         }
       } catch (err) {

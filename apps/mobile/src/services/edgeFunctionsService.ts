@@ -301,3 +301,36 @@ export async function getCombinedFeed(
   const response = await callFeedFunction(request);
   return response.json();
 }
+
+/**
+ * Combined feed with an auto-expanding radius. Starts small (1.5km) for speed and widens only when
+ * a radius returns zero dishes — stepping 1.5 → 3 → 5km — stopping at the first radius that yields
+ * dishes (or the widest attempt if all are empty).
+ *
+ * Hard-capped at 5km: beyond that, generate_candidates over the full dish set exceeds Postgres'
+ * statement timeout and the feed 500s (the "no dishes on the map" bug). The caller's distance
+ * preference lowers the ceiling further — effective cap = min(5, maxRadiusKm). Returns null only if
+ * cancelled before the first request.
+ */
+export async function getCombinedFeedAutoExpand(
+  location: { lat: number; lng: number },
+  dailyFilters: DailyFilters,
+  permanentFilters: PermanentFilters,
+  userId?: string,
+  maxRadiusKm = 5,
+  isCancelled?: () => boolean
+): Promise<(CombinedFeedResponse & { radiusUsedKm: number }) | null> {
+  const ceiling = Math.min(5, Math.max(1.5, maxRadiusKm));
+  const ladder = [...new Set([1.5, 3, ceiling].filter(r => r >= 1.5 && r <= ceiling))].sort(
+    (a, b) => a - b
+  );
+  let last: CombinedFeedResponse | null = null;
+  let radiusUsedKm = ladder[0];
+  for (const radius of ladder) {
+    if (isCancelled?.()) break;
+    radiusUsedKm = radius;
+    last = await getCombinedFeed(location, dailyFilters, permanentFilters, userId, radius);
+    if ((last.dishes?.length ?? 0) > 0) break;
+  }
+  return last ? { ...last, radiusUsedKm } : null;
+}

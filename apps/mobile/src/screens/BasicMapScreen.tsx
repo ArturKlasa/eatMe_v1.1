@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Alert, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Alert, Text, TouchableOpacity } from 'react-native';
 import Mapbox, { MapView, Camera, UserLocation, PointAnnotation } from '@rnmapbox/maps';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -10,7 +10,6 @@ import { useCountryDetectionStore } from '../stores/countryDetectionStore';
 import { useFilterStore } from '../stores/filterStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useViewModeStore } from '../stores/viewModeStore';
-import { useRestaurantStore } from '../stores/restaurantStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -52,20 +51,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const insets = useSafeAreaInsets();
   // Get the root stack navigation for navigating to RestaurantDetail
   const rootNavigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-
-  // Use geospatial store for nearby restaurants. Narrow selector (useShallow) so the map
-  // doesn't re-render when unrelated store slices change — notably the detail/category Map
-  // caches, which clone-and-set on every restaurant open and would otherwise re-render the
-  // whole map on each menu load (§R7).
-  const { nearbyRestaurants, geoLoading, geoError, loadNearbyRestaurantsFromCurrentLocation } =
-    useRestaurantStore(
-      useShallow(state => ({
-        nearbyRestaurants: state.nearbyRestaurants,
-        geoLoading: state.loading,
-        geoError: state.error,
-        loadNearbyRestaurantsFromCurrentLocation: state.loadNearbyRestaurantsFromCurrentLocation,
-      }))
-    );
 
   const cameraRef = useRef<Camera>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -470,72 +455,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     return await isFirstVisitToRestaurant(user.id, restaurantId);
   };
 
-  const handleRefresh = async () => {
-    debugLog('Refreshing nearby restaurants...');
-    if (hasPermission && userLocation) {
-      try {
-        await loadNearbyRestaurantsFromCurrentLocation(
-          async () => {
-            const loc = await getLocationWithPermission();
-            if (!loc) throw new Error('Location unavailable');
-            return { latitude: loc.latitude, longitude: loc.longitude };
-          },
-          5, // 5km radius
-          daily,
-          permanent
-        );
-      } catch (error) {
-        console.error('[BasicMapScreen] Refresh failed:', error);
-        Alert.alert(t('map.refreshFailed'), t('map.refreshFailedMessage'));
-      }
-    }
-  };
-
-  // Single loading signal — geospatial store + location permission
-  const isLoading = geoLoading;
-
-  if (isLoading && nearbyRestaurants.length === 0) {
-    return (
-      <View
-        style={[commonStyles.containers.screen, { justifyContent: 'center', alignItems: 'center' }]}
-      >
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={{ marginTop: 16, fontSize: 16, color: colors.textSecondary }}>
-          {geoLoading ? 'Finding nearby restaurants...' : 'Loading restaurants...'}
-        </Text>
-        {userLocation && (
-          <Text style={{ marginTop: 8, fontSize: 12, color: colors.textTertiary }}>
-            Searching within 5km radius
-          </Text>
-        )}
-      </View>
-    );
-  }
-
-  // Show error state if geospatial search failed (but allow fallback)
-  if (geoError && nearbyRestaurants.length === 0) {
-    return (
-      <View
-        style={[
-          commonStyles.containers.screen,
-          { justifyContent: 'center', alignItems: 'center', padding: 20 },
-        ]}
-      >
-        <Text style={{ fontSize: 18, color: colors.error, marginBottom: 8, textAlign: 'center' }}>
-          {t('map.noNearbyRestaurants')}
-        </Text>
-        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center' }}>
-          {geoError.message}
-        </Text>
-        <Text
-          style={{ fontSize: 12, color: colors.textTertiary, marginTop: 8, textAlign: 'center' }}
-        >
-          {t('map.checkLocationPermission')}
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View style={commonStyles.containers.screen}>
       <MapView
@@ -599,36 +518,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           onFilterPress={handleDailyFilterPress}
         />
       </View>
-
-      {/* Loading indicator overlay when refreshing in background */}
-      {isLoading && nearbyRestaurants.length > 0 && (
-        <View
-          style={{
-            position: 'absolute',
-            top: insets.top + 16,
-            left: 0,
-            right: 0,
-            alignItems: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              paddingHorizontal: 20,
-              paddingVertical: 12,
-              borderRadius: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-          >
-            <ActivityIndicator size="small" color={colors.accent} />
-            <Text style={{ marginLeft: 10, color: colors.white, fontSize: 14 }}>
-              {geoLoading ? t('map.updatingRestaurants') : t('common.loading')}
-            </Text>
-          </View>
-        </View>
-      )}
 
       <DailyFilterModal visible={isDailyFilterVisible} onClose={closeDailyFilter} />
       <FloatingMenu visible={isMenuVisible} onClose={closeMenu} footerHeight={footerHeight} />

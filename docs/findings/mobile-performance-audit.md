@@ -23,6 +23,8 @@ Ranked by **impact ÷ effort**. Details in the linked sections.
 
 > ✅ **Ruled out by prod verification (2026-06-13):** the GiST spatial index on `restaurants.location_point` **and** all Stage-1 join-chain FK indexes **already exist** in the live DB (§S2/§S4). The originally-flagged "missing index" items were a migration-drift false alarm. The DB is well-indexed — backend latency is about the cache and round-trips, not missing indexes.
 
+> ✅ **Implemented since this audit (2026-06-13 → 06-15):** §S1 (cache key, `caf879d`), §S3 (open-hours fold + migration 167, `8487d31`), §S6 (feed-cache invalidation, `caf879d` — **pending `invalidate-cache` deploy**), the §S8 `get_group_candidates` timezone fix (migration 168, `738b844`), and the §S8 Redis version pin (`b08f63a`). §S1 + §S3 + the §S8 timezone/pin items are **live**. Still open in §S8: dead `primaryProtein` scoring, Stage-1 payload bloat. **New post-audit finding (§S9):** `generate_candidates` exceeds the 8s statement timeout beyond ~5km on the full dish set — mitigated client-side by the auto-expanding feed radius (capped at 5km, `dc3b2d1`/`e0101ab`); the RPC itself is not yet optimized for larger radii.
+
 There are two independent performance problems here, and they compound:
 
 - **Backend:** each feed request is more expensive than it should be — the Redis cache never hits (§S1) and there's an avoidable serial round-trip (§S3). *(The DB itself is well-indexed — the spatial + join-chain indexes were verified present in prod on 2026-06-13, §S2/§S4.)*
@@ -34,7 +36,9 @@ There are two independent performance problems here, and they compound:
 
 The `feed` function is a two-stage pipeline: **Stage 1** = `generate_candidates` SQL RPC (up to 200 candidates, pgvector ANN + popularity + distance), **Stage 2** = JS re-scoring with ~13 additive soft boosts, then diversity cap + open-hours filter. Reference: `infra/supabase/functions/feed/index.ts`.
 
-### S1 — The feed Redis cache is defeated by its own key — **VERY HIGH** *(Verified)*
+### S1 — The feed Redis cache is defeated by its own key — ✅ DONE (was VERY HIGH)
+
+**Update 2026-06-13:** Fixed in `caf879d` — `currentTime` is rest-spread out of the cache key (`feed/index.ts:694`), so the 5-min Redis cache now survives the minute boundary; the RPC still receives `currentTime` for server-side time filtering. **Live** (shipped with the §S3 feed redeploy). Original analysis retained below.
 
 The cache key is built at `feed/index.ts:682`:
 
@@ -61,7 +65,9 @@ The cache TTL is 300 s (`feed/index.ts:1012`). Because `currentTime` is part of 
 
 The audit originally flagged this as possibly missing because a repo-wide grep across `infra/supabase/migrations/*.sql` found no `gist`/`location_point` index and the baseline `database_schema.sql` captures **zero** `CREATE INDEX` statements. That was a migration-drift false alarm — the index was created in pre-071 history not represented in the tracked migrations. The only real residue is **schema drift**: a fresh environment built purely from the tracked migrations would lack this (and many other) indexes. Reconciling the migration baseline is worthwhile hygiene someday, but it's not a latency issue.
 
-### S3 — Two serial DB round-trips gate every feed response — **MEDIUM-HIGH**
+### S3 — Two serial DB round-trips gate every feed response — ✅ DONE (was MEDIUM-HIGH)
+
+**Update 2026-06-13:** Fixed in `8487d31` (+ migration 167) — `generate_candidates` now returns `open_hours / timezone / country_code`, and the feed builds its open-info map from those rows instead of issuing a second query. **Live** (migration applied + feed redeployed). Original analysis retained below.
 
 The critical path is strictly serial: parallel user-context block → **await** `generate_candidates` → **await** a *second* query for `open_hours / timezone / country_code` (`feed/index.ts:886-890`, can't start until Stage-1 restaurant IDs are known) → response. That's 3 serial awaits (4 for logged-in users).
 
@@ -79,7 +85,9 @@ The open-hours data is already on the `restaurants` row that `generate_candidate
 
 The HNSW index `dishes_embedding_hnsw_idx` exists (migration 136) but the planner only adopts it above ~5k rows (~375 indexed today), so the vector sort is currently a brute-force seq scan. Worse, `embedding <=> p_preference_vector` is computed **twice per row** — once in `SELECT`, once in `ORDER BY` — instead of by alias. Negligible now, a multiplier later.
 
-### S6 — Cache invalidation is a no-op — **MEDIUM (correctness)**
+### S6 — Cache invalidation is a no-op — ✅ DONE in code (`caf879d`), ⚠️ pending `invalidate-cache` deploy
+
+**Update 2026-06-13:** Fixed in `caf879d` — `invalidate-cache` now SCAN-deletes the whole `feed:v2:*` namespace on any restaurant/menu/dish change (plus best-effort per-restaurant keys). Code committed + `deno check` clean, **but `invalidate-cache` is a separate function that must be deployed independently** (`supabase functions deploy invalidate-cache`); until that deploy lands, the old no-op version is live. Original analysis retained below.
 
 `invalidate-cache` deletes keys like `restaurant:{id}` / `restaurant:cuisines:{id}`, but the feed writes keys under `feed:v2:{user}:{geo}:{filters}`. **The webhook never clears any feed cache entry** — stale feed data persists until TTL. (Bounded today because §S1 makes hits rare, but the mechanism is non-functional and will silently fail once §S1 is fixed.)
 
@@ -89,10 +97,18 @@ The HNSW index `dishes_embedding_hnsw_idx` exists (migration 136) but the planne
 
 ### S8 — Other backend notes
 
-- **`get_group_candidates` uses UTC open-now** (`is_restaurant_open_now`, migration 088) — the same timezone bug the feed already fixed in JS. Mis-evaluates open/closed for non-UTC restaurants and can trigger the 2× radius retry. *(Correctness + wasted work.)*
+- ✅ **DONE (`738b844`, migration 168):** ~~`get_group_candidates` uses UTC open-now~~ — `is_restaurant_open_now` now takes a `timezone` arg and evaluates open/closed in the restaurant's local zone. Was: the same UTC bug the feed already fixed in JS; mis-evaluated non-UTC restaurants and could trigger the 2× radius retry.
 - **`primaryProtein` scoring is dead** — the feed scores it heavily (+0.30 dish, +100 option weight) but the mobile client never sends it (no `primaryProtein` in `FeedRequest`/`buildFilters`). Wire it or remove it.
-- **`@upstash/redis@latest` import pin** (`feed/index.ts:14`) — non-deterministic cold-start dependency; pin a version.
+- ✅ **DONE (`b08f63a`):** ~~`@upstash/redis@latest` import pin~~ — pinned to `@upstash/redis@1.38.0` (`feed/index.ts:15`).
 - **Stage-1 payload is heavy** — 200 candidates each carrying full `modifier_groups` jsonb + `reachable_*` arrays; `view_count` is returned but never used. Minor bloat ×200.
+
+### S9 — `generate_candidates` exceeds the statement timeout beyond ~5km — **MEDIUM (surfaced post-audit, 2026-06-15)**
+
+During §S3 rollout the map went empty in prod. Root cause was **not** §S3: `generate_candidates` over the full published-dish set (~8.4k dishes) exceeds Postgres' 8s statement timeout (error 57014) past ~5km radius, so the feed 500s. A stale-stats plan regression made it worse — `ANALYZE` brought ≤5km back to ~1s, but 8km+ still times out.
+
+**Mitigation (shipped):** the mobile feed now uses an auto-expanding radius — starts at 1.5km, widens 1.5→3→5km until ≥5 dishes, **hard-capped at 5km** (`dc3b2d1`, `e0101ab`). This sidesteps the timeout entirely but means **distance preferences above 5km currently behave as 5km**.
+
+**Real fix (deferred):** push the radius/limit predicate down so Stage-1 scans only in-range dishes (e.g. filter the modifier CTE to candidate dishes before the expensive joins), and/or add a coarse pre-filter. Until then, 5km is the safe ceiling.
 
 ---
 
@@ -222,14 +238,14 @@ Ratings (`getDishRatingsBatch`) and opinions (`getUserDishOpinions`) are already
 # Part D — Prioritized roadmap (not implemented)
 
 **Phase 1 — trivial, high-yield (do first):**
-1. Remove `currentTime` from the feed cache key (§S1).
+1. ✅ Remove `currentTime` from the feed cache key (§S1) — done `caf879d`, live.
 2. `useCallback` the marker handlers (§R1).
 3. Delete the dead `restaurants`/`dishes` memos in `BasicMapScreen` (§R2).
 4. ~~Verify the spatial index against live prod (§S2)~~ — ✅ **Done 2026-06-13: the spatial index + all join-chain FK indexes exist in prod. No DB index work needed.**
 
 **Phase 2 — low effort, structural:**
 5. Stop eager-loading all menu categories (§M1).
-6. Fold open-hours into `generate_candidates` (§S3).
+6. ✅ Fold open-hours into `generate_candidates` (§S3) — done `8487d31` + migration 167, live.
 7. Memoize map children + fix the per-render store-method calls (§R3, §R4).
 8. Narrow the whole-store subscriptions / move `Map` caches out of reactive state (§R7).
 
@@ -239,8 +255,8 @@ Ratings (`getDishRatingsBatch`) and opinions (`getUserDishOpinions`) are already
 11. Stabilize `useUserLocation`; key the feed effect on a primitive signature (§R5, §R6).
 
 **Cleanup / correctness (fold in opportunistically):**
-12. Fix `invalidate-cache` key patterns (§S6) — *do this with §S1, or the cache will silently serve stale data once it starts hitting.*
-13. Decommission `nearby-restaurants` (§S7); fix `get_group_candidates` UTC open-now (§S8); wire or remove `primaryProtein` (§S8); pin the Redis import.
+12. ✅ Fix `invalidate-cache` key patterns (§S6) — done `caf879d`; **deploy `invalidate-cache` to make it live** (the only open step in the S1+S6 pair).
+13. Decommission `nearby-restaurants` (§S7, still open — not dead, see note); ✅ fix `get_group_candidates` UTC open-now (§S8 — done `738b844`/migration 168); wire or remove `primaryProtein` (§S8, still open); ✅ pin the Redis import (done `b08f63a`).
 
 > **Note on §S1 + §S6 ordering:** fixing the cache key (§S1) will make the cache actually hit — at which point the broken invalidation (§S6) becomes a real staleness bug. Treat them as a pair.
 

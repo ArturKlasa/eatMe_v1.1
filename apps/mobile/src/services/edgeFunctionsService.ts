@@ -302,10 +302,13 @@ export async function getCombinedFeed(
   return response.json();
 }
 
+/** Minimum dishes the auto-expanding feed tries to surface before it stops widening. */
+const AUTO_EXPAND_TARGET_DISHES = 5;
+
 /**
- * Combined feed with an auto-expanding radius. Starts small (1.5km) for speed and widens only when
- * a radius returns zero dishes — stepping 1.5 → 3 → 5km — stopping at the first radius that yields
- * dishes (or the widest attempt if all are empty).
+ * Combined feed with an auto-expanding radius. Starts small (1.5km) for speed and widens — stepping
+ * 1.5 → 3 → 5km — until a radius surfaces at least AUTO_EXPAND_TARGET_DISHES dishes, then stops. If
+ * the widest radius still falls short, its (smaller) result is returned as a best effort.
  *
  * Hard-capped at 5km: beyond that, generate_candidates over the full dish set exceeds Postgres'
  * statement timeout and the feed 500s (the "no dishes on the map" bug). The caller's distance
@@ -330,7 +333,7 @@ export async function getCombinedFeedAutoExpand(
     if (isCancelled?.()) break;
     radiusUsedKm = radius;
     last = await getCombinedFeed(location, dailyFilters, permanentFilters, userId, radius);
-    if ((last.dishes?.length ?? 0) > 0) break;
+    if ((last.dishes?.length ?? 0) >= AUTO_EXPAND_TARGET_DISHES) break;
   }
   return last ? { ...last, radiusUsedKm } : null;
 }

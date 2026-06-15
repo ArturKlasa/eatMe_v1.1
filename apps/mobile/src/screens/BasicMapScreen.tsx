@@ -53,13 +53,19 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   // Get the root stack navigation for navigating to RestaurantDetail
   const rootNavigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Use geospatial store for nearby restaurants
-  const {
-    nearbyRestaurants,
-    loading: geoLoading,
-    error: geoError,
-    loadNearbyRestaurantsFromCurrentLocation,
-  } = useRestaurantStore();
+  // Use geospatial store for nearby restaurants. Narrow selector (useShallow) so the map
+  // doesn't re-render when unrelated store slices change — notably the detail/category Map
+  // caches, which clone-and-set on every restaurant open and would otherwise re-render the
+  // whole map on each menu load (§R7).
+  const { nearbyRestaurants, geoLoading, geoError, loadNearbyRestaurantsFromCurrentLocation } =
+    useRestaurantStore(
+      useShallow(state => ({
+        nearbyRestaurants: state.nearbyRestaurants,
+        geoLoading: state.loading,
+        geoError: state.error,
+        loadNearbyRestaurantsFromCurrentLocation: state.loadNearbyRestaurantsFromCurrentLocation,
+      }))
+    );
 
   const cameraRef = useRef<Camera>(null);
   const [isMapReady, setIsMapReady] = useState(false);

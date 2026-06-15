@@ -97,21 +97,6 @@ describeIntegration('drafts are never visible to consumers', () => {
 
   // ── Negative controls: draft is invisible ──────────────────────────────────
 
-  it('nearby-restaurants Edge Function: draft restaurant is absent', async () => {
-    const res = await fetch(`${FUNCTIONS_URL}/nearby-restaurants`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${ANON_KEY}`,
-      },
-      body: JSON.stringify({ latitude: LAT, longitude: LNG, radiusKm: RADIUS_M / 1000 }),
-    });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    const ids = (body.restaurants ?? []).map((r: any) => r.id);
-    expect(ids).not.toContain(draftRestaurantId);
-  });
-
   it('feed Edge Function: draft dish is absent', async () => {
     const res = await fetch(`${FUNCTIONS_URL}/feed`, {
       method: 'POST',

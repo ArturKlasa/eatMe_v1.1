@@ -65,15 +65,6 @@ function normalise(obj: unknown): unknown {
   return obj;
 }
 
-async function fetchNearbyRestaurants() {
-  const res = await fetch(`${FUNCTIONS_URL}/nearby-restaurants`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
-    body: JSON.stringify({ latitude: LAT, longitude: LNG, radiusKm: RADIUS_M / 1000, limit: 20 }),
-  });
-  return res.json();
-}
-
 async function fetchFeed() {
   const res = await fetch(`${FUNCTIONS_URL}/feed`, {
     method: 'POST',
@@ -113,15 +104,13 @@ async function fetchCandidates() {
 
 describeIntegration('published-data parity across consumer endpoints', () => {
   it('snapshots match baseline (or writes baseline when UPDATE_BASELINE=1)', async () => {
-    const [nearbyRaw, feedRaw, groupRaw, candidatesRaw] = await Promise.all([
-      fetchNearbyRestaurants(),
+    const [feedRaw, groupRaw, candidatesRaw] = await Promise.all([
       fetchFeed(),
       fetchGroupCandidates(),
       fetchCandidates(),
     ]);
 
     const snapshot = {
-      nearby_restaurants: normalise(nearbyRaw),
       feed: normalise(feedRaw),
       group_candidates: normalise(groupRaw),
       candidates: normalise(candidatesRaw),
@@ -156,14 +145,10 @@ describeIntegration('published-data parity across consumer endpoints', () => {
       return;
     }
 
-    const nearbyRids: string[] = (baseline.nearby_restaurants?.restaurants ?? []).map(
-      (r: any) => r.id
-    );
     const candidateRids: string[] = Array.from(
       new Set<string>((baseline.candidates ?? []).map((d: any) => d.restaurant_id as string))
     );
-    const allIds = [...nearbyRids, ...candidateRids];
 
-    expect(allIds.length).toBeGreaterThan(0);
+    expect(candidateRids.length).toBeGreaterThan(0);
   });
 });

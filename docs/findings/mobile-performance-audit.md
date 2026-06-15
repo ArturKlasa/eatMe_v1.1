@@ -91,7 +91,9 @@ The HNSW index `dishes_embedding_hnsw_idx` exists (migration 136) but the planne
 
 `invalidate-cache` deletes keys like `restaurant:{id}` / `restaurant:cuisines:{id}`, but the feed writes keys under `feed:v2:{user}:{geo}:{filters}`. **The webhook never clears any feed cache entry** — stale feed data persists until TTL. (Bounded today because §S1 makes hits rare, but the mechanism is non-functional and will silently fail once §S1 is fixed.)
 
-### S7 — `nearby-restaurants` is an O(N) full-table scan with nested menu payload — **HIGH if still called**
+### S7 — `nearby-restaurants` is an O(N) full-table scan with nested menu payload — ✅ DONE
+
+**Update 2026-06-15:** Decommissioned. The mobile nearby path was fully dead (its entry point `handleRefresh` was never wired) — removed in `bb22003` along with `geoService.ts`/`filterService.ts` and the legacy `restaurants`/`dishes` store layer (see `docs/plans/decommission-nearby-restaurants-s7.md`). The edge function itself + the web-portal-v2 integration tests that referenced it were then deleted. Original analysis retained below.
 
 `nearby-restaurants/index.ts:158-191` does `restaurants.select('*, menus(*, dishes(*))').eq('status','published')` with **no radius filter in SQL** — fetches *all* published restaurants with *all* menus and dishes, then filters by Haversine in JS. The file flags itself as deprecated. **The mobile client's live path uses `getCombinedFeed` (feed), and the `geoService` nearby path is dead (see filters doc §5.2 D5)** — so this is likely already cold. **Action: confirm zero traffic and delete.**
 
@@ -256,7 +258,7 @@ Ratings (`getDishRatingsBatch`) and opinions (`getUserDishOpinions`) are already
 
 **Cleanup / correctness (fold in opportunistically):**
 12. ✅ Fix `invalidate-cache` key patterns (§S6) — done `caf879d`; **deploy `invalidate-cache` to make it live** (the only open step in the S1+S6 pair).
-13. Decommission `nearby-restaurants` (§S7, still open — not dead, see note); ✅ fix `get_group_candidates` UTC open-now (§S8 — done `738b844`/migration 168); wire or remove `primaryProtein` (§S8, still open); ✅ pin the Redis import (done `b08f63a`).
+13. ✅ Decommission `nearby-restaurants` (§S7 — done: mobile path `bb22003`, edge fn + v2 tests removed); ✅ fix `get_group_candidates` UTC open-now (§S8 — done `738b844`/migration 168); wire or remove `primaryProtein` (§S8, still open); ✅ pin the Redis import (done `b08f63a`).
 
 > **Note on §S1 + §S6 ordering:** fixing the cache key (§S1) will make the cache actually hit — at which point the broken invalidation (§S6) becomes a real staleness bug. Treat them as a pair.
 

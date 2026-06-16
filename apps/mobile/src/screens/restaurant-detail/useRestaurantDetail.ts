@@ -121,6 +121,11 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
   const [categoryDishes, setCategoryDishes] = useState<Map<string, 'loading' | 'error' | Dish[]>>(
     new Map()
   );
+  // Raw bulk-dish fetch result, loaded in PARALLEL with the restaurant metadata
+  // (it needs only restaurantId). The grouping effect below buckets it under
+  // categories once both this and the metadata have arrived. 'loading' until the
+  // first fetch resolves.
+  const [dishesResult, setDishesResult] = useState<'loading' | 'error' | Dish[]>('loading');
   const [refreshing, setRefreshing] = useState(false);
 
   const mountedRef = useRef(true);
@@ -246,57 +251,24 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
     [fetchCategoryDishes, user?.id]
   );
 
-  // Load EVERY dish for the restaurant in a single query when metadata arrives,
-  // then one ratings + one opinions batch across all dish ids. Replaces the old
-  // per-category fan-out (3 queries × N categories → 3 queries total).
+  // Load EVERY dish for the restaurant in a single query, then one ratings + one
+  // opinions batch across all dish ids. This runs at mount IN PARALLEL with the
+  // metadata effect above (it depends only on restaurantId, never on the metadata
+  // response) — dropping the old `if (!restaurant) return` gate is the optimization:
+  // the heavy dish query no longer waits for the metadata round-trip to finish first.
   useEffect(() => {
-    if (!restaurant) return;
-    const restaurantPk = restaurant.id;
-    const categoryIds: string[] = [];
-    restaurant.menus?.forEach(menu =>
-      menu.menu_categories?.forEach(cat => {
-        if (cat?.id) categoryIds.push(cat.id);
-      })
-    );
-    if (categoryIds.length === 0) return;
-
     let cancelled = false;
-
-    // Mark every category 'loading' up front (drives FoodTab's spinner per category).
-    setCategoryDishes(prev => {
-      const next = new Map(prev);
-      for (const id of categoryIds) {
-        if (!next.has(id)) next.set(id, 'loading');
-      }
-      return next;
-    });
+    setDishesResult('loading');
 
     (async () => {
-      const { data, error } = await fetchAllRestaurantDishes(restaurantPk);
+      const { data, error } = await fetchAllRestaurantDishes(restaurantId);
       if (cancelled || !mountedRef.current) return;
 
       if (error || !data) {
-        setCategoryDishes(prev => {
-          const next = new Map(prev);
-          for (const id of categoryIds) next.set(id, 'error');
-          return next;
-        });
+        setDishesResult('error');
         return;
       }
-
-      // Group the flat dish list back under its category; categories with no
-      // dishes resolve to an empty array (not 'loading').
-      const byCategory = new Map<string, Dish[]>();
-      for (const id of categoryIds) byCategory.set(id, []);
-      for (const dish of data) {
-        const cid = dish.menu_category_id;
-        if (cid && byCategory.has(cid)) byCategory.get(cid)!.push(dish);
-      }
-      setCategoryDishes(prev => {
-        const next = new Map(prev);
-        for (const [cid, list] of byCategory) next.set(cid, list);
-        return next;
-      });
+      setDishesResult(data);
 
       // One ratings + one opinions batch across every dish id.
       const dishIds = data.map(d => d.id);
@@ -318,8 +290,56 @@ export function useRestaurantDetail(restaurantId: string): RestaurantDetailState
       cancelled = true;
     };
     // user?.id (not the full user object) — same TOKEN_REFRESHED guard as the metadata effect.
-    // loadAttempt — re-run on pull-to-refresh (restaurant.id is unchanged, so it alone wouldn't).
-  }, [restaurant?.id, fetchAllRestaurantDishes, user?.id, loadAttempt]);
+    // loadAttempt — re-fetch on pull-to-refresh.
+  }, [restaurantId, fetchAllRestaurantDishes, user?.id, loadAttempt]);
+
+  // Bucket the bulk-fetched dishes under their categories. Re-runs whenever the
+  // metadata OR the dish result changes, so it reconciles no matter which arrives
+  // first: while dishes are loading it paints each category's spinner; on error,
+  // each category's error row; once ready, each dish under its menu_category_id
+  // (categories with no dishes resolve to an empty array, not 'loading').
+  useEffect(() => {
+    if (!restaurant) return;
+    const categoryIds: string[] = [];
+    restaurant.menus?.forEach(menu =>
+      menu.menu_categories?.forEach(cat => {
+        if (cat?.id) categoryIds.push(cat.id);
+      })
+    );
+    if (categoryIds.length === 0) return;
+
+    if (dishesResult === 'loading') {
+      setCategoryDishes(prev => {
+        const next = new Map(prev);
+        for (const id of categoryIds) {
+          if (!next.has(id)) next.set(id, 'loading');
+        }
+        return next;
+      });
+      return;
+    }
+
+    if (dishesResult === 'error') {
+      setCategoryDishes(prev => {
+        const next = new Map(prev);
+        for (const id of categoryIds) next.set(id, 'error');
+        return next;
+      });
+      return;
+    }
+
+    const byCategory = new Map<string, Dish[]>();
+    for (const id of categoryIds) byCategory.set(id, []);
+    for (const dish of dishesResult) {
+      const cid = dish.menu_category_id;
+      if (cid && byCategory.has(cid)) byCategory.get(cid)!.push(dish);
+    }
+    setCategoryDishes(prev => {
+      const next = new Map(prev);
+      for (const [cid, list] of byCategory) next.set(cid, list);
+      return next;
+    });
+  }, [restaurant?.id, dishesResult]);
 
   // Mirror the latest non-skeleton snapshot into the aux cache so the next reopen can
   // seed it instantly. Gated on favoritesInitialized so we never cache the pre-fetch

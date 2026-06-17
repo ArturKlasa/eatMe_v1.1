@@ -4,7 +4,6 @@
  * Permanent (HARD) filtering interface — excludes non-matching dishes from the feed:
  * 1. Diet Preference: All/Vegetarian/Vegan (single selection)
  * 2. Exclude: No meat, No fish, No seafood, No eggs, No spicy (multiple selection)
- * 3. Restaurant Facilities: Family-friendly, Wheelchair-accessible, Pet-friendly, LGBT-accessible, Kid's menu (multiple selection)
  */
 
 import React from 'react';
@@ -24,24 +23,11 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
   // ── Store ────────────────────────────────────────────────────────────────
 
-  const {
-    permanent,
-    setPermanentDietPreference,
-    toggleExclude,
-    toggleFacility,
-    resetPermanentFilters,
-  } = useFilterStore();
+  const { permanent, setPermanentDietPreference, toggleExclude, resetPermanentFilters } =
+    useFilterStore();
 
   const formatLabel = (key: string): string =>
     key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-
-  const formatCamelCase = (key: string): string =>
-    key
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .toLowerCase()
-      .replace(/^./, str => str.toUpperCase());
 
   // Helper function to check if exclude options should be disabled
   const isExcludeDisabled = (exclusionKey: string) => {
@@ -124,34 +110,6 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
               </TouchableOpacity>
             );
           })}
-        </View>
-      </View>
-
-      {/* 3. Restaurant Facilities - Multiple Selection */}
-      <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>🏪 Restaurant Facilities</Text>
-        <View style={drawerFiltersStyles.optionsContainer}>
-          {(Object.keys(permanent.facilities) as (keyof typeof permanent.facilities)[]).map(
-            facility => (
-              <TouchableOpacity
-                key={facility}
-                style={[
-                  drawerFiltersStyles.option,
-                  permanent.facilities[facility] && drawerFiltersStyles.selectedOption,
-                ]}
-                onPress={() => toggleFacility(facility)}
-              >
-                <Text
-                  style={[
-                    drawerFiltersStyles.optionText,
-                    permanent.facilities[facility] && drawerFiltersStyles.selectedText,
-                  ]}
-                >
-                  {formatCamelCase(facility)}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
         </View>
       </View>
     </ScrollView>

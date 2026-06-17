@@ -108,15 +108,6 @@ export interface PermanentFilters {
     noSpicy: boolean;
   };
 
-  // 3. Restaurant facilities (multiple selection)
-  facilities: {
-    familyFriendly: boolean;
-    wheelchairAccessible: boolean;
-    petFriendly: boolean;
-    lgbtAccessible: boolean;
-    kidsMenu: boolean;
-  };
-
   defaultPriceRange: {
     min: number;
     max: number;
@@ -165,7 +156,6 @@ interface FilterActions {
   // Permanent filter actions
   setPermanentDietPreference: (preference: PermanentFilters['dietPreference']) => void;
   toggleExclude: (exclusion: keyof PermanentFilters['exclude']) => void;
-  toggleFacility: (facility: keyof PermanentFilters['facilities']) => void;
   setPermanentPriceRange: (min: number, max: number) => void;
   setCuisinePreferences: (cuisines: string[]) => void;
   setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => void;
@@ -269,13 +259,6 @@ const defaultPermanentFilters: PermanentFilters = {
     noSeafood: false,
     noEggs: false,
     noSpicy: false,
-  },
-  facilities: {
-    familyFriendly: false,
-    wheelchairAccessible: false,
-    petFriendly: false,
-    lgbtAccessible: false,
-    kidsMenu: false,
   },
   defaultPriceRange: {
     min: 10,
@@ -547,19 +530,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
         exclude: {
           ...state.permanent.exclude,
           [exclusion]: !state.permanent.exclude[exclusion],
-        },
-      },
-    }));
-    get().savePermanentFilters();
-  },
-
-  toggleFacility: (facility: keyof PermanentFilters['facilities']) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        facilities: {
-          ...state.permanent.facilities,
-          [facility]: !state.permanent.facilities[facility],
         },
       },
     }));
@@ -933,12 +903,6 @@ export const useFilterStore = create<FilterState & FilterActions>((set, get) => 
     // Check exclusions
     const activeExclusions = Object.values(state.permanent.exclude).filter(Boolean);
     if (activeExclusions.length > 0) {
-      count++;
-    }
-
-    // Check facilities
-    const activeFacilities = Object.values(state.permanent.facilities).filter(Boolean);
-    if (activeFacilities.length > 0) {
       count++;
     }
 

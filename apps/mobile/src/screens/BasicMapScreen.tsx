@@ -95,10 +95,11 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const mode = useViewModeStore(state => state.mode);
 
   // Map edge-function ServerDish results into the shape MapFooter expects.
-  // Limit to 5 dishes, at most one per restaurant.
+  // Full deduped list (one dish per restaurant); the footer/map page through it in
+  // batches of PAGE_SIZE via "Get more dishes".
   // Drinks and desserts are excluded server-side (generate_candidates) but we
   // also apply a lightweight client-side check as a safety net for uncategorised items.
-  const recommendedDishes = useMemo(() => {
+  const allRecommendedDishes = useMemo(() => {
     const DRINK_KEYWORDS =
       /\b(coffee|espresso|latte|cappuccino|americano|macchiato|mocha|tea|chai|matcha|juice|smoothie|milkshake|soda|cola|lemonade|limeade|water|sparkling|mocktail|cocktail|beer|wine|sangria|margarita|mojito|spritz|kombucha|hot chocolate|iced tea)\b/i;
     const DESSERT_KEYWORDS =
@@ -108,7 +109,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     const result: ReturnType<typeof buildDish>[] = [];
 
     for (const dish of feedDishes ?? []) {
-      if (result.length >= 5) break;
       if (seen.has(dish.restaurant_id)) continue;
       // Skip drinks and desserts that slipped past the server filter
       if (DRINK_KEYWORDS.test(dish.name) || DESSERT_KEYWORDS.test(dish.name)) continue;
@@ -117,6 +117,17 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
     }
     return result;
   }, [feedDishes]);
+
+  // "Get more dishes" pages through the already-fetched feed, PAGE_SIZE restaurants
+  // at a time. Resets to page 0 whenever a fresh feed loads (see the feed effect).
+  const PAGE_SIZE = 5;
+  const [dishPage, setDishPage] = useState(0);
+  const recommendedDishes = useMemo(
+    () => allRecommendedDishes.slice(dishPage * PAGE_SIZE, dishPage * PAGE_SIZE + PAGE_SIZE),
+    [allRecommendedDishes, dishPage]
+  );
+  const hasMoreDishes = allRecommendedDishes.length > (dishPage + 1) * PAGE_SIZE;
+  const handleShowMore = useCallback(() => setDishPage(p => p + 1), []);
 
   function buildDish(dish: ServerDish) {
     // The Edge Function may return restaurant info nested (restaurant.name)
@@ -157,8 +168,10 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       }));
   }, [filteredRestaurants]);
 
-  // Convert feed dishes to map pin shape, looking up restaurant coordinates
-  // from filteredRestaurants (since feedDishes don't carry location data).
+  // Pins follow the dishes currently shown in the footer (recommendedDishes), so the
+  // map shows only the ~5 restaurants backing the visible cards — not the whole feed.
+  // Coordinates come from filteredRestaurants (dishes don't carry location); cuisine
+  // rides along for the marker emoji.
   const mapPinDishes = useMemo(() => {
     const coordsMap = new Map<string, [number, number]>();
     for (const r of filteredRestaurants) {
@@ -166,18 +179,17 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
         coordsMap.set(r.id, [r.location.lng, r.location.lat]);
       }
     }
-    return (feedDishes ?? [])
-      .filter(d => coordsMap.has(d.restaurant_id))
-      .map(d => {
-        return {
-          id: d.id,
-          name: d.name,
-          restaurantId: d.restaurant_id,
-          coordinates: coordsMap.get(d.restaurant_id)!,
-          price: d.price,
-        };
-      });
-  }, [feedDishes, filteredRestaurants]);
+    return recommendedDishes
+      .filter(d => coordsMap.has(d.restaurantId))
+      .map(d => ({
+        id: d.id,
+        name: d.name,
+        restaurantId: d.restaurantId,
+        coordinates: coordsMap.get(d.restaurantId)!,
+        price: d.price,
+        cuisine: d.cuisine,
+      }));
+  }, [recommendedDishes, filteredRestaurants]);
 
   const {
     location: userLocation,
@@ -230,6 +242,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           const restaurants = response.restaurants ?? [];
           setFeedDishes(dishes);
           setFilteredRestaurants(restaurants);
+          setDishPage(0); // reset "get more" paging on a fresh feed
           debugLog(
             `[BasicMapScreen] Feed loaded @${response.radiusUsedKm}km: ${dishes.length} dishes + ${restaurants.length} restaurants (personalized: ${response.metadata?.personalized})`
           );
@@ -516,6 +529,8 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           recommendedDishes={recommendedDishes}
           onDishPress={handleDishPress}
           onFilterPress={handleDailyFilterPress}
+          onShowMore={handleShowMore}
+          hasMore={hasMoreDishes}
         />
       </View>
 

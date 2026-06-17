@@ -30,12 +30,18 @@ interface MapFooterProps {
   recommendedDishes: Dish[];
   onDishPress: (dish: Dish) => void;
   onFilterPress: () => void;
+  /** Reveal the next batch of already-fetched dishes. */
+  onShowMore?: () => void;
+  /** Whether more already-fetched dishes remain to reveal. */
+  hasMore?: boolean;
 }
 
 export const MapFooter = React.memo<MapFooterProps>(function MapFooter({
   recommendedDishes,
   onDishPress,
   onFilterPress,
+  onShowMore,
+  hasMore,
 }) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -59,6 +65,12 @@ export const MapFooter = React.memo<MapFooterProps>(function MapFooter({
           >
             <View style={mapFooterStyles.dishHeader}>
               <Text style={mapFooterStyles.dishEmoji}>{cuisineEmoji(dish.cuisine)}</Text>
+              <Text style={mapFooterStyles.price}>
+                {formatPrice(
+                  dish.price,
+                  isSupportedCurrency(dish.currencyCode) ? dish.currencyCode : undefined
+                )}
+              </Text>
             </View>
 
             <Text style={mapFooterStyles.dishName} numberOfLines={2}>
@@ -68,12 +80,6 @@ export const MapFooter = React.memo<MapFooterProps>(function MapFooter({
             <View style={mapFooterStyles.restaurantRow}>
               <Text style={mapFooterStyles.restaurantName} numberOfLines={1}>
                 {dish.restaurantName}
-              </Text>
-              <Text style={mapFooterStyles.price}>
-                {formatPrice(
-                  dish.price,
-                  isSupportedCurrency(dish.currencyCode) ? dish.currencyCode : undefined
-                )}
               </Text>
             </View>
 
@@ -87,11 +93,17 @@ export const MapFooter = React.memo<MapFooterProps>(function MapFooter({
           </TouchableOpacity>
         ))}
 
-        {/* Show more button */}
-        <TouchableOpacity style={mapFooterStyles.showMoreCard}>
-          <Text style={mapFooterStyles.showMoreIcon}>+</Text>
-          <Text style={mapFooterStyles.showMoreText}>{t('mapFooter.viewMoreDishes')}</Text>
-        </TouchableOpacity>
+        {/* Show more — reveals the next batch of already-fetched dishes */}
+        {hasMore && (
+          <TouchableOpacity
+            style={mapFooterStyles.showMoreCard}
+            onPress={onShowMore}
+            activeOpacity={0.8}
+          >
+            <Text style={mapFooterStyles.showMoreIcon}>+</Text>
+            <Text style={mapFooterStyles.showMoreText}>{t('mapFooter.viewMoreDishes')}</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Filter Button */}

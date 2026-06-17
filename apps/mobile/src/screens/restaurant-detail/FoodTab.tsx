@@ -17,9 +17,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  FlatList,
   RefreshControl,
 } from 'react-native';
+// FlatList must come from react-native-gesture-handler (not 'react-native') so it
+// coordinates with the swipe-to-dismiss gesture of the RestaurantDetail modal
+// (@react-navigation/stack, gestureEnabled). A plain RN FlatList loses the vertical
+// pan to the modal and the menu can't scroll. HoursMoreTab uses RNGH ScrollView for
+// the same reason.
+import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { colors, spacing } from '@/styles/theme';

@@ -11,7 +11,17 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, PanResponder } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Alert,
+  PanResponder,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
 import { useFilterStore, DailyFilters, defaultDailyFilters } from '../../stores/filterStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getCurrencyInfo } from '../../utils/currencyConfig';
@@ -40,6 +50,28 @@ const toLocaleKey = (str: string): string => {
       .join('')
   );
 };
+
+// Search box used inside the "All cuisines" / "All meals" selection modals.
+const searchBox = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.base,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.darkSecondary,
+    borderRadius: borderRadius.base,
+    borderWidth: 1,
+    borderColor: colors.darkBorder,
+    paddingHorizontal: spacing.base,
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    color: colors.white,
+    fontSize: typography.size.sm,
+  },
+});
 
 interface DailyFilterModalProps {
   visible: boolean;
@@ -529,6 +561,13 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
   onToggleMeal,
 }) => {
   const { t } = useTranslation();
+  const [query, setQuery] = React.useState('');
+  const q = query.trim().toLowerCase();
+  const filteredMeals = ALL_MEALS.filter(meal =>
+    t(`filters.meals.${toLocaleKey(meal)}`)
+      .toLowerCase()
+      .includes(q)
+  );
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={modals.overlay}>
@@ -556,9 +595,20 @@ const MealSelectionModal: React.FC<MealSelectionModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          <View style={searchBox.container}>
+            <TextInput
+              style={searchBox.input}
+              placeholder={t('common.search')}
+              placeholderTextColor={colors.darkTextSecondary}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+            />
+          </View>
+
           <ScrollView style={modals.content} showsVerticalScrollIndicator={true}>
             <View style={modals.cuisineGrid}>
-              {ALL_MEALS.map(meal => (
+              {filteredMeals.map(meal => (
                 <TouchableOpacity
                   key={meal}
                   style={[
@@ -605,6 +655,13 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
   onToggleCuisine,
 }) => {
   const { t } = useTranslation();
+  const [query, setQuery] = React.useState('');
+  const q = query.trim().toLowerCase();
+  const filteredCuisines = ALL_CUISINES.filter(cuisine =>
+    t(`filters.cuisines.${toLocaleKey(cuisine)}`)
+      .toLowerCase()
+      .includes(q)
+  );
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={modals.overlay}>
@@ -632,9 +689,20 @@ const CuisineSelectionModal: React.FC<CuisineSelectionModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          <View style={searchBox.container}>
+            <TextInput
+              style={searchBox.input}
+              placeholder={t('common.search')}
+              placeholderTextColor={colors.darkTextSecondary}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+            />
+          </View>
+
           <ScrollView style={modals.content} showsVerticalScrollIndicator={true}>
             <View style={modals.cuisineGrid}>
-              {ALL_CUISINES.map(cuisine => (
+              {filteredCuisines.map(cuisine => (
                 <TouchableOpacity
                   key={cuisine}
                   style={[

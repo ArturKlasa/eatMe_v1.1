@@ -71,6 +71,9 @@ function MainNavigator() {
         options={{
           presentation: 'transparentModal',
           cardStyle: { backgroundColor: 'transparent' },
+          // Slide the whole sheet + overlay up from the bottom (like the daily
+          // filter RN <Modal animationType="slide">). v7 option is `animation`.
+          animation: 'slide_from_bottom',
         }}
       />
       <MainStack.Screen

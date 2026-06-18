@@ -3,8 +3,10 @@ import {
   applyAddBundledItem,
   applyAttachScannedExtras,
   applyCopyModifierGroups,
+  applyMergeCategory,
   applyRemoveBundledItem,
   applyUpdateBundledItem,
+  type CategoryPatch,
   type EditableDish,
 } from '@/app/(admin)/menu-scan/[jobId]/useReviewState';
 import {
@@ -365,5 +367,72 @@ describe('applyAttachScannedExtras (supplementary scan, operator issue #12)', ()
     const dishes = makeDishes();
     expect(applyAttachScannedExtras(dishes, [], [WIRE_GROUP], [WIRE_ITEM])).toBe(dishes);
     expect(applyAttachScannedExtras(dishes, ['dish-1'], [], [])).toBe(dishes);
+  });
+});
+
+describe('applyMergeCategory (over-split categories — operator category issue)', () => {
+  // Two custom sections ("Tacos" + the over-split "Tacos especiales") plus an
+  // unrelated canonical section, mirroring a scan that fragmented one printed
+  // section into several.
+  function makeGroupDishes(): EditableDish[] {
+    return [
+      makeDish({ _id: 'a', categoryMode: 'custom', categoryCustomName: 'Tacos' }),
+      makeDish({ _id: 'b', categoryMode: 'custom', categoryCustomName: 'Tacos especiales' }),
+      makeDish({ _id: 'c', categoryMode: 'custom', categoryCustomName: 'Tacos especiales' }),
+      makeDish({
+        _id: 'd',
+        categoryMode: 'canonical',
+        categoryCanonicalSlug: 'desserts',
+        categoryCustomName: '',
+      }),
+    ];
+  }
+
+  it('reassigns every listed dish to a custom target, leaving others untouched', () => {
+    const patch: CategoryPatch = {
+      categoryMode: 'custom',
+      categoryExistingId: null,
+      categoryCanonicalSlug: null,
+      categoryCustomName: 'Tacos',
+    };
+    const next = applyMergeCategory(makeGroupDishes(), ['b', 'c'], patch);
+    expect(next.find(d => d._id === 'b')).toMatchObject({
+      categoryMode: 'custom',
+      categoryCustomName: 'Tacos',
+    });
+    expect(next.find(d => d._id === 'c')).toMatchObject({
+      categoryMode: 'custom',
+      categoryCustomName: 'Tacos',
+    });
+    // The pre-existing "Tacos" dish and the unrelated canonical dish are left alone.
+    expect(next.find(d => d._id === 'a')!.categoryCustomName).toBe('Tacos');
+    expect(next.find(d => d._id === 'd')!.categoryCanonicalSlug).toBe('desserts');
+  });
+
+  it('reassigns to a canonical target, overwriting prior custom fields', () => {
+    const patch: CategoryPatch = {
+      categoryMode: 'canonical',
+      categoryExistingId: null,
+      categoryCanonicalSlug: 'appetizers',
+      categoryCustomName: '',
+    };
+    const next = applyMergeCategory(makeGroupDishes(), ['a', 'b', 'c'], patch);
+    for (const id of ['a', 'b', 'c']) {
+      const d = next.find(x => x._id === id)!;
+      expect(d.categoryMode).toBe('canonical');
+      expect(d.categoryCanonicalSlug).toBe('appetizers');
+      expect(d.categoryCustomName).toBe('');
+    }
+  });
+
+  it('is a no-op with no dish ids', () => {
+    const dishes = makeGroupDishes();
+    const patch: CategoryPatch = {
+      categoryMode: 'custom',
+      categoryExistingId: null,
+      categoryCanonicalSlug: null,
+      categoryCustomName: 'Tacos',
+    };
+    expect(applyMergeCategory(dishes, [], patch)).toBe(dishes);
   });
 });

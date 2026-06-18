@@ -190,6 +190,29 @@ export function applyCopyModifierGroups(
   });
 }
 
+// ── Category merge (over-split categories — operator category issue) ─────────
+
+// Category fields that fully determine which menu category a dish lands in.
+// getGroupKey + handleSave only read the subset relevant to categoryMode, so
+// copying all four verbatim from a target dish is safe for every mode.
+export type CategoryPatch = Pick<
+  EditableDish,
+  'categoryMode' | 'categoryExistingId' | 'categoryCanonicalSlug' | 'categoryCustomName'
+>;
+
+// Reassign every listed dish to another category in one pass, so the operator
+// can collapse an over-split section (the scan sometimes splits one printed menu
+// section into several) instead of reassigning each dish individually.
+export function applyMergeCategory(
+  dishes: EditableDish[],
+  dishIds: string[],
+  categoryPatch: CategoryPatch
+): EditableDish[] {
+  const ids = new Set(dishIds);
+  if (ids.size === 0) return dishes;
+  return dishes.map(d => (ids.has(d._id) ? { ...d, ...categoryPatch } : d));
+}
+
 // ── Supplementary-scan attach (operator issue #12) ───────────────────────────
 
 // Merges modifier groups + bundled items extracted by a supplementary scan
@@ -312,6 +335,9 @@ export function useReviewState(initial: EditableDish[]) {
   const copyModifierGroups = (sourceDishId: string, targetDishIds: string[]) =>
     setDishes(prev => applyCopyModifierGroups(prev, sourceDishId, targetDishIds));
 
+  const mergeCategory = (dishIds: string[], categoryPatch: CategoryPatch) =>
+    setDishes(prev => applyMergeCategory(prev, dishIds, categoryPatch));
+
   const attachScannedExtras = (
     targetDishIds: string[],
     groups: import('@/components/modifiers/editableTypes').ExtractedModifierGroup[],
@@ -334,6 +360,7 @@ export function useReviewState(initial: EditableDish[]) {
     removeBundledItem,
     updateBundledItem,
     copyModifierGroups,
+    mergeCategory,
     attachScannedExtras,
   };
 }

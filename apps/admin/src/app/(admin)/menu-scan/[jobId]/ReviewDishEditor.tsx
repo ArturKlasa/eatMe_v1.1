@@ -28,6 +28,7 @@ import { DishCategoryCreateInline } from '@/components/DishCategoryCreateInline'
 import {
   useReviewState,
   type CategoryMode,
+  type CategoryPatch,
   type EditableDish,
   type ExtractedDish,
   type PricePrefix,
@@ -298,6 +299,7 @@ export function ReviewDishEditor({
     removeBundledItem,
     updateBundledItem,
     copyModifierGroups,
+    mergeCategory,
     attachScannedExtras,
   } = useReviewState(
     useMemo(
@@ -372,6 +374,32 @@ export function ReviewDishEditor({
   const handleCopyGroups = (sourceDishId: string) => {
     copyModifierGroups(sourceDishId, selectedActiveIds);
     setSelectedIds(new Set());
+  };
+
+  // Category merge (over-split categories). Build the target group's category
+  // fields from a representative dish in it (all dishes in a group share these;
+  // prefer a non-deleted one)…
+  const groupCategoryPatch = (targetKey: string): CategoryPatch | null => {
+    const rep =
+      activeDishes.find(d => getGroupKey(d) === targetKey) ??
+      dishes.find(d => getGroupKey(d) === targetKey);
+    if (!rep) return null;
+    return {
+      categoryMode: rep.categoryMode,
+      categoryExistingId: rep.categoryExistingId,
+      categoryCanonicalSlug: rep.categoryCanonicalSlug,
+      categoryCustomName: rep.categoryCustomName,
+    };
+  };
+
+  // …then reassign every active dish in the source section to it in one action.
+  const handleMergeGroup = (sourceKey: string, targetKey: string) => {
+    if (!targetKey || targetKey === sourceKey) return;
+    const patch = groupCategoryPatch(targetKey);
+    if (!patch) return;
+    const ids = activeDishes.filter(d => getGroupKey(d) === sourceKey).map(d => d._id);
+    if (ids.length === 0) return;
+    mergeCategory(ids, patch);
   };
 
   // Supplementary scan-from-image panel (operator issue #12). Two entry
@@ -702,6 +730,12 @@ export function ReviewDishEditor({
       {groups.map(group => {
         const meta = getGroupMeta(group.key);
         const desc = categoryDescriptions.get(group.key) ?? '';
+        // Other real sections this one can be merged into (collapses an
+        // over-split category). Excludes self and the uncategorized bucket.
+        const mergeTargets = groups.filter(
+          g => g.key !== group.key && g.key !== 'none' && g.dishes.some(d => !d._deleted)
+        );
+        const hasActiveDishes = group.dishes.some(d => !d._deleted);
         return (
           <section key={group.key} className="rounded-lg border border-border bg-muted/10">
             <header className="border-b border-border px-4 py-3 space-y-2">
@@ -719,6 +753,31 @@ export function ReviewDishEditor({
                     {group.dishes.filter(d => !d._deleted).length} dish
                     {group.dishes.filter(d => !d._deleted).length === 1 ? '' : 'es'}
                   </span>
+                  {hasActiveDishes && mergeTargets.length > 0 && (
+                    <select
+                      aria-label={`Merge ${meta.displayName} into another section`}
+                      title="Move every dish in this section into another section"
+                      value=""
+                      onChange={e => handleMergeGroup(group.key, e.target.value)}
+                      disabled={saving}
+                      className="rounded border border-border bg-background px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
+                    >
+                      <option value="" disabled>
+                        Merge into…
+                      </option>
+                      {mergeTargets.map(g => {
+                        // Append the source badge (Canonical/Existing/Custom) so
+                        // two sections that share a display name (e.g. a canonical
+                        // "Appetizers" and a custom "Appetizers") stay distinguishable.
+                        const m = getGroupMeta(g.key);
+                        return (
+                          <option key={g.key} value={g.key}>
+                            {m.badge ? `${m.displayName} · ${m.badge}` : m.displayName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
                   <button
                     type="button"
                     onClick={() => toggleGroupSelection(group.dishes)}

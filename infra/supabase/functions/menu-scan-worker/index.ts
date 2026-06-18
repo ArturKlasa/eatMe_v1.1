@@ -370,18 +370,24 @@ For each dish output exactly these fields:
       'shared_plates'      — small plates designed for sharing (tapas, dim sum, izakaya)
       'sampler'            — fixed selection presented as one item (mixed grill, charcuterie board)
     Otherwise output null.
-- bundled_items: items pre-included with the dish that the customer does NOT pick from a list.
-    Use this for combo meals and fixed accompaniments. Decide by the WORDING, not the format:
-      - Inclusion / accompaniment language → bundled_items, even when written as a sentence:
-        "incluye arroz y frijoles", "viene con papas", "acompañado de ensalada",
-        "includes side salad", "served with fries", "+ papas y refresco".
+- bundled_items: SEPARATELY-NAMEABLE items served ALONGSIDE the dish that the customer
+    does NOT pick from a list — a side, a drink, a dessert, a soup, bread, a salad that
+    comes with the dish. Use this ONLY for combo meals and fixed accompaniments.
+    A bundled item must be a dish or drink in its own right (something that could appear on
+    its own menu line). An INGREDIENT, sauce, spice, marinade, topping, dressing, or cooking
+    method is NOT a bundled item — it stays in the description and nowhere else.
+    Decide by the WORDING, and WHEN UNSURE DEFAULT TO description (leave it out of bundled_items):
+      - Accompaniment language → bundled_items:
+        "includes side salad", "served with fries", "viene con papas",
+        "incluye arroz y frijoles", "+ papas y refresco".
       - Composition / preparation language → description ONLY, never bundled_items:
-        "preparados con tocino y chorizo", "a base de maíz", "con salsa de chipotle" —
-        ingredients the dish is made of are NOT bundled items.
+        "preparados con tocino y chorizo", "a base de maíz", "con salsa de chipotle",
+        "topped with cheese", "marinated in garlic" — what the dish is MADE OF is not bundled.
     Examples:
       "Burger meal: burger + fries + drink" → [{"name":"burger","note":null},{"name":"fries","note":null},{"name":"drink","note":null}]
       "Steak frites (includes side salad)"  → [{"name":"side salad","note":null}]
-      "Tacos preparados con tocino y chorizo" → [] (composition — keep it in the description)
+      "Tacos preparados con tocino y chorizo" → [] (tocino/chorizo are ingredients — keep in description)
+      "Pollo a la parrilla con chimichurri"  → [] (chimichurri is a sauce — keep in description)
     Output an empty array [] when the dish has no bundled items. Each item is {name, note?}.
     Do NOT use bundled_items for customer choices — use modifier_groups for those.
 - modifier_groups: customer-selectable choices. Extract one group per "choose your X",

@@ -426,14 +426,18 @@ For each dish output exactly these fields:
     as "turkey", NEVER as "chicken".
     When the dish has a required protein choice, use the cheapest/default option's protein
     (modifier_groups[].options[].primary_protein will override at feed-time).
-- suggested_category_name: the menu section this dish belongs to, written exactly as it appears
-    on the menu (verbatim, in the source language). A dish belongs to the NEAREST section
-    header printed above it — before carrying the previous dish's section forward, check
-    whether a new header (often small, stylized, or ALL-CAPS text) is printed between the two
-    dishes. Every distinct printed header starts its own section: NEVER merge two different
-    headers into one section, even when they are semantically close (e.g. "Tostadas" printed
-    after "Entradas" is its own section, not part of "Entradas"). Null if no section header
-    is shown.
+- suggested_category_name: the menu SECTION this dish belongs to, written exactly as it
+    appears on the menu (verbatim, in the source language). A section header is a TITLE that
+    introduces a GROUP of dishes (e.g. "Entradas", "Tacos", "Postres", "Bebidas") — usually
+    set apart in larger, bolder, or differently-styled type and followed by several dishes.
+    Reproduce the menu's OWN section structure: assign each dish to the nearest section title
+    printed above it, and carry that SAME title forward to every following dish until the next
+    section title appears. Do NOT invent finer sections than the menu shows — a dish name, a
+    price line, a tagline or subtitle, an item descriptor, or a single emphasized dish is NOT a
+    section header. Prefer matching the menu's visible grouping over splitting. Only start a NEW
+    section when the text is clearly a group title for the dishes beneath it; when it is, keep it
+    separate from the previous section (do not merge two clearly-distinct printed section titles).
+    Null if the dish sits under no section header.
 - canonical_category_slug: if the section maps cleanly to one of the canonical slugs listed
     below, output that slug exactly. Otherwise output null. Match conservatively — when
     uncertain, prefer null. The slug list is in English but the menu may be in any language;

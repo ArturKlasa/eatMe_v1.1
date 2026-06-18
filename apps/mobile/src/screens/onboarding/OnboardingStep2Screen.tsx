@@ -218,11 +218,11 @@ export function OnboardingStep2Screen() {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            formData.favoriteCuisines.length < 2 && styles.nextButtonDisabled,
+            formData.favoriteCuisines.length < 1 && styles.nextButtonDisabled,
           ]}
           onPress={handleComplete}
           activeOpacity={0.8}
-          disabled={formData.favoriteCuisines.length < 2 || isSubmitting}
+          disabled={formData.favoriteCuisines.length < 1 || isSubmitting}
         >
           {isSubmitting ? (
             <ActivityIndicator color={colors.white} />

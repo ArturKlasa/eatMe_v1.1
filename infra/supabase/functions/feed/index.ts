@@ -225,6 +225,10 @@ function rankCandidates(
     spiceTolerance?: string | null;
     favoriteCuisines?: string[];
     preferredPriceRange?: [number, number] | null;
+    /** Onboarding protein picks ('meat'|'fish'|'seafood'|'egg' — daily proteinTypes keyspace). */
+    proteinPreferences?: string[];
+    /** Onboarding favourite dish labels ('Tacos', 'Pizza', …) — matched against dish name. */
+    favoriteDishes?: string[];
   },
   hasPreferenceVector: boolean,
   favoritedRestaurantIds: Set<string> = new Set()
@@ -322,6 +326,32 @@ function rankCandidates(
     // Permanent favourite cuisines (+0.10)
     if (userPrefs.favoriteCuisines?.length) {
       if (userPrefs.favoriteCuisines.some(c => d.restaurant_cuisines?.includes(c))) score += 0.1;
+    }
+
+    // Onboarding favourite dishes (+0.10) — the dish name contains a favourite label
+    // ('Tacos', 'Pizza', …). Mirrors the daily dishNames match; a positive taste
+    // signal collected at onboarding, write-only until now.
+    if (userPrefs.favoriteDishes?.length) {
+      const nameLower = d.name.toLowerCase();
+      if (userPrefs.favoriteDishes.some(fav => nameLower.includes(fav.toLowerCase()))) {
+        score += 0.1;
+      }
+    }
+
+    // Onboarding protein preferences (+0.10) — dish's base protein family overlaps a
+    // preferred type. proteinPreferences use the daily proteinTypes keyspace, so reuse
+    // the same family map. Only collected when dietType='all', so it's an additive
+    // taste boost, never an exclusion.
+    if (userPrefs.proteinPreferences?.length) {
+      const familyMap: Record<string, string[]> = {
+        meat: ['meat', 'poultry'],
+        fish: ['fish'],
+        seafood: ['shellfish'],
+        egg: ['eggs'],
+      };
+      const wanted = new Set(userPrefs.proteinPreferences.flatMap(p => familyMap[p] ?? []));
+      const fams = d.protein_families ?? [];
+      if (wanted.size > 0 && fams.some(f => wanted.has(f))) score += 0.1;
     }
 
     // Historical liked cuisines (+0.10)
@@ -737,6 +767,8 @@ serve(async (req: Request) => {
     let dbSpiceTolerance: string | null = null;
     let dbFavoriteCuisines: string[] = [];
     let dbPreferredPriceRange: [number, number] | null = null;
+    let dbProteinPreferences: string[] = [];
+    let dbFavoriteDishes: string[] = [];
 
     let favoritedRestaurantIds = new Set<string>();
 
@@ -749,7 +781,7 @@ serve(async (req: Request) => {
           .in('interaction_type', ['liked', 'disliked']),
         supabase
           .from('user_preferences')
-          .select('spice_tolerance, favorite_cuisines')
+          .select('spice_tolerance, favorite_cuisines, protein_preferences, favorite_dishes')
           .eq('user_id', userId)
           .maybeSingle(),
         supabase
@@ -797,6 +829,12 @@ serve(async (req: Request) => {
         dbFavoriteCuisines = Array.isArray(prefsRes.data.favorite_cuisines)
           ? prefsRes.data.favorite_cuisines
           : [];
+        dbProteinPreferences = Array.isArray(prefsRes.data.protein_preferences)
+          ? prefsRes.data.protein_preferences
+          : [];
+        dbFavoriteDishes = Array.isArray(prefsRes.data.favorite_dishes)
+          ? prefsRes.data.favorite_dishes
+          : [];
       }
 
       if (behaviorRes.data?.preference_vector) {
@@ -837,6 +875,8 @@ serve(async (req: Request) => {
       ? filters.favoriteCuisines
       : dbFavoriteCuisines;
     const preferredPriceRange = dbPreferredPriceRange;
+    const proteinPreferences = dbProteinPreferences;
+    const favoriteDishes = dbFavoriteDishes;
     const hardDietTag =
       filters.dietPreference && filters.dietPreference !== 'all' ? filters.dietPreference : null;
 
@@ -908,7 +948,7 @@ serve(async (req: Request) => {
       filters,
       radius,
       userLikedCuisines,
-      { spiceTolerance, favoriteCuisines, preferredPriceRange },
+      { spiceTolerance, favoriteCuisines, preferredPriceRange, proteinPreferences, favoriteDishes },
       preferenceVector !== null,
       favoritedRestaurantIds
     );

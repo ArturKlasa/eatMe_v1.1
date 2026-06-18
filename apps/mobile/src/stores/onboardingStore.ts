@@ -184,6 +184,19 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       throw error; // Re-throw to show error in UI
     }
 
+    // Immediately mirror the onboarding diet choice into the permanent HARD filter so
+    // the feed applies it on the very next request — without waiting for the next
+    // app-start DB sync. Lazy import avoids a static onboarding→filter dependency.
+    // setPermanentDietPreference only writes the diet/exclude/distance columns, so the
+    // favourites just upserted above stay intact. A failure here must not fail
+    // onboarding (preferences are already saved), so it is swallowed.
+    try {
+      const { useFilterStore } = await import('./filterStore');
+      useFilterStore.getState().setPermanentDietPreference(state.formData.dietType);
+    } catch (syncError) {
+      debugLog('[Onboarding] Diet→permanent-filter sync skipped:', syncError);
+    }
+
     set({
       isCompleted: true,
       isVisible: false,

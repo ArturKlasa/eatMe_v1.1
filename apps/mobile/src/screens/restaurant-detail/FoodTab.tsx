@@ -27,7 +27,7 @@ import {
 import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantDetailStyles as styles } from '@/styles';
-import { colors, spacing } from '@/styles/theme';
+import { colors, spacing, typography, borderRadius } from '@/styles/theme';
 import { useTranslation } from 'react-i18next';
 import { type RestaurantWithMenus, type MenuCategoryWithCanonical } from '../../lib/supabase';
 import { useFilterStore, type PermanentFilters } from '../../stores/filterStore';
@@ -147,6 +147,13 @@ export function FoodTab({
   // Multiple menus render collapsed by default: the top of the tab becomes a
   // compact menu picker the user expands one at a time.
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+
+  // "For you" vs "See all". When the menu is a mix of matching and non-matching dishes
+  // (per the user's permanent hard filters), it defaults to "For you" — only the matches,
+  // under their real category headers — so a restaurant with 1–2 matching dishes is no
+  // longer a wall of greyed-out rows. "See all" reveals everything (non-matches dimmed,
+  // the prior behaviour). See the matchCount/toggleMeaningful derivation below.
+  const [showAll, setShowAll] = useState(false);
   const toggleMenu = useCallback((menuId: string) => {
     setExpandedMenus(prev => {
       const next = new Set(prev);
@@ -155,6 +162,28 @@ export function FoodTab({
       return next;
     });
   }, []);
+
+  // Match / total dish counts across all loaded categories. All dishes bulk-load
+  // together (useRestaurantDetail), so every category resolves to an array at once —
+  // these counts are stable once the menu has loaded. They drive both the toggle's
+  // visibility and its "For you (N)" / "See all (M)" labels.
+  const { matchCount, totalCount } = useMemo(() => {
+    let m = 0;
+    let total = 0;
+    for (const list of sortedByCategory.values()) {
+      for (const d of list) {
+        total += 1;
+        if (d.passesHardFilters) m += 1;
+      }
+    }
+    return { matchCount: m, totalCount: total };
+  }, [sortedByCategory]);
+
+  // The toggle earns its place only on a genuine mix: ≥1 match (so "For you" is never
+  // empty) AND ≥1 non-match (so there's actually a grey wall to hide). All-match or
+  // all-miss menus render exactly as before, with no toggle.
+  const toggleMeaningful = matchCount > 0 && matchCount < totalCount;
+  const forYouMode = toggleMeaningful && !showAll;
 
   // Flatten menus → categories → dishes into one virtualizable row list. Collapsed
   // menus contribute only their header; single-menu restaurants stay header-less and
@@ -182,8 +211,24 @@ export function FoodTab({
       }
       if (!expanded) continue;
       for (const category of menu.menu_categories ?? []) {
-        out.push({ key: `catHeader:${category.id}`, kind: 'categoryHeader', category });
         const state = categoryDishes.get(category.id);
+
+        // Loaded category: in "For you" mode keep only matching dishes and skip the
+        // category entirely when none survive, so no empty header is left behind.
+        if (Array.isArray(state)) {
+          const sorted = sortedByCategory.get(category.id) ?? [];
+          const dishes = forYouMode ? sorted.filter(d => d.passesHardFilters) : sorted;
+          if (forYouMode && dishes.length === 0) continue;
+          out.push({ key: `catHeader:${category.id}`, kind: 'categoryHeader', category });
+          for (const dish of dishes) {
+            out.push({ key: `dish:${dish.id}`, kind: 'dish', dish });
+          }
+          continue;
+        }
+
+        // Not-yet-loaded states keep their header + status row in both modes so the
+        // menu never looks truncated while data is in flight.
+        out.push({ key: `catHeader:${category.id}`, kind: 'categoryHeader', category });
         if (state === 'loading') {
           out.push({ key: `catLoading:${category.id}`, kind: 'categoryLoading' });
         } else if (state === 'error') {
@@ -194,10 +239,6 @@ export function FoodTab({
             kind: 'categoryLoad',
             categoryId: category.id,
           });
-        } else {
-          for (const dish of sortedByCategory.get(category.id) ?? []) {
-            out.push({ key: `dish:${dish.id}`, kind: 'dish', dish });
-          }
         }
       }
     }
@@ -210,6 +251,7 @@ export function FoodTab({
     singleMenu,
     featuredDish,
     permanentFilters,
+    forYouMode,
   ]);
 
   // FlatList only re-renders rows when data (rows) or extraData changes. Ratings /
@@ -351,12 +393,38 @@ export function FoodTab({
     ]
   );
 
+  // Segmented "For you (N) | See all (M)" control. Rendered as the list header so it
+  // scrolls with the menu; only shown when the toggle is meaningful (mixed menu).
+  const listHeader = toggleMeaningful ? (
+    <View style={localStyles.viewToggle}>
+      <TouchableOpacity
+        style={[localStyles.viewToggleSeg, !showAll && localStyles.viewToggleSegActive]}
+        onPress={() => setShowAll(false)}
+        activeOpacity={0.8}
+      >
+        <Text style={[localStyles.viewToggleText, !showAll && localStyles.viewToggleTextActive]}>
+          {t('restaurant.forYou', { count: matchCount })}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[localStyles.viewToggleSeg, showAll && localStyles.viewToggleSegActive]}
+        onPress={() => setShowAll(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={[localStyles.viewToggleText, showAll && localStyles.viewToggleTextActive]}>
+          {t('restaurant.seeAll', { count: totalCount })}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  ) : null;
+
   return (
     <FlatList
       style={styles.scrollView}
       data={rows}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
+      ListHeaderComponent={listHeader}
       extraData={extraData}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
@@ -402,5 +470,32 @@ const localStyles = StyleSheet.create({
   },
   modifierWrap: {
     paddingHorizontal: spacing.md,
+  },
+  // "For you / See all" segmented control (list header).
+  viewToggle: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.darkTertiary,
+    borderRadius: borderRadius.full,
+    padding: 3,
+  },
+  viewToggleSeg: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: borderRadius.full,
+  },
+  viewToggleSegActive: {
+    backgroundColor: colors.accent,
+  },
+  viewToggleText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.darkTextSecondary,
+  },
+  viewToggleTextActive: {
+    color: colors.white,
   },
 });

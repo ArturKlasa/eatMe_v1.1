@@ -380,6 +380,8 @@
     "hoursAndMore": "Horarios y Más",
     "open": "Abierto",
     "notForYou": "No es para ti",
+    "forYou": "Para ti ({{count}})",
+    "seeAll": "Ver todo ({{count}})",
     "youLovedIt": "Te encantó",
     "featuredFromSearch": "De tu búsqueda",
     "paymentLabel": "Pago",

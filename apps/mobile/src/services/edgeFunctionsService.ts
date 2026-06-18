@@ -1,4 +1,6 @@
 import { DailyFilters, PermanentFilters } from '../stores/filterStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { getPriceRangeForCurrency } from '../utils/currencyConfig';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -69,7 +71,13 @@ export interface FeedRequest {
   radius?: number; // km, default 10
   mode?: 'dishes' | 'restaurants' | 'combined';
   filters: {
-    priceRange?: [number, number];
+    /**
+     * HARD daily price bound. `[min, max]` where either end may be null = "no bound".
+     * The client sends null when the slider thumb sits at the currency floor/ceiling
+     * (rendered as "Less than X" / "Over Y"), so an untouched slider does not constrain
+     * the feed. The server drops candidates whose base price falls outside the bounds.
+     */
+    priceRange?: [number | null, number | null];
     dietPreference?: string; // hard — permanent
     preferredDiet?: string; // soft boost — daily
     calorieRange?: { min: number; max: number }; // soft boost
@@ -185,8 +193,19 @@ function buildFilters(
   const dailyDietKey =
     dailyFilters.dietPreference !== 'all' ? dailyFilters.dietPreference : undefined;
 
+  // Hard daily price filter with per-currency "no bound" sentinels. The slider floor/ceiling
+  // (currency.priceRange.min/max) render as "Less than X" / "Over Y" — i.e. unbounded — so we
+  // send null at those extremes and omit priceRange entirely when neither end is constrained.
+  // Currency is read lazily from settingsStore (the same source the slider bounds derive from).
+  const currency = useSettingsStore.getState().currency;
+  const { min: priceFloor, max: priceCeiling } = getPriceRangeForCurrency(currency);
+  const priceMin = dailyFilters.priceRange.min <= priceFloor ? null : dailyFilters.priceRange.min;
+  const priceMax = dailyFilters.priceRange.max >= priceCeiling ? null : dailyFilters.priceRange.max;
+  const priceRange: [number | null, number | null] | undefined =
+    priceMin === null && priceMax === null ? undefined : [priceMin, priceMax];
+
   return {
-    priceRange: [dailyFilters.priceRange.min, dailyFilters.priceRange.max] as [number, number],
+    priceRange,
     dietPreference: permanentFilters.dietPreference,
     preferredDiet: dailyDietKey,
     calorieRange: dailyFilters.calorieRange.enabled

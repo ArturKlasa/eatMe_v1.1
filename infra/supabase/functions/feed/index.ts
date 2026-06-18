@@ -94,7 +94,12 @@ interface FeedRequest {
   radius?: number;
   mode?: 'dishes' | 'restaurants' | 'combined';
   filters: {
-    priceRange?: [number, number];
+    /**
+     * HARD daily price bound. `[min, max]` where either end may be null = "no bound".
+     * Candidates whose base price falls outside the bounds are dropped before ranking.
+     * The client sends null at the slider floor/ceiling so an untouched slider is a no-op.
+     */
+    priceRange?: [number | null, number | null];
     dietPreference?: string;
     preferredDiet?: string;
     calorieRange?: { min: number; max: number };
@@ -224,9 +229,6 @@ function rankCandidates(
   hasPreferenceVector: boolean,
   favoritedRestaurantIds: Set<string> = new Set()
 ): Candidate[] {
-  const SLIDER_MIN = 10;
-  const SLIDER_MAX = 50;
-
   return candidates.map(d => {
     const distKm = d.distance_m / 1000;
 
@@ -261,17 +263,8 @@ function rankCandidates(
         W.quality * qualityNorm;
     }
 
-    // Soft daily price proximity boost (+0.08 max)
-    if (filters.priceRange && d.price != null) {
-      const [min, max] = filters.priceRange;
-      const effMin = min <= SLIDER_MIN ? 0 : min;
-      const effMax = max >= SLIDER_MAX ? Infinity : max;
-      if (d.price >= effMin && d.price <= effMax) {
-        const mid = (effMin + (effMax === Infinity ? d.price : effMax)) / 2;
-        const range = Math.max((effMax === Infinity ? 1 : effMax) - effMin, 1);
-        score += 0.08 * Math.max(0, 1 - Math.abs(d.price - mid) / range);
-      }
-    }
+    // Daily price is now a HARD pre-rank filter (see applyHardPriceFilter), not a
+    // soft boost — out-of-budget dishes are dropped before scoring, so nothing to do here.
 
     // Soft daily calorie proximity boost (+0.05 max)
     if (filters.calorieRange && d.calories) {
@@ -556,6 +549,30 @@ function selectConfigForUser(dish: Candidate, filters: FeedRequest['filters']): 
     effective_price,
     effective_primary_protein: proteinOverride ?? dish.primary_protein ?? null,
   };
+}
+
+// ── Hard daily price filter ───────────────────────────────────────────────────
+//
+// The daily price slider is a HARD bound (was a soft +0.08 boost until batch 2).
+// `priceRange = [min, max]`, either end null = "no bound" (slider at floor/ceiling).
+// Filters on BASE price; the effective price (default modifier options applied) is
+// computed later in selectConfigForUser, so a dish whose default options push it over
+// budget can still slip through — accepted for v1 (most dishes have no positive default
+// delta). Dishes with a null price are kept rather than hidden on missing data.
+
+function applyHardPriceFilter(
+  dishes: Candidate[],
+  priceRange: [number | null, number | null] | undefined
+): Candidate[] {
+  if (!priceRange) return dishes;
+  const [minP, maxP] = priceRange;
+  if (minP == null && maxP == null) return dishes;
+  return dishes.filter(d => {
+    if (d.price == null) return true;
+    if (minP != null && d.price < minP) return false;
+    if (maxP != null && d.price > maxP) return false;
+    return true;
+  });
 }
 
 // ── Diversity cap ─────────────────────────────────────────────────────────────
@@ -871,12 +888,23 @@ serve(async (req: Request) => {
     // No extra DB query needed here — rankCandidates() uses d.protein_families
     // and d.protein_canonical_names that are already present in the candidate rows.
 
+    // ── Hard daily price filter (pre-rank) ────────────────────────────────────
+    // Applied to the candidate pool before scoring so out-of-budget dishes never
+    // surface. Note: runs AFTER generate_candidates' 200-row cap, so a very tight
+    // band could thin results — acceptable for v1 (escalation = push the bound into
+    // the SQL). null result is impossible here; an empty result returns [] cleanly.
+
+    const inBudget = applyHardPriceFilter(annotated, filters.priceRange);
+    if (filters.priceRange) {
+      console.log(`[Feed] Price filter: ${annotated.length} → ${inBudget.length} candidates`);
+    }
+
     // ── Stage 2: rank ─────────────────────────────────────────────────────────
 
     console.log('[Feed] Stage 2: scoring');
 
     const scored = rankCandidates(
-      annotated,
+      inBudget,
       filters,
       radius,
       userLikedCuisines,

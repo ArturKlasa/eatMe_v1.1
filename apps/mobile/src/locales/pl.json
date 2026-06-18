@@ -247,7 +247,7 @@
     "selectCuisines": "Wybierz Kuchnie",
     "selectMeals": "Wybierz Posiłki",
     "personalPreferences": "Filtry preferencji osobistych",
-    "dietPreferenceTitle": "🥕 Preferencja Diety",
+    "dietPreferenceTitle": "🥗 Preferencja Diety",
     "excludeTitle": "🚫 Wyklucz",
     "facilitiesTitle": "🏪 Udogodnienia Restauracji",
     "quickFilters": "Szybkie Filtry",
@@ -716,6 +716,7 @@
     "emptyMessage": "Zacznij eksplorować restauracje, a pojawią się tutaj!"
   },
   "eatTogether": {
+    "recommendationsTitle": "Rekomendacje Restauracji",
     "title": "Jedzmy Razem",
     "subtitle": "Grupowe Jedzenie Łatwo",
     "startSession": "Rozpocznij Jedzmy Razem",
@@ -784,6 +785,7 @@
     "joiningSession": "Dołączanie..."
   },
   "sessionLobby": {
+    "waitingRoom": "Poczekalnia",
     "title": "Jedzmy Razem",
     "code": "Kod: {code}",
     "close": "Zamknij",
@@ -849,6 +851,7 @@
     "goToEatTogether": "Przejdź do Jedzmy Razem"
   },
   "onboarding": {
+    "completeProfile": "Uzupełnij Swój Profil",
     "step1Of2": "Krok 1 z 2",
     "step2Of2": "Krok 2 z 2",
     "step1Title": "Twoje Preferencje Dietetyczne",
@@ -933,7 +936,7 @@
   },
   "mapFooter": {
     "viewMoreDishes": "Więcej\ndań",
-    "filterButton": "🥢 Filtruj Dania i Restauracje"
+    "filterButton": "🥢 Dopasuj swoje smaki"
   },
   "profileCompletion": {
     "title": "Preferencje Profilu",

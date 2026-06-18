@@ -28,6 +28,10 @@ export function FiltersScreen({ navigation }: FiltersScreenProps) {
       <Animated.View
         style={[
           modalScreenStyles.modalContainer,
+          // Cap the permanent-filters sheet at ~half screen (few filters). The shared
+          // modalContainer is height:'100%' and is used full-height by Profile/Settings/
+          // Favorites/EatTogether, so override locally here only — never edit the base.
+          { height: '55%' as const },
           {
             transform: [{ translateY }],
           },

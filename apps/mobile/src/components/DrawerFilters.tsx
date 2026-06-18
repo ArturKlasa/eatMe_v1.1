@@ -53,7 +53,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
 
       {/* 1. Diet Preference - Single Selection */}
       <View style={drawerFiltersStyles.section}>
-        <Text style={drawerFiltersStyles.sectionTitle}>🥗 Diet Preference</Text>
+        <Text style={drawerFiltersStyles.sectionTitle}>{t('filters.dietPreferenceTitle')}</Text>
         <View style={drawerFiltersStyles.tabContainer}>
           {(['all', 'vegetarian', 'vegan'] as const).map(option => (
             <TouchableOpacity
@@ -70,7 +70,7 @@ export const DrawerFilters: React.FC<DrawerFiltersProps> = ({ onClose, onScroll 
                   permanent.dietPreference === option && drawerFiltersStyles.selectedTabText,
                 ]}
               >
-                {option.charAt(0).toUpperCase() + option.slice(1)}
+                {t(`filters.dietOption.${option}`)}
               </Text>
             </TouchableOpacity>
           ))}

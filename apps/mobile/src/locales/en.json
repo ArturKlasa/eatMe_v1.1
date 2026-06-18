@@ -247,7 +247,7 @@
     "selectCuisines": "Select Cuisines",
     "selectMeals": "Select Meals",
     "personalPreferences": "Personal preference filters",
-    "dietPreferenceTitle": "🥕 Diet Preference",
+    "dietPreferenceTitle": "🥗 Diet Preference",
     "excludeTitle": "🚫 Exclude",
     "facilitiesTitle": "🏪 Restaurant Facilities",
     "quickFilters": "Quick Filters",
@@ -716,6 +716,7 @@
     "emptyMessage": "Start exploring restaurants and they'll appear here!"
   },
   "eatTogether": {
+    "recommendationsTitle": "Restaurant Recommendations",
     "title": "Eat Together",
     "subtitle": "Group Dining Made Easy",
     "startSession": "Start Eat Together",
@@ -784,6 +785,7 @@
     "joiningSession": "Joining..."
   },
   "sessionLobby": {
+    "waitingRoom": "Waiting Room",
     "title": "Eat Together",
     "code": "Code: {code}",
     "close": "Close",
@@ -849,6 +851,7 @@
     "goToEatTogether": "Go to Eat Together"
   },
   "onboarding": {
+    "completeProfile": "Complete Your Profile",
     "step1Of2": "Step 1 of 2",
     "step2Of2": "Step 2 of 2",
     "step1Title": "Your Dietary Preferences",
@@ -933,7 +936,7 @@
   },
   "mapFooter": {
     "viewMoreDishes": "View more\ndishes",
-    "filterButton": "🥢 Filter Dishes & Restaurants"
+    "filterButton": "🥢 Customize Your Cravings"
   },
   "profileCompletion": {
     "title": "Profile Preferences",

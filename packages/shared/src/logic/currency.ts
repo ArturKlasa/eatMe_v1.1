@@ -70,7 +70,7 @@ export const CURRENCY_CONFIG: Record<SupportedCurrency, CurrencyInfo> = {
     symbol: '$',
     name: 'Mexican Peso',
     locale: 'es-MX',
-    priceRange: { min: 100, max: 500, step: 50, sliderMax: 2000 },
+    priceRange: { min: 50, max: 250, step: 25, sliderMax: 250 },
   },
   PLN: {
     code: 'PLN',

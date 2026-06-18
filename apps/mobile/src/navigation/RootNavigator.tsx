@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { colors } from '@eatme/tokens';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useTranslation } from 'react-i18next';
 import {
   MapScreen,
   FiltersScreen,
@@ -57,6 +58,7 @@ function AuthNavigator() {
  * Main Navigator - Screens for authenticated users
  */
 function MainNavigator() {
+  const { t } = useTranslation();
   return (
     <MainStack.Navigator
       initialRouteName="Map"
@@ -106,8 +108,8 @@ function MainNavigator() {
         options={{
           presentation: 'card',
           headerShown: true,
-          headerTitle: 'Viewed History',
-          headerBackTitle: 'Back',
+          headerTitle: t('profile.viewedHistory'),
+          headerBackTitle: t('common.back'),
         }}
       />
       <MainStack.Screen
@@ -123,7 +125,7 @@ function MainNavigator() {
         component={CreateSessionScreen}
         options={{
           headerShown: true,
-          title: 'Create Eat Together',
+          title: t('eatTogether.createSessionTitle'),
         }}
       />
       <MainStack.Screen
@@ -131,7 +133,7 @@ function MainNavigator() {
         component={JoinSessionScreen}
         options={{
           headerShown: true,
-          title: 'Join Session',
+          title: t('sessionJoin.title'),
         }}
       />
       <MainStack.Screen
@@ -139,7 +141,7 @@ function MainNavigator() {
         component={SessionLobbyScreen}
         options={{
           headerShown: true,
-          title: 'Waiting Room',
+          title: t('sessionLobby.waitingRoom'),
         }}
       />
       <MainStack.Screen
@@ -147,7 +149,7 @@ function MainNavigator() {
         component={RecommendationsScreen}
         options={{
           headerShown: true,
-          title: 'Restaurant Recommendations',
+          title: t('eatTogether.recommendationsTitle'),
         }}
       />
       <MainStack.Screen
@@ -155,7 +157,7 @@ function MainNavigator() {
         component={VotingResultsScreen}
         options={{
           headerShown: true,
-          title: 'Voting Results',
+          title: t('votingResults.title'),
         }}
       />
       <MainStack.Screen
@@ -180,8 +182,8 @@ function MainNavigator() {
         component={OnboardingStep1Screen}
         options={{
           headerShown: true,
-          title: 'Complete Your Profile',
-          headerBackTitle: 'Cancel',
+          title: t('onboarding.completeProfile'),
+          headerBackTitle: t('common.cancel'),
         }}
       />
       <MainStack.Screen
@@ -189,8 +191,8 @@ function MainNavigator() {
         component={OnboardingStep2Screen}
         options={{
           headerShown: true,
-          title: 'Complete Your Profile',
-          headerBackTitle: 'Back',
+          title: t('onboarding.completeProfile'),
+          headerBackTitle: t('common.back'),
         }}
       />
     </MainStack.Navigator>

@@ -72,6 +72,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Each policy targets the verified owner column name and only applies to mobile-direct tables (service-role-only tables are left unchanged, since service-role bypasses RLS)
   4. `pnpm check-types` passes and the migration dry-run validates; tables already protected (per the Phase 1 register) are explicitly skipped, not re-enabled
 
+**Scope note (per FINDINGS):** F-11 — all 11 behavioral tables ALREADY have RLS enabled with owner policies in prod (operator probe 2026-06-19; catch-all: only `spatial_ref_sys` (PostGIS) is unprotected). The SEC-02 "enable RLS" gap does not exist in prod, so SC#1's flagged-unprotected set is empty. **Phase 3 is repurposed to CODIFY the existing prod RLS into a tracked migration** — the repo baseline currently has ZERO `ENABLE ROW LEVEL SECURITY` (migrations↔prod drift; a fresh DB built from migrations would come up unprotected). Authored + dry-run only (stage-don't-apply; prod already protected). `dish_analytics` is dish-keyed (no `user_id`) → public-read + service-role, NOT a per-user owner policy. SEC-02 stays open until the codifying migration is authored.
+
 **Plans**: TBD
 
 ### Phase 4: Edge Dependency Pinning & Script Guard
@@ -102,6 +104,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 **UI hint**: yes
 
+**Scope note (per FINDINGS):** F-03/F-04/F-08 already-resolved — `apps/web-portal` was deleted AND committed (`c1a7e3f`, 2026-06-18), so SC#2's deletion is already done; Phase 5 narrows to **residual-doc cleanup** (`CLAUDE.md`, `agent_docs/architecture.md`, `.github/copilot-instructions.md`, `INTEGRATION_COMPLETE_SUMMARY.md`). SC#1 (CLEAN-01 map dead code) and SC#3 (CLEAN-03 enrich-dish comments) remain fully in scope — phase NOT descoped.
+
 ### Phase 6: Schema Teardown Spine
 
 **Goal**: The orphaned ingredient pipeline and the now-isolated DishKind shims are removed in the one strictly-ordered, irreversible-aware sequence, and the generated DB types are regenerated exactly once to match the slimmed schema.
@@ -127,6 +131,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The `hnsw.iterative_scan` option is assessed against the Phase 1 pgvector version and either applied or explicitly recorded as unavailable (tiered radius remains the fallback)
   3. Feed Stage-2 response payload size is measurably reduced by moving the diversity cap / final sort toward SQL where it helps, with the client response contract unchanged
   4. Cache invalidation covers INSERT / UPDATE / DELETE for `dishes` / `menus` / `restaurants` (webhook event coverage widened per the Phase 1 finding, never a namespace flush-all from a single change), and `invalidate-cache` CORS is confirmed locked (with Phase 2)
+
+**Scope note (per FINDINGS):** F-13 — prod pgvector `extversion=0.8.0` (≥0.8.0) → `hnsw.iterative_scan` IS available; SC#2 can apply it via a session GUC (no extension upgrade). F-21 — the deployed `trg_enrich_on_dish_change` covers INSERT+UPDATE on `dishes` (agrees with migration 135; no DELETE), but the feed-cache `invalidate-cache` webhook is **NOT present in the deployed trigger catalog** on restaurants/menus/dishes → SC#4 must first **locate the actual cache-invalidation wiring** (it is dashboard-configured, not in any migration) before widening event coverage. The existing `feed:v2:*` flush-all-on-every-change vs SC#4's "never flush-all" goal is the design tension to resolve in Phase 7.
 
 **Plans**: TBD
 

@@ -107,4 +107,4 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 
 ---
 *Requirements defined: 2026-06-18*
-*Last updated: 2026-06-18 after roadmap creation (traceability populated)*
+*Last updated: 2026-06-19 — Phase 1 FINDINGS scope review (user-gated): ASSESS-01/02/03 satisfied; SEC-02 confirmed Pending — prod RLS already enabled on all behavioral tables, Phase 3 repurposed to CODIFY existing prod RLS into a migration (closes migrations↔prod drift). No renumber; 21 requirements / 10 phases intact.*

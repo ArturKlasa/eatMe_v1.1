@@ -9,6 +9,7 @@
     "backfill-cuisine-types": "ts-node backfill-cuisine-types.ts",
     "backfill-cuisine-from-google": "ts-node backfill-cuisine-from-google.ts",
     "backfill-cuisine-from-dishes": "ts-node backfill-cuisine-from-dishes.ts",
+    "seed-cold-start-vectors": "ts-node seed-cold-start-vectors.ts",
     "diagnose-empty-cuisine": "ts-node diagnose-empty-cuisine.ts",
     "replay-ab": "ts-node replay-menu-scan-ab.ts",
     "diagnose-scan-trend": "ts-node diagnose-scan-quality-trend.ts"

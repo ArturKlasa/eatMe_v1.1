@@ -56,9 +56,11 @@ export async function recordInteraction(
 
 /**
  * Fires the update-preference-vector Edge Function without blocking the caller.
- * The Edge Function handles its own 5-minute debounce.
+ * The Edge Function handles its own 5-minute debounce, and seeds a cold-start
+ * vector from onboarding favourites when the user has no interactions yet — which
+ * is why onboarding completion also calls this.
  */
-function triggerVectorUpdate(userId: string): void {
+export function triggerVectorUpdate(userId: string): void {
   fetch(UPDATE_VECTOR_URL, {
     method: 'POST',
     headers: {

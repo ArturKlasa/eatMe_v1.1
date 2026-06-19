@@ -67,6 +67,117 @@ function timeDekay(createdAt: string): number {
   return Math.exp(-0.01 * days);
 }
 
+// ── Cold-start seed from onboarding favourites ────────────────────────────────
+//
+// A brand-new user has no interactions, so the interaction path above produces
+// nothing and the feed falls back to rating/popularity. To give them semantic
+// recommendations from day one, seed preference_vector from their onboarding
+// favourites — averaging the embeddings of EXISTING dishes that match those
+// favourites, so the seed lives in the same vector space as dish embeddings (no
+// model call needed). Real interactions later overwrite the seed via the normal path.
+
+const SEED_SAMPLE_PER_LABEL = 25; // dishes sampled per favourite dish-label / cuisine
+const SEED_DISH_WEIGHT = 1.0; // a name-matched dish is a precise taste signal
+const SEED_CUISINE_WEIGHT = 0.5; // a cuisine match is broader, so it counts for less
+
+function parseEmbedding(raw: unknown): number[] | null {
+  if (!raw) return null;
+  const vec = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  return Array.isArray(vec) && vec.length === DIMS ? (vec as number[]) : null;
+}
+
+/**
+ * Builds + upserts a cold-start preference_vector from the user's onboarding
+ * favourites. Returns the number of dish embeddings used, or null when there's
+ * no usable signal (no favourites, or none of them matched a dish with an
+ * embedding) so the caller can emit its normal "skipped" response.
+ */
+async function seedFromFavourites(user_id: string): Promise<number | null> {
+  const { data: prefs } = await supabase
+    .from('user_preferences')
+    .select('favorite_dishes, favorite_cuisines')
+    .eq('user_id', user_id)
+    .maybeSingle();
+
+  const favoriteDishes: string[] = Array.isArray(prefs?.favorite_dishes)
+    ? prefs!.favorite_dishes
+    : [];
+  const favoriteCuisines: string[] = Array.isArray(prefs?.favorite_cuisines)
+    ? prefs!.favorite_cuisines
+    : [];
+
+  if (favoriteDishes.length === 0 && favoriteCuisines.length === 0) return null;
+
+  const acc = new Float64Array(DIMS);
+  let totalWeight = 0;
+  let dishesUsed = 0;
+
+  // Favourite dish labels ('Tacos', 'Pizza', …) → name-matched dishes.
+  for (const label of favoriteDishes) {
+    const { data: matches } = await supabase
+      .from('dishes')
+      .select('embedding')
+      .ilike('name', `%${label}%`)
+      .not('embedding', 'is', null)
+      .limit(SEED_SAMPLE_PER_LABEL);
+    for (const m of matches ?? []) {
+      const vec = parseEmbedding(m.embedding);
+      if (!vec) continue;
+      addWeighted(acc, vec, SEED_DISH_WEIGHT);
+      totalWeight += SEED_DISH_WEIGHT;
+      dishesUsed++;
+    }
+  }
+
+  // Favourite cuisines → dishes at restaurants of that cuisine. Two-step (restaurants
+  // → dishes) keeps the cuisine_types array filter unambiguous in PostgREST.
+  for (const cuisine of favoriteCuisines) {
+    const { data: rests } = await supabase
+      .from('restaurants')
+      .select('id')
+      .contains('cuisine_types', [cuisine])
+      .limit(50);
+    const restIds = (rests ?? []).map(r => r.id);
+    if (restIds.length === 0) continue;
+    const { data: matches } = await supabase
+      .from('dishes')
+      .select('embedding')
+      .in('restaurant_id', restIds)
+      .not('embedding', 'is', null)
+      .limit(SEED_SAMPLE_PER_LABEL);
+    for (const m of matches ?? []) {
+      const vec = parseEmbedding(m.embedding);
+      if (!vec) continue;
+      addWeighted(acc, vec, SEED_CUISINE_WEIGHT);
+      totalWeight += SEED_CUISINE_WEIGHT;
+      dishesUsed++;
+    }
+  }
+
+  if (totalWeight === 0) return null; // favourites set but nothing matched an embedding
+
+  const seededVector = normalise(acc);
+  const now = new Date().toISOString();
+
+  const { error } = await supabase.from('user_behavior_profiles').upsert(
+    {
+      user_id,
+      preference_vector: JSON.stringify(seededVector),
+      preference_vector_updated_at: now,
+      // preferred_cuisines mirrors the onboarding favourites (top 5); the price range
+      // stays null until real interactions provide one.
+      preferred_cuisines: favoriteCuisines.slice(0, 5),
+      last_active_at: now,
+      profile_updated_at: now,
+    },
+    { onConflict: 'user_id' }
+  );
+  if (error) throw error;
+
+  console.log(`[PrefVector] Seeded ${user_id} from onboarding favourites (${dishesUsed} dishes)`);
+  return dishesUsed;
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
@@ -107,6 +218,20 @@ serve(async (req: Request) => {
       }
     }
 
+    // When the interaction path yields no usable signal, fall back to a cold-start
+    // seed from onboarding favourites before giving up. On success it has already
+    // upserted the vector; otherwise emit the original "skipped" reason.
+    const seedOrSkip = async (reason: string): Promise<Response> => {
+      const dishesUsed = await seedFromFavourites(user_id);
+      const body =
+        dishesUsed !== null
+          ? { ok: true, source: 'onboarding_seed', dishes_used: dishesUsed }
+          : { skipped: true, reason };
+      return new Response(JSON.stringify(body), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    };
+
     // ── Load interactions ─────────────────────────────────────────────────────
 
     const { data: interactions, error: intErr } = await supabase
@@ -119,9 +244,7 @@ serve(async (req: Request) => {
     if (intErr) throw intErr;
 
     if (!interactions || interactions.length === 0) {
-      return new Response(JSON.stringify({ skipped: true, reason: 'no_interactions' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return await seedOrSkip('no_interactions');
     }
 
     console.log(`[PrefVector] ${interactions.length} interactions for ${user_id}`);
@@ -160,9 +283,7 @@ serve(async (req: Request) => {
     }
 
     if (dishMap.size === 0) {
-      return new Response(JSON.stringify({ skipped: true, reason: 'no_embeddings' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return await seedOrSkip('no_embeddings');
     }
 
     // ── Compute weighted average ──────────────────────────────────────────────
@@ -206,9 +327,7 @@ serve(async (req: Request) => {
     }
 
     if (totalWeight === 0) {
-      return new Response(JSON.stringify({ skipped: true, reason: 'zero_weight' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return await seedOrSkip('zero_weight');
     }
 
     // Normalise

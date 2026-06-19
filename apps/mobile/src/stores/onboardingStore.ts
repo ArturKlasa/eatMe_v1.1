@@ -149,6 +149,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   completeOnboarding: async () => {
     const state = get();
+    // Captured inside the save block so the post-success hooks (diet sync, vector seed)
+    // can use it after the try/catch without re-fetching the session.
+    let authUserId: string | null = null;
 
     // Save to Supabase
     try {
@@ -159,6 +162,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       if (!user) {
         throw new Error('No authenticated user');
       }
+      authUserId = user.id;
 
       // Prepare data for Supabase
       const preferencesData = {
@@ -195,6 +199,18 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       useFilterStore.getState().setPermanentDietPreference(state.formData.dietType);
     } catch (syncError) {
       debugLog('[Onboarding] Diet→permanent-filter sync skipped:', syncError);
+    }
+
+    // Seed a cold-start preference vector from the onboarding favourites (fire-and-forget).
+    // The edge function builds it from the user's favourite dishes/cuisines when they have
+    // no interactions yet, so recommendations are personalised from day one. Non-fatal.
+    if (authUserId) {
+      try {
+        const { triggerVectorUpdate } = await import('../services/interactionService');
+        triggerVectorUpdate(authUserId);
+      } catch (seedError) {
+        debugLog('[Onboarding] Preference-vector seed trigger skipped:', seedError);
+      }
     }
 
     set({

@@ -8,12 +8,12 @@ status: executing
 stopped_at: Phase 1 context gathered
 last_updated: "2026-06-19T05:28:39.162Z"
 last_activity: 2026-06-19
-last_activity_desc: Plan 01-03 complete (live-state captured from operator prod paste-back; FINDINGS.md 0 PENDING)
+last_activity_desc: Plan 01-04 complete (user-gated scope annotations applied; all 4 Phase-1 plans done)
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 1 of 10 (Assessment & Findings Register)
-Plan: 3 of 4 in current phase
-Status: Executing — Wave 3 (Plan 01-04 scope-propagation checkpoint) pending
-Last activity: 2026-06-19 — Plan 01-03 complete (live-state captured from operator prod paste-back; FINDINGS.md 0 PENDING)
+Plan: 4 of 4 in current phase
+Status: All Phase-1 plans complete — verification pending
+Last activity: 2026-06-19 — Plan 01-04 complete (user-gated scope annotations applied; all 4 Phase-1 plans done)
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 

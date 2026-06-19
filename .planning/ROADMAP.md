@@ -191,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
-| 2. CORS Lockdown | 2/2 | Complete   | 2026-06-19 |
+| 2. CORS Lockdown | 2/2 | Complete    | 2026-06-19 |
 | 3. RLS Hardening | 0/TBD | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |

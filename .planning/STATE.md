@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 02
 current_phase_name: cors-lockdown
-status: executing
+status: verifying
 stopped_at: Phase 2 context gathered
-last_updated: "2026-06-19T18:17:51.515Z"
+last_updated: "2026-06-19T18:45:56.173Z"
 last_activity: 2026-06-19
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 10
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
-  percent: 10
+  completed_plans: 6
+  percent: 20
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 
 Phase: 02 (cors-lockdown) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-19 — Phase 02 execution started
 
 Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
@@ -57,6 +57,7 @@ Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 *Updated after each plan completion*
 | Phase 01 P02 | 9min | 2 tasks | 1 files |
 | Phase 02 P01 | 6min | 2 tasks | 2 files |
+| Phase 02 P02 | 5 | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,7 @@ Recent decisions affecting current work:
 - Plan 01-01: FINDINGS.md authored — 23 code-assessable verdicts FINAL, 3 live-state (F-11 RLS / F-13 pgvector / F-21 webhook) PENDING for the operator checkpoint (D-10). Drift corrections baked in: web-portal already-resolved (c1a7e3f), CORS line 31, dish_analytics NOT user-owned, flush-all tension flagged.
 - [Phase 01]: assess-live-state.sql probe comments naming forbidden tokens (INSERT/UPDATE/DELETE/COMMIT) must sit on lines starting with -- so the Wave-0 static-safety gate strips them
 - [Phase ?]: Plan 02-01: _shared/cors.ts buildCorsHeaders(origin) + 4-case Deno test green (4/4); matched incumbent std@0.168.0 import (not jsr); SEC-01 unit-locked. Plan 02 wires the 3 functions to ../_shared/cors.ts.
+- [Phase ?]: Plan 02-02: feed/enrich-dish/invalidate-cache wired to ../_shared/cors.ts (per-request buildCorsHeaders first line); README updated; operator deployed all 3 + SC#1/SC#2/SC#3 PASS — SEC-01 closed. Phase 4 serve→Deno.serve must preserve the per-request corsHeaders line + the cors.ts import.
 
 ### Pending Todos
 
@@ -95,7 +97,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T18:17:37.723Z
+Last session: 2026-06-19T18:45:34.617Z
 Stopped at: Phase 2 context gathered
 Resume file: .planning/phases/02-cors-lockdown/02-CONTEXT.md
 

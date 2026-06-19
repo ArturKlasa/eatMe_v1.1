@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Parallelization:** Phase 1 gates all others. Phases 2, 3, 4, 5, 7 are mutually independent and parallelizable after Phase 1. Phase 6 is a strictly-ordered internal spine. Phases 8, 9, 10 are the refactor track (9 depends on 5).
 
 - [x] **Phase 1: Assessment & Findings Register** - Verify every finding against live code + prod state; verdict each (confirmed / stale / resolved) — completed 2026-06-19
-- [ ] **Phase 2: CORS Lockdown** - Restrict `feed` / `enrich-dish` / `invalidate-cache` CORS to an allowlist without breaking the native client or admin preflight
+- [x] **Phase 2: CORS Lockdown** - Restrict `feed` / `enrich-dish` / `invalidate-cache` CORS to an allowlist without breaking the native client or admin preflight (completed 2026-06-19)
 - [ ] **Phase 3: RLS Hardening** - Enable RLS + atomic owner policies on all behavioral tables, InitPlan-safe and indexed
 - [ ] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts`
 - [ ] **Phase 5: Dead Code & Doc Cleanup** - Remove the dead map view-mode branch, verify the web-portal deletion, and fix stale comments/docs
@@ -58,10 +58,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A request with no `Origin` header (native/curl) still succeeds (auth enforced via existing JWT validation, not CORS) — verified by a no-Origin smoke call
   3. The OPTIONS preflight and the main response return matching CORS headers (including the existing `authorization, x-client-info, apikey, content-type` allow-headers) — verified from a browser-origin admin path
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 - [x] 02-01-PLAN.md — Create the shared `_shared/cors.ts` allowlist helper (`buildCorsHeaders`) + four-case Deno test (Wave 1 foundation)
-- [ ] 02-02-PLAN.md — Wire feed/enrich-dish/invalidate-cache to the per-request helper, update README, hand operator the deploy/smoke checklist (Wave 2)
+- [x] 02-02-PLAN.md — Wire feed/enrich-dish/invalidate-cache to the per-request helper, update README, hand operator the deploy/smoke checklist (Wave 2)
 
 ### Phase 3: RLS Hardening
 
@@ -191,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
-| 2. CORS Lockdown | 1/2 | In Progress|  |
+| 2. CORS Lockdown | 2/2 | Complete   | 2026-06-19 |
 | 3. RLS Hardening | 0/TBD | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |

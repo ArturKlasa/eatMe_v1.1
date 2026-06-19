@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] 01-01-PLAN.md — Author FINDINGS.md Pass A: 26-row summary table + per-finding detail sections (code-assessable verdicts FINAL; 3 live-state findings PENDING)
 - [x] 01-02-PLAN.md — Author the read-only assess-live-state.sql probe (4 blocks + catch-all + guard) and run the Wave-0 static-safety gate
-- [ ] 01-03-PLAN.md — Operator checkpoint: run the probe on prod, paste back, fill the 3 live-state sections + reconcile code-first vs deployed
+- [x] 01-03-PLAN.md — Operator checkpoint: run the probe on prod, paste back, fill the 3 live-state sections + reconcile code-first vs deployed
 - [ ] 01-04-PLAN.md — User-gated scope propagation: apply approved ROADMAP/REQUIREMENTS annotations (no renumber)
 
 ### Phase 2: CORS Lockdown

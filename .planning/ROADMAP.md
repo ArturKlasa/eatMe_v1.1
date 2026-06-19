@@ -77,7 +77,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Scope note (per FINDINGS):** F-11 — all 11 behavioral tables ALREADY have RLS enabled with owner policies in prod (operator probe 2026-06-19; catch-all: only `spatial_ref_sys` (PostGIS) is unprotected). The SEC-02 "enable RLS" gap does not exist in prod, so SC#1's flagged-unprotected set is empty. **Phase 3 is repurposed to CODIFY the existing prod RLS into a tracked migration** — the repo baseline currently has ZERO `ENABLE ROW LEVEL SECURITY` (migrations↔prod drift; a fresh DB built from migrations would come up unprotected). Authored + dry-run only (stage-don't-apply; prod already protected). `dish_analytics` is dish-keyed (no `user_id`) → public-read + service-role, NOT a per-user owner policy. SEC-02 stays open until the codifying migration is authored.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+- [ ] 03-01-PLAN.md — Author migration 170 (forward + REVERSE) codifying RLS on the 11 behavioral tables (InitPlan form, 7 owner indexes, dish_analytics public/service-role), static review + `pnpm check-types`, operator branch-validation handoff
 
 ### Phase 4: Edge Dependency Pinning & Script Guard
 
@@ -192,7 +194,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
 | 2. CORS Lockdown | 2/2 | Complete    | 2026-06-19 |
-| 3. RLS Hardening | 0/TBD | Not started | - |
+| 3. RLS Hardening | 0/1 | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |
 | 6. Schema Teardown Spine | 0/TBD | Not started | - |

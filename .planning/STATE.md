@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planned
-stopped_at: Phase 3 planned — ready to execute
-last_updated: "2026-06-19T22:28:33.611Z"
-last_activity: 2026-06-19 — Phase 3 planned (1 plan, 1 wave); ready to execute
+status: executing
+stopped_at: Phase 3 / plan 03-01 — Tasks 1-2 done (migration 170 authored & committed); BLOCKED on operator branch-validation (Task 3)
+last_updated: "2026-06-19T23:50:10.124Z"
+last_activity: 2026-06-19 — Phase 3 plan 03-01: forward+reverse 170 authored & committed, pnpm check-types green; awaiting operator Supabase-branch validation
 progress:
   total_phases: 10
   completed_phases: 2
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 3 — RLS Hardening
-Plan: 0/1 plans complete
-Status: Ready to execute
-Last activity: 2026-06-19 — Phase 3 planned (1 plan, 1 wave: codify behavioral RLS into migration 170)
+Plan: 03-01 in progress — Tasks 1-2/3 complete (auto), Task 3 BLOCKED on operator
+Status: Blocked at checkpoint (human-verify) — operator must branch-validate migration 170
+Last activity: 2026-06-19 — 170_codify_behavioral_rls.sql (forward, 57c1761) + 170_REVERSE_ONLY (06e7b0a) authored & committed; all static gates + pnpm check-types green; awaiting operator branch/shadow-DB validation (SC#4 / D-13)
 
 Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 
@@ -95,8 +95,12 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T22:28:33.611Z
-Stopped at: Phase 3 planned — ready to execute
-Resume file: .planning/phases/03-rls-hardening/03-01-PLAN.md
+Last session: 2026-06-19T23:50:10.124Z
+Stopped at: Phase 3 / plan 03-01 — blocked at Task 3 (human-verify checkpoint); Tasks 1-2 committed
+Resume file: .planning/phases/03-rls-hardening/03-01-PLAN.md (Task 3 operator handoff)
+
+**Resume signal:** operator types "approved" after Supabase-branch validation passes (anon-deny on private tables, own-only on authenticated reads with reassignment rejected, public-read intact, idempotent apply + reverse, 076 composites preserved) → finalize 03-01-SUMMARY.md, run code-review + verify_phase_goal, mark phase complete. If the operator reports a failure → gap-closure.
+
+**Deviation noted (for SUMMARY):** the plan's Task-1/Task-2 `<automated>` bare-`auth.uid()` gate regex `[^(]auth\.uid\(\)` is inverted — it matches the mandated InitPlan form `(select auth.uid())` (call preceded by a space) and misses an actual bare `(auth.uid()` form. Verified the must_have truth instead: every non-comment `auth.uid()` is wrapped in `(select …)` → 0 bare calls (29 calls / 29 wrapped). All other plan gates pass as written.
 
 **Planned Phase:** 3 (RLS Hardening) — 1 plan — 2026-06-19T22:28:33.611Z

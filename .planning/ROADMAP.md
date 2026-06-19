@@ -58,7 +58,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A request with no `Origin` header (native/curl) still succeeds (auth enforced via existing JWT validation, not CORS) — verified by a no-Origin smoke call
   3. The OPTIONS preflight and the main response return matching CORS headers (including the existing `authorization, x-client-info, apikey, content-type` allow-headers) — verified from a browser-origin admin path
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+- [ ] 02-01-PLAN.md — Create the shared `_shared/cors.ts` allowlist helper (`buildCorsHeaders`) + four-case Deno test (Wave 1 foundation)
+- [ ] 02-02-PLAN.md — Wire feed/enrich-dish/invalidate-cache to the per-request helper, update README, hand operator the deploy/smoke checklist (Wave 2)
 
 ### Phase 3: RLS Hardening
 

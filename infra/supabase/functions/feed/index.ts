@@ -13,13 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Pinned (not @latest) for deterministic cold starts — see §S8.
 import { Redis } from 'https://esm.sh/@upstash/redis@1.38.0';
-
-// ── CORS ──────────────────────────────────────────────────────────────────────
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { buildCorsHeaders } from '../_shared/cors.ts';
 
 // ── Compression ───────────────────────────────────────────────────────────────
 
@@ -706,6 +700,7 @@ function isOpenNow(
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req: Request) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('Origin'));
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

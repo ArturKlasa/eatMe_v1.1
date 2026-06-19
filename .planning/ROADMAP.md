@@ -36,7 +36,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Live RLS state (`pg_tables.rowsecurity` + `pg_policies`) is captured for every behavioral table, and each table is labeled by caller (mobile-direct vs service-role-only), via read-only queries the operator ran on prod
   3. Prod pgvector `extversion` is recorded (gating whether `hnsw.iterative_scan` is available) and the feed-cache webhook's actual INSERT/UPDATE/DELETE event coverage is documented
   4. The register adjusts downstream phase scope where verdicts come back "stale" or "already-resolved" (e.g. RLS already enabled, webhook already covers all events)
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 01-01-PLAN.md — Author FINDINGS.md Pass A: 26-row summary table + per-finding detail sections (code-assessable verdicts FINAL; 3 live-state findings PENDING)
+- [ ] 01-02-PLAN.md — Author the read-only assess-live-state.sql probe (4 blocks + catch-all + guard) and run the Wave-0 static-safety gate
+- [ ] 01-03-PLAN.md — Operator checkpoint: run the probe on prod, paste back, fill the 3 live-state sections + reconcile code-first vs deployed
+- [ ] 01-04-PLAN.md — User-gated scope propagation: apply approved ROADMAP/REQUIREMENTS annotations (no renumber)
 
 ### Phase 2: CORS Lockdown
 **Goal**: The three wildcard-CORS edge functions restrict origins to a configured allowlist for browser callers while continuing to serve the native mobile client (no `Origin` header) and the admin preflight without breakage.
@@ -145,7 +149,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Assessment & Findings Register | 0/TBD | Not started | - |
+| 1. Assessment & Findings Register | 0/4 | Not started | - |
 | 2. CORS Lockdown | 0/TBD | Not started | - |
 | 3. RLS Hardening | 0/TBD | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |

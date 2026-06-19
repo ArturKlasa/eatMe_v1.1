@@ -25,6 +25,7 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 - ✓ Preference-vector maintenance from interactions (`update-preference-vector`) — existing
 - ✓ Supabase Auth + RLS-enforced data ownership — existing
 - ✓ Shared packages: `@eatme/database`, `@eatme/shared`, `@eatme/tokens`, `@eatme/ui` — existing
+- ✓ Allowlist CORS on `feed` / `enrich-dish` / `invalidate-cache` edge functions — single DRY `_shared/cors.ts` `buildCorsHeaders` (exact-match reflection, fail-closed on unset, `Vary: Origin`, no wildcard/credentials) — validated in Phase 2 (SEC-01)
 
 ### Active
 
@@ -36,7 +37,6 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 
 **Security & bugs**
 
-- [ ] Lock down wildcard CORS (`feed`, `enrich-dish` edge functions) to known origins
 - [ ] Audit RLS on behavioral tables (`favorites`, `dish_opinions`, `user_dish_interactions`, `user_behavior_profiles`, `dish_analytics`, etc.); add owner policies where missing
 - [ ] Add a prod-write guard to `infra/scripts` (require explicit `--dry-run` clearance before any write path)
 - [ ] Remove the dead map restaurant-view-mode branch (`viewModeStore` / `ViewModeToggle` / `BasicMapScreen`)
@@ -99,7 +99,8 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 | Minimal/targeted tests only (not a coverage push) | Solo/single-operator app; broad test ROI not there yet | — Pending |
 | Surgical DishKind cleanup; keep web-portal-v2 | Shims now only block v2; v2 is on ice, not deleted | — Pending |
 | Treat web-portal deletion as already-done input | User deleted it 2026-06-18; pre-resolves 3 findings | — Pending |
-| Assessment-first (findings register before fixes) | Several findings are explicitly uncertain/possibly-stale | — Pending |
+| Assessment-first (findings register before fixes) | Several findings are explicitly uncertain/possibly-stale | ✓ Phase 1 |
+| Single DRY `_shared/cors.ts` allowlist helper, fail-closed (3-function scope incl. `invalidate-cache`) | One CORS source for all importers; missing `ALLOWED_ORIGINS` degrades admin-browser only, never mobile/security | ✓ Phase 2 (SEC-01) |
 
 ## Evolution
 
@@ -119,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-18 after initialization*
+*Last updated: 2026-06-19 after Phase 2 (CORS Lockdown) completion*

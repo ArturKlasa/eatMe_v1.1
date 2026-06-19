@@ -325,22 +325,24 @@ Deno std / supabase-js deps   → fold into DEBT-05 → confirmed
 
 **Note:** A2's catch-all safety query is a concrete recommendation — add to Block 1: `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public' AND rowsecurity=false ORDER BY tablename;` so no unprotected table is missed.
 
-## Open Questions
+## Open Questions (RESOLVED — addressed by design at the D-10 operator checkpoint)
+
+> These three are prod-only unknowns that CANNOT be resolved pre-execution (no local psql, operator-only — PROJECT.md constraint). Each is resolved by design through the D-10 partial-complete pattern: the code-assessable verdicts finalize in Wave 1, and these values are captured at the Plan-03 operator checkpoint via `assess-live-state.sql`. None is a residual planning gap.
 
 1. **Exact pgvector version in prod**
    - What we know: No `CREATE EXTENSION vector` in migrations (platform-provisioned); HNSW index exists (migration 136).
    - What's unclear: The `extversion` value, which gates `hnsw.iterative_scan` for Phase 7.
-   - Recommendation: Block 2 captures it at the checkpoint; Phase 7 decides applicability from the value.
+   - **RESOLVED:** Block 2 of `assess-live-state.sql` captures `extversion` at the Plan-03 operator checkpoint; Phase 7 decides `hnsw.iterative_scan` applicability from the captured value. Tracked as a PENDING live-state section in FINDINGS.md until paste-back.
 
 2. **Deployed INSERT/UPDATE/DELETE webhook coverage**
    - What we know: `invalidate-cache` handles all 3 tables internally but its header documents UPDATE-only invocation; no migration wires the triggers.
    - What's unclear: Which events are actually wired in the dashboard for `restaurants`/`menus`/`dishes`.
-   - Recommendation: Block 3 dump is authoritative; mark PERF-03 detail PENDING until pasted.
+   - **RESOLVED:** Block 3's deployed-trigger dump is authoritative and is reconciled (agree-or-drift) against the code-first `event_manipulation` extraction (migrations 132/135/138/165/166) per D-09; PERF-03 detail stays PENDING in FINDINGS.md until the Plan-03 paste-back.
 
 3. **Complete behavioral-table set**
    - What we know: CONCERNS lists ~11 + `eat_together_*`.
    - What's unclear: Whether any other `public` table has a `user_id` and `rowsecurity=false`.
-   - Recommendation: Add the catch-all query (A2 note) so the register can't miss a table.
+   - **RESOLVED:** Block 1 catch-all query (`SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public' AND rowsecurity=false`) is baked into `assess-live-state.sql` so the register cannot miss an unprotected table; confirmed at the Plan-03 checkpoint.
 
 ## Environment Availability
 

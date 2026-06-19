@@ -40,10 +40,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Prod pgvector `extversion` is recorded (gating whether `hnsw.iterative_scan` is available) and the feed-cache webhook's actual INSERT/UPDATE/DELETE event coverage is documented
   4. The register adjusts downstream phase scope where verdicts come back "stale" or "already-resolved" (e.g. RLS already enabled, webhook already covers all events)
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 - [x] 01-01-PLAN.md — Author FINDINGS.md Pass A: 26-row summary table + per-finding detail sections (code-assessable verdicts FINAL; 3 live-state findings PENDING)
-- [ ] 01-02-PLAN.md — Author the read-only assess-live-state.sql probe (4 blocks + catch-all + guard) and run the Wave-0 static-safety gate
+- [x] 01-02-PLAN.md — Author the read-only assess-live-state.sql probe (4 blocks + catch-all + guard) and run the Wave-0 static-safety gate
 - [ ] 01-03-PLAN.md — Operator checkpoint: run the probe on prod, paste back, fill the 3 live-state sections + reconcile code-first vs deployed
 - [ ] 01-04-PLAN.md — User-gated scope propagation: apply approved ROADMAP/REQUIREMENTS annotations (no renumber)
 
@@ -181,7 +181,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Assessment & Findings Register | 1/4 | In Progress|  |
+| 1. Assessment & Findings Register | 2/4 | In Progress|  |
 | 2. CORS Lockdown | 0/TBD | Not started | - |
 | 3. RLS Hardening | 0/TBD | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |

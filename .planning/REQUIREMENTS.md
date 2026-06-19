@@ -10,8 +10,8 @@ Each finding is assessed (validated against current code + live DB) before being
 ### Assessment
 
 - [x] **ASSESS-01**: Every in-scope CONCERNS finding has a verdict in a findings register (confirmed / stale / already-resolved), with evidence
-- [ ] **ASSESS-02**: Live RLS state (`rowsecurity` + existing policies) is captured for all behavioral tables before any RLS change is authored
-- [ ] **ASSESS-03**: Prod pgvector extension version and feed-cache webhook event coverage are captured before perf/cache work begins
+- [x] **ASSESS-02**: Live RLS state (`rowsecurity` + existing policies) is captured for all behavioral tables before any RLS change is authored
+- [x] **ASSESS-03**: Prod pgvector extension version and feed-cache webhook event coverage are captured before perf/cache work begins
 
 ### Security
 
@@ -78,8 +78,8 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ASSESS-01 | Phase 1 | Complete |
-| ASSESS-02 | Phase 1 | Pending |
-| ASSESS-03 | Phase 1 | Pending |
+| ASSESS-02 | Phase 1 | Complete |
+| ASSESS-03 | Phase 1 | Complete |
 | SEC-01 | Phase 2 | Pending |
 | SEC-02 | Phase 3 | Pending |
 | SEC-03 | Phase 4 | Pending |

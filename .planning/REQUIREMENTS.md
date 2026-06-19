@@ -71,17 +71,37 @@ Deferred to a future cycle. Tracked but not in this roadmap.
 
 ## Traceability
 
-Populated during roadmap creation (each requirement maps to exactly one phase).
+Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (all v1 requirements) | TBD | Pending |
+| ASSESS-01 | Phase 1 | Pending |
+| ASSESS-02 | Phase 1 | Pending |
+| ASSESS-03 | Phase 1 | Pending |
+| SEC-01 | Phase 2 | Pending |
+| SEC-02 | Phase 3 | Pending |
+| SEC-03 | Phase 4 | Pending |
+| DEBT-05 | Phase 4 | Pending |
+| CLEAN-01 | Phase 5 | Pending |
+| CLEAN-02 | Phase 5 | Pending |
+| CLEAN-03 | Phase 5 | Pending |
+| DEBT-01 | Phase 6 | Pending |
+| DEBT-02 | Phase 6 | Pending |
+| DEBT-03 | Phase 6 | Pending |
+| DEBT-04 | Phase 6 | Pending |
+| PERF-01 | Phase 7 | Pending |
+| PERF-02 | Phase 7 | Pending |
+| PERF-03 | Phase 7 | Pending |
+| RFCT-01 | Phase 8 | Pending |
+| RFCT-02 | Phase 9 | Pending |
+| RFCT-03 | Phase 9 | Pending |
+| RFCT-04 | Phase 10 | Pending |
 
 **Coverage:**
 - v1 requirements: 21 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 21 ⚠️ (resolved by roadmapper)
+- Mapped to phases: 21 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-18*
-*Last updated: 2026-06-18 after initial definition*
+*Last updated: 2026-06-18 after roadmap creation (traceability populated)*

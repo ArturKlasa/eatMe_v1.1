@@ -1,9 +1,9 @@
 ---
 phase: 1
 slug: assessment-findings-register
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-18
 ---
 
@@ -71,11 +71,11 @@ created: 2026-06-18
 
 ## Validation Sign-Off
 
-- [ ] All tasks have an automated static check (grep/diff/file-resolve) or a documented manual-only verification with checkpoint gating
-- [ ] Sampling continuity: SQL safety check runs before operator handoff; completeness check runs before phase close
-- [ ] Wave 0 covers the two MISSING checkers (completeness checklist + SQL read-only gate)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have an automated static check (grep/diff/file-resolve) or a documented manual-only verification with checkpoint gating
+- [x] Sampling continuity: SQL safety check runs before operator handoff; completeness check runs before phase close
+- [x] Wave 0 covers the two MISSING checkers (completeness checklist + SQL read-only gate — both embedded as inline plan gates; no separate install needed)
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-06-19

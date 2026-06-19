@@ -393,17 +393,17 @@ COMMIT;
 
 **Note:** All *factual* claims (table existence, column names, `dish_analytics` shape, migration number, 076 indexes, zero tracked RLS) are `[VERIFIED: codebase]` — not assumed. The three items above are the only residual assumptions, all LOW/MEDIUM and already flagged in CONTEXT's deferred items.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Are the 076 composite indexes deployed in prod?** (= A1)
+1. **Are the 076 composite indexes deployed in prod?** (= A1) — **RESOLVED (non-blocking, operator-confirmable).**
    - What we know: They exist in the tracked migration 076 and lead with `user_id`; D-09 relies on them.
    - What's unclear: Pre-071 history is incomplete, so prod deployment isn't git-provable.
-   - Recommendation: Non-blocking. Operator confirms during branch validation; if absent, the operator can add `CREATE INDEX IF NOT EXISTS` (or accept the perf-only gap). Do not block 170 on this.
+   - Resolution: Non-blocking. Operator confirms during branch validation; if absent, the operator can add `CREATE INDEX IF NOT EXISTS` (or accept the perf-only gap). 170 is NOT blocked on this — policies are correct regardless of index presence (index affects perf only).
 
-2. **Should the explicit `ALL TO service_role` policies be included on `user_behavior_profiles`?** (Claude's discretion per CONTEXT)
+2. **Should the explicit `ALL TO service_role` policies be included on `user_behavior_profiles`?** (Claude's discretion per CONTEXT) — **RESOLVED: include for fidelity.**
    - What we know: Service-role bypasses RLS, so they're technically redundant; prod has them (fidelity).
    - What's unclear: Purely a style/fidelity call.
-   - Recommendation: **Include** for prod-fidelity (harmless, explicit, matches codified prod truth) per the CONTEXT lean — unless it clutters the file.
+   - Resolution: **Include** for prod-fidelity (harmless, explicit, matches codified prod truth) per the CONTEXT lean. Implemented in Plan 03-01 Task 1 (dish_analytics + user_behavior_profiles get `FOR ALL TO service_role`).
 
 ## Environment Availability
 

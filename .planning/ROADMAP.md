@@ -58,9 +58,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A request with no `Origin` header (native/curl) still succeeds (auth enforced via existing JWT validation, not CORS) — verified by a no-Origin smoke call
   3. The OPTIONS preflight and the main response return matching CORS headers (including the existing `authorization, x-client-info, apikey, content-type` allow-headers) — verified from a browser-origin admin path
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
-- [ ] 02-01-PLAN.md — Create the shared `_shared/cors.ts` allowlist helper (`buildCorsHeaders`) + four-case Deno test (Wave 1 foundation)
+- [x] 02-01-PLAN.md — Create the shared `_shared/cors.ts` allowlist helper (`buildCorsHeaders`) + four-case Deno test (Wave 1 foundation)
 - [ ] 02-02-PLAN.md — Wire feed/enrich-dish/invalidate-cache to the per-request helper, update README, hand operator the deploy/smoke checklist (Wave 2)
 
 ### Phase 3: RLS Hardening
@@ -191,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
-| 2. CORS Lockdown | 0/TBD | Not started | - |
+| 2. CORS Lockdown | 1/2 | In Progress|  |
 | 3. RLS Hardening | 0/TBD | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |

@@ -2,16 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
+current_phase: 02
+current_phase_name: cors-lockdown
 status: executing
 stopped_at: Phase 2 context gathered
-last_updated: "2026-06-19T18:10:09.955Z"
-last_activity: 2026-06-19 -- Phase 02 planning complete
+last_updated: "2026-06-19T18:17:51.515Z"
+last_activity: 2026-06-19
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 10
 ---
 
 # Project State
@@ -21,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 2 — CORS Lockdown (next)
+**Current focus:** Phase 02 — cors-lockdown
 
 ## Current Position
 
-Phase: 2 of 10 (CORS Lockdown) — next, not yet planned
-Plan: 0 of TBD in current phase
+Phase: 02 (cors-lockdown) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-06-19 -- Phase 02 planning complete
+Last activity: 2026-06-19 — Phase 02 execution started
 
 Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 
@@ -53,6 +56,7 @@ Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 
 *Updated after each plan completion*
 | Phase 01 P02 | 9min | 2 tasks | 1 files |
+| Phase 02 P01 | 6min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -66,6 +70,7 @@ Recent decisions affecting current work:
 - Roadmap: Stage-don't-apply — DB phases (3, 6) verified by authored + dry-run + `pnpm check-types`, never "deployed to prod".
 - Plan 01-01: FINDINGS.md authored — 23 code-assessable verdicts FINAL, 3 live-state (F-11 RLS / F-13 pgvector / F-21 webhook) PENDING for the operator checkpoint (D-10). Drift corrections baked in: web-portal already-resolved (c1a7e3f), CORS line 31, dish_analytics NOT user-owned, flush-all tension flagged.
 - [Phase 01]: assess-live-state.sql probe comments naming forbidden tokens (INSERT/UPDATE/DELETE/COMMIT) must sit on lines starting with -- so the Wave-0 static-safety gate strips them
+- [Phase ?]: Plan 02-01: _shared/cors.ts buildCorsHeaders(origin) + 4-case Deno test green (4/4); matched incumbent std@0.168.0 import (not jsr); SEC-01 unit-locked. Plan 02 wires the 3 functions to ../_shared/cors.ts.
 
 ### Pending Todos
 
@@ -90,7 +95,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T17:49:09.706Z
+Last session: 2026-06-19T18:17:37.723Z
 Stopped at: Phase 2 context gathered
 Resume file: .planning/phases/02-cors-lockdown/02-CONTEXT.md
 

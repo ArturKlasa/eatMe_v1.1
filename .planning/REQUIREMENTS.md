@@ -15,7 +15,7 @@ Each finding is assessed (validated against current code + live DB) before being
 
 ### Security
 
-- [ ] **SEC-01**: `feed`, `enrich-dish`, and `invalidate-cache` edge functions restrict CORS to a configured allowlist (no wildcard in prod) without breaking the mobile client (no `Origin` header) or admin preflight
+- [x] **SEC-01**: `feed`, `enrich-dish`, and `invalidate-cache` edge functions restrict CORS to a configured allowlist (no wildcard in prod) without breaking the mobile client (no `Origin` header) or admin preflight
 - [ ] **SEC-02**: RLS is enabled with an owner policy on every user-owned behavioral table (favorites, dish_opinions, user_dish_interactions, user_behavior_profiles, dish_analytics, user_visits, session_views, etc.); policies use `(select auth.uid())` with an index on the owner column; enable + policy land atomically in the same migration
 - [ ] **SEC-03**: `infra/scripts` production-mutation scripts refuse to run any write path without explicit dry-run/confirmation clearance
 
@@ -80,7 +80,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | ASSESS-01 | Phase 1 | Complete |
 | ASSESS-02 | Phase 1 | Complete |
 | ASSESS-03 | Phase 1 | Complete |
-| SEC-01 | Phase 2 | Pending |
+| SEC-01 | Phase 2 | Complete |
 | SEC-02 | Phase 3 | Pending |
 | SEC-03 | Phase 4 | Pending |
 | DEBT-05 | Phase 4 | Pending |

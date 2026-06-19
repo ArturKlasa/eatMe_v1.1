@@ -9,7 +9,7 @@ Each finding is assessed (validated against current code + live DB) before being
 
 ### Assessment
 
-- [ ] **ASSESS-01**: Every in-scope CONCERNS finding has a verdict in a findings register (confirmed / stale / already-resolved), with evidence
+- [x] **ASSESS-01**: Every in-scope CONCERNS finding has a verdict in a findings register (confirmed / stale / already-resolved), with evidence
 - [ ] **ASSESS-02**: Live RLS state (`rowsecurity` + existing policies) is captured for all behavioral tables before any RLS change is authored
 - [ ] **ASSESS-03**: Prod pgvector extension version and feed-cache webhook event coverage are captured before perf/cache work begins
 
@@ -51,10 +51,12 @@ Each finding is assessed (validated against current code + live DB) before being
 Deferred to a future cycle. Tracked but not in this roadmap.
 
 ### Performance
+
 - **PERF-V2-01**: Geo-aware ANN rebuild — per-restaurant centroid + restaurant-level vector search (the durable fix beyond tiered radius)
 - **PERF-V2-02**: Full SQL-side ranking pushdown (beyond payload reduction)
 
 ### Quality
+
 - **QUAL-V2-01**: Automated RLS regression test suite (anon-deny pattern) — high-ROI differentiator, deferred to keep this cycle minimal-test
 - **QUAL-V2-02**: Deno std → JSR full modernization beyond the import swap
 
@@ -75,7 +77,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ASSESS-01 | Phase 1 | Pending |
+| ASSESS-01 | Phase 1 | Complete |
 | ASSESS-02 | Phase 1 | Pending |
 | ASSESS-03 | Phase 1 | Pending |
 | SEC-01 | Phase 2 | Pending |
@@ -98,6 +100,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | RFCT-04 | Phase 10 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 21 total
 - Mapped to phases: 21 ✓
 - Unmapped: 0

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Assessment & Findings Register
-status: executing
-stopped_at: Phase 1 context gathered
+current_phase: 2
+current_phase_name: CORS Lockdown
+status: planning
+stopped_at: Phase 1 complete & verified
 last_updated: "2026-06-19T05:28:39.162Z"
 last_activity: 2026-06-19
-last_activity_desc: Plan 01-04 complete (user-gated scope annotations applied; all 4 Phase-1 plans done)
+last_activity_desc: Phase 1 complete & verified (4/4 plans; VERIFICATION passed 4/4 must-haves)
 progress:
   total_phases: 10
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
   completed_plans: 4
-  percent: 0
+  percent: 10
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 1 — Assessment & Findings Register
+**Current focus:** Phase 2 — CORS Lockdown (next)
 
 ## Current Position
 
-Phase: 1 of 10 (Assessment & Findings Register)
-Plan: 4 of 4 in current phase
-Status: All Phase-1 plans complete — verification pending
-Last activity: 2026-06-19 — Plan 01-04 complete (user-gated scope annotations applied; all 4 Phase-1 plans done)
+Phase: 2 of 10 (CORS Lockdown) — next, not yet planned
+Plan: 0 of TBD in current phase
+Status: Phase 1 complete & verified (VERIFICATION: passed, 4/4 must-haves). Phase 2 ready to discuss/plan.
+Last activity: 2026-06-19 — Phase 1 complete & verified (4/4 plans)
 
-Progress: [██████████] 100%
+Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 
 ## Performance Metrics
 
@@ -76,12 +76,12 @@ None yet.
 
 ### Blockers/Concerns
 
-[Carried from research — to be resolved in Phase 1]
+[All three Phase-1 live-state unknowns RESOLVED via the operator prod probe 2026-06-19 — see `.planning/codebase/FINDINGS.md`]
 
-- Live RLS state unknown (gates Phase 3 scope) — resolve via `pg_tables.rowsecurity` / `pg_policies`.
-- Prod pgvector version unknown (gates `hnsw.iterative_scan` in Phase 7) — resolve via `extversion`.
-- Webhook INSERT/DELETE event coverage unknown (may shrink Phase 7 cache work) — resolve in Phase 1.
-- High-blast-radius guards to enforce: atomic RLS enable+policy (Phase 3); `pg_depend` pre-flight + RESTRICT drops + snapshot (Phase 6); byte-identical filterStore serialization shape (Phase 8).
+- ✓ RESOLVED — Live RLS state: ALL 11 behavioral tables already have RLS enabled with owner policies in prod (catch-all: only `spatial_ref_sys` unprotected). No prod RLS gap. Phase 3 repurposed from "enable RLS" → CODIFY existing prod RLS into a migration (closes migrations↔prod drift; baseline has zero ENABLE RLS). `dish_analytics` is dish-keyed → NOT a per-user owner policy. (F-11)
+- ✓ RESOLVED — Prod pgvector `extversion=0.8.0` (≥0.8.0) → `hnsw.iterative_scan` IS available; Phase 7 may apply it. (F-13)
+- ◑ PARTLY RESOLVED — Deployed enrich webhook covers INSERT+UPDATE on dishes (agrees with migration 135; no DELETE). The feed-cache `invalidate-cache` webhook is NOT in the deployed trigger catalog → Phase 7 must locate the actual invalidation wiring before widening event coverage. (F-21)
+- High-blast-radius guards still to enforce in later phases: atomic RLS enable+policy / codify (Phase 3); `pg_depend` pre-flight + RESTRICT drops + snapshot (Phase 6); byte-identical filterStore serialization shape (Phase 8).
 
 ## Deferred Items
 

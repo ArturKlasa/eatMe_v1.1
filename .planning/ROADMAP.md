@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Parallelization:** Phase 1 gates all others. Phases 2, 3, 4, 5, 7 are mutually independent and parallelizable after Phase 1. Phase 6 is a strictly-ordered internal spine. Phases 8, 9, 10 are the refactor track (9 depends on 5).
 
-- [ ] **Phase 1: Assessment & Findings Register** - Verify every finding against live code + prod state; verdict each (confirmed / stale / resolved)
+- [x] **Phase 1: Assessment & Findings Register** - Verify every finding against live code + prod state; verdict each (confirmed / stale / resolved) — completed 2026-06-19
 - [ ] **Phase 2: CORS Lockdown** - Restrict `feed` / `enrich-dish` / `invalidate-cache` CORS to an allowlist without breaking the native client or admin preflight
 - [ ] **Phase 3: RLS Hardening** - Enable RLS + atomic owner policies on all behavioral tables, InitPlan-safe and indexed
 - [ ] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts`
@@ -187,7 +187,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Assessment & Findings Register | 2/4 | In Progress|  |
+| 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
 | 2. CORS Lockdown | 0/TBD | Not started | - |
 | 3. RLS Hardening | 0/TBD | Not started | - |
 | 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |

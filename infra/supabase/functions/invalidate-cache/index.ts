@@ -15,11 +15,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Redis } from 'https://esm.sh/@upstash/redis@latest';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { buildCorsHeaders } from '../_shared/cors.ts';
 
 function getRedis(): Redis | null {
   const url = Deno.env.get('UPSTASH_REDIS_REST_URL');
@@ -47,6 +43,7 @@ async function deleteByPattern(redis: Redis, pattern: string): Promise<number> {
 }
 
 serve(async (req: Request) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('Origin'));
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

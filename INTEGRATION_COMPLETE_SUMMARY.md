@@ -53,8 +53,9 @@
 ### Test in Development:
 
 ```bash
-# 1. Start web portal
-cd apps/web-portal
+# 1. Start the owner portal (historical — the v1 app was removed 2026-06-18,
+#    and this ingredient/allergen feature was later abandoned)
+cd apps/web-portal-v2
 pnpm dev
 ```
 
@@ -197,15 +198,13 @@ The database and web portal are ready. For the mobile app:
 
 - `infra/supabase/migrations/010_create_ingredients_master_tables.sql`
 - `infra/supabase/migrations/011_link_dishes_to_ingredients.sql`
-- `apps/web-portal/lib/ingredients.ts`
-- `apps/web-portal/components/IngredientAutocomplete.tsx`
-- `apps/web-portal/components/AllergenWarnings.tsx`
-- `apps/web-portal/components/DietaryTagBadges.tsx`
+- Ingredient/allergen UI + API in the retired v1 owner portal (`lib/ingredients.ts`, `IngredientAutocomplete`, `AllergenWarnings`, `DietaryTagBadges`)
 
 ### Modified:
 
-- `apps/web-portal/components/forms/DishFormDialog.tsx`
-- `apps/web-portal/app/onboard/menu/page.tsx`
+- Dish form + onboarding menu page in the retired v1 owner portal
+
+> **Historical note:** this ingredient/allergen integration was later **abandoned**, and the v1 owner portal app was removed (2026-06-18). The file paths above no longer exist — kept here only as a record of what shipped at the time.
 
 ---
 

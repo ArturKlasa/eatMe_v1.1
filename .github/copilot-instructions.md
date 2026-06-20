@@ -1,330 +1,104 @@
 # EatMe AI Coding Instructions
 
+> Current reality as of 2026-06-20. For the canonical project guide see `CLAUDE.md`;
+> for deeper architecture see `agent_docs/architecture.md`. This file is the GitHub
+> Copilot mirror of those — keep it in sync when they change.
+
 ## Project Overview
 
-**EatMe** is a food discovery platform combining map-based restaurant discovery with swipe-based preference learning. Three main components:
+**EatMe** is a food discovery platform: map-based restaurant/dish discovery with personalized, protein-based dish recommendations. Apps:
 
-- **Mobile App** (`apps/mobile`): React Native 0.81 + Expo Bare with Mapbox & Zustand, consumers discover & rate restaurants/dishes
-- **Web Portal** (`apps/web-portal`): Next.js 16 with shadcn/ui, restaurant partners manage menus & ingredients
-- **Backend**: Supabase (PostgreSQL + PostGIS), RLS-enforced data ownership, ingredient/allergen system
+- **Mobile App** (`apps/mobile`): React Native 0.81 + Expo (bare) with Mapbox & Zustand — consumers discover and rate restaurants/dishes.
+- **Admin Portal** (`apps/admin`): Next.js 16 + React 19, shadcn/ui (port 3001) — the **active web surface** (operator/admin tooling).
+- **Owner Portal rebuild** (`apps/web-portal-v2`): Next.js 16 owner portal — **on ice** (paused, not abandoned). Supersedes the retired v1 owner portal.
+- **Backend**: Supabase (PostgreSQL + PostGIS + pgvector), RLS-enforced data ownership.
 
-**pnpm + Turborepo monorepo**. Shared packages:
+**pnpm + Turborepo monorepo.** Shared packages:
 
-- `packages/database`: Supabase client factory + generated types (`@eatme/database`) — consumed by both apps
-- `packages/tokens`: Design tokens (`@eatme/tokens`)
-- `packages/shared`: Constants, TypeScript types, Zod validation schemas (`@eatme/shared`) — single source of truth for domain types, cuisine lists, and form validation
+- `packages/database`: Supabase client factory + generated types (`@eatme/database`).
+- `packages/shared`: Constants, TypeScript types, Zod validation schemas (`@eatme/shared`) — single source of truth for domain types, cuisine lists, and form validation.
+- `packages/tokens`: Design tokens (`@eatme/tokens`).
+- `packages/ui`: Shared React UI components (`@eatme/ui`) — used by the web apps.
 
-For detailed architecture, see `agent_docs/architecture.md`.
+## Dish Classification — Primary Protein (NOT allergens)
 
-## Architecture & Data Flow
+EatMe is a **discovery + protein-based filtering app, NOT an allergen-safety app.** Dishes are classified by a single `primary_protein` enum (NOT NULL) on `dishes`. The canonical 12 values live in `packages/shared/src/logic/protein.ts`. The legacy allergen / dietary-tag / ingredient pipeline has been **removed** across apps, edge functions, and the DB (do not reintroduce it). Diet filtering is protein-derived (vegan = `primary_protein = 'vegan'`; vegetarian = no meat/poultry/fish/shellfish family).
 
-### Core Design Patterns
+## Architecture & Core Patterns
 
-1. **Restaurant Onboarding** → LocalStorage draft auto-save at each form step → Final submission to Supabase all-at-once. Avoids partial incomplete states. Pattern: `apps/web-portal/app/onboard/{basic-info,menu,review}/page.tsx` + `lib/storage.ts`
-
-2. **Ingredient System** (NEW - Feb 2026): Master ingredients table with auto-calculated allergens/dietary tags via Postgres triggers on dish creation. Workflow:
-   - User selects ingredients via `IngredientAutocomplete` component
-   - Selected ingredients array stored temporarily in form state
-   - On dish save: link to `ingredients_master`, trigger fires to populate `dishes.allergens` and `dishes.dietary_tags`
-   - Components: `lib/ingredients.ts` (API), `AllergenWarnings.tsx`, `DietaryTagBadges.tsx`
-
-3. **Database Ownership** via RLS policies: `owner_id` FK to `auth.users`. Users can CRUD only their own restaurants/menus/dishes. Every table has RLS enabled (default deny-all).
-
-4. **Geospatial Format**: PostGIS `POINT(lng lat)` - **longitude first**. Helper: `formatLocationForSupabase(lat, lng)` in `apps/web-portal/lib/supabase.ts`
-
-5. **Mobile State**: Zustand stores (`apps/mobile/src/stores/`) for UI state, auth via Supabase (async storage for session persistence - planned/in-progress).
-
-### Data Flow Example: Restaurant Creation
-
-```
-Web Portal Form (LocalStorage draft)
-  → User clicks Submit
-  → review/page.tsx validates & transforms
-  → Supabase: INSERT restaurants, menus, dishes (with ingredient_ids)
-  → DB triggers calculate allergens/dietary tags
-  → Clear LocalStorage
-  → Redirect to dashboard
-```
+1. **Supabase client factory** — each app builds its own typed client via `@eatme/database`, passing env vars **explicitly** (the package never reads `process.env`). Required because Next.js and Expo statically replace env vars on literal keys only. See `packages/database/src/client.ts`.
+2. **Database ownership via RLS** — every table has RLS enabled (default deny-all) with an `owner_id` FK to `auth.users`. Users CRUD only their own data; service role bypasses for system operations.
+3. **Geospatial format** — PostGIS `POINT(lng lat)`, **longitude first**. Supabase returns `{ type: "Point", coordinates: [lng, lat] }`.
+4. **AI menu scanning** — owners upload menu photos/PDF; a Supabase edge function (OpenAI vision) extracts structured dish data (including `primary_protein`) for review before saving.
+5. **Mobile state** — Zustand stores in `apps/mobile/src/stores/`; auth via Supabase with AsyncStorage session persistence.
 
 ## Development Commands
-
-### Monorepo Setup & Running
 
 ```bash
 # From project root
 pnpm install              # Install all deps
-pnpm dev                  # Run all apps in parallel (web-portal + mobile)
-pnpm build                # Build all packages
-pnpm lint                 # Run ESLint across monorepo
-turbo run check-types     # TypeScript check all packages
+turbo dev                 # Run apps in dev mode
+turbo build               # Build all packages + apps
+turbo lint                # ESLint across the monorepo
+turbo check-types         # TypeScript check (packages + admin/web-portal-v2; mobile has no check-types script)
+turbo test                # Vitest across admin, web-portal-v2 + shared packages
 
-# Run specific app
-turbo dev --filter=web-portal
-turbo dev --filter=mobile
+# Run a specific app
+turbo dev --filter=admin            # admin portal (port 3001)
+turbo dev --filter=web-portal-v2    # owner portal rebuild (port 3000, on ice)
+turbo dev --filter=mobile           # Expo dev server
 ```
 
-### Web Portal (`apps/web-portal`) - Next.js 16
+### Admin Portal (`apps/admin`) — Next.js 16
 
 ```bash
-cd apps/web-portal
-pnpm dev                  # http://localhost:3000
+cd apps/admin
+pnpm dev                  # http://localhost:3001
 pnpm build && pnpm start  # Production
+pnpm test                 # Vitest
 ```
 
-**Key URLs during dev:**
+### Mobile App (`apps/mobile`) — React Native 0.81 + Expo (bare)
 
-- Onboarding: `/onboard/basic-info` → `/onboard/menu` → `/onboard/review`
-- Auth: `/auth/login`, `/auth/signup`, `/auth/callback` (OAuth redirect)
-- Admin: `/admin/*` (if implemented)
-
-### Mobile App (`apps/mobile`) - React Native 0.81 + Expo Bare
-
-**CRITICAL: Bare workflow requires native build, not Expo Go**
+**Bare workflow requires a native dev build, not Expo Go** (custom Mapbox native module).
 
 ```bash
 cd apps/mobile
-
-# First time ONLY:
-npx expo prebuild          # Generate android/ and ios/ folders
-npx expo run:android       # Build + run dev client on Android
-
-# After first build:
-pnpm start                 # Start Metro bundler
-pnpm android               # Run on Android emulator/device
-pnpm ios                   # iOS (macOS + Xcode only)
-
-# For production builds:
-eas build --platform android  # Cloud build via EAS
+npx expo prebuild --clean   # After adding/updating native deps
+npx expo run:android        # Build + run dev client on Android
+pnpm start                  # Start Metro
 ```
-
-**Why not Expo Go?** Custom Mapbox native module + custom native code won't run in Expo Go. Development client is required.
 
 ### Database / Supabase
 
-- **Migrations**: `infra/supabase/migrations/*.sql` (sequential 001–040, next is 041)
-- **Naming**: `NNN_descriptive_name.sql`. If two migrations logically belong to the same slot, use `NNNa_` and `NNNb_` suffixes (e.g. `016a_fix_geospatial_functions.sql`, `016b_restructure_menu_system.sql`). Never reuse the same number prefix without a letter suffix.
-- **Test locally**: Supabase Dashboard SQL Editor before committing
-- **RLS**: Always enable on new tables, test policies thoroughly
+- **Migrations**: `infra/supabase/migrations/NNN_descriptive_name.sql` (sequential; use `NNNa_`/`NNNb_` suffixes for same-slot splits — never reuse a number prefix without a letter).
+- **Authoritative schema**: `infra/supabase/migrations/database_schema.sql` is a snapshot of the live DB — read it first to know the actual schema (do NOT run it; apply changes via numbered migrations).
+- **Edge functions**: `infra/supabase/functions/` are **Deno** (cannot import workspace packages); validate with `deno check`.
+- **RLS**: always enable on new tables and test policies (default deny-all).
 
-### Important Scripts
+## Conventions
 
-```bash
-# Across monorepo from root
-pnpm format               # Prettier format (TypeScript, Markdown)
-turbo clean               # Clear Turbo cache (if builds behave oddly)
-```
-
-## Project-Specific Conventions
-
-### Web Portal Forms & State
-
-- **Form Library**: React Hook Form + Zod validation pattern: `apps/web-portal/app/onboard/basic-info/page.tsx`
-- **LocalStorage Auto-Save**: `apps/web-portal/lib/storage.ts` - wrapped in try-catch, non-fatal errors
-- **Storage Keys**: `eatme_restaurant_draft`, `eatme_draft_${user.id}` - clear after Supabase submission to prevent stale data
-- **Components**: shadcn/ui in `apps/web-portal/components/ui/`
-
-### Ingredient & Allergen System (Feb 2026)
-
-**Tables**: `ingredients_master`, `allergens`, `dietary_tags`, `dish_ingredients`
-
-**Flow**:
-
-1. `IngredientAutocomplete.tsx` - User selects from `ingredients_master` with search
-2. Selected ingredients stored in component state (array of ingredient IDs + quantities)
-3. On form submit → dish saved with `ingredient_ids`
-4. **Postgres trigger** fires: calculates allergens from ingredients → populates `dishes.allergens` JSON column
-5. Display via `AllergenWarnings.tsx` (⚠️ icons) and `DietaryTagBadges.tsx` (🏷️ tags)
-
-**API Layer**: `apps/web-portal/lib/ingredients.ts` - Handles ingredient search and allergen lookup
-
-### Database & RLS
-
-**Location**: `infra/supabase/migrations/` (numbered 001–040, with `a`/`b` suffixes for parallel tracks at 006–017)
-
-**Every table needs**:
-
-- ✅ RLS enabled (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY`)
-- ✅ Policy for `owner_id` FK check (users see/edit only own data)
-- ✅ Service role bypass for system operations (with `security_invoker` note)
-
-**Conditional DDL Pattern**:
-
-```sql
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
-                 WHERE table_name = 'dishes' AND column_name = 'allergens') THEN
-    ALTER TABLE dishes ADD COLUMN allergens JSONB DEFAULT '[]';
-  END IF;
-END $$;
-```
-
-### TypeScript Types
-
-- **Shared Domain Types**: `@eatme/shared` — Restaurant, Dish, OperatingHours, Option, OptionGroup, etc.
-- **Database Types**: `@eatme/database` — Supabase-generated types (RestaurantInsert, etc.)
-- **Mobile Types**: `apps/mobile/src/types/` (navigation, rating — mobile-specific)
-- **Keep synced** with SQL migrations in `infra/supabase/migrations/`
-
-### State Management
-
-- **Mobile**: Zustand stores in `apps/mobile/src/stores/` (UI state layer)
-- **Web Portal**: React Hook Form (forms), AuthContext (`apps/web-portal/contexts/AuthContext.tsx` for session), no global state
-- **Auth**: Supabase Auth handles sign-up/sign-in, AuthContext wraps app
-
-### Authentication (Web Portal)
-
-**Sign Up**: Email/password + restaurant name → Supabase Auth → email verification → user.user_metadata.restaurant_name
-
-**Sign In**: Email/password OR Google/Facebook OAuth → `/auth/callback` URL handler → parse token → redirect dashboard
-
-**Protected Routes**: Check `useAuth().user`, redirect to `/auth/login` if null
-
-**Sign Out**: Clears Supabase session + localStorage (uses `eatme_draft_${user.id}` cleanup)
-
-### Maps
-
-- **Web**: Mapbox GL JS (vanilla JavaScript, not React wrapper)
-- **Mobile**: `@rnmapbox/maps` v10.1.45 (React Native Mapbox - different API!)
-- **Setup guides**:
-  - Mobile: `apps/mobile/MAPBOX_RESTORATION.md`
-  - Web: `docs/mapbox-setup.md`
-
-## Testing & Validation
-
-**Ingredient System Test** (from `INTEGRATION_COMPLETE_SUMMARY.md`):
-
-1. Go to `/onboard/menu` → Create menu → Add dish
-2. Search ingredients: "cheese", "lettuce", "eggs"
-3. Watch allergen warnings appear (⚠️ Milk, Eggs)
-4. Check dietary badge shows (🌱 Vegetarian)
-5. Verify in Supabase Dashboard that `dishes.allergens` and `dishes.dietary_tags` populated by trigger
-
-## Debugging & Logging Conventions
-
-### Current Practice
-
-- **Prefix Logs**: `console.error('[ComponentName] message')`, `console.log('[Feature] state')`
-- **Context Prefixes**: `[OAuth]`, `[Storage]`, `[Ingredients]` for readability
-- **Error Pattern**: Try-catch with context, log error, show user-friendly toast (via `sonner` library)
-- **Non-Fatal Failures**: LocalStorage errors log but don't crash - graceful degradation
-
-### Error Handling Pattern
-
-```typescript
-try {
-  const { data, error } = await supabaseAction();
-  if (error) {
-    console.error('[Context] Action failed:', error);
-    toast.error('User-friendly message');
-    throw error;
-  }
-  console.log('[Context] Action successful:', data);
-} catch (error) {
-  console.error('[Context] Unexpected error:', error);
-  return { error: error as Error };
-}
-```
-
-### Debugging Tips
-
-- **Mobile Native Issues**: Check `android/app/build.gradle`, `ios/Podfile` - changes need `npx expo prebuild --clean`
-- **Ingredient Triggers**: Verify trigger fired in Supabase Dashboard by checking `dishes.allergens` JSONB column post-insert
-- **RLS Blocks Writes**: If INSERT silently fails, check RLS policy matches user session
-- **PostGIS POINT Error**: If error contains "GiST index", verify `POINT(lng lat)` order - longitude first!
-- **LocalStorage Quota**: Check `navigator.storage.estimate()` if form data won't persist
+- **Shared domain types**: `@eatme/shared` (Restaurant, Dish, Option, OptionGroup, primary-protein logic, etc.).
+- **Database types**: `@eatme/database` (Supabase-generated).
+- **Mobile-specific types**: `apps/mobile/src/types/`.
+- **Monorepo imports**: use the workspace protocol (`"@eatme/shared": "workspace:*"`), never relative paths across app boundaries. New TS-source packages must be added to the consuming app's `next.config.ts` `transpilePackages`.
+- **Logging**: prefixed — `console.error('[ComponentName] message')`, context prefixes like `[OAuth]`, `[Storage]`.
 
 ## Common Pitfalls
 
-1. **PostGIS POINT Format**: Always use `POINT(lng lat)` - longitude comes first, not latitude. Use the helper function.
+1. **PostGIS POINT format** — `POINT(lng lat)`, longitude first (use the helper).
+2. **RLS on new tables** — always enable + add an `owner_id` policy; default is deny-all.
+3. **`primary_protein` is NOT NULL** — every dish must have one; delete/backfill legacy rows that lack it.
+4. **Native modules need rebuild** — after native dependency changes in mobile, run `npx expo prebuild --clean`.
+5. **transpilePackages** — workspace packages consumed as TypeScript source must be listed in the app's `next.config.ts`.
+6. **Don't reintroduce abandoned concepts** — no allergen/dietary-tag/ingredient pipeline, and no parent/variant dishes (size/add-on variants are modifier groups).
 
-2. **Supabase RLS**: When adding new tables, ALWAYS enable RLS and create policies. Default is deny-all. See existing migrations for patterns.
+## Testing
 
-3. **LocalStorage Keys**: Web portal uses `eatme_restaurant_draft` for form data. Clear it after successful submission to avoid stale data.
-
-4. **Monorepo Paths**: When importing from packages, use workspace protocol: `"@eatme/shared": "workspace:*"` in package.json. Don't use relative paths across app boundaries.
-
-5. **Mobile Native Modules**: Changes to `app.json`, native dependencies, or native code require a new development build. Restart Metro is not enough.
-
-6. **Turbo Cache**: If builds behave strangely, try `turbo clean` from root to clear cache.
-
-7. **Shared Packages**: Three shared packages exist under `packages/`:
-   - `@eatme/database` — Supabase client factory, consumed by both apps
-   - `@eatme/shared` — Constants, types, and Zod validation schemas (single source of truth)
-   - `@eatme/tokens` — Design tokens
-   - New workspace packages using TypeScript source must be listed in `next.config.ts` `transpilePackages`
-
-## Mobile Supabase Integration (Planned)
-
-When connecting mobile app to Supabase:
-
-1. **Option A: Use Shared Package** (Recommended)
-
-   ```typescript
-   // apps/mobile/src/lib/supabase.ts
-   import { supabase } from '@eatme/database';
-   // Add AsyncStorage for React Native session persistence
-   ```
-
-   - Set environment variables: `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-   - The shared client automatically detects Expo environment variables
-   - Requires adding `@react-native-async-storage/async-storage` (already installed)
-
-2. **Option B: Separate Mobile Client** (Current web-portal pattern)
-
-   ```typescript
-   // Create similar to apps/web-portal/lib/supabase.ts
-   // But use expo-secure-store or AsyncStorage for auth persistence
-   ```
-
-3. **AsyncStorage Configuration**
-
-   ```typescript
-   import AsyncStorage from '@react-native-async-storage/async-storage';
-
-   const supabase = createClient(url, anonKey, {
-     auth: {
-       storage: AsyncStorage,
-       autoRefreshToken: true,
-       persistSession: true,
-       detectSessionInUrl: false, // Not needed in mobile
-     },
-   });
-   ```
-
-## File Locations Reference
-
-- **Supabase Client**: `apps/web-portal/lib/supabase.ts` (web), not yet created for mobile
-- **Auth Logic**: Web portal auth pages in `apps/web-portal/app/auth/`
-- **Restaurant Onboarding**: Multi-step wizard in `apps/web-portal/app/onboard/` (basic-info, menu, review)
-- **Database Schema (authoritative)**: `infra/supabase/migrations/database_schema.sql` — read this first when you need to know the actual DB schema. It is a snapshot of the live database and is far more reliable than the individual migration files (many of which are duplicated or superseded). Do NOT run it; apply changes via numbered migration files.
-- **Database ERD**: `docs/schema-erd.md`
-- **Mapbox Setup**: Mobile guide at `apps/mobile/MAPBOX_RESTORATION.md`
-- **Migration Status**: Current state in `docs/supabase-integration-status.md`
-
-## Current Development Phase
-
-**Status as of April 2026**:
-
-- Web Portal: Live with Supabase integration, ingredient system, 49 Vitest test files
-- Mobile: Mapbox setup done, restaurant browsing, dish rating flows (full + in-context)
-- Shared: `@eatme/shared` package extracts constants, types, and validation from both apps
-
-**Key Files by Phase**:
-
-- Restaurant Onboarding: `apps/web-portal/app/onboard/*/page.tsx`
-- Ingredient System: `apps/web-portal/lib/ingredients.ts` + `IngredientAutocomplete.tsx`
-- DB Schema: `infra/supabase/migrations/040_add_polish_aliases.sql` (latest)
-- Mobile Foundation: `apps/mobile/src/screens/`, `apps/mobile/src/stores/`
-
-## Testing Strategy
-
-- **Web Portal**: 49 Vitest test files (`cd apps/web-portal && npx vitest run`). Also manual testing in browser for UI verification.
-- **Mobile**: No automated tests yet. Test on physical devices or emulators. Use `__DEV__` checks for dev-only features.
-- **Ingredient Triggers**: Go to `/onboard/menu`, add dish with 3+ ingredients, check Supabase Dashboard for allergens/dietary_tags JSONB updates
-- **Monorepo**: `turbo test` runs all test suites. `turbo build && turbo lint && turbo check-types && turbo test` for full pipeline.
+- **Web apps** (`apps/admin`, `apps/web-portal-v2`): Vitest (`pnpm test` in the app, or `turbo test` from root). Playwright for e2e.
+- **Mobile**: no automated tests — verify on physical devices (`__DEV__` checks for dev-only features).
+- **Edge functions**: `deno test --node-modules-dir=none -A <path>`.
 
 ---
 
-_Last Updated: April 11, 2026_
-
-_For detailed documentation, see `agent_docs/` (architecture, commands, conventions, database, terminology)._
+_For detailed documentation, see `CLAUDE.md` and `agent_docs/` (architecture, commands, conventions, database, terminology)._

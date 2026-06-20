@@ -5,7 +5,8 @@ EatMe is a food discovery platform connecting consumers with restaurants through
 ## Tech Stack
 
 - **Mobile App** (`apps/mobile/`): Expo 54 + React Native 0.81, Zustand, Mapbox, i18next (en/es/pl)
-- **Web Portal** (`apps/web-portal/`): Next.js 16 + React 19, shadcn/ui, Tailwind CSS v4, react-hook-form + Zod
+- **Admin Portal** (`apps/admin/`): Next.js 16 + React 19, shadcn/ui, Tailwind CSS v4, react-hook-form + Zod (port 3001) — the active web surface (operator/admin tooling)
+- **Owner Portal rebuild** (`apps/web-portal-v2/`): Next.js 16 owner portal — **on ice** (paused, not abandoned). Supersedes the retired v1 owner portal.
 - **Backend**: Supabase (PostgreSQL 15 + PostGIS + pgvector), RLS-enforced data ownership
 - **Shared Packages**:
   - `packages/database/` — Supabase client factory + generated types (`@eatme/database`)
@@ -18,7 +19,7 @@ EatMe is a food discovery platform connecting consumers with restaurants through
 pnpm install              # Install all dependencies
 turbo dev                 # Start all apps in dev mode
 turbo build               # Build all packages and apps
-turbo test                # Run tests (web-portal Vitest suite)
+turbo test                # Run tests (Vitest across admin, web-portal-v2 + shared packages)
 turbo lint                # Lint all packages
 turbo check-types         # TypeScript type-checking
 ```
@@ -26,8 +27,8 @@ turbo check-types         # TypeScript type-checking
 ### App-specific
 
 ```bash
-cd apps/web-portal && npx vitest run    # Run web-portal tests
-cd apps/web-portal && npx vitest        # Watch mode
+cd apps/admin && npx vitest run         # Run admin portal tests
+cd apps/admin && npx vitest             # Watch mode
 cd apps/mobile && npx expo start        # Start Expo dev server
 ```
 

@@ -3,7 +3,7 @@
 ## Naming
 
 - **Files**: kebab-case for utilities (`import-validation.ts`), PascalCase for React components (`DishCard.tsx`)
-- **Directories**: kebab-case (`menu-scan/`, `web-portal/`)
+- **Directories**: kebab-case (`menu-scan/`, `web-portal-v2/`)
 - **Types/Interfaces**: PascalCase (`RestaurantFormData`, `DishKind`)
 - **Constants**: UPPER_SNAKE_CASE (`ALL_CUISINES`, `MAX_MENU_ITEMS`)
 - **Hooks**: `use` prefix, camelCase (`useRestaurantDraft`, `useDishFormData`)

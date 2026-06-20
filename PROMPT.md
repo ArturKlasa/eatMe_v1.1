@@ -9,8 +9,8 @@ to ship the v2 rebuild described in
 
 The build is two new Next.js 16 apps (owner at `apps/web-portal-v2/`, admin
 at `apps/admin/`) plus additive Supabase schema changes, Edge Function
-patches, and six mechanical mobile filter patches. The existing v1 portal
-at `apps/web-portal/` stays untouched until DNS cutover.
+patches, and six mechanical mobile filter patches. (The former v1 owner
+portal was removed 2026-06-18; only the v2 apps remain.)
 
 Each step is atomic and demoable. Tick the plan's top-level checklist as
 each step passes its verification gate. **Steps 27 and 28 are human-gated** —
@@ -54,8 +54,8 @@ Steps 1–26 are complete when all of the following hold:
    wrapper coverage.
 6. Release-safety CI suite (Step 12) green: drafts-never-visible across
    every consumer endpoint + pre/post-Phase-4 parity snapshot.
-7. `git status` clean or contains only intended commits. No changes to
-   `apps/web-portal/` (v1). No unlisted changes to `apps/mobile/`.
+7. `git status` clean or contains only intended commits. No unlisted
+   changes to `apps/mobile/`.
 8. Every commit is conventional-commit-formatted and references a plan
    step. No `--no-verify`, no force pushes, no hook bypasses.
 
@@ -176,8 +176,8 @@ No step is "done" with red gates. No "fix later" commits.
 - **No edits to `design/detailed-design.md`** — locked spec. If wrong:
   write to `.agent/scratchpad.md` + emit `BLOCKED:`. Reviewer escalates.
 - **No edits to `PROMPT.md`** — this file. Same escalation path.
-- **No edits to `apps/web-portal/`** — v1 is out of scope. All v2 code
-  lives in new paths.
+- **No edits to the former v1 owner portal** — it was removed 2026-06-18;
+  all code lives in the v2 apps.
 - **No edits to `apps/mobile/` outside Step 13's six listed sites:**
   `apps/mobile/src/stores/restaurantStore.ts` (lines 126, 159, 269, 312),
   `apps/mobile/src/hooks/useDish.ts` (line 41), and

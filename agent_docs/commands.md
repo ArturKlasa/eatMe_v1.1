@@ -7,12 +7,12 @@
 | `pnpm install` | Install all workspace dependencies |
 | `turbo dev` | Start all apps in development mode |
 | `turbo build` | Build all packages and apps |
-| `turbo test` | Run test suites (web-portal Vitest) |
+| `turbo test` | Run test suites (Vitest: admin, web-portal-v2 + shared packages) |
 | `turbo lint` | Lint all packages and apps |
 | `turbo check-types` | TypeScript type-checking across all packages |
 | `turbo build && turbo lint && turbo check-types` | Full validation pipeline |
 
-## Web Portal (`apps/web-portal/`)
+## Admin Portal (`apps/admin/`)
 
 | Command | Description |
 |---------|-------------|

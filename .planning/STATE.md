@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: complete
-stopped_at: Phase 3 complete — SEC-02 satisfied (migration 170 operator-validated); next Phase 4 not yet discussed/planned
-last_updated: "2026-06-19T23:50:10.124Z"
-last_activity: 2026-06-19 — Phase 3 complete: migration 170 self-cleaning sweep (fcbf951) operator-validated on prod-clone branch; VERIFICATION passed; SEC-02 Complete
+status: completed
+stopped_at: Phase 4 context gathered
+last_updated: "2026-06-20T00:45:59.077Z"
+last_activity: "2026-06-19 — Phase 3 complete: migration 170 (self-cleaning sweep, fcbf951) operator-validated on prod-clone branch (no duplication, anon-deny, own-only, public-read intact); 03-VERIFICATION.md passed; SEC-02 Complete"
 progress:
   total_phases: 10
   completed_phases: 3
@@ -97,9 +97,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-19T23:50:10.124Z
-Stopped at: Phase 3 complete — SEC-02 satisfied; awaiting decision on Phase 4
-Resume file: none — start Phase 4 via /gsd-discuss-phase 4 (or /gsd-plan-phase 4)
+Last session: 2026-06-20T00:45:59.074Z
+Stopped at: Phase 4 context gathered
+Resume file: .planning/phases/04-edge-dependency-pinning-script-guard/04-CONTEXT.md
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.
 

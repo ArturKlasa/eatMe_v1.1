@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
-import { PRIMARY_PROTEINS, type DishKind, type DishV2Input } from '@eatme/shared';
-import { KindSelector } from './KindSelector';
+import { PRIMARY_PROTEINS, type DishV2Input } from '@eatme/shared';
 import { BundleItemsSection } from './BundleItemsSection';
 import { ConfigurableSlotsSection } from './ConfigurableSlotsSection';
 import { CourseEditorSection } from './CourseEditorSection';
@@ -16,7 +15,6 @@ export type DishFormValues = {
   description: string;
   price: number;
   primary_protein: (typeof PRIMARY_PROTEINS)[number];
-  dish_kind: DishKind;
   is_template: boolean;
   display_price_prefix: 'exact' | 'from' | 'per_person' | 'market_price' | 'ask_server';
   serves: number;
@@ -57,7 +55,6 @@ const DEFAULT_VALUES: DishFormValues = {
   description: '',
   price: 0,
   primary_protein: 'chicken',
-  dish_kind: 'standard',
   is_template: false,
   display_price_prefix: 'exact',
   serves: 1,
@@ -69,7 +66,16 @@ const DEFAULT_VALUES: DishFormValues = {
 };
 
 function buildDishInput(values: DishFormValues): DishV2Input {
-  const base = {
+  // Flat schema (Phase 3 collapsed the kind discriminated union; Phase 6
+  // DEBT-03 removed the legacy kind shim entirely). Every dish is one flat row.
+  // The kind discriminator is no longer emitted — the schema field is optional,
+  // so omitting it validates. `modifier_groups` / `bundled_items` default in the
+  // schema and are intentionally NOT mapped from the form here: their form-side
+  // shapes (slots / bundle_items / courses) diverge from the persisted modifier
+  // schema and were only ever passed through an `as any` cast. Wiring them is
+  // deferred to v2 revival (the app is on-ice); the modifier-section UI below
+  // still captures the data into form state for that future work.
+  return {
     name: values.name,
     description: values.description || undefined,
     price: values.price,
@@ -78,36 +84,8 @@ function buildDishInput(values: DishFormValues): DishV2Input {
     serves: values.serves,
     is_available: values.is_available,
     dish_category_id: values.dish_category_id || undefined,
+    is_template: values.is_template,
   };
-
-  // Flat schema (Phase 3 collapsed the dish_kind discriminated union). The
-  // form still tracks the old kind for legacy UI affordances during the v2
-  // pause; on submit we map to the flat shape using modifier_groups +
-  // bundled_items + dining_format. This whole switch should be revisited when
-  // v2 revival starts — the kind concept no longer drives shape.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const v = values as any;
-  switch (v.dish_kind) {
-    case 'bundle':
-      return { ...base, dish_kind: 'bundle', bundled_items: v.bundle_items ?? [] };
-    case 'configurable':
-      return {
-        ...base,
-        dish_kind: 'configurable',
-        is_template: v.is_template,
-        modifier_groups: v.slots ?? [],
-      };
-    case 'course_menu':
-      // Courses no longer exist as a top-level shape — they're modeled as
-      // sequential single-choice modifier groups now. Pass through any legacy
-      // courses[] as modifier_groups for shape parity until UI is rebuilt.
-      return { ...base, dish_kind: 'course_menu', modifier_groups: v.courses ?? [] };
-    case 'buffet':
-      return { ...base, dish_kind: 'buffet' };
-    case 'standard':
-    default:
-      return { ...base, dish_kind: 'standard' };
-  }
 }
 
 export function DishForm({
@@ -125,13 +103,9 @@ export function DishForm({
   const {
     register,
     control,
-    watch,
-    setValue,
     handleSubmit,
     formState: { errors },
   } = methods;
-
-  const dishKind = watch('dish_kind');
 
   const handleFormSubmit = (values: DishFormValues) => {
     setFormError(null);
@@ -220,38 +194,26 @@ export function DishForm({
           </select>
         </div>
 
-        {/* Dish kind */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Dish kind</label>
-          <div data-testid="dish-kind">
-            <KindSelector value={dishKind} onChange={kind => setValue('dish_kind', kind)} />
-          </div>
+        {/* Reusable template flag (flat form — no longer kind-gated) */}
+        <div className="flex items-center gap-2">
+          <input
+            {...register('is_template')}
+            type="checkbox"
+            id="is_template"
+            className="h-4 w-4"
+            data-testid="dish-is-template"
+          />
+          <label htmlFor="is_template" className="text-sm">
+            Reusable template (excluded from consumer feed)
+          </label>
         </div>
 
-        {/* is_template — only for configurable */}
-        {dishKind === 'configurable' && (
-          <div className="flex items-center gap-2">
-            <input
-              {...register('is_template')}
-              type="checkbox"
-              id="is_template"
-              className="h-4 w-4"
-              data-testid="dish-is-template"
-            />
-            <label htmlFor="is_template" className="text-sm">
-              Reusable template (excluded from consumer feed)
-            </label>
-          </div>
-        )}
-
-        {/* Kind-specific sections */}
-        {dishKind === 'bundle' && <BundleItemsSection />}
-        {dishKind === 'configurable' && (
-          <ConfigurableSlotsSection control={control} register={register} />
-        )}
-        {dishKind === 'course_menu' && (
-          <CourseEditorSection control={control} register={register} />
-        )}
+        {/* Modifier sections — rendered unconditionally now that the kind
+            discriminator is gone. Captured data is not yet mapped on submit (deferred to v2
+            revival); see buildDishInput. */}
+        <BundleItemsSection />
+        <ConfigurableSlotsSection control={control} register={register} />
+        <CourseEditorSection control={control} register={register} />
 
         {/* Serves */}
         <div className="w-32">

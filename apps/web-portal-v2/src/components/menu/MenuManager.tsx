@@ -164,13 +164,10 @@ export function MenuManager({ restaurantId, menus: initialMenus }: MenuManagerPr
                                 id: result.data.id,
                                 name: input.name,
                                 price: input.price,
-                                dish_kind: input.dish_kind ?? 'standard',
+                                dish_kind: 'standard',
                                 primary_protein: input.primary_protein,
                                 status: 'draft',
-                                is_template:
-                                  input.dish_kind === 'configurable'
-                                    ? (input.is_template ?? false)
-                                    : false,
+                                is_template: input.is_template ?? false,
                                 is_available: input.is_available ?? true,
                               },
                             ],
@@ -204,10 +201,9 @@ export function MenuManager({ restaurantId, menus: initialMenus }: MenuManagerPr
                         ...d,
                         name: input.name,
                         price: input.price,
-                        dish_kind: input.dish_kind ?? 'standard',
+                        dish_kind: 'standard',
                         primary_protein: input.primary_protein,
-                        is_template:
-                          input.dish_kind === 'configurable' ? (input.is_template ?? false) : false,
+                        is_template: input.is_template ?? false,
                       }
                     : d
                 ),
@@ -329,7 +325,6 @@ export function MenuManager({ restaurantId, menus: initialMenus }: MenuManagerPr
                         defaultValues={{
                           name: dish.name,
                           price: dish.price,
-                          dish_kind: dish.dish_kind as DishV2Input['dish_kind'],
                           primary_protein: dish.primary_protein as DishV2Input['primary_protein'],
                           is_template: dish.is_template,
                           is_available: dish.is_available ?? true,

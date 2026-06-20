@@ -20,7 +20,7 @@
 // The downstream _trg_after_dish_embedded trigger handles recomputing the
 // restaurant centroid when embedding changes — not this function's concern.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { buildCorsHeaders } from '../_shared/cors.ts';
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';

@@ -9,7 +9,7 @@
 //     content quality + soft daily boosts (cuisine, price, calorie, spice)
 //     → diversity cap (max 3 per restaurant) → top N
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 // Pinned (not @latest) for deterministic cold starts — see §S8.
 import { Redis } from 'https://esm.sh/@upstash/redis@1.38.0';
 import { buildCorsHeaders } from '../_shared/cors.ts';

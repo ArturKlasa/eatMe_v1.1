@@ -18,7 +18,7 @@
 // Debounce: skips recomputation if preference_vector_updated_at < 5 minutes ago
 //           (avoids thrashing on rapid interactions)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

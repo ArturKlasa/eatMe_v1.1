@@ -12,7 +12,7 @@
 // The function calls update-preference-vector for each eligible user sequentially
 // with a small delay to avoid hammering the DB with parallel vector computations.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -12,8 +12,8 @@
 //   old_record: { ... }
 // }
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Redis } from 'https://esm.sh/@upstash/redis@latest';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { Redis } from 'https://esm.sh/@upstash/redis@1.38.0';
 import { buildCorsHeaders } from '../_shared/cors.ts';
 
 function getRedis(): Redis | null {

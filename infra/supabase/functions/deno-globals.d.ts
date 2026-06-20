@@ -17,23 +17,18 @@ declare module 'https://deno.land/std@0.168.0/http/server.ts' {
   export function serve(handler: (req: Request) => Response | Promise<Response>): void;
 }
 
-declare module 'https://esm.sh/@supabase/supabase-js@2' {
+declare module 'https://esm.sh/@supabase/supabase-js@2.39.3' {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export function createClient(url: string, key: string, options?: any): any;
 }
 
-declare module 'https://esm.sh/@upstash/redis@latest' {
+declare module 'https://esm.sh/@upstash/redis@1.38.0' {
   export class Redis {
     constructor(opts: { url: string; token: string });
     get(key: string): Promise<unknown>;
     set(key: string, value: unknown, opts?: { ex?: number }): Promise<unknown>;
     del(key: string): Promise<unknown>;
   }
-}
-
-declare module 'npm:@supabase/supabase-js@2' {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  export function createClient(url: string, key: string, options?: any): any;
 }
 
 declare module 'npm:openai@4' {

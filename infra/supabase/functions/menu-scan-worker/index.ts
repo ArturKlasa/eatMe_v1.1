@@ -7,7 +7,7 @@
 // menuScan.ts) immediately after the row is created. The pg_cron sweep
 // 'menu-scan-worker-tick' (migration 116b) was disabled 2026-05-03 — see that
 // migration's header for the recovery tradeoff.
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import OpenAI from 'npm:openai@4';
 import { zodResponseFormat } from 'npm:openai@4/helpers/zod';
 import { z } from 'npm:zod@3';

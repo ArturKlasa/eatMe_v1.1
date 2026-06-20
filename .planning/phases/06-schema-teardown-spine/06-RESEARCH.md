@@ -486,19 +486,19 @@ function buildDishInput(values: DishFormValues): DishV2Input {
 
 **These A1–A6 are the items discuss-phase/planner should confirm via the operator probe before locking the drop migration content.** A1–A4 resolve from one probe paste-back; A5 is verified; A6 is verified.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Are 151/152/153 already applied in prod?**
+1. **Are 151/152/153 already applied in prod?** — **RESOLVED:** handled by `IF EXISTS` idempotency + the Wave-4 operator probe. Plans 06-02/06-03 author all drops idempotent, so the answer changes only which statements are no-ops, not correctness; the operator probe (06-06) confirms actual state before apply.
    - What we know: F-01 says no; types.ts implies the *effect* is present; schema snapshot says no.
    - What's unclear: actual prod state.
    - Recommendation: operator probe resolves it; author IF-EXISTS idempotent drops so the answer doesn't change correctness, only which statements are no-ops.
 
-2. **Do `ingredient_concepts` / `ingredient_variants` / `ingredient_aliases_v2` / `concept_translations` / `variant_translations` exist in prod?**
+2. **Do `ingredient_concepts` / `ingredient_variants` / `ingredient_aliases_v2` / `concept_translations` / `variant_translations` exist in prod?** — **RESOLVED:** deferred to the operator probe by design. The probe's `ingredient_tables_present` + `archive_row_counts` answers presence and archive-worthiness before any drop; `to_regclass`-guarded snapshot (172) + `IF EXISTS` drops (173) handle either outcome.
    - What we know: created in 099; absent from snapshot; targeted by 152.
    - What's unclear: present or already gone.
    - Recommendation: probe's `ingredient_tables_present` + `archive_row_counts` answers both presence and whether they hold data worth archiving.
 
-3. **Does the planner fold in the migration-163-leftover `dish_kind` z.enum cleanup (validation + worker)?**
+3. **Does the planner fold in the migration-163-leftover `dish_kind` z.enum cleanup (validation + worker)?** — **RESOLVED:** out of scope for Phase 6. Those literals are independent of the `DishKind` symbol and fall outside SC3/SC4; plan 06-04 explicitly excludes them. Left for a later cleanup.
    - What we know: those literals are independent of DishKind symbol and out of SC3/SC4 strict scope.
    - Recommendation: leave out of this phase unless explicitly chosen (Claude's discretion); flag, don't auto-include.
 

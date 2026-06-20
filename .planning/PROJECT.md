@@ -29,6 +29,9 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 - ✓ RLS codified on the 11 behavioral tables — migration 170 name-agnostic policy sweep (30 InitPlan-form policies + 7 owner indexes, one BEGIN/COMMIT, operator-validated on a prod-clone) — validated in Phase 3 (SEC-02)
 - ✓ Edge functions on pinned, non-deprecated deps — native `Deno.serve` (no `std@0.168.0` serve), exact `@supabase/supabase-js@2.39.3` + `@upstash/redis@1.38.0` + `jsr:@std/assert@1.0.19` — validated in Phase 4 (DEBT-05)
 - ✓ `infra/scripts` prod-write guard — shared `lib/prod-guard.ts` (default-dry-run, `--apply` sole write trigger, announces target project ref, fails loud on malformed `--limit`); all 8 write scripts wired — validated in Phase 4 (SEC-03)
+- ✓ Map restaurant-view-mode dead code removed — `viewModeStore` / `ViewModeToggle` / `RestaurantMarkers` deleted, `BasicMapScreen` collapsed to the dish-only marker path, zero residue, mobile `tsc` green (on-device UI confirmation pending) — validated in Phase 5 (CLEAN-01)
+- ✓ Residual `apps/web-portal` references purged from agent-facing docs — 7 docs retargeted to current reality (`apps/admin` active, `apps/web-portal-v2` on ice); zero live imports; `web-portal-v2` + provenance refs preserved — validated in Phase 5 (CLEAN-02)
+- ✓ `enrich-dish` header comment corrected to match actual load logic (dish + option groups + restaurant cuisine), migration-151 trigger language preserved — validated in Phase 5 (CLEAN-03)
 
 ### Active
 
@@ -42,15 +45,15 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 
 - [x] Audit RLS on behavioral tables (`favorites`, `dish_opinions`, `user_dish_interactions`, `user_behavior_profiles`, `dish_analytics`, etc.); add owner policies where missing — Phase 3 (SEC-02)
 - [x] Add a prod-write guard to `infra/scripts` (require explicit `--dry-run` clearance before any write path) — Phase 4 (SEC-03)
-- [ ] Remove the dead map restaurant-view-mode branch (`viewModeStore` / `ViewModeToggle` / `BasicMapScreen`)
-- [ ] Verify the `apps/web-portal` deletion is clean and finish residual cleanup (stale doc references)
+- [x] Remove the dead map restaurant-view-mode branch (`viewModeStore` / `ViewModeToggle` / `BasicMapScreen`) — Phase 5 (CLEAN-01)
+- [x] Verify the `apps/web-portal` deletion is clean and finish residual cleanup (stale doc references) — Phase 5 (CLEAN-02)
 
 **Debt & dependency cleanup**
 
 - [ ] Ingredient-pipeline teardown — Phase B (drop inert triggers), then Phase C (drop orphaned schema)
 - [ ] Surgical DishKind removal — drop `DishKind`/`DISH_KIND_META` usage from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then delete the shims + `dish-kinds.test.ts` from `@eatme/shared`
 - [ ] Regenerate `@eatme/database` types after recent migrations; commit the slimmed file
-- [ ] Fix stale `enrich-dish` header comments (no ingredient/parent-dish references)
+- [x] Fix stale `enrich-dish` header comments (no ingredient/parent-dish references) — Phase 5 (CLEAN-03)
 - [x] Pin edge-function deps — Deno std and `@supabase/supabase-js` to exact versions — Phase 4 (DEBT-05)
 
 **Performance & scaling**
@@ -123,4 +126,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-20 after Phase 4 (Edge Dependency Pinning & Script Guard) completion*
+*Last updated: 2026-06-20 after Phase 5 (Dead Code & Doc Cleanup) completion — CLEAN-01/02/03 validated; one on-device UI check (CLEAN-01) pending in 05-HUMAN-UAT.md*

@@ -12,11 +12,17 @@
  * no option group with the same target name may already exist (idempotent re-runs).
  *
  * Usage:  cd infra/scripts
- *         pnpm exec ts-node apply-phase6-flag-fixes.ts --dry-run   # report only
- *         pnpm exec ts-node apply-phase6-flag-fixes.ts --apply     # write to prod
+ *         pnpm exec ts-node apply-phase6-flag-fixes.ts            # report only (DEFAULT dry-run)
+ *         pnpm exec ts-node apply-phase6-flag-fixes.ts --apply    # write to prod
+ *
+ * CLI contract (SEC-03, shared prod-guard): defaults to dry-run (unchanged
+ * behavior — this script was already default-dry-run); now sources that contract
+ * from the shared ./lib/prod-guard helper. `--apply` writes; `--dry-run` is an
+ * accepted no-op. The target project ref is announced before any write.
  */
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!) as any;
 
@@ -449,11 +455,9 @@ const FIXES: Fix[] = [
 ];
 
 async function main() {
-  const apply = process.argv.includes('--apply');
-  const dryRun = process.argv.includes('--dry-run') || !apply;
-  console.log(
-    `\n=== Phase 6 flag fixes — ${dryRun ? 'DRY RUN (no writes)' : '⚠ APPLYING to ' + process.env.SUPABASE_URL} — ${FIXES.length} fixes ===\n`
-  );
+  const { dryRun, projectRef } = parseGuard();
+  announceTarget({ dryRun, projectRef });
+  console.log(`Phase 6 flag fixes — ${FIXES.length} fixes queued\n`);
 
   let ok = 0,
     skipped = 0,

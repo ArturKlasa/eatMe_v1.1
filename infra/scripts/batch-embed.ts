@@ -10,7 +10,15 @@
  * has been deployed.
  *
  * Usage (from project root):
- *   pnpm ts-node infra/scripts/batch-embed.ts
+ *   pnpm ts-node infra/scripts/batch-embed.ts            # DEFAULT dry-run preview (no writes)
+ *   pnpm ts-node infra/scripts/batch-embed.ts --apply    # apply (writes to LIVE prod)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * This is a NET-NEW safety gate — before this it wrote to prod on a bare run.
+ * No flag means no writes: the per-dish enrich calls (which write embeddings via
+ * the edge function) and the ANALYZE / restaurant-vector RPCs are all skipped
+ * unless `--apply` is passed. `--dry-run` is accepted as an affirming no-op. The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Environment variables (can be in a .env file at project root):
  *   SUPABASE_URL              — e.g. https://abcdefgh.supabase.co
@@ -29,6 +37,7 @@
 
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +46,10 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const ENRICH_DISH_URL = process.env.ENRICH_DISH_URL ?? '';
 const BATCH_CONCURRENCY = parseInt(process.env.BATCH_CONCURRENCY ?? '5', 10);
 const BATCH_DELAY_MS = parseInt(process.env.BATCH_DELAY_MS ?? '1000', 10);
+
+// Net-new default-dry-run gate via the shared prod-guard (SEC-03, D-11): the
+// enrich fetch loop and the two writing RPCs only run with --apply.
+const { dryRun, projectRef } = parseGuard();
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !ENRICH_DISH_URL) {
   console.error(
@@ -120,6 +133,7 @@ async function processBatch(batch: DishSummary[]): Promise<EnrichResult[]> {
 
 async function main(): Promise<void> {
   console.log('🚀  EatMe batch-embed starting');
+  announceTarget({ dryRun, projectRef });
   console.log(`   ENRICH_DISH_URL:  ${ENRICH_DISH_URL}`);
   console.log(`   Concurrency:      ${BATCH_CONCURRENCY}`);
   console.log(`   Delay between batches: ${BATCH_DELAY_MS}ms\n`);
@@ -144,6 +158,24 @@ async function main(): Promise<void> {
   }
 
   console.log(`📋  Found ${total} dishes to embed (status: none | failed)\n`);
+
+  // ── DRY RUN: report what WOULD run, then stop before any write ────────────
+  // The enrich calls below write embeddings via the edge function, and the two
+  // RPCs (run_analyze_dishes, update_restaurant_vector) mutate prod — so the
+  // entire write path is gated behind --apply.
+  if (dryRun) {
+    const { count: activeRestaurants } = await supabase
+      .from('restaurants')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+    console.log(`   Would enrich ${total} dish(es) via ${ENRICH_DISH_URL}`);
+    console.log('   Would run ANALYZE dishes (run_analyze_dishes RPC)');
+    console.log(
+      `   Would update restaurant vectors for ${activeRestaurants ?? '?'} active restaurant(s)`
+    );
+    console.log('\n   Re-run with --apply to write these changes.');
+    return;
+  }
 
   let succeeded = 0;
   let failed = 0;

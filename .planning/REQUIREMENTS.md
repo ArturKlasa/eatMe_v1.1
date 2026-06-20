@@ -85,7 +85,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | SEC-01 | Phase 2 | Complete |
 | SEC-02 | Phase 3 | Complete |
 | SEC-03 | Phase 4 | Complete |
-| DEBT-05 | Phase 4 | Pending |
+| DEBT-05 | Phase 4 | Complete |
 | CLEAN-01 | Phase 5 | Pending |
 | CLEAN-02 | Phase 5 | Pending |
 | CLEAN-03 | Phase 5 | Pending |

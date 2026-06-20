@@ -6,12 +6,20 @@
 -- mobile client depends on RLS for per-user data isolation.
 --
 -- This drops exactly what 170 created: the 7 single-column idx_<table>_user_id
--- indexes and every policy 170 added, then disables RLS on the 11 tables
+-- indexes and the canonical policy set, then disables RLS on the 11 tables
 -- (reverse order of the forward file).
 --
--- NOTE: the three pre-existing 076 composite indexes (leading owner column) are
--- intentionally NOT dropped -- migration 170 did not create them; dropping them
--- would regress feed performance (Pitfall 4).
+-- ROLLBACK SEMANTICS: 170's forward step SWEEPS prod's original out-of-band
+-- policies and replaces them with the canonical set. This reverse therefore
+-- rolls back to NO-RLS (canonical policies dropped + RLS disabled); it does NOT
+-- restore the original out-of-band policies (they were intentionally retired by
+-- the codification). Controlled-rollback only.
+--
+-- NOTE: the pre-existing owner-lookup indexes that back favorites
+-- (favorites_user_subject_unique, migration 154), session_views and
+-- user_dish_interactions (the 076 composites) are intentionally NOT dropped --
+-- migration 170 did not create them; dropping them would regress feed
+-- performance (Pitfall 4).
 
 BEGIN;
 

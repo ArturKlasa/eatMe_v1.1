@@ -1,9 +1,9 @@
 ---
 phase: 6
 slug: schema-teardown-spine
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: planned
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-20
 ---
 
@@ -42,10 +42,16 @@ created: 2026-06-20
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 6-XX-XX | XX | 1 | DEBT-01 | — | inert triggers/functions dropped; pre-flight clean | grep + operator probe | `git grep -nE "dish_ingredients\|canonical_ingredient" -- apps/ infra/supabase/functions/` (zero) | ✅ existing tooling | ⬜ pending |
-| 6-XX-XX | XX | 2 | DEBT-02 | — | tables+columns dropped child→parent RESTRICT; deps audited; snapshot first | operator probe + dep-audit + verify script | LIVE-STATE PROBE + DEP-AUDIT (paste-back) + `verify-phase6-teardown.ts` | ❌ W0: write `verify-phase6-teardown.ts` | ⬜ pending |
-| 6-XX-XX | XX | 1 | DEBT-03 | — | DishKind/DISH_KIND_META gone; v2 importers first; zero importers | grep + check-types | `git grep -nE "DishKind\|DISH_KIND_META" -- apps/ packages/ ':!**/.next/**'` (zero) + `turbo check-types` | ✅ existing tooling | ⬜ pending |
-| 6-XX-XX | XX | 3 | DEBT-04 | — | types.ts has no dropped objects; edge enums reconciled; check-types passes | grep + check-types | residue grep (expect zero) + `turbo check-types` | ✅ existing tooling | ⬜ pending |
+| 06-01-T1 | 06-01 | 1 | DEBT-01/02 | T-06-01/02 | read-only REST verify script (GONE/STILL-EXISTS) exists; writes nothing | tsc + grep | `tsc --noEmit --skipLibCheck` on the script + grep for createClient/full-table-list/read-only banner | ❌→✅ W0: this plan writes `verify-phase6-teardown.ts` | ⬜ pending |
+| 06-02-T1 | 06-02 | 1 | DEBT-01 | T-06-03/05 | inert triggers/functions dropped; pre-flight clean; zero CASCADE | grep + operator probe | `git grep -nE "dish_ingredients_refresh\|trg_dish_ingredients_refresh\|refresh_dish_dietary" -- 'apps/**' 'infra/supabase/functions/**'` (zero) + `grep -c "DROP TRIGGER IF EXISTS" 171...` =3 + zero CASCADE | ✅ existing tooling | ⬜ pending |
+| 06-02-T2 | 06-02 | 1 | DEBT-01 | T-06-04 | degenerate REVERSE — no recreation of 156-broken functions | grep | `grep -v '^--' 171_REVERSE... \| grep -cE "CREATE FUNCTION\|CREATE TRIGGER"` =0 | ✅ existing tooling | ⬜ pending |
+| 06-03-T1 | 06-03 | 2 | DEBT-02 | T-06-06/07/08/09 | snapshot-first (non-public schema); options FK sever first; RESTRICT child→parent; zero CASCADE | grep | `grep -cE "\bCASCADE\b" 173...` =0 + `grep -c RESTRICT 173...` ≥10 + `CREATE SCHEMA IF NOT EXISTS ingredient_archive` present + FK-sever precedes first DROP TABLE | ✅ existing tooling | ⬜ pending |
+| 06-03-T2 | 06-03 | 2 | DEBT-02 | T-06-06 | dead override columns dropped; options FK not re-dropped; reverse re-adds | grep | `grep -c "DROP COLUMN IF EXISTS" 174...` =2 + canonical_ingredient_id count =0 + reverse ADD COLUMN =2 | ✅ existing tooling | ⬜ pending |
+| 06-04-T1 | 06-04 | 1 | DEBT-03 | T-06-10/12 | v2 severed FIRST (KindSelector deleted, DishForm flat, MenuManager reconciled) | grep + tsc | `test ! -f KindSelector.tsx` + v2 DishKind grep zero + `cd apps/web-portal-v2 && npx tsc --noEmit` | ✅ existing tooling | ⬜ pending |
+| 06-04-T2 | 06-04 | 1 | DEBT-03 | T-06-10/11 | shims + test deleted from @eatme/shared; DINING_FORMATS kept; zero importers | grep + check-types | `git grep -nE "\bDishKind\b\|\bDISH_KIND_META\b" -- 'apps/**' 'packages/**' ':!**/.next/**'` (zero) + `turbo check-types` | ✅ existing tooling | ⬜ pending |
+| 06-05-T1 | 06-05 | 3 | DEBT-04 | T-06-13/14/15 | types.ts residue-free; edge enums reconciled (no-op for ingredients); check-types passes | grep + check-types | residue grep on types.ts (expect zero) + edge-fn grep (comments only) + `turbo check-types` | ✅ existing tooling | ⬜ pending |
+| 06-06-T1 | 06-06 | 4 | DEBT-01/02 | T-06-16..19 | operator runbook bundles probe+dep-audit, apply order, post-apply verify | grep (doc) | `grep -q phase6_probe/phase6_depaudit/verify-phase6-teardown/superseded` in 06-OPERATOR-HANDOFF.md | ✅ existing tooling | ⬜ pending |
+| 06-06-T2 | 06-06 | 4 | DEBT-01/02 | T-06-16..19 | BLOCKING operator apply-and-verify gate (paste-back clean post-apply probe) | manual (operator) | operator paste-back: verify-phase6-teardown.ts all GONE + re-run probe all-empty | manual (stage-don't-apply) | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,8 +59,8 @@ created: 2026-06-20
 
 ## Wave 0 Requirements
 
-- [ ] `infra/scripts/verify-phase6-teardown.ts` — read-only REST probe mirroring `infra/scripts/verify-phase7.ts`; asserts each dropped table/column errors on `select` (= GONE). Covers DEBT-01 / DEBT-02 post-apply verification. Wire through `infra/scripts/lib/prod-guard.ts`.
-- [ ] (No test-framework install needed — DDL drops are validated by operator probe + verify script, not unit tests; consistent with the project's stage-don't-apply DB posture.)
+- [x] `infra/scripts/verify-phase6-teardown.ts` — read-only REST probe mirroring `infra/scripts/verify-phase7.ts`; asserts each dropped table/column errors on `select` (= GONE). Covers DEBT-01 / DEBT-02 post-apply verification. **Authored by plan 06-01 (Wave 1).** NOTE: it is READ-ONLY, so it is NOT wired through `prod-guard.ts` (the guard is for write scripts; PATTERNS.md explicitly warns against wiring it into a read-only script).
+- [x] (No test-framework install needed — DDL drops are validated by operator probe + verify script, not unit tests; consistent with the project's stage-don't-apply DB posture.)
 
 ---
 
@@ -69,11 +75,11 @@ created: 2026-06-20
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify (grep / check-types / verify-script) or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers the verify-phase6-teardown.ts MISSING reference
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s (in-repo gates)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify (grep / check-types / verify-script) or Wave 0 dependencies (06-06-T2 is the one operator-manual gate — stage-don't-apply, documented in Manual-Only Verifications)
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify (only the final operator gate is manual)
+- [x] Wave 0 covers the verify-phase6-teardown.ts MISSING reference (plan 06-01)
+- [x] No watch-mode flags (all gates are run-once: grep, tsc --noEmit, turbo check-types)
+- [x] Feedback latency < 30s (in-repo gates; operator probe is out-of-band by design)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (planner) 2026-06-20

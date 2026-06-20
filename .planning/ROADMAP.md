@@ -127,7 +127,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `DishKind` / `DISH_KIND_META` usage is removed from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`) FIRST, then the shims + `dish-kinds.test.ts` are deleted from `@eatme/shared`, verified by a consumer grep showing zero remaining importers
   4. DB types are regenerated ONCE after the teardown migrations, the slimmed `types.ts` no longer contains the dropped tables/columns, inline edge-function enum copies are reconciled, and `turbo check-types` passes across all apps
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+- [ ] 06-01-PLAN.md — [Wave 1] Author `verify-phase6-teardown.ts` read-only REST probe (Wave-0 asset; DEBT-01/02 post-apply check)
+- [ ] 06-02-PLAN.md — [Wave 1] Reconciled Phase B trigger/function drop (migration 171 + degenerate REVERSE), git-grep pre-flight (DEBT-01)
+- [ ] 06-03-PLAN.md — [Wave 2] Phase C: ingredient_archive snapshot (172) + RESTRICT table drop with options FK-sever (173) + column drop (174), all + REVERSEs (DEBT-02)
+- [ ] 06-04-PLAN.md — [Wave 1] DishKind shim removal: sever web-portal-v2 first, then delete shims + test from @eatme/shared, zero-importer grep (DEBT-03)
+- [ ] 06-05-PLAN.md — [Wave 3] Verify types.ts residue-free + edge-enum reconciliation no-op + turbo check-types (DEBT-04)
+- [ ] 06-06-PLAN.md — [Wave 4] BLOCKING operator apply-and-verify handoff (LIVE-STATE PROBE + pg_depend audit + apply order + post-apply verify) — replaces the CLI schema-push (DEBT-01/02)
 
 ### Phase 7: Performance & Cache
 
@@ -201,7 +208,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. RLS Hardening | 1/1 | Complete | 2026-06-19 |
 | 4. Edge Dependency Pinning & Script Guard | 3/3 | Complete | 2026-06-20 |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |
-| 6. Schema Teardown Spine | 0/TBD | Not started | - |
+| 6. Schema Teardown Spine | 0/6 | Planned | - |
 | 7. Performance & Cache | 0/TBD | Not started | - |
 | 8. Mobile Filter Store Refactor | 0/TBD | Not started | - |
 | 9. Mobile Map & Modal Refactor | 0/TBD | Not started | - |

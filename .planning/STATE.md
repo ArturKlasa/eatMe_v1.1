@@ -2,18 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 04
-current_phase_name: edge-dependency-pinning-script-guard
-status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-06-20T05:21:53.053Z"
+status: verifying
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-06-20T05:29:48.830Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 10
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
-  percent: 30
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -29,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 
 Phase: 04 (edge-dependency-pinning-script-guard) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-20
 
 Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
@@ -61,6 +59,7 @@ Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
 | Phase 03 P01 | ~2h* | 3 tasks | 2 files | (*incl. 2 operator validation rounds) |
 | Phase 04 P01 | 4min | 3 tasks | 11 files |
 | Phase 04 P02 | 14min | 2 tasks | 3 files |
+| Phase 04 P03 | 12min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -78,6 +77,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Plan 02-02: feed/enrich-dish/invalidate-cache wired to ../_shared/cors.ts (per-request buildCorsHeaders first line); README updated; operator deployed all 3 + SC#1/SC#2/SC#3 PASS — SEC-01 closed. Phase 4 serve→Deno.serve must preserve the per-request corsHeaders line + the cors.ts import.
 - Edge deps: esm.sh exact-pin chosen over roadmap-literal JSR for supabase-js (D-05, prefer-incumbent); jsr:@std/assert@1.0.19 is the sole unavoidable jsr: specifier
 - [Phase 04]: Plan 04-02: prod-guard.ts parseGuard(argv) returns { dryRun, apply, projectRef, limit }; dryRun=!apply (--apply sole write trigger), --dry-run accepted no-op, --limit=N returned untouched. projectRef from SUPABASE_URL host (no SUPABASE_PROJECT_REF env), '(unknown)' sentinel, never throws. Runner: `node --test --require ts-node/register` (CJS) — --import ESM form breaks on Node16 extensionless imports. test:guard green 8/8; SEC-03 foundation laid. Plan 04-03 wires the 8 write scripts to parseGuard+announceTarget.
+- All 8 infra/scripts prod-write paths gated by the shared prod-guard (default dry-run, --apply to write, announce project ref); batch-embed got a net-new gate; read-only scripts untouched (SEC-03 closed)
 
 ### Pending Todos
 
@@ -103,8 +103,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T05:21:36.155Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-06-20T05:29:41.576Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.

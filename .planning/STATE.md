@@ -8,10 +8,10 @@ last_updated: "2026-06-20T05:29:48.830Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 4
   total_plans: 10
   completed_plans: 10
-  percent: 50
+  percent: 40
 ---
 
 # Project State
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 04 — edge-dependency-pinning-script-guard
+**Current focus:** Phase 05 — dead-code-&-doc-cleanup (Phase 04 complete; operator deploy smoke-test pending in 04-HUMAN-UAT.md)
 
 ## Current Position
 
@@ -30,7 +30,7 @@ Plan: Not started
 Status: Ready to plan
 Last activity: 2026-06-20
 
-Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
+Progress (milestone): [████░░░░░░] 40% (4/10 phases)
 
 ## Performance Metrics
 

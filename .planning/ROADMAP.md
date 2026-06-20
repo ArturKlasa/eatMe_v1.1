@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Assessment & Findings Register** - Verify every finding against live code + prod state; verdict each (confirmed / stale / resolved) — completed 2026-06-19
 - [x] **Phase 2: CORS Lockdown** - Restrict `feed` / `enrich-dish` / `invalidate-cache` CORS to an allowlist without breaking the native client or admin preflight (completed 2026-06-19)
 - [x] **Phase 3: RLS Hardening** - Enable RLS + atomic owner policies on all behavioral tables, InitPlan-safe and indexed (completed 2026-06-19)
-- [ ] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts`
+- [x] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts` (completed 2026-06-20)
 - [ ] **Phase 5: Dead Code & Doc Cleanup** - Remove the dead map view-mode branch, verify the web-portal deletion, and fix stale comments/docs
 - [ ] **Phase 6: Schema Teardown Spine** - Sequenced ingredient teardown (B triggers → C tables → C columns), DishKind shim removal, single type regen
 - [ ] **Phase 7: Performance & Cache** - Tiered-radius candidate fix, Stage-2 payload reduction, and widened cache-invalidation event coverage
@@ -198,8 +198,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
 | 2. CORS Lockdown | 2/2 | Complete    | 2026-06-19 |
-| 3. RLS Hardening | 0/1 | Not started | - |
-| 4. Edge Dependency Pinning & Script Guard | 2/3 | In Progress|  |
+| 3. RLS Hardening | 1/1 | Complete | 2026-06-19 |
+| 4. Edge Dependency Pinning & Script Guard | 3/3 | Complete | 2026-06-20 |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |
 | 6. Schema Teardown Spine | 0/TBD | Not started | - |
 | 7. Performance & Cache | 0/TBD | Not started | - |

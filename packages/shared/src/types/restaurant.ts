@@ -15,16 +15,6 @@ export interface Location {
   lng: number;
 }
 
-/**
- * Canonical 5-value dish composition kind.
- *
- * @deprecated since 2026-05-18 (dish-model rewrite Phase 3). The `dish_kind`
- * column is being collapsed into a flat model with optional `modifier_groups` +
- * `dining_format`. Phase 7 drops the column. Existing call sites kept through
- * the transition; do not add new ones.
- */
-export type DishKind = 'standard' | 'bundle' | 'configurable' | 'course_menu' | 'buffet';
-
 /** Publishing / curation state for a dish. */
 export type DishStatus = 'published' | 'draft' | 'archived';
 
@@ -115,7 +105,7 @@ export interface DishCategory {
  * A menu item.
  *
  * The dish-model rewrite (2026-05-17) is collapsing parent/variant relationships,
- * `dish_kind` discriminators, and `dish_courses` into a single flat model where
+ * kind discriminators, and `dish_courses` into a single flat model where
  * every dish is one row with optional `modifier_groups` + `dining_format`. New
  * fields are additive; legacy fields below are `@deprecated` and will be removed
  * in Phase 7.
@@ -163,12 +153,6 @@ export interface Dish {
   available_until?: string | null;
 
   // ── Legacy fields scheduled for removal in Phase 7 ─────────────────────────
-  /**
-   * @deprecated Phase 7 removes `dish_kind`. Use `modifier_groups` for choices and
-   * `dining_format` for experience-style dishes. Kept through the Phase 2→4 window
-   * so the existing admin review UI keeps rendering.
-   */
-  dish_kind?: DishKind;
   /** @deprecated Phase 6 collapses variants into option_groups. Phase 7 drops the column. */
   parent_dish_id?: string | null;
   /** @deprecated Phase 6 collapses parents. Phase 7 drops the column. */

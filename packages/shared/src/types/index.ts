@@ -1,6 +1,5 @@
 export type {
   Location,
-  DishKind,
   DishStatus,
   RestaurantStatus,
   MenuStatus,

@@ -12,25 +12,6 @@ export const MENU_CATEGORIES = [
 export type MenuCategory = (typeof MENU_CATEGORIES)[number]['value'];
 
 /**
- * Metadata for the 5 canonical dish kinds.
- *
- * @deprecated since 2026-05-18 (dish-model rewrite Phase 3). The `dish_kind`
- * column is being collapsed into a flat dish model with optional `modifier_groups`
- * and `dining_format`. Phase 4 migrates the admin review UI to consume modifier
- * groups; Phase 7 drops `dishes.dish_kind` from the DB. Until then, this metadata
- * is still consumed by admin/worker code paths. Do not add new call sites — use
- * `DINING_FORMATS` for dining-experience labelling and `modifier_groups` for
- * choices.
- */
-export const DISH_KIND_META = {
-  standard: { label: 'Standard', description: 'Single fixed dish', icon: '🍽️' },
-  bundle: { label: 'Bundle', description: 'N items together at one price', icon: '🎁' },
-  configurable: { label: 'Configurable', description: 'Customer selects from slots', icon: '🔧' },
-  course_menu: { label: 'Course Menu', description: 'Multi-course sequenced', icon: '🍷' },
-  buffet: { label: 'Buffet', description: 'Flat-rate unlimited access', icon: '🍱' },
-} as const;
-
-/**
  * Dining-format UX hint for dishes that are dining experiences rather than
  * regular plated dishes. Persisted to `dishes.dining_format` (migration 141).
  * Null for standard dishes.

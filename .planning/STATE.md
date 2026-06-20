@@ -6,14 +6,14 @@ current_phase: 06
 current_phase_name: schema-teardown-spine
 status: executing
 stopped_at: Phase 6 context gathered
-last_updated: "2026-06-20T20:00:21.981Z"
+last_updated: "2026-06-20T20:36:28.566Z"
 last_activity: 2026-06-20
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 06 (schema-teardown-spine) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-06-20 -- Phase 06 execution started
 
@@ -69,6 +69,7 @@ Progress (milestone): [████░░░░░░] 40% (4/10 phases)
 | Phase 06 P02 | 4min | 2 tasks | 2 files |
 | Phase 06 P04 | 20min | 2 tasks | 7 files |
 | Phase 06 P03 | 8min | 2 tasks | 5 files |
+| Phase 06 P05 | 3min | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Plan 06-02: migration 171 (reconciled Phase B drop) supersedes 151 per D-06 — reuses 151 IF EXISTS forward-drop set (3 triggers + 5 functions), NOT 151 broken REVERSE; REVERSE degenerate/marker-only (152 precedent) since compute_dish_dietary_tags/refresh_dish_dietary reference 156-dropped objects. SC1 grep clean (only apps/rough-idea.md prose). Authored+dry-run only; apply exactly one of {151,171} per 06-06 handoff.
 - [Phase ?]: 06-04: buildDishInput omits dish_kind + modifier arrays (form shapes diverge from persisted schema); modifier wiring deferred to v2 revival
 - [Phase ?]: 06-04: severed-first shim teardown pattern — delete app importers, then delete shared symbol, gated by zero-importer grep + check-types
+- [Phase ?]: Plan 06-05: DEBT-04 satisfied by VERIFICATION not edit — types.ts already slimmed (zero dropped-object residue grep, overturns F-07/F-15); D-10 edge-fn inline-enum is a clean no-op (no ingredient enum copies); turbo check-types green across admin+web-portal-v2 (SC4).
 
 ### Pending Todos
 
@@ -116,7 +118,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T19:59:49.524Z
+Last session: 2026-06-20T20:36:11.090Z
 Stopped at: Phase 6 context gathered
 Resume file: --resume-file
 

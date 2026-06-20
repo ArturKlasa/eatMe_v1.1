@@ -93,7 +93,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `infra/scripts` write paths default to dry-run and refuse to mutate prod without an explicit confirmation flag, print the target project ref before any mutation, and preserve the existing dry-run → sample → full workflow
   4. Each migrated function compiles in the local edge runtime and its Deno tests pass (`deno test --node-modules-dir=none -A`); the operator smoke-tests one real call per function on deploy
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [ ] 04-01-PLAN.md — Track A (DEBT-05): serve→Deno.serve (7 fns), pin supabase-js@2.39.3 + upstash@1.38.0 (8 fns), asserts→jsr:@std/assert@1.0.19, deno-globals shim lockstep [Wave 1]
+- [ ] 04-02-PLAN.md — Track B (SEC-03): create shared `infra/scripts/lib/prod-guard.ts` (default-dry-run / --apply / announce-ref) + `node --test` guard test [Wave 1]
+- [ ] 04-03-PLAN.md — Track B (SEC-03): wire the 8 prod-write scripts to the guard (7 LIVE-default flips + batch-embed net-new gate + apply-phase6 refactor) [Wave 2, depends on 04-02]
 
 ### Phase 5: Dead Code & Doc Cleanup
 
@@ -195,7 +199,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Assessment & Findings Register | 4/4 | Complete | 2026-06-19 |
 | 2. CORS Lockdown | 2/2 | Complete    | 2026-06-19 |
 | 3. RLS Hardening | 0/1 | Not started | - |
-| 4. Edge Dependency Pinning & Script Guard | 0/TBD | Not started | - |
+| 4. Edge Dependency Pinning & Script Guard | 0/3 | Not started | - |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |
 | 6. Schema Teardown Spine | 0/TBD | Not started | - |
 | 7. Performance & Cache | 0/TBD | Not started | - |

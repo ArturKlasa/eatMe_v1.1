@@ -29,9 +29,10 @@ files_reviewed_list:
   - infra/supabase/functions/update-preference-vector/index.ts
 findings:
   critical: 0
-  warning: 3
+  warning: 2
   info: 4
-  total: 7
+  total: 6
+  resolved: ["WR-02"]
 status: issues_found
 ---
 
@@ -104,6 +105,9 @@ const { data, error } = await supabase
 ```
 
 ### WR-02: `--limit=N` with N≤0 is silently treated as "all" — a typo can run the full prod backfill
+
+**✅ RESOLVED** in commit `87240ec` — `parseGuard` now throws on a non-numeric/negative `--limit` (`--limit=0` stays an explicit "all"); 4 `node --test` cases added (12/12 pass).
+
 
 **File:** `infra/scripts/lib/prod-guard.ts:68-69`
 **Issue:** `const limit = limitArg ? parseInt(...) || 0 : 0;`. A non-numeric value

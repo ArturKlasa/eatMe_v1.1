@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: planning
 stopped_at: Phase 5 context gathered
-last_updated: "2026-06-20T06:21:03.001Z"
+last_updated: "2026-06-20T14:02:56.553Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 10
   completed_phases: 4
-  total_plans: 10
+  total_plans: 13
   completed_plans: 10
-  percent: 100
+  percent: 77
 ---
 
 # Project State
@@ -112,4 +112,4 @@ Resume file: --resume-file
 
 **Phase 3 deviation (for the record):** the plan's Task-1/Task-2 `<automated>` bare-`auth.uid()` gate regex `[^(]auth\.uid\(\)` is inverted — it matches the mandated InitPlan form `(select auth.uid())` and misses an actual bare `(auth.uid()` form. Verified the must_have truth with a corrected check (0 bare calls; 29/29 wrapped).
 
-**Planned Phase:** Phase 4 not yet planned.
+**Planned Phase:** 05 (dead-code-doc-cleanup) — 3 plans — 2026-06-20T14:02:56.543Z

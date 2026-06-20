@@ -12,7 +12,6 @@
 //   old_record: { ... }
 // }
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Redis } from 'https://esm.sh/@upstash/redis@latest';
 import { buildCorsHeaders } from '../_shared/cors.ts';
@@ -42,7 +41,7 @@ async function deleteByPattern(redis: Redis, pattern: string): Promise<number> {
   return deleted;
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const corsHeaders = buildCorsHeaders(req.headers.get('Origin'));
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

@@ -20,7 +20,6 @@
 // The downstream _trg_after_dish_embedded trigger handles recomputing the
 // restaurant centroid when embedding changes — not this function's concern.
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { buildCorsHeaders } from '../_shared/cors.ts';
 
@@ -100,7 +99,7 @@ function buildEmbeddingInput(params: {
   return parts.join('. ');
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   const corsHeaders = buildCorsHeaders(req.headers.get('Origin'));
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

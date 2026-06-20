@@ -12,7 +12,6 @@
  * - Fallback: when no members have preference vectors, pure label-based scoring
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -179,7 +178,7 @@ function analyzeConflicts(constraints: GroupConstraints): string[] {
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {

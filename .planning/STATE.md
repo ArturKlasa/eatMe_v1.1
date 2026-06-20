@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 3 / plan 03-01 — Tasks 1-2 done (migration 170 authored & committed); BLOCKED on operator branch-validation (Task 3)
+status: complete
+stopped_at: Phase 3 complete — SEC-02 satisfied (migration 170 operator-validated); next Phase 4 not yet discussed/planned
 last_updated: "2026-06-19T23:50:10.124Z"
-last_activity: 2026-06-19 — Phase 3 plan 03-01: forward+reverse 170 authored & committed, pnpm check-types green; awaiting operator Supabase-branch validation
+last_activity: 2026-06-19 — Phase 3 complete: migration 170 self-cleaning sweep (fcbf951) operator-validated on prod-clone branch; VERIFICATION passed; SEC-02 Complete
 progress:
   total_phases: 10
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 02 — cors-lockdown
+**Current focus:** Phase 03 — rls-hardening ✓ complete; next Phase 04 — edge-dependency-pinning-script-guard
 
 ## Current Position
 
-Phase: 3 — RLS Hardening
-Plan: 03-01 in progress — Tasks 1-2/3 complete (auto), Task 3 BLOCKED on operator (re-validation round 2)
-Status: Blocked at checkpoint (human-verify) — operator must re-validate the self-cleaning migration 170
-Last activity: 2026-06-19 — Operator round-1 validation found prod's out-of-band policies coexisting with 170's (policy_count doubled; behavior correct). Revised 170 to a name-agnostic policy sweep (fcbf951) so it yields exactly the canonical set; gates + pnpm check-types green; awaiting operator re-validation (expect no doubling)
+Phase: 3 — RLS Hardening ✓ COMPLETE
+Plan: 1/1 plans complete (03-01)
+Status: Phase 3 complete — SEC-02 satisfied. Next: Phase 4 (Edge Dependency Pinning & Script Guard), not yet discussed/planned
+Last activity: 2026-06-19 — Phase 3 complete: migration 170 (self-cleaning sweep, fcbf951) operator-validated on prod-clone branch (no duplication, anon-deny, own-only, public-read intact); 03-VERIFICATION.md passed; SEC-02 Complete
 
-Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
+Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 | Phase 01 P02 | 9min | 2 tasks | 1 files |
 | Phase 02 P01 | 6min | 2 tasks | 2 files |
 | Phase 02 P02 | 5 | 4 tasks | 4 files |
+| Phase 03 P01 | ~2h* | 3 tasks | 2 files | (*incl. 2 operator validation rounds) |
 
 ## Accumulated Context
 
@@ -83,7 +84,8 @@ None yet.
 - ✓ RESOLVED — Live RLS state: ALL 11 behavioral tables already have RLS enabled with owner policies in prod (catch-all: only `spatial_ref_sys` unprotected). No prod RLS gap. Phase 3 repurposed from "enable RLS" → CODIFY existing prod RLS into a migration (closes migrations↔prod drift; baseline has zero ENABLE RLS). `dish_analytics` is dish-keyed → NOT a per-user owner policy. (F-11)
 - ✓ RESOLVED — Prod pgvector `extversion=0.8.0` (≥0.8.0) → `hnsw.iterative_scan` IS available; Phase 7 may apply it. (F-13)
 - ◑ PARTLY RESOLVED — Deployed enrich webhook covers INSERT+UPDATE on dishes (agrees with migration 135; no DELETE). The feed-cache `invalidate-cache` webhook is NOT in the deployed trigger catalog → Phase 7 must locate the actual invalidation wiring before widening event coverage. (F-21)
-- High-blast-radius guards still to enforce in later phases: atomic RLS enable+policy / codify (Phase 3); `pg_depend` pre-flight + RESTRICT drops + snapshot (Phase 6); byte-identical filterStore serialization shape (Phase 8).
+- ✓ DONE (Phase 3) — atomic RLS enable+policy / codify: migration 170 self-cleaning sweep → canonical set in one BEGIN/COMMIT, operator-validated (no duplication).
+- High-blast-radius guards still to enforce in later phases: `pg_depend` pre-flight + RESTRICT drops + snapshot (Phase 6); byte-identical filterStore serialization shape (Phase 8).
 
 ## Deferred Items
 
@@ -96,11 +98,11 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-06-19T23:50:10.124Z
-Stopped at: Phase 3 / plan 03-01 — blocked at Task 3 (human-verify checkpoint); Tasks 1-2 committed
-Resume file: .planning/phases/03-rls-hardening/03-01-PLAN.md (Task 3 operator handoff)
+Stopped at: Phase 3 complete — SEC-02 satisfied; awaiting decision on Phase 4
+Resume file: none — start Phase 4 via /gsd-discuss-phase 4 (or /gsd-plan-phase 4)
 
-**Resume signal:** operator types "approved" after Supabase-branch validation passes (anon-deny on private tables, own-only on authenticated reads with reassignment rejected, public-read intact, idempotent apply + reverse, 076 composites preserved) → finalize 03-01-SUMMARY.md, run code-review + verify_phase_goal, mark phase complete. If the operator reports a failure → gap-closure.
+**Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.
 
-**Deviation noted (for SUMMARY):** the plan's Task-1/Task-2 `<automated>` bare-`auth.uid()` gate regex `[^(]auth\.uid\(\)` is inverted — it matches the mandated InitPlan form `(select auth.uid())` (call preceded by a space) and misses an actual bare `(auth.uid()` form. Verified the must_have truth instead: every non-comment `auth.uid()` is wrapped in `(select …)` → 0 bare calls (29 calls / 29 wrapped). All other plan gates pass as written.
+**Phase 3 deviation (for the record):** the plan's Task-1/Task-2 `<automated>` bare-`auth.uid()` gate regex `[^(]auth\.uid\(\)` is inverted — it matches the mandated InitPlan form `(select auth.uid())` and misses an actual bare `(auth.uid()` form. Verified the must_have truth with a corrected check (0 bare calls; 29/29 wrapped).
 
-**Planned Phase:** 3 (RLS Hardening) — 1 plan — 2026-06-19T22:28:33.611Z
+**Planned Phase:** Phase 4 not yet planned.

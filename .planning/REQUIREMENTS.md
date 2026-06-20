@@ -16,7 +16,7 @@ Each finding is assessed (validated against current code + live DB) before being
 ### Security
 
 - [x] **SEC-01**: `feed`, `enrich-dish`, and `invalidate-cache` edge functions restrict CORS to a configured allowlist (no wildcard in prod) without breaking the mobile client (no `Origin` header) or admin preflight
-- [ ] **SEC-02**: RLS is enabled with an owner policy on every user-owned behavioral table (favorites, dish_opinions, user_dish_interactions, user_behavior_profiles, dish_analytics, user_visits, session_views, etc.); policies use `(select auth.uid())` with an index on the owner column; enable + policy land atomically in the same migration
+- [x] **SEC-02**: RLS is enabled with an owner policy on every user-owned behavioral table (favorites, dish_opinions, user_dish_interactions, user_behavior_profiles, dish_analytics, user_visits, session_views, etc.); policies use `(select auth.uid())` with an index on the owner column; enable + policy land atomically in the same migration
 - [ ] **SEC-03**: `infra/scripts` production-mutation scripts refuse to run any write path without explicit dry-run/confirmation clearance
 
 ### Cleanup & Dead Code
@@ -81,7 +81,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | ASSESS-02 | Phase 1 | Complete |
 | ASSESS-03 | Phase 1 | Complete |
 | SEC-01 | Phase 2 | Complete |
-| SEC-02 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Complete |
 | SEC-03 | Phase 4 | Pending |
 | DEBT-05 | Phase 4 | Pending |
 | CLEAN-01 | Phase 5 | Pending |
@@ -107,4 +107,4 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 
 ---
 *Requirements defined: 2026-06-18*
-*Last updated: 2026-06-19 — Phase 1 FINDINGS scope review (user-gated): ASSESS-01/02/03 satisfied; SEC-02 confirmed Pending — prod RLS already enabled on all behavioral tables, Phase 3 repurposed to CODIFY existing prod RLS into a migration (closes migrations↔prod drift). No renumber; 21 requirements / 10 phases intact.*
+*Last updated: 2026-06-19 — Phase 3 complete: SEC-02 Complete. Migration 170 (forward + reverse) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → canonical InitPlan-form policies; operator-validated on a prod-clone branch (no duplication, anon-deny, own-only, public-read intact). Prior: Phase 1 FINDINGS scope review (ASSESS-01/02/03 satisfied). No renumber; 21 requirements / 10 phases intact.*

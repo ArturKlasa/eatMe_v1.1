@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Assessment & Findings Register** - Verify every finding against live code + prod state; verdict each (confirmed / stale / resolved) — completed 2026-06-19
 - [x] **Phase 2: CORS Lockdown** - Restrict `feed` / `enrich-dish` / `invalidate-cache` CORS to an allowlist without breaking the native client or admin preflight (completed 2026-06-19)
-- [ ] **Phase 3: RLS Hardening** - Enable RLS + atomic owner policies on all behavioral tables, InitPlan-safe and indexed
+- [x] **Phase 3: RLS Hardening** - Enable RLS + atomic owner policies on all behavioral tables, InitPlan-safe and indexed (completed 2026-06-19)
 - [ ] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts`
 - [ ] **Phase 5: Dead Code & Doc Cleanup** - Remove the dead map view-mode branch, verify the web-portal deletion, and fix stale comments/docs
 - [ ] **Phase 6: Schema Teardown Spine** - Sequenced ingredient teardown (B triggers → C tables → C columns), DishKind shim removal, single type regen
@@ -79,7 +79,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans**: 1 plan
 
-- [ ] 03-01-PLAN.md — Author migration 170 (forward + REVERSE) codifying RLS on the 11 behavioral tables (InitPlan form, 7 owner indexes, dish_analytics public/service-role), static review + `pnpm check-types`, operator branch-validation handoff
+- [x] 03-01-PLAN.md — Author migration 170 (forward + REVERSE) codifying RLS on the 11 behavioral tables (InitPlan form, 7 owner indexes, dish_analytics public/service-role), static review + `pnpm check-types`, operator branch-validation handoff (completed 2026-06-19; self-cleaning sweep after operator validation found out-of-band policy duplication)
 
 ### Phase 4: Edge Dependency Pinning & Script Guard
 

@@ -6,13 +6,12 @@
 // JWT.
 //
 // Called by:
-//   - _trg_notify_enrich_dish trigger on dish/ingredient/option_group writes
+//   - _trg_notify_enrich_dish trigger on dish/option_group writes
 //   - embed-recovery-tick cron for dishes stuck at pending/failed
 //   - infra/scripts/batch-embed.ts for one-off bulk operations
 //
 // Pipeline:
-//   1. Load dish + ingredients + option groups + restaurant cuisine
-//      + parent dish (when this is a variant) + parent ingredients
+//   1. Load dish + option groups + restaurant cuisine
 //   2. Build embedding text (labeled NL format, 60-120 tokens)
 //   3. Call OpenAI text-embedding-3-small (1536 dims)
 //   4. Write embedding + enrichment_status='completed'

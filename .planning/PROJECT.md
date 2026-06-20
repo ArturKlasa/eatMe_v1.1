@@ -26,6 +26,9 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 - ✓ Supabase Auth + RLS-enforced data ownership — existing
 - ✓ Shared packages: `@eatme/database`, `@eatme/shared`, `@eatme/tokens`, `@eatme/ui` — existing
 - ✓ Allowlist CORS on `feed` / `enrich-dish` / `invalidate-cache` edge functions — single DRY `_shared/cors.ts` `buildCorsHeaders` (exact-match reflection, fail-closed on unset, `Vary: Origin`, no wildcard/credentials) — validated in Phase 2 (SEC-01)
+- ✓ RLS codified on the 11 behavioral tables — migration 170 name-agnostic policy sweep (30 InitPlan-form policies + 7 owner indexes, one BEGIN/COMMIT, operator-validated on a prod-clone) — validated in Phase 3 (SEC-02)
+- ✓ Edge functions on pinned, non-deprecated deps — native `Deno.serve` (no `std@0.168.0` serve), exact `@supabase/supabase-js@2.39.3` + `@upstash/redis@1.38.0` + `jsr:@std/assert@1.0.19` — validated in Phase 4 (DEBT-05)
+- ✓ `infra/scripts` prod-write guard — shared `lib/prod-guard.ts` (default-dry-run, `--apply` sole write trigger, announces target project ref, fails loud on malformed `--limit`); all 8 write scripts wired — validated in Phase 4 (SEC-03)
 
 ### Active
 
@@ -37,8 +40,8 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 
 **Security & bugs**
 
-- [ ] Audit RLS on behavioral tables (`favorites`, `dish_opinions`, `user_dish_interactions`, `user_behavior_profiles`, `dish_analytics`, etc.); add owner policies where missing
-- [ ] Add a prod-write guard to `infra/scripts` (require explicit `--dry-run` clearance before any write path)
+- [x] Audit RLS on behavioral tables (`favorites`, `dish_opinions`, `user_dish_interactions`, `user_behavior_profiles`, `dish_analytics`, etc.); add owner policies where missing — Phase 3 (SEC-02)
+- [x] Add a prod-write guard to `infra/scripts` (require explicit `--dry-run` clearance before any write path) — Phase 4 (SEC-03)
 - [ ] Remove the dead map restaurant-view-mode branch (`viewModeStore` / `ViewModeToggle` / `BasicMapScreen`)
 - [ ] Verify the `apps/web-portal` deletion is clean and finish residual cleanup (stale doc references)
 
@@ -48,7 +51,7 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 - [ ] Surgical DishKind removal — drop `DishKind`/`DISH_KIND_META` usage from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then delete the shims + `dish-kinds.test.ts` from `@eatme/shared`
 - [ ] Regenerate `@eatme/database` types after recent migrations; commit the slimmed file
 - [ ] Fix stale `enrich-dish` header comments (no ingredient/parent-dish references)
-- [ ] Pin edge-function deps — Deno std and `@supabase/supabase-js` to exact versions
+- [x] Pin edge-function deps — Deno std and `@supabase/supabase-js` to exact versions — Phase 4 (DEBT-05)
 
 **Performance & scaling**
 
@@ -120,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-19 after Phase 2 (CORS Lockdown) completion*
+*Last updated: 2026-06-20 after Phase 4 (Edge Dependency Pinning & Script Guard) completion*

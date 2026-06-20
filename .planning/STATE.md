@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 3 — RLS Hardening
-Plan: 03-01 in progress — Tasks 1-2/3 complete (auto), Task 3 BLOCKED on operator
-Status: Blocked at checkpoint (human-verify) — operator must branch-validate migration 170
-Last activity: 2026-06-19 — 170_codify_behavioral_rls.sql (forward, 57c1761) + 170_REVERSE_ONLY (06e7b0a) authored & committed; all static gates + pnpm check-types green; awaiting operator branch/shadow-DB validation (SC#4 / D-13)
+Plan: 03-01 in progress — Tasks 1-2/3 complete (auto), Task 3 BLOCKED on operator (re-validation round 2)
+Status: Blocked at checkpoint (human-verify) — operator must re-validate the self-cleaning migration 170
+Last activity: 2026-06-19 — Operator round-1 validation found prod's out-of-band policies coexisting with 170's (policy_count doubled; behavior correct). Revised 170 to a name-agnostic policy sweep (fcbf951) so it yields exactly the canonical set; gates + pnpm check-types green; awaiting operator re-validation (expect no doubling)
 
 Progress (milestone): [█░░░░░░░░░] 10% (1/10 phases)
 

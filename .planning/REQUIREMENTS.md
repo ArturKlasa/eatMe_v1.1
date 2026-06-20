@@ -31,7 +31,8 @@ Each finding is assessed (validated against current code + live DB) before being
 - [ ] **DEBT-02**: Orphaned ingredient-pipeline tables and columns are dropped (Phase C) via a staged migration with a `pg_depend` pre-flight and ordered `RESTRICT` drops (child → parent); snapshot first
 - [ ] **DEBT-03**: `DishKind` / `DISH_KIND_META` usage is removed from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then the shims + `dish-kinds.test.ts` are deleted from `@eatme/shared`
 - [ ] **DEBT-04**: `@eatme/database` types are regenerated in sync with the current schema (post-teardown) and committed
-- [ ] **DEBT-05**: Edge-function dependencies are pinned — `deno.land/std@0.168.0/http/server` replaced with native `Deno.serve`; `@supabase/supabase-js` pinned to one exact JSR version and `@upstash/redis` exact-pinned across all functions
+- [x] **DEBT-05
+**: Edge-function dependencies are pinned — `deno.land/std@0.168.0/http/server` replaced with native `Deno.serve`; `@supabase/supabase-js` pinned to one exact JSR version and `@upstash/redis` exact-pinned across all functions
 
 ### Performance & Scaling
 

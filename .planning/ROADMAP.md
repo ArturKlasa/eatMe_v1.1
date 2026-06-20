@@ -95,7 +95,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans**: 3 plans
 
-- [ ] 04-01-PLAN.md — Track A (DEBT-05): serve→Deno.serve (7 fns), pin supabase-js@2.39.3 + upstash@1.38.0 (8 fns), asserts→jsr:@std/assert@1.0.19, deno-globals shim lockstep [Wave 1]
+- [x] 04-01-PLAN.md — Track A (DEBT-05): serve→Deno.serve (7 fns), pin supabase-js@2.39.3 + upstash@1.38.0 (8 fns), asserts→jsr:@std/assert@1.0.19, deno-globals shim lockstep [Wave 1]
 - [ ] 04-02-PLAN.md — Track B (SEC-03): create shared `infra/scripts/lib/prod-guard.ts` (default-dry-run / --apply / announce-ref) + `node --test` guard test [Wave 1]
 - [ ] 04-03-PLAN.md — Track B (SEC-03): wire the 8 prod-write scripts to the guard (7 LIVE-default flips + batch-embed net-new gate + apply-phase6 refactor) [Wave 2, depends on 04-02]
 

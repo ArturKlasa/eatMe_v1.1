@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-06-20T03:26:27.670Z"
-last_activity: 2026-06-20 -- Phase 04 planning complete
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-06-20T05:17:17.636Z"
+last_activity: 2026-06-20
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 10
-  completed_plans: 7
-  percent: 70
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 03 — rls-hardening ✓ complete; next Phase 04 — edge-dependency-pinning-script-guard
+**Current focus:** Phase 04 — edge-dependency-pinning-script-guard
 
 ## Current Position
 
-Phase: 3 — RLS Hardening ✓ COMPLETE
-Plan: 1/1 plans complete (03-01)
+Phase: 04 (edge-dependency-pinning-script-guard) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-06-20 -- Phase 04 planning complete
+Last activity: 2026-06-20
 
 Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
 
@@ -57,6 +57,7 @@ Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
 | Phase 02 P01 | 6min | 2 tasks | 2 files |
 | Phase 02 P02 | 5 | 4 tasks | 4 files |
 | Phase 03 P01 | ~2h* | 3 tasks | 2 files | (*incl. 2 operator validation rounds) |
+| Phase 04 P01 | 4min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,7 @@ Recent decisions affecting current work:
 - [Phase 01]: assess-live-state.sql probe comments naming forbidden tokens (INSERT/UPDATE/DELETE/COMMIT) must sit on lines starting with -- so the Wave-0 static-safety gate strips them
 - [Phase ?]: Plan 02-01: _shared/cors.ts buildCorsHeaders(origin) + 4-case Deno test green (4/4); matched incumbent std@0.168.0 import (not jsr); SEC-01 unit-locked. Plan 02 wires the 3 functions to ../_shared/cors.ts.
 - [Phase ?]: Plan 02-02: feed/enrich-dish/invalidate-cache wired to ../_shared/cors.ts (per-request buildCorsHeaders first line); README updated; operator deployed all 3 + SC#1/SC#2/SC#3 PASS — SEC-01 closed. Phase 4 serve→Deno.serve must preserve the per-request corsHeaders line + the cors.ts import.
+- Edge deps: esm.sh exact-pin chosen over roadmap-literal JSR for supabase-js (D-05, prefer-incumbent); jsr:@std/assert@1.0.19 is the sole unavoidable jsr: specifier
 
 ### Pending Todos
 
@@ -97,9 +99,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T00:45:59.074Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-edge-dependency-pinning-script-guard/04-CONTEXT.md
+Last session: 2026-06-20T05:17:11.306Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.
 

@@ -25,7 +25,6 @@ import {
 import { useFilterStore, DailyFilters, defaultDailyFilters } from '../../stores/filterStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getCurrencyInfo } from '../../utils/currencyConfig';
-import { ViewModeToggle } from './ViewModeToggle';
 import { modals } from '@/styles';
 import { colors, spacing, typography, borderRadius } from '@eatme/tokens';
 import { useTranslation } from 'react-i18next';
@@ -141,9 +140,6 @@ export const DailyFilterModal: React.FC<DailyFilterModalProps> = ({ visible, onC
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* View Mode Toggle */}
-          <ViewModeToggle style={modals.viewModeToggleContainer} />
 
           <ScrollView
             style={modals.content}

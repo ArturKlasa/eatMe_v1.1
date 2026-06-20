@@ -111,28 +111,3 @@ export const modalScreenStyles = StyleSheet.create({
 
   aboutText: createTextStyle('sm', 'normal', colors.textTertiary, { marginBottom: 4 }),
 });
-
-export const viewModeToggleStyles = StyleSheet.create({
-  container: {
-    ...atomic.flexRow,
-    backgroundColor: colors.darkSecondary,
-    borderRadius: 8,
-    padding: 2,
-    alignSelf: 'center',
-  } as ViewStyle,
-
-  button: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: colors.darkQuaternary,
-  } as ViewStyle,
-
-  activeButton: {
-    backgroundColor: colors.accent,
-  } as ViewStyle,
-
-  text: createTextStyle('sm', 'normal', colors.darkText),
-
-  activeText: createTextStyle('sm', 'normal', colors.white),
-});

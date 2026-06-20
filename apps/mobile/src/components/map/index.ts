@@ -6,6 +6,5 @@
 
 export { DailyFilterModal } from './DailyFilterModal';
 export { MapHeader } from './MapHeader';
-export { RestaurantMarkers } from './RestaurantMarkers';
 export { MapControls } from './MapControls';
 export { MapFooter } from './MapFooter';

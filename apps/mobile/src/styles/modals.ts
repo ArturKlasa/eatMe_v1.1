@@ -281,11 +281,6 @@ export const modals = StyleSheet.create({
     // a static elevation here would fight with zIndex on Android.
   } as ViewStyle,
 
-  // View mode toggle container
-  viewModeToggleContainer: {
-    marginVertical: 16,
-  } as ViewStyle,
-
   // Preset and action buttons
   presetButton: {
     flex: 1,

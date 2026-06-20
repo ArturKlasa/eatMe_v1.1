@@ -9,7 +9,6 @@ import { useUserLocation } from '../hooks/useUserLocation';
 import { useCountryDetectionStore } from '../stores/countryDetectionStore';
 import { useFilterStore } from '../stores/filterStore';
 import { useShallow } from 'zustand/react/shallow';
-import { useViewModeStore } from '../stores/viewModeStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -27,7 +26,6 @@ import { useTranslation } from 'react-i18next';
 
 // Extracted Components
 import { DailyFilterModal } from '../components/map/DailyFilterModal';
-import { RestaurantMarkers } from '../components/map/RestaurantMarkers';
 import { DishMarkers } from '../components/map/DishMarkers';
 import { MapControls } from '../components/map/MapControls';
 import { MapFooter } from '../components/map/MapFooter';
@@ -92,7 +90,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   const { daily, permanent } = useFilterStore(
     useShallow(state => ({ daily: state.daily, permanent: state.permanent }))
   );
-  const mode = useViewModeStore(state => state.mode);
 
   // Map edge-function ServerDish results into the shape MapFooter expects.
   // Full deduped list (one dish per restaurant); the footer/map page through it in
@@ -154,19 +151,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
       isAvailable: dish.is_available,
     };
   }
-
-  // Convert ServerRestaurant[] from the Edge Function to the shape RestaurantMarkers expects.
-  // Shows ALL filtered restaurants (not just ones with recommended dishes).
-  const mapPinRestaurants = useMemo(() => {
-    return filteredRestaurants
-      .filter(r => r.location?.lat != null && r.location?.lng != null)
-      .map(r => ({
-        id: r.id,
-        name: r.name,
-        coordinates: [r.location!.lng, r.location!.lat] as [number, number],
-        isOpen: r.is_open ?? true,
-      }));
-  }, [filteredRestaurants]);
 
   // Pins follow the dishes currently shown in the footer (recommendedDishes), so the
   // map shows only the ~5 restaurants backing the visible cards — not the whole feed.
@@ -292,13 +276,6 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
   }, [isMapReady, hasPermission, hasAutocentered, getLocationWithPermission]);
 
   // Handler functions
-  const handleMarkerPress = useCallback(
-    (restaurant: { id: string; name: string; coordinates: [number, number]; isOpen: boolean }) => {
-      rootNavigation.navigate('RestaurantDetail', { restaurantId: restaurant.id });
-    },
-    [rootNavigation]
-  );
-
   // Called from DishMarkers — opens the dish's restaurant with the dish
   // featured (pinned) at the top of the menu
   const handleDishMarkerPress = useCallback(
@@ -506,12 +483,7 @@ export function BasicMapScreen({ navigation }: MapScreenProps) {
           requestsAlwaysUse={false}
         />
 
-        {/* Conditional markers based on view mode */}
-        {mode === 'restaurant' ? (
-          <RestaurantMarkers restaurants={mapPinRestaurants} onMarkerPress={handleMarkerPress} />
-        ) : (
-          <DishMarkers dishes={mapPinDishes} onMarkerPress={handleDishMarkerPress} />
-        )}
+        <DishMarkers dishes={mapPinDishes} onMarkerPress={handleDishMarkerPress} />
       </MapView>
 
       <MapControls

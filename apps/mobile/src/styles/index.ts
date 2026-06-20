@@ -21,7 +21,7 @@ export { forms, inputs } from './forms';
 export { cards } from './cards';
 export { spacingUtils, switchConfig, profile } from './spacing';
 export { modals } from './modals';
-export { modalScreenStyles, viewModeToggleStyles } from './modalScreen';
+export { modalScreenStyles } from './modalScreen';
 
 // Feature-specific style modules
 export {
@@ -42,7 +42,7 @@ import { forms, inputs } from './forms';
 import { cards } from './cards';
 import { spacingUtils, switchConfig, profile } from './spacing';
 import { modals } from './modals';
-import { modalScreenStyles, viewModeToggleStyles } from './modalScreen';
+import { modalScreenStyles } from './modalScreen';
 import { mapStyles, mapFooterStyles, mapComponentStyles } from './map';
 import { filterComponentsStyles, drawerFiltersStyles, filterFABStyles } from './filters';
 import { floatingMenuStyles, fabs as fabsStyles } from './navigation';
@@ -59,7 +59,6 @@ const commonStylesBase = {
   spacingUtils,
   modals,
   modalScreenStyles,
-  viewModeToggleStyles,
   profile,
 };
 

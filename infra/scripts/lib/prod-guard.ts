@@ -14,7 +14,8 @@
 //   - `--dry-run` is an accepted no-op that re-affirms the default and NEVER
 //     throws (operator muscle-memory / existing docs keep working).
 //   - `--limit=N` sampling is parsed and RETURNED (not stripped), so the
-//     dry-run → sample → full workflow is preserved (limit 0 = all).
+//     dry-run → sample → full workflow is preserved (limit 0 = all). A
+//     malformed/negative limit THROWS rather than silently widening scope.
 //   - announceTarget() prints the resolved project ref (from the SUPABASE_URL
 //     host) before any write, on every run, so the operator can abort if the
 //     .env is pointed at the wrong project.
@@ -31,7 +32,8 @@ export interface GuardResult {
   apply: boolean;
   /** Project ref parsed from the SUPABASE_URL host, or '(unknown)'. */
   projectRef: string;
-  /** Parsed from --limit=N; 0 means "all". Returned, never consumed. */
+  /** Parsed from --limit=N; 0 means "all". Returned, never consumed. A
+   *  non-numeric or negative value throws rather than collapsing to "all". */
   limit: number;
 }
 
@@ -59,14 +61,29 @@ function deriveProjectRef(supabaseUrl: string | undefined): string {
  * - `dryRun`     = !apply  (default dry-run; --dry-run does not change this — it
  *                 is an accepted no-op affirmation, never an error)
  * - `projectRef` = derived from process.env.SUPABASE_URL host (sentinel on miss)
- * - `limit`      = parsed from --limit=N (0 = all); returned, not stripped
+ * - `limit`      = parsed from --limit=N (0 = all); returned, not stripped.
+ *                 Throws on a malformed/negative value (no scope-widening).
  */
 export function parseGuard(argv: string[] = process.argv): GuardResult {
   const apply = argv.includes('--apply');
   const dryRun = !apply;
 
   const limitArg = argv.find(a => a.startsWith('--limit='));
-  const limit = limitArg ? parseInt(limitArg.split('=')[1] ?? '0', 10) || 0 : 0;
+  let limit = 0;
+  if (limitArg) {
+    // Fail loud on a malformed/negative limit rather than coercing to 0 (= "all").
+    // A typo'd sample flag (`--limit=abc`, `--limit=-5`) silently widening scope to
+    // the full candidate set — combined with --apply — is a full prod write where a
+    // small sample was intended. The guard is the net-new SEC-03 safety surface, so it
+    // refuses scope-widening on bad input instead of guessing (WR-02).
+    const parsed = parseInt(limitArg.split('=')[1] ?? '', 10);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      throw new Error(
+        `Invalid --limit value: "${limitArg}" (expected a non-negative integer; 0 or omitted = all)`
+      );
+    }
+    limit = parsed;
+  }
 
   const projectRef = deriveProjectRef(process.env.SUPABASE_URL);
 

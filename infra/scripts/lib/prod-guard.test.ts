@@ -51,6 +51,26 @@ test('no --limit → limit 0 (= all)', () => {
   assert.equal(g.limit, 0);
 });
 
+test('--limit=0 → explicit "all", does not throw (WR-02)', () => {
+  let g: ReturnType<typeof parseGuard>;
+  assert.doesNotThrow(() => {
+    g = parseGuard(['node', 'script.ts', '--limit=0']);
+  });
+  assert.equal(g!.limit, 0);
+});
+
+test('--limit=abc → throws instead of silently coercing to "all" (WR-02)', () => {
+  assert.throws(() => parseGuard(['node', 'script.ts', '--limit=abc']), /Invalid --limit value/);
+});
+
+test('--limit=-5 → negative throws instead of widening scope (WR-02)', () => {
+  assert.throws(() => parseGuard(['node', 'script.ts', '--limit=-5']), /Invalid --limit value/);
+});
+
+test('--limit= (empty) → throws rather than collapsing to "all" (WR-02)', () => {
+  assert.throws(() => parseGuard(['node', 'script.ts', '--limit=']), /Invalid --limit value/);
+});
+
 test('projectRef derived from SUPABASE_URL host (no dedicated ref env)', () => {
   const prev = process.env.SUPABASE_URL;
   try {

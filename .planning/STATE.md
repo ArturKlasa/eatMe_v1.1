@@ -2,16 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
+current_phase: 04
+current_phase_name: edge-dependency-pinning-script-guard
 status: executing
 stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-06-20T05:17:17.636Z"
+last_updated: "2026-06-20T05:21:53.053Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 30
 ---
 
 # Project State
@@ -26,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 04 (edge-dependency-pinning-script-guard) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-20
 
@@ -58,6 +60,7 @@ Progress (milestone): [███░░░░░░░] 30% (3/10 phases)
 | Phase 02 P02 | 5 | 4 tasks | 4 files |
 | Phase 03 P01 | ~2h* | 3 tasks | 2 files | (*incl. 2 operator validation rounds) |
 | Phase 04 P01 | 4min | 3 tasks | 11 files |
+| Phase 04 P02 | 14min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -74,6 +77,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Plan 02-01: _shared/cors.ts buildCorsHeaders(origin) + 4-case Deno test green (4/4); matched incumbent std@0.168.0 import (not jsr); SEC-01 unit-locked. Plan 02 wires the 3 functions to ../_shared/cors.ts.
 - [Phase ?]: Plan 02-02: feed/enrich-dish/invalidate-cache wired to ../_shared/cors.ts (per-request buildCorsHeaders first line); README updated; operator deployed all 3 + SC#1/SC#2/SC#3 PASS — SEC-01 closed. Phase 4 serve→Deno.serve must preserve the per-request corsHeaders line + the cors.ts import.
 - Edge deps: esm.sh exact-pin chosen over roadmap-literal JSR for supabase-js (D-05, prefer-incumbent); jsr:@std/assert@1.0.19 is the sole unavoidable jsr: specifier
+- [Phase 04]: Plan 04-02: prod-guard.ts parseGuard(argv) returns { dryRun, apply, projectRef, limit }; dryRun=!apply (--apply sole write trigger), --dry-run accepted no-op, --limit=N returned untouched. projectRef from SUPABASE_URL host (no SUPABASE_PROJECT_REF env), '(unknown)' sentinel, never throws. Runner: `node --test --require ts-node/register` (CJS) — --import ESM form breaks on Node16 extensionless imports. test:guard green 8/8; SEC-03 foundation laid. Plan 04-03 wires the 8 write scripts to parseGuard+announceTarget.
 
 ### Pending Todos
 
@@ -99,7 +103,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T05:17:11.306Z
+Last session: 2026-06-20T05:21:36.155Z
 Stopped at: Completed 04-01-PLAN.md
 Resume file: None
 

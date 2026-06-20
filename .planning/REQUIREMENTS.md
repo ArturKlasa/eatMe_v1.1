@@ -17,7 +17,7 @@ Each finding is assessed (validated against current code + live DB) before being
 
 - [x] **SEC-01**: `feed`, `enrich-dish`, and `invalidate-cache` edge functions restrict CORS to a configured allowlist (no wildcard in prod) without breaking the mobile client (no `Origin` header) or admin preflight
 - [x] **SEC-02**: RLS is enabled with an owner policy on every user-owned behavioral table (favorites, dish_opinions, user_dish_interactions, user_behavior_profiles, dish_analytics, user_visits, session_views, etc.); policies use `(select auth.uid())` with an index on the owner column; enable + policy land atomically in the same migration
-- [ ] **SEC-03**: `infra/scripts` production-mutation scripts refuse to run any write path without explicit dry-run/confirmation clearance
+- [x] **SEC-03**: `infra/scripts` production-mutation scripts refuse to run any write path without explicit dry-run/confirmation clearance
 
 ### Cleanup & Dead Code
 
@@ -32,6 +32,7 @@ Each finding is assessed (validated against current code + live DB) before being
 - [ ] **DEBT-03**: `DishKind` / `DISH_KIND_META` usage is removed from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then the shims + `dish-kinds.test.ts` are deleted from `@eatme/shared`
 - [ ] **DEBT-04**: `@eatme/database` types are regenerated in sync with the current schema (post-teardown) and committed
 - [x] **DEBT-05
+
 **: Edge-function dependencies are pinned — `deno.land/std@0.168.0/http/server` replaced with native `Deno.serve`; `@supabase/supabase-js` pinned to one exact JSR version and `@upstash/redis` exact-pinned across all functions
 
 ### Performance & Scaling
@@ -83,7 +84,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | ASSESS-03 | Phase 1 | Complete |
 | SEC-01 | Phase 2 | Complete |
 | SEC-02 | Phase 3 | Complete |
-| SEC-03 | Phase 4 | Pending |
+| SEC-03 | Phase 4 | Complete |
 | DEBT-05 | Phase 4 | Pending |
 | CLEAN-01 | Phase 5 | Pending |
 | CLEAN-02 | Phase 5 | Pending |

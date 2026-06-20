@@ -6,14 +6,14 @@ current_phase: 06
 current_phase_name: schema-teardown-spine
 status: executing
 stopped_at: Phase 6 context gathered
-last_updated: "2026-06-20T19:43:04.994Z"
+last_updated: "2026-06-20T19:47:00.098Z"
 last_activity: 2026-06-20
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 19
-  completed_plans: 14
+  completed_plans: 15
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 06 (schema-teardown-spine) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-06-20 -- Phase 06 execution started
 
@@ -66,6 +66,7 @@ Progress (milestone): [████░░░░░░] 40% (4/10 phases)
 | Phase 04 P02 | 14min | 2 tasks | 3 files |
 | Phase 04 P03 | 12min | 2 tasks | 9 files |
 | Phase 06 P01 | 5min | 1 tasks | 1 files |
+| Phase 06 P02 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,7 @@ Recent decisions affecting current work:
 - [Phase 04]: Plan 04-02: prod-guard.ts parseGuard(argv) returns { dryRun, apply, projectRef, limit }; dryRun=!apply (--apply sole write trigger), --dry-run accepted no-op, --limit=N returned untouched. projectRef from SUPABASE_URL host (no SUPABASE_PROJECT_REF env), '(unknown)' sentinel, never throws. Runner: `node --test --require ts-node/register` (CJS) — --import ESM form breaks on Node16 extensionless imports. test:guard green 8/8; SEC-03 foundation laid. Plan 04-03 wires the 8 write scripts to parseGuard+announceTarget.
 - All 8 infra/scripts prod-write paths gated by the shared prod-guard (default dry-run, --apply to write, announce project ref); batch-embed got a net-new gate; read-only scripts untouched (SEC-03 closed)
 - [Phase ?]: Plan 06-01: verify-phase6-teardown.ts authored (read-only REST GONE probe, mirrors verify-phase7.ts); covers 2 dead dishes columns + options.canonical_ingredient_id FK + 10-table reconciled ingredient drop list; no prod-guard (read-only). DEBT-02 post-apply gate now exists for 06-03/06-06.
+- [Phase ?]: Plan 06-02: migration 171 (reconciled Phase B drop) supersedes 151 per D-06 — reuses 151 IF EXISTS forward-drop set (3 triggers + 5 functions), NOT 151 broken REVERSE; REVERSE degenerate/marker-only (152 precedent) since compute_dish_dietary_tags/refresh_dish_dietary reference 156-dropped objects. SC1 grep clean (only apps/rough-idea.md prose). Authored+dry-run only; apply exactly one of {151,171} per 06-06 handoff.
 
 ### Pending Todos
 
@@ -110,7 +112,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T19:42:43.395Z
+Last session: 2026-06-20T19:46:47.558Z
 Stopped at: Phase 6 context gathered
 Resume file: --resume-file
 

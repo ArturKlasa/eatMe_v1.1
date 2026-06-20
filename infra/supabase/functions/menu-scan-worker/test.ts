@@ -7,10 +7,7 @@
 //
 // Tests mock Supabase + OpenAI deps so no live DB or API key is needed.
 
-import {
-  assertEquals,
-  assertArrayIncludes,
-} from 'https://deno.land/std@0.168.0/testing/asserts.ts';
+import { assertEquals, assertArrayIncludes } from 'jsr:@std/assert@1.0.19';
 import OpenAI from 'npm:openai@4';
 import {
   processJobs,

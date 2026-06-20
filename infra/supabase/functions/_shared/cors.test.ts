@@ -8,11 +8,7 @@
 // Deno.env.set/delete and cleans up in finally so process-global env never leaks
 // across cases (Pitfall 3).
 
-import {
-  assert,
-  assertEquals,
-  assertFalse,
-} from 'https://deno.land/std@0.168.0/testing/asserts.ts';
+import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1.0.19';
 import { buildCorsHeaders } from './cors.ts';
 
 const ALLOWED = 'https://eat-me-v1-1-admin.vercel.app'; // D-02 deployed admin origin

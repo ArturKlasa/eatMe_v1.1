@@ -12,7 +12,8 @@
     "seed-cold-start-vectors": "ts-node seed-cold-start-vectors.ts",
     "diagnose-empty-cuisine": "ts-node diagnose-empty-cuisine.ts",
     "replay-ab": "ts-node replay-menu-scan-ab.ts",
-    "diagnose-scan-trend": "ts-node diagnose-scan-quality-trend.ts"
+    "diagnose-scan-trend": "ts-node diagnose-scan-quality-trend.ts",
+    "test:guard": "node --test --require ts-node/register lib/prod-guard.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

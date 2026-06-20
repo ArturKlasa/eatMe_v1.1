@@ -17,10 +17,17 @@
  * Usage (from project root):
  *   pnpm --filter @eatme/infra-scripts exec ts-node backfill-open-hours.ts
  *   # or, from infra/scripts/:
- *   ts-node backfill-open-hours.ts [--dry-run]
+ *   ts-node backfill-open-hours.ts            # DEFAULT dry-run preview (no writes)
+ *   ts-node backfill-open-hours.ts --apply    # apply (writes to LIVE prod)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * No flag means no writes — it requires the explicit `--apply` flag to mutate
+ * prod. `--dry-run` is still accepted as an affirming no-op (never errors). The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Flags:
- *   --dry-run   Fetch + map hours and log what WOULD change, but write nothing.
+ *   --apply     Required to write. Absent it, the run is a no-write preview.
+ *   --dry-run   Accepted no-op — re-affirms the default; writes nothing.
  *
  * Environment variables (infra/scripts/.env, or the project root .env):
  *   SUPABASE_URL              — e.g. https://abcdefgh.supabase.co
@@ -36,6 +43,7 @@
 
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +52,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? '';
 const BATCH_CONCURRENCY = parseInt(process.env.BATCH_CONCURRENCY ?? '5', 10);
 const BATCH_DELAY_MS = parseInt(process.env.BATCH_DELAY_MS ?? '500', 10);
-const DRY_RUN = process.argv.includes('--dry-run');
+// Default dry-run via the shared prod-guard (SEC-03): writes require --apply.
+const { dryRun: DRY_RUN, projectRef } = parseGuard();
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !GOOGLE_PLACES_API_KEY) {
   console.error(
@@ -187,7 +196,7 @@ async function backfillOne(row: RestaurantRow): Promise<BackfillResult> {
 
 async function main(): Promise<void> {
   console.log('🚀  EatMe open_hours backfill starting');
-  console.log(`   Mode:        ${DRY_RUN ? 'DRY RUN (no writes)' : 'LIVE'}`);
+  announceTarget({ dryRun: DRY_RUN, projectRef });
   console.log(`   Concurrency: ${BATCH_CONCURRENCY}`);
   console.log(`   Batch delay: ${BATCH_DELAY_MS}ms\n`);
 
@@ -257,7 +266,7 @@ async function main(): Promise<void> {
   console.log(`   Updated:           ${updated}/${total}`);
   console.log(`   No hours on Google: ${noHours}/${total}`);
   if (failed > 0) console.log(`   Failed:            ${failed}/${total}`);
-  if (DRY_RUN) console.log('\n   Re-run without --dry-run to apply these changes.');
+  if (DRY_RUN) console.log('\n   Re-run with --apply to write these changes.');
 }
 
 main().catch(err => {

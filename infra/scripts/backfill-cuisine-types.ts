@@ -14,8 +14,13 @@
  * google_place_id) so Phase 2b can be sized.
  *
  * Usage (from infra/scripts/):
- *   ts-node backfill-cuisine-types.ts --dry-run   # report only, write nothing
- *   ts-node backfill-cuisine-types.ts             # apply changes
+ *   ts-node backfill-cuisine-types.ts            # report only (DEFAULT dry-run, writes nothing)
+ *   ts-node backfill-cuisine-types.ts --apply    # apply changes (writes to LIVE prod)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * No flag means no writes — it requires the explicit `--apply` flag to mutate
+ * prod. `--dry-run` is still accepted as an affirming no-op (never errors). The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Env (infra/scripts/.env):
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -27,12 +32,14 @@
 
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const DRY_RUN = process.argv.includes('--dry-run');
+// Default dry-run via the shared prod-guard (SEC-03): writes require --apply.
+const { dryRun: DRY_RUN, projectRef } = parseGuard();
 const BATCH_SIZE = 50;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -154,7 +161,7 @@ function sleep(ms: number): Promise<void> {
 
 async function main(): Promise<void> {
   console.log('🚀  EatMe cuisine_types normalize backfill (Phase 2a)');
-  console.log(`   Mode: ${DRY_RUN ? 'DRY RUN (no writes)' : 'LIVE'}`);
+  announceTarget({ dryRun: DRY_RUN, projectRef });
   console.log(
     `   fold sanity: ${JSON.stringify(normalizeCuisines(['cafe', 'CAFÉ', 'Italian', 'junk']))} (expect ["Café","Italian"])\n`
   );
@@ -210,7 +217,7 @@ async function main(): Promise<void> {
 
   if (DRY_RUN) {
     console.log(
-      `✅  Dry run complete. ${toChange.length} row(s) would change. Re-run without --dry-run to apply.`
+      `✅  Dry run complete. ${toChange.length} row(s) would change. Re-run with --apply to write.`
     );
     return;
   }

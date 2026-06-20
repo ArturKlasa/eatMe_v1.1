@@ -20,13 +20,19 @@
  * are candidates, so any interaction-based or already-seeded vector is left alone.
  *
  * Usage (from infra/scripts/):
- *   ts-node seed-cold-start-vectors.ts --dry-run --limit=5   # sample preview (no writes)
- *   ts-node seed-cold-start-vectors.ts --dry-run             # full preview (no writes)
- *   ts-node seed-cold-start-vectors.ts --limit=5             # apply to first 5 (writes)
- *   ts-node seed-cold-start-vectors.ts                       # apply to all (writes)
+ *   ts-node seed-cold-start-vectors.ts --limit=5            # sample preview (DEFAULT dry-run, no writes)
+ *   ts-node seed-cold-start-vectors.ts                      # full preview (DEFAULT dry-run, no writes)
+ *   ts-node seed-cold-start-vectors.ts --apply --limit=5    # apply to first 5 (writes to LIVE prod)
+ *   ts-node seed-cold-start-vectors.ts --apply              # apply to all (writes to LIVE prod)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * No flag means no writes — it requires the explicit `--apply` flag to mutate
+ * prod. `--dry-run` is still accepted as an affirming no-op (never errors). The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Flags:
- *   --dry-run     Compute + log what WOULD be written, but write nothing.
+ *   --apply       Required to write. Absent it, the run is a no-write preview.
+ *   --dry-run     Accepted no-op — re-affirms the default; writes nothing.
  *   --limit=N     Process only the first N candidates (sampling; 0 = all).
  *
  * Env (infra/scripts/.env):
@@ -35,14 +41,14 @@
 
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const DRY_RUN = process.argv.includes('--dry-run');
-const limitArg = process.argv.find(a => a.startsWith('--limit='));
-const LIMIT = limitArg ? parseInt(limitArg.split('=')[1] ?? '0', 10) : 0;
+// Default dry-run via the shared prod-guard (SEC-03): writes require --apply.
+const { dryRun: DRY_RUN, projectRef, limit: LIMIT } = parseGuard();
 
 // Must match the Edge Function (seedFromFavourites) so the script and live path agree.
 const DIMS = 1536;
@@ -145,10 +151,9 @@ async function buildSeedVector(
 const asArray = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
 
 async function main(): Promise<void> {
-  console.log(
-    `\n🌱  Cold-start preference-vector seed — ${DRY_RUN ? 'DRY RUN (no writes)' : 'APPLY (writes)'}` +
-      `${LIMIT ? `, limit ${LIMIT}` : ''}\n`
-  );
+  console.log('\n🌱  Cold-start preference-vector seed');
+  announceTarget({ dryRun: DRY_RUN, projectRef });
+  if (LIMIT) console.log(`   Limit: ${LIMIT}\n`);
 
   // 1. Onboarded users + their favourites.
   const { data: prefs, error: prefErr } = await supabase

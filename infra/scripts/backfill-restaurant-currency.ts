@@ -17,20 +17,25 @@
  * but skipped, so a deliberately-US restaurant can never be clobbered.
  *
  * Usage (from infra/scripts/):
- *   ts-node backfill-restaurant-currency.ts --dry-run    # preview, writes nothing
- *   ts-node backfill-restaurant-currency.ts              # apply (writes)
- *   ts-node backfill-restaurant-currency.ts --limit=10   # first N eligible rows
+ *   ts-node backfill-restaurant-currency.ts              # preview (DEFAULT dry-run, writes nothing)
+ *   ts-node backfill-restaurant-currency.ts --limit=10   # preview first N eligible rows (DEFAULT dry-run)
+ *   ts-node backfill-restaurant-currency.ts --apply      # apply (writes to LIVE prod)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * No flag means no writes — it requires the explicit `--apply` flag to mutate
+ * prod. `--dry-run` is still accepted as an affirming no-op (never errors). The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Env (infra/scripts/.env): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const DRY_RUN = process.argv.includes('--dry-run');
-const limitArg = process.argv.find(a => a.startsWith('--limit='));
-const LIMIT = limitArg ? parseInt(limitArg.split('=')[1] ?? '0', 10) : 0;
+// Default dry-run via the shared prod-guard (SEC-03): writes require --apply.
+const { dryRun: DRY_RUN, projectRef, limit: LIMIT } = parseGuard();
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌  Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
@@ -50,7 +55,7 @@ interface Row {
 
 async function main(): Promise<void> {
   console.log('🚀  Restaurant currency backfill (USD default → MX/MXN)');
-  console.log(`   Mode:   ${DRY_RUN ? 'DRY RUN (no writes)' : 'LIVE'}`);
+  announceTarget({ dryRun: DRY_RUN, projectRef });
   console.log(`   Limit:  ${LIMIT > 0 ? LIMIT : 'all'}\n`);
 
   // Every row still on the USD default — partitioned client-side so the
@@ -112,7 +117,7 @@ async function main(): Promise<void> {
   console.log(`   ${DRY_RUN ? 'Would set' : 'Set'} MX/MXN:  ${changed}`);
   if (skippedForeign.length > 0) console.log(`   Skipped foreign:  ${skippedForeign.length}`);
   if (failed > 0) console.log(`   Failed:           ${failed}`);
-  if (DRY_RUN) console.log('\n   Re-run without --dry-run to apply.');
+  if (DRY_RUN) console.log('\n   Re-run with --apply to write.');
 }
 
 main().catch(err => {

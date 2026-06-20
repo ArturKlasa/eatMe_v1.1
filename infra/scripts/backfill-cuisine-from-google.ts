@@ -11,12 +11,18 @@
  * and writes the canonical result back.
  *
  * Usage (from infra/scripts/):
- *   ts-node backfill-cuisine-from-google.ts --dry-run --limit=25   # sample preview
- *   ts-node backfill-cuisine-from-google.ts --dry-run              # full preview (calls API)
- *   ts-node backfill-cuisine-from-google.ts                        # apply (writes)
+ *   ts-node backfill-cuisine-from-google.ts --limit=25            # sample preview (DEFAULT dry-run, no writes)
+ *   ts-node backfill-cuisine-from-google.ts                       # full preview (DEFAULT dry-run, calls API, no writes)
+ *   ts-node backfill-cuisine-from-google.ts --apply               # apply (writes to LIVE prod)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * No flag means no writes — it requires the explicit `--apply` flag to mutate
+ * prod. `--dry-run` is still accepted as an affirming no-op (never errors). The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Flags:
- *   --dry-run     Fetch + infer and log what WOULD be written, but write nothing.
+ *   --apply       Required to write. Absent it, the run is a no-write preview.
+ *   --dry-run     Accepted no-op — re-affirms the default; writes nothing.
  *   --limit=N     Process only the first N candidates (sampling; 0 = all).
  *
  * Env (infra/scripts/.env):
@@ -31,6 +37,7 @@
 
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -39,9 +46,9 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? '';
 const BATCH_CONCURRENCY = parseInt(process.env.BATCH_CONCURRENCY ?? '5', 10);
 const BATCH_DELAY_MS = parseInt(process.env.BATCH_DELAY_MS ?? '500', 10);
-const DRY_RUN = process.argv.includes('--dry-run');
-const limitArg = process.argv.find(a => a.startsWith('--limit='));
-const LIMIT = limitArg ? parseInt(limitArg.split('=')[1] ?? '0', 10) : 0;
+
+// Default dry-run via the shared prod-guard (SEC-03): writes require --apply.
+const { dryRun: DRY_RUN, projectRef, limit: LIMIT } = parseGuard();
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !GOOGLE_PLACES_API_KEY) {
   console.error(
@@ -325,7 +332,7 @@ async function backfillOne(row: RestaurantRow): Promise<Result> {
 
 async function main(): Promise<void> {
   console.log('🚀  EatMe cuisine re-inference from Google (Phase 2b)');
-  console.log(`   Mode:        ${DRY_RUN ? 'DRY RUN (no writes)' : 'LIVE'}`);
+  announceTarget({ dryRun: DRY_RUN, projectRef });
   console.log(`   Limit:       ${LIMIT > 0 ? LIMIT : 'all'}`);
   console.log(`   Concurrency: ${BATCH_CONCURRENCY}, delay ${BATCH_DELAY_MS}ms\n`);
 
@@ -386,7 +393,7 @@ async function main(): Promise<void> {
   console.log(`   Populated:   ${populated}/${total}  (${hitRate}% hit rate)`);
   console.log(`   Still empty: ${stillEmpty}/${total}`);
   if (failed > 0) console.log(`   Failed:      ${failed}/${total}`);
-  if (DRY_RUN) console.log('\n   Re-run without --dry-run to apply these changes.');
+  if (DRY_RUN) console.log('\n   Re-run with --apply to write these changes.');
 }
 
 main().catch(err => {

@@ -12,12 +12,18 @@
  * same tz-lookup the admin import now uses), so open-now is evaluated correctly.
  *
  * Usage (from infra/scripts/):
- *   ts-node backfill-restaurant-timezone.ts --dry-run            # preview null-tz rows
- *   ts-node backfill-restaurant-timezone.ts                      # apply (writes)
- *   ts-node backfill-restaurant-timezone.ts --all --dry-run      # also re-derive non-null rows (precision upgrade)
+ *   ts-node backfill-restaurant-timezone.ts             # preview null-tz rows (DEFAULT dry-run, no writes)
+ *   ts-node backfill-restaurant-timezone.ts --apply     # apply (writes to LIVE prod)
+ *   ts-node backfill-restaurant-timezone.ts --all       # also re-derive non-null rows (precision upgrade preview)
+ *
+ * CLI contract (SEC-03, shared prod-guard): this script now DEFAULTS to dry-run.
+ * No flag means no writes — it requires the explicit `--apply` flag to mutate
+ * prod. `--dry-run` is still accepted as an affirming no-op (never errors). The
+ * resolved target project ref (from SUPABASE_URL) is announced before any write.
  *
  * Flags:
- *   --dry-run     Log what WOULD be written, but write nothing.
+ *   --apply       Required to write. Absent it, the run is a no-write preview.
+ *   --dry-run     Accepted no-op — re-affirms the default; writes nothing.
  *   --all         Re-derive EVERY restaurant from coords (upgrade country-approx
  *                 → lat/lng-precise). Default: only rows with a null timezone.
  *   --limit=N     Process only the first N candidates (0 = all).
@@ -26,15 +32,15 @@
  */
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { parseGuard, announceTarget } from './lib/prod-guard';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const tzlookup = require('tz-lookup') as (lat: number, lon: number) => string;
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const DRY_RUN = process.argv.includes('--dry-run');
+// Default dry-run via the shared prod-guard (SEC-03): writes require --apply.
+const { dryRun: DRY_RUN, projectRef, limit: LIMIT } = parseGuard();
 const ALL = process.argv.includes('--all');
-const limitArg = process.argv.find(a => a.startsWith('--limit='));
-const LIMIT = limitArg ? parseInt(limitArg.split('=')[1] ?? '0', 10) : 0;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌  Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
@@ -68,7 +74,7 @@ function deriveTimezone(loc: Row['location']): string | null {
 
 async function main(): Promise<void> {
   console.log('🚀  Restaurant timezone backfill (open-now fix)');
-  console.log(`   Mode:   ${DRY_RUN ? 'DRY RUN (no writes)' : 'LIVE'}`);
+  announceTarget({ dryRun: DRY_RUN, projectRef });
   console.log(`   Scope:  ${ALL ? 'ALL rows (re-derive from coords)' : 'rows with NULL timezone'}`);
   console.log(`   Limit:  ${LIMIT > 0 ? LIMIT : 'all'}\n`);
 
@@ -125,7 +131,7 @@ async function main(): Promise<void> {
   if (unchanged > 0) console.log(`   Unchanged:   ${unchanged}`);
   if (noCoords > 0) console.log(`   No coords:   ${noCoords}`);
   if (failed > 0) console.log(`   Failed:      ${failed}`);
-  if (DRY_RUN) console.log('\n   Re-run without --dry-run to apply.');
+  if (DRY_RUN) console.log('\n   Re-run with --apply to write.');
 }
 
 main().catch(err => {

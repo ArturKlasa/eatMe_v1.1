@@ -27,8 +27,8 @@ Each finding is assessed (validated against current code + live DB) before being
 
 ### Debt & Dependencies
 
-- [ ] **DEBT-01**: Ingredient-pipeline triggers are dropped (Phase B) via a staged, dry-run migration
-- [ ] **DEBT-02**: Orphaned ingredient-pipeline tables and columns are dropped (Phase C) via a staged migration with a `pg_depend` pre-flight and ordered `RESTRICT` drops (child → parent); snapshot first
+- [x] **DEBT-01**: Ingredient-pipeline triggers are dropped (Phase B) via a staged, dry-run migration
+- [x] **DEBT-02**: Orphaned ingredient-pipeline tables and columns are dropped (Phase C) via a staged migration with a `pg_depend` pre-flight and ordered `RESTRICT` drops (child → parent); snapshot first
 - [ ] **DEBT-03**: `DishKind` / `DISH_KIND_META` usage is removed from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then the shims + `dish-kinds.test.ts` are deleted from `@eatme/shared`
 - [ ] **DEBT-04**: `@eatme/database` types are regenerated in sync with the current schema (post-teardown) and committed
 - [x] **DEBT-05
@@ -89,8 +89,8 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | CLEAN-01 | Phase 5 | Complete |
 | CLEAN-02 | Phase 5 | Complete |
 | CLEAN-03 | Phase 5 | Complete |
-| DEBT-01 | Phase 6 | Pending |
-| DEBT-02 | Phase 6 | Pending |
+| DEBT-01 | Phase 6 | Complete |
+| DEBT-02 | Phase 6 | Complete |
 | DEBT-03 | Phase 6 | Pending |
 | DEBT-04 | Phase 6 | Pending |
 | PERF-01 | Phase 7 | Pending |

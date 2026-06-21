@@ -878,29 +878,35 @@ Deno.serve(async (req: Request) => {
 
     console.log('[Feed] Stage 1: generate_candidates');
 
-    const { data: candidates, error: candidateError } = (await supabase.rpc('generate_candidates', {
-      p_lat: location.lat,
-      p_lng: location.lng,
-      p_radius_m: radius * 1000,
-      p_preference_vector: preferenceVector ? JSON.stringify(preferenceVector) : null,
-      p_disliked_dish_ids: userDislikes.length ? userDislikes : null,
-      p_diet_tag: hardDietTag,
-      p_exclude_families: filters.excludeFamilies?.length ? filters.excludeFamilies : null,
-      p_exclude_spicy: filters.excludeSpicy ?? false,
-      p_limit: 200,
-      // Universal dish structure: new filter parameters
-      p_current_time: filters.currentTime ?? null,
-      p_current_day: filters.currentDayOfWeek ?? null,
-      p_schedule_type: filters.scheduleType ?? null,
-      p_group_meals: filters.groupMeals ?? false,
-    })) as { data: Candidate[] | null; error: unknown };
-
-    if (candidateError) {
-      console.error('[Feed] generate_candidates failed:', candidateError);
-      throw candidateError;
+    // Tiered/expanding-radius loop (D-01..D-03, PERF-01 SC#1). Tunable starting values.
+    const TIER_FRACTIONS = [0.25, 0.5, 1.0]; // 25% -> 50% -> 100%; final tier == requested radius (D-03), never exceeds it
+    const POOL_TARGET = 100; // ~half of p_limit=200; stop once a healthy ranking pool is reached (D-02)
+    const requestedRadiusM = radius * 1000;
+    let pool: Candidate[] = [];
+    for (const frac of TIER_FRACTIONS) {
+      const { data, error } = (await supabase.rpc('generate_candidates', {
+        p_lat: location.lat,
+        p_lng: location.lng,
+        p_radius_m: Math.round(requestedRadiusM * frac), // ONLY this changes per tier
+        p_preference_vector: preferenceVector ? JSON.stringify(preferenceVector) : null,
+        p_disliked_dish_ids: userDislikes.length ? userDislikes : null,
+        p_diet_tag: hardDietTag,
+        p_exclude_families: filters.excludeFamilies?.length ? filters.excludeFamilies : null,
+        p_exclude_spicy: filters.excludeSpicy ?? false,
+        p_limit: 200,
+        // Universal dish structure: new filter parameters
+        p_current_time: filters.currentTime ?? null,
+        p_current_day: filters.currentDayOfWeek ?? null,
+        p_schedule_type: filters.scheduleType ?? null,
+        p_group_meals: filters.groupMeals ?? false,
+      })) as { data: Candidate[] | null; error: unknown };
+      if (error) {
+        console.error('[Feed] generate_candidates failed:', error);
+        throw error;
+      }
+      pool = data ?? []; // wider tier is a strict superset -> REPLACE, never merge/dedup
+      if (pool.length >= POOL_TARGET) break; // healthy pool reached (D-02)
     }
-
-    const pool = candidates ?? [];
     console.log(`[Feed] Stage 1: ${pool.length} candidates`);
 
     if (pool.length === 0) {

@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 07 (performance-cache) — EXECUTING
-Plan: 1 of 5
+Plan: 5 of 5 (07-05 complete; phase.complete pending orchestrator)
 Status: Executing Phase 07
-Last activity: 2026-06-21 -- Phase 07 execution started
+Last activity: 2026-06-21 -- Plan 07-05 operator apply-verify complete (PERF-02/03 confirmed, PERF-01 SC#2 deferred)
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -92,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-04: severed-first shim teardown pattern — delete app importers, then delete shared symbol, gated by zero-importer grep + check-types
 - [Phase ?]: Plan 06-05: DEBT-04 satisfied by VERIFICATION not edit — types.ts already slimmed (zero dropped-object residue grep, overturns F-07/F-15); D-10 edge-fn inline-enum is a clean no-op (no ingredient enum copies); turbo check-types green across admin+web-portal-v2 (SC4).
 - [Phase ?]: Plan 06-06: operator apply-and-verify runbook (06-OPERATOR-HANDOFF.md) authored; phase completion GATED on operator clean post-apply paste-back (blocking-human); agent applied nothing (no CLI, stage-don't-apply).
+- [Phase 07]: Plan 07-05: operator applied migrations 175 + 176 DIRECT-TO-PROD (no branch — Supabase Pro/branching unavailable; zero real users + schema-only/transactional/reversible/fail-soft = agreed safe path). PERF-03 SC#4 CONFIRMED (9-row trigger catalog restaurants/menus/dishes × INSERT/UPDATE/DELETE all AFTER; smoke: dish UPDATE → invalidate-cache net._http_post 200; no old dashboard webhook existed → no double-flush). PERF-02 SC#3 CONFIRMED (per-restaurant pre-cap K=8 applied, Deno 3/3). Two in-flight 175 deviations: (A) ALTER FUNCTION SET hnsw.* → 42501 on non-superuser postgres role → moved to runtime `set_config('hnsw.*', ..., is_local=>true)` in the function body (36f51cf); (B) **iterative_scan GUC DROPPED → PERF-01 SC#2 DEFERRED** — operator latency validation rejected it at the production 2.5km first tier (caps 200 candidates ~1.4s warm WITHOUT the GUC; GUC's max_scan_tuples=20000 over-scans the small in-range set; only helped at 10km/200 which the tiered loop never reaches). Final 175 = pre-cap only, NO GUC (40aa09d). PERF-01 delivered via SC#1 tiered-radius loop (07-03). **iterative_scan did NOT ship**; revisit with a TUNED GUC (lower ef_search/max_scan_tuples) once the corpus grows sparse enough to under-return at 2.5km. Feed first-tier ~1.4s warm behind 5-min Redis cache — flagged as a revisit-with-real-traffic item.
 
 ### Pending Todos
 
@@ -103,7 +104,7 @@ None yet.
 
 - ✓ RESOLVED — Live RLS state: ALL 11 behavioral tables already have RLS enabled with owner policies in prod (catch-all: only `spatial_ref_sys` unprotected). No prod RLS gap. Phase 3 repurposed from "enable RLS" → CODIFY existing prod RLS into a migration (closes migrations↔prod drift; baseline has zero ENABLE RLS). `dish_analytics` is dish-keyed → NOT a per-user owner policy. (F-11)
 - ✓ RESOLVED — Prod pgvector `extversion=0.8.0` (≥0.8.0) → `hnsw.iterative_scan` IS available; Phase 7 may apply it. (F-13)
-- ◑ PARTLY RESOLVED — Deployed enrich webhook covers INSERT+UPDATE on dishes (agrees with migration 135; no DELETE). The feed-cache `invalidate-cache` webhook is NOT in the deployed trigger catalog → Phase 7 must locate the actual invalidation wiring before widening event coverage. (F-21)
+- ✓ RESOLVED (Phase 7) — F-21 closed: no `invalidate-cache` dashboard webhook existed in prod (pg_trigger showed only the 3 new `public._trg_invalidate_feed_cache` triggers; no `supabase_functions.http_request` trigger). Migration 176 now owns cache invalidation as tracked `public`-schema triggers on restaurants/menus/dishes for INSERT/UPDATE/DELETE (9-row catalog confirmed, smoke 200). No double-flush. (F-21)
 - ✓ DONE (Phase 3) — atomic RLS enable+policy / codify: migration 170 self-cleaning sweep → canonical set in one BEGIN/COMMIT, operator-validated (no duplication).
 - High-blast-radius guards still to enforce in later phases: `pg_depend` pre-flight + RESTRICT drops + snapshot (Phase 6); byte-identical filterStore serialization shape (Phase 8).
 
@@ -126,3 +127,5 @@ Resume file: --resume-file
 **Phase 3 deviation (for the record):** the plan's Task-1/Task-2 `<automated>` bare-`auth.uid()` gate regex `[^(]auth\.uid\(\)` is inverted — it matches the mandated InitPlan form `(select auth.uid())` and misses an actual bare `(auth.uid()` form. Verified the must_have truth with a corrected check (0 bare calls; 29/29 wrapped).
 
 **Planned Phase:** 07 (Performance & Cache) — 5 plans — 2026-06-21T14:47:12.502Z
+
+**Phase 7 outcome (07-05):** operator applied migrations 175 + 176 direct-to-prod (no branch available; zero users + schema-only/transactional/reversible/fail-soft = safe). PERF-03 SC#4 CONFIRMED (9-row trigger catalog + smoke 200, no old webhook → no double-flush); PERF-02 SC#3 CONFIRMED (pre-cap K=8). **iterative_scan GUC DROPPED → PERF-01 SC#2 DEFERRED** (live latency validation rejected it at the 2.5km production tier; PERF-01 still delivered via SC#1 tiered-radius loop). Two in-flight 175 fixes: 42501→runtime `set_config` (36f51cf), drop GUC keep pre-cap (40aa09d). Runbook authored 46c7888/af8667c. Revisit iterative_scan + feed latency with real traffic. Summary: `.planning/phases/07-performance-cache/07-05-SUMMARY.md`.

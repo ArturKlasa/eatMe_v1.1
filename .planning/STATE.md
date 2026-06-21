@@ -2,19 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 06
-current_phase_name: schema-teardown-spine
-status: ready_to_plan
-stopped_at: Phase 6 complete (verified 4/4 passed); ready to plan Phase 7
-last_updated: "2026-06-21T00:30:00.000Z"
+status: planning
+stopped_at: Phase 7 context gathered
+last_updated: "2026-06-21T05:44:51.041Z"
 last_activity: 2026-06-21
-last_activity_desc: Phase 06 schema-teardown-spine complete — verified 4/4; operator gate resolved (prod already at teardown end-state)
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 19
   completed_plans: 19
-  percent: 60
+  percent: 100
 ---
 
 # Project State
@@ -120,8 +117,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-21T00:30:00.000Z
-Stopped at: Phase 6 complete (verified); ready to plan Phase 7
+Last session: --stopped-at
+Stopped at: Phase 7 context gathered
 Resume file: --resume-file
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.

@@ -3,35 +3,26 @@
 -- clear the iterative_scan GUCs.
 --
 -- WARNING (recall/latency): this reverts the durable filtered-ANN recall fix
--- (RESET hnsw.iterative_scan) AND the per-restaurant pre-cap. Reverting the
--- iterative_scan GUC re-opens the under-return exposure for heavily-filtered
--- personalized requests; reverting the pre-cap restores the unbounded Stage-1 →
--- Stage-2 handoff payload. Only run during a controlled rollback.
+-- (the runtime hnsw.iterative_scan GUCs) AND the per-restaurant pre-cap. Both live
+-- INSIDE the migration-175 function body (the GUCs as SET LOCAL / set_config(...,
+-- true) calls), so restoring the verbatim 169 body below drops them in one
+-- CREATE OR REPLACE — there is NO catalog RESET to run (175 never persisted the
+-- GUCs onto the function; the ALTER FUNCTION SET form is blocked on Supabase).
+-- Reverting re-opens the under-return exposure for heavily-filtered personalized
+-- requests and restores the unbounded Stage-1 → Stage-2 handoff payload. Only run
+-- during a controlled rollback.
 --
 -- This restores the migration-169 `generate_candidates` body (current HEAD before
 -- 175, NOT the migration-167 form). The 13-arg signature and the 32-column return
 -- shape are unchanged across 169 → 175, so this is a plain CREATE OR REPLACE
--- (no DROP needed), mirroring 169_REVERSE_ONLY:10.
---
--- Order: (1) RESET the four per-function iterative_scan GUCs (the inverse of 175's
--- SET clauses), then (2) CREATE OR REPLACE the verbatim 169 body (no `ranked`
--- subquery wrap, no ROW_NUMBER pre-cap).
+-- (no DROP needed), mirroring 169_REVERSE_ONLY:10. The verbatim 169 body has no
+-- set_config GUC calls, so the runtime iterative_scan GUCs vanish automatically.
 -- ══════════════════════════════════════════════════════════════════════════════
 
 BEGIN;
 
--- (1) Clear the per-function iterative_scan GUCs set by migration 175.
--- Full 13-arg signature (verbatim from 169:42-54; `vector(1536)` written bare
--- `vector`, as 167_REVERSE:13-15 proves both forms resolve).
-ALTER FUNCTION generate_candidates(
-  FLOAT, FLOAT, FLOAT, vector, UUID[], TEXT, TEXT[], BOOLEAN, INT, TIME, TEXT, TEXT, BOOLEAN
-)
-  RESET hnsw.iterative_scan,
-  RESET hnsw.max_scan_tuples,
-  RESET hnsw.scan_mem_multiplier,
-  RESET hnsw.ef_search;
-
--- (2) Restore the verbatim migration-169 generate_candidates body (no pre-cap).
+-- Restore the verbatim migration-169 generate_candidates body (no pre-cap, no
+-- set_config GUCs). Full 13-arg signature / 32-column shape unchanged from 175.
 CREATE OR REPLACE FUNCTION generate_candidates(
   p_lat                    FLOAT,
   p_lng                    FLOAT,

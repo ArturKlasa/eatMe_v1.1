@@ -17,8 +17,9 @@
 -- can under-return badly with the default ef_search=40. `hnsw.iterative_scan =
 -- relaxed_order` auto-expands the scan until the LIMIT is met (the durable half of
 -- PERF-01; complementary to, not replaced by, the Plan-04 tiered-radius loop). The
--- GUC is scoped to ONLY this function via ALTER FUNCTION (not session-global), so it
--- self-restores at function exit and never leaks across pooled connections.
+-- GUC is scoped to ONLY this function call via SET LOCAL / set_config(..., true)
+-- inside the body (PART (a) below), so it self-restores at function/transaction
+-- exit and never leaks across pooled connections.
 -- `relaxed_order` is safe here because BOTH the CTE inner ORDER BY and the outer
 -- query re-impose the vector_distance sort, and the JS Stage-2 re-scores anyway —
 -- so the only effect is WHICH candidate set survives (recall), not the order.
@@ -51,25 +52,21 @@
 BEGIN;
 
 -- ── PART (a): scope the iterative-scan GUCs to ONLY the feed RPC ────────────────
--- Full 13-arg signature is required to uniquely identify the function (taken
--- verbatim from 169:42-54 declared types; `vector(1536)` is written bare `vector`,
--- as 167_REVERSE:13-15 proves both forms resolve).
+-- The four hnsw.* GUCs are applied at RUNTIME inside the function body via
+-- PERFORM set_config(<name>, <value>, is_local => true) — see the BEGIN block of
+-- PART (b) below.
 --
--- Primary form: comma-separated multi-SET (PostgreSQL ALTER FUNCTION accepts a list
--- of SET actions). Pitfall-1 fallback (commented prose only): if the prod pg version
--- rejects the multi-SET form, emit one statement per GUC instead — all four are
--- independent and idempotent:
---   ALTER FUNCTION generate_candidates(...) SET hnsw.iterative_scan      = 'relaxed_order';
---   ALTER FUNCTION generate_candidates(...) SET hnsw.max_scan_tuples     = 20000;
---   ALTER FUNCTION generate_candidates(...) SET hnsw.scan_mem_multiplier = 2;
---   ALTER FUNCTION generate_candidates(...) SET hnsw.ef_search           = 400;
-ALTER FUNCTION generate_candidates(
-  FLOAT, FLOAT, FLOAT, vector, UUID[], TEXT, TEXT[], BOOLEAN, INT, TIME, TEXT, TEXT, BOOLEAN
-)
-  SET hnsw.iterative_scan      = 'relaxed_order'   -- D-05: order re-imposed downstream by the CTE + outer ORDER BY
-  SET hnsw.max_scan_tuples     = 20000             -- default ceiling; bounds worst-case scan cost under heavy filters (tunable)
-  SET hnsw.scan_mem_multiplier = 2                 -- headroom over work_mem so raising max_scan_tuples can help recall (tunable)
-  SET hnsw.ef_search           = 400;              -- >= 2x p_limit=200 per pgvector guidance (tunable)
+-- Why not `ALTER FUNCTION ... SET`: that form persists the GUCs onto the function
+-- in the catalog, which on managed Postgres (Supabase) requires superuser and
+-- fails with `ERROR: 42501: permission denied to set parameter
+-- "hnsw.iterative_scan"`. The set_config(..., true) form is the SET LOCAL
+-- equivalent: function-scoped (auto-reverts at function/transaction exit, never
+-- leaks across pooled connections — the SAME isolation guarantee ALTER FUNCTION
+-- SET would give), but it uses the per-session USERSET privilege path that
+-- non-superusers DO have (verified on prod: `SET hnsw.iterative_scan =
+-- 'relaxed_order'` succeeds for the Supabase postgres role). Recall/latency of the
+-- starting values is OPERATOR-GATED (D-04); tune ef_search / max_scan_tuples in the
+-- set_config lines below and re-measure.
 
 -- ── PART (b): re-emit generate_candidates with the per-restaurant ROW_NUMBER pre-cap
 -- (CREATE OR REPLACE — 32-column shape unchanged, no DROP).
@@ -129,6 +126,18 @@ SET search_path = extensions, public
 AS $$
 #variable_conflict use_column
 BEGIN
+  -- PART (a): scope the HNSW iterative-scan GUCs to THIS function call only.
+  -- is_local => true === SET LOCAL: reverts at function/transaction exit, so the
+  -- GUCs never leak across pooled connections. Runtime form (not ALTER FUNCTION
+  -- ... SET) because the catalog-persisted form needs superuser on Supabase
+  -- (42501). relaxed_order is safe: the CTE inner + outer ORDER BY and the JS
+  -- Stage-2 re-score all re-impose the vector_distance sort, so the only effect is
+  -- WHICH candidates survive (recall), not their order.
+  PERFORM set_config('hnsw.iterative_scan',      'relaxed_order', true);  -- D-05
+  PERFORM set_config('hnsw.max_scan_tuples',     '20000',         true);  -- bounds worst-case scan cost (tunable)
+  PERFORM set_config('hnsw.scan_mem_multiplier', '2',             true);  -- work_mem headroom (tunable)
+  PERFORM set_config('hnsw.ef_search',           '400',           true);  -- >= 2x p_limit=200 (tunable)
+
   RETURN QUERY
   -- (1) Pick the top-N in-range dishes with NO modifier work. MATERIALIZED so the
   --     planner computes this set (filter → per-restaurant pre-cap → sort → LIMIT)

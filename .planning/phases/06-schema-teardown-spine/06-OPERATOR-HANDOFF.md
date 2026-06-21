@@ -59,25 +59,32 @@ SELECT jsonb_build_object(
          OR (table_name = 'options' AND column_name = 'canonical_ingredient_id') )
   ),
   'archive_row_counts', (
-    -- Wrap each in to_regclass so the probe never errors if a table is already gone.
-    SELECT jsonb_build_object(
-      'canonical_ingredients',          (SELECT CASE WHEN to_regclass('public.canonical_ingredients')          IS NULL THEN -1 ELSE (SELECT count(*) FROM public.canonical_ingredients)          END),
-      'ingredient_aliases',             (SELECT CASE WHEN to_regclass('public.ingredient_aliases')             IS NULL THEN -1 ELSE (SELECT count(*) FROM public.ingredient_aliases)             END),
-      'ingredient_aliases_v2',          (SELECT CASE WHEN to_regclass('public.ingredient_aliases_v2')          IS NULL THEN -1 ELSE (SELECT count(*) FROM public.ingredient_aliases_v2)          END),
-      'ingredient_concepts',            (SELECT CASE WHEN to_regclass('public.ingredient_concepts')            IS NULL THEN -1 ELSE (SELECT count(*) FROM public.ingredient_concepts)            END),
-      'ingredient_variants',            (SELECT CASE WHEN to_regclass('public.ingredient_variants')            IS NULL THEN -1 ELSE (SELECT count(*) FROM public.ingredient_variants)            END),
-      'concept_translations',           (SELECT CASE WHEN to_regclass('public.concept_translations')           IS NULL THEN -1 ELSE (SELECT count(*) FROM public.concept_translations)           END),
-      'variant_translations',           (SELECT CASE WHEN to_regclass('public.variant_translations')           IS NULL THEN -1 ELSE (SELECT count(*) FROM public.variant_translations)           END),
-      'canonical_ingredient_allergens', (SELECT CASE WHEN to_regclass('public.canonical_ingredient_allergens') IS NULL THEN -1 ELSE (SELECT count(*) FROM public.canonical_ingredient_allergens) END),
-      'dish_ingredients',               (SELECT CASE WHEN to_regclass('public.dish_ingredients')               IS NULL THEN -1 ELSE (SELECT count(*) FROM public.dish_ingredients)               END)
-    )
+    -- NOTE: a static `SELECT count(*) FROM public.<tbl>` fails at PARSE time if the
+    -- table is already gone (the to_regclass CASE guard runs too late to help).
+    -- Instead iterate ONLY over tables that currently exist (information_schema) and
+    -- count each dynamically via query_to_xml so the name is resolved at runtime.
+    -- Tables already absent simply do not appear in the result object.
+    SELECT coalesce(jsonb_object_agg(t.table_name, t.cnt), '{}'::jsonb)
+    FROM (
+      SELECT table_name,
+        (xpath('/row/c/text()',
+               query_to_xml(format('SELECT count(*) AS c FROM public.%I', table_name),
+                            false, true, '')))[1]::text::bigint AS cnt
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN (
+          'canonical_ingredients','ingredient_aliases','ingredient_aliases_v2',
+          'ingredient_concepts','ingredient_variants','concept_translations',
+          'variant_translations','canonical_ingredient_allergens','dish_ingredients'
+        )
+    ) t
   )
 ) AS phase6_probe;
 ```
 
 **Reading the result:**
 - `ingredient_tables_present` / `ingredient_triggers_present` / `ingredient_functions_present` / `dead_columns_present` list exactly what the teardown must still remove. Empty already = those drops are no-ops.
-- `archive_row_counts`: `-1` means the table is **already absent** (its drop and its 172 snapshot are silent no-ops). `>= 0` means it has that many rows worth archiving in 172 before the 173 drop.
+- `archive_row_counts`: only lists tables that **currently exist** in `public`. A table **missing from this object is already absent** (its 173 drop and its 172 snapshot are silent no-ops). A listed count `>= 0` means it has that many rows worth archiving in 172 before the 173 drop.
 
 ### 1b. pg_depend DEPENDENCY AUDIT (SC2)
 
@@ -228,7 +235,7 @@ post-teardown result:
 - `ingredient_triggers_present` = `[]`
 - `ingredient_functions_present` = `[]`
 - `dead_columns_present` = `{}`
-- `archive_row_counts` = every entry `-1` (all tables now absent from `public`)
+- `archive_row_counts` = `{}` (no ingredient tables remain in `public`)
 
 **Paste back both the verify-script output and the re-run probe JSON.** The phase
 is **NOT complete** until this paste-back is clean (all `GONE ✓` / all empty).
@@ -245,5 +252,5 @@ is **NOT complete** until this paste-back is clean (all `GONE ✓` / all empty).
 - [ ] (2D) Applied `174_drop_ingredient_columns_restrict.sql`
 - [ ] (3) Confirmed 151 / 152 / 153 were NOT applied
 - [ ] (4a) `verify-phase6-teardown.ts` → all `GONE ✓`
-- [ ] (4b) Re-run LIVE-STATE PROBE → all empty / `{}` / `-1`
+- [ ] (4b) Re-run LIVE-STATE PROBE → all empty (`[]` / `{}`)
 - [ ] Pasted back the clean post-apply probe + verify-script output

@@ -134,7 +134,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 06-03-PLAN.md — [Wave 2] Phase C: ingredient_archive snapshot (172) + RESTRICT table drop with options FK-sever (173) + column drop (174), all + REVERSEs (DEBT-02)
 - [x] 06-04-PLAN.md — [Wave 1] DishKind shim removal: sever web-portal-v2 first, then delete shims + test from @eatme/shared, zero-importer grep (DEBT-03)
 - [x] 06-05-PLAN.md — [Wave 3] Verify types.ts residue-free + edge-enum reconciliation no-op + turbo check-types (DEBT-04)
-- [ ] 06-06-PLAN.md — [Wave 4] BLOCKING operator apply-and-verify handoff (LIVE-STATE PROBE + pg_depend audit + apply order + post-apply verify) — replaces the CLI schema-push (DEBT-01/02)
+- [x] 06-06-PLAN.md — [Wave 4] BLOCKING operator apply-and-verify handoff (LIVE-STATE PROBE + pg_depend audit + apply order + post-apply verify) — replaces the CLI schema-push (DEBT-01/02)
 
 ### Phase 7: Performance & Cache
 

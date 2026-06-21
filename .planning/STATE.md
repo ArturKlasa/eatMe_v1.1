@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 06
 current_phase_name: schema-teardown-spine
-status: awaiting-operator
-stopped_at: Phase 6 plan 06-06 blocking-human checkpoint — operator must apply teardown migrations + paste back
-last_updated: "2026-06-20T20:40:09.344Z"
-last_activity: 2026-06-20
-last_activity_desc: Phase 06 all 6 plans authored; awaiting operator apply-and-verify paste-back
+status: ready_to_plan
+stopped_at: Phase 6 complete (verified 4/4 passed); ready to plan Phase 7
+last_updated: "2026-06-21T00:30:00.000Z"
+last_activity: 2026-06-21
+last_activity_desc: Phase 06 schema-teardown-spine complete — verified 4/4; operator gate resolved (prod already at teardown end-state)
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 19
   completed_plans: 19
-  percent: 50
+  percent: 60
 ---
 
 # Project State
@@ -28,18 +28,18 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 
 ## Current Position
 
-Phase: 06 (schema-teardown-spine) — EXECUTING
-Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-06-20 -- Phase 06 execution started
+Phase: 7
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-21
 
-Progress (milestone): [████░░░░░░] 40% (4/10 phases)
+Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 9
+- Total plans completed: 15
 - Average duration: ~6 min
 - Total execution time: ~0.1 hours
 
@@ -51,6 +51,7 @@ Progress (milestone): [████░░░░░░] 40% (4/10 phases)
 | 02 | 2 | - | - |
 | 04 | 3 | - | - |
 | 05 | 3 | - | - |
+| 06 | 6 | - | - |
 
 **Recent Trend:**
 
@@ -119,8 +120,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T20:40:03.298Z
-Stopped at: Phase 6 context gathered
+Last session: 2026-06-21T00:30:00.000Z
+Stopped at: Phase 6 complete (verified); ready to plan Phase 7
 Resume file: --resume-file
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.

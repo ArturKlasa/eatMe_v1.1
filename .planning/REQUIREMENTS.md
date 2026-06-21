@@ -38,8 +38,8 @@ Each finding is assessed (validated against current code + live DB) before being
 ### Performance & Scaling
 
 - [ ] **PERF-01**: `generate_candidates` returns within `statement_timeout` at the default radius via a tiered/expanding-radius approach (no migration required); `hnsw.iterative_scan` assessed once the prod pgvector version is confirmed
-- [ ] **PERF-02**: Feed Stage-2 response payload size is reduced (diversity cap / final sort moved toward SQL where it measurably helps)
-- [ ] **PERF-03**: Feed-cache invalidation covers INSERT / UPDATE / DELETE for menu-affecting changes (webhook event coverage widened), and `invalidate-cache` CORS is locked down (with SEC-01)
+- [x] **PERF-02**: Feed Stage-2 response payload size is reduced (diversity cap / final sort moved toward SQL where it measurably helps)
+- [x] **PERF-03**: Feed-cache invalidation covers INSERT / UPDATE / DELETE for menu-affecting changes (webhook event coverage widened), and `invalidate-cache` CORS is locked down (with SEC-01)
 
 ### Refactors (behavior-preserving)
 
@@ -94,8 +94,8 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | DEBT-03 | Phase 6 | Complete |
 | DEBT-04 | Phase 6 | Complete |
 | PERF-01 | Phase 7 | Pending |
-| PERF-02 | Phase 7 | Pending |
-| PERF-03 | Phase 7 | Pending |
+| PERF-02 | Phase 7 | Complete |
+| PERF-03 | Phase 7 | Complete |
 | RFCT-01 | Phase 8 | Pending |
 | RFCT-02 | Phase 9 | Pending |
 | RFCT-03 | Phase 9 | Pending |

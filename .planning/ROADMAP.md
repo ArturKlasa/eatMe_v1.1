@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts` (completed 2026-06-20)
 - [x] **Phase 5: Dead Code & Doc Cleanup** - Remove the dead map view-mode branch, verify the web-portal deletion, and fix stale comments/docs (completed 2026-06-20 — CLEAN-01 on-device UI check pending)
 - [ ] **Phase 6: Schema Teardown Spine** - Sequenced ingredient teardown (B triggers → C tables → C columns), DishKind shim removal, single type regen
-- [ ] **Phase 7: Performance & Cache** - Tiered-radius candidate fix, Stage-2 payload reduction, and widened cache-invalidation event coverage
+- [x] **Phase 7: Performance & Cache** - Tiered-radius candidate fix, Stage-2 payload reduction, and widened cache-invalidation event coverage (completed 2026-06-21)
 - [ ] **Phase 8: Mobile Filter Store Refactor** - Split `filterStore.ts` into slices, preserving the public API and persistence shape byte-for-byte
 - [ ] **Phase 9: Mobile Map & Modal Refactor** - Decompose `BasicMapScreen.tsx` and `DailyFilterModal.tsx`, behavior-preserving, verified on-device
 - [ ] **Phase 10: Admin Editor Refactor** - Decompose `ReviewDishEditor.tsx`, preserving the `admin_confirm_menu_scan` payload contract
@@ -150,13 +150,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Scope note (per FINDINGS):** F-13 — prod pgvector `extversion=0.8.0` (≥0.8.0) → `hnsw.iterative_scan` IS available; SC#2 applies it via `ALTER FUNCTION ... SET` scoped to `generate_candidates` (no extension upgrade; D-04). F-21 — the deployed `trg_enrich_on_dish_change` covers INSERT+UPDATE on `dishes` (agrees with migration 135; no DELETE), but the feed-cache `invalidate-cache` webhook is **NOT present in the deployed trigger catalog** on restaurants/menus/dishes → SC#4 codifies it as a tracked `net.http_post` + Vault trigger migration (D-09; the in-repo 132/135 pattern, NOT `supabase_functions.http_request`). The existing `feed:v2:*` flush-all is kept deliberately (restaurant-agnostic key, operator-rare writes, 5-min TTL) and documented in writing rather than re-engineered (D-08).
 
-**Plans**: 5 plans
+**Plans**: 5/5 plans complete
 
-- [ ] 07-01-PLAN.md — [Wave 1] Wave-0 validation scaffolding: multi-restaurant fixture + tiered-loop / pre-cap-behavior / DELETE-path Deno harnesses (PERF-01/02/03)
-- [ ] 07-02-PLAN.md — [Wave 2] Migration 175 (coordinated): per-restaurant K=8 pre-cap + `hnsw.iterative_scan` GUCs on `generate_candidates`, + REVERSE (D-04/D-06/D-11; PERF-01/02)
-- [ ] 07-03-PLAN.md — [Wave 2] Tiered/expanding-radius loop in `feed/index.ts` (fractions [0.25,0.5,1.0], POOL_TARGET=100, byte-identical response) (D-01..D-03; PERF-01)
-- [ ] 07-04-PLAN.md — [Wave 2] Migration 176 cache-invalidation triggers (INSERT/UPDATE/DELETE × 3 tables, net.http_post + Vault) + REVERSE + invalidate-cache DELETE-path + D-08 doc + D-10 CORS confirm (D-08/D-09/D-10; PERF-03)
-- [ ] 07-05-PLAN.md — [Wave 3] Operator apply-and-verify handoff: Vault secret, apply 175+176 on a branch, 9-row trigger-catalog assert, iterative_scan recall/latency keep-or-RESET, dashboard-webhook disable (blocking checkpoint)
+- [x] 07-01-PLAN.md — [Wave 1] Wave-0 validation scaffolding: multi-restaurant fixture + tiered-loop / pre-cap-behavior / DELETE-path Deno harnesses (PERF-01/02/03)
+- [x] 07-02-PLAN.md — [Wave 2] Migration 175 (coordinated): per-restaurant K=8 pre-cap + `hnsw.iterative_scan` GUCs on `generate_candidates`, + REVERSE (D-04/D-06/D-11; PERF-01/02)
+- [x] 07-03-PLAN.md — [Wave 2] Tiered/expanding-radius loop in `feed/index.ts` (fractions [0.25,0.5,1.0], POOL_TARGET=100, byte-identical response) (D-01..D-03; PERF-01)
+- [x] 07-04-PLAN.md — [Wave 2] Migration 176 cache-invalidation triggers (INSERT/UPDATE/DELETE × 3 tables, net.http_post + Vault) + REVERSE + invalidate-cache DELETE-path + D-08 doc + D-10 CORS confirm (D-08/D-09/D-10; PERF-03)
+- [x] 07-05-PLAN.md — [Wave 3] Operator apply-and-verify handoff: Vault secret, apply 175+176 on a branch, 9-row trigger-catalog assert, iterative_scan recall/latency keep-or-RESET, dashboard-webhook disable (blocking checkpoint)
 
 ### Phase 8: Mobile Filter Store Refactor
 
@@ -215,7 +215,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Edge Dependency Pinning & Script Guard | 3/3 | Complete | 2026-06-20 |
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |
 | 6. Schema Teardown Spine | 5/6 | In Progress|  |
-| 7. Performance & Cache | 0/5 | Planned | - |
+| 7. Performance & Cache | 5/5 | Complete   | 2026-06-21 |
 | 8. Mobile Filter Store Refactor | 0/TBD | Not started | - |
 | 9. Mobile Map & Modal Refactor | 0/TBD | Not started | - |
 | 10. Admin Editor Refactor | 0/TBD | Not started | - |

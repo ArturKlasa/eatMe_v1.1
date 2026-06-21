@@ -73,16 +73,19 @@ to prod. Apply in order (175 before 176 — they are independent, but 175 is the
 function change and 176 is the trigger change; keep the numeric order).
 
 ### Step A — `infra/supabase/migrations/175_generate_candidates_precap_iterative_scan.sql`
-`ALTER FUNCTION generate_candidates(...)` sets the four `hnsw.*` GUCs, then
-`CREATE OR REPLACE`s the function with the per-restaurant `ROW_NUMBER()` pre-cap
-(K=8). 13-arg signature + 32-column shape unchanged → no deploy-ordering
-constraint, backward/forward compatible with either feed build.
+A single `CREATE OR REPLACE FUNCTION generate_candidates(...)` that (a) sets the
+four `hnsw.*` GUCs at runtime inside the body via
+`PERFORM set_config('hnsw.<guc>', '<val>', true)` (`is_local => true` = `SET LOCAL`,
+function-scoped, auto-reverts at exit) and (b) adds the per-restaurant
+`ROW_NUMBER()` pre-cap (K=8). 13-arg signature + 32-column shape unchanged → no
+deploy-ordering constraint, backward/forward compatible with either feed build.
 
-> **Pitfall-1 fallback:** if your prod pg version rejects the comma-separated
-> multi-`SET` form in the `ALTER FUNCTION`, emit one
-> `ALTER FUNCTION generate_candidates(...) SET hnsw.<guc> = <val>;` statement per
-> GUC — all four are independent and idempotent (the four lines are pre-written in
-> the migration's comment block).
+> **Why not `ALTER FUNCTION ... SET hnsw.*`:** that catalog-persisted form fails on
+> Supabase with `ERROR: 42501: permission denied to set parameter
+> "hnsw.iterative_scan"` — the `postgres` role is not a superuser. The runtime
+> `set_config(..., true)` form gives the identical per-function scoping via the
+> USERSET privilege path (`SET hnsw.iterative_scan = 'relaxed_order'` is verified to
+> succeed for this role). This is baked into the migration — nothing for you to do.
 
 - [ ] **(1A)** Applied `175_...precap_iterative_scan.sql` — parses + applies clean.
 
@@ -167,13 +170,16 @@ personalized requests:
 The GUC starting values are **tunable** (`ef_search=400`, `max_scan_tuples=20000`,
 `scan_mem_multiplier=2`, `iterative_scan='relaxed_order'`):
 
-- If recall improves without blowing latency → **KEEP** the GUC.
-- If it regresses latency / does not help recall → **RESET** it: apply the
-  `175_REVERSE_ONLY_...sql` `RESET` block (the four
-  `RESET hnsw.<guc>` lines) — this strips the per-function GUCs while leaving the
-  pre-cap in place if you re-apply only PART (b), or revert the whole change set.
-- If recall is close but tunable → adjust `ef_search` / `max_scan_tuples` from the
-  400 / 20000 starting points and re-measure. **Record the chosen values.**
+- If recall improves without blowing latency → **KEEP** (no action — the GUCs are
+  already live in the function body).
+- If it regresses latency / does not help recall → **RESET** by applying
+  `175_REVERSE_ONLY_...sql`, which restores the verbatim migration-169 body (this
+  drops BOTH the GUCs and the pre-cap, since both live inside the 175 body). There
+  is no standalone GUC-only reset anymore — the GUCs are no longer catalog-persisted.
+- If recall is close but tunable → edit the four `set_config('hnsw.*', ...)` starting
+  values (`ef_search=400`, `max_scan_tuples=20000`) near the top of the function body
+  in migration 175, re-apply (it's an idempotent `CREATE OR REPLACE`), and re-measure.
+  **Record the chosen values.**
 
 - [ ] **(3)** iterative_scan recall + latency validated on personalized requests →
   decision recorded: **KEEP** (with `ef_search=___`, `max_scan_tuples=___`) **or**

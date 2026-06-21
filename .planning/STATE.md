@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 06
 current_phase_name: schema-teardown-spine
-status: executing
-stopped_at: Phase 6 context gathered
-last_updated: "2026-06-20T20:36:28.566Z"
+status: awaiting-operator
+stopped_at: Phase 6 plan 06-06 blocking-human checkpoint — operator must apply teardown migrations + paste back
+last_updated: "2026-06-20T20:40:09.344Z"
 last_activity: 2026-06-20
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 06 all 6 plans authored; awaiting operator apply-and-verify paste-back
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
   percent: 50
 ---
 
@@ -93,6 +93,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-04: buildDishInput omits dish_kind + modifier arrays (form shapes diverge from persisted schema); modifier wiring deferred to v2 revival
 - [Phase ?]: 06-04: severed-first shim teardown pattern — delete app importers, then delete shared symbol, gated by zero-importer grep + check-types
 - [Phase ?]: Plan 06-05: DEBT-04 satisfied by VERIFICATION not edit — types.ts already slimmed (zero dropped-object residue grep, overturns F-07/F-15); D-10 edge-fn inline-enum is a clean no-op (no ingredient enum copies); turbo check-types green across admin+web-portal-v2 (SC4).
+- [Phase ?]: Plan 06-06: operator apply-and-verify runbook (06-OPERATOR-HANDOFF.md) authored; phase completion GATED on operator clean post-apply paste-back (blocking-human); agent applied nothing (no CLI, stage-don't-apply).
 
 ### Pending Todos
 
@@ -118,7 +119,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-20T20:36:11.090Z
+Last session: 2026-06-20T20:40:03.298Z
 Stopped at: Phase 6 context gathered
 Resume file: --resume-file
 

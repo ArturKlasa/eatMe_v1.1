@@ -2,21 +2,17 @@
 -- REVERSE of migration 175 — restore the migration-169 generate_candidates +
 -- clear the iterative_scan GUCs.
 --
--- WARNING (recall/latency): this reverts the durable filtered-ANN recall fix
--- (the runtime hnsw.iterative_scan GUCs) AND the per-restaurant pre-cap. Both live
--- INSIDE the migration-175 function body (the GUCs as SET LOCAL / set_config(...,
--- true) calls), so restoring the verbatim 169 body below drops them in one
--- CREATE OR REPLACE — there is NO catalog RESET to run (175 never persisted the
--- GUCs onto the function; the ALTER FUNCTION SET form is blocked on Supabase).
--- Reverting re-opens the under-return exposure for heavily-filtered personalized
--- requests and restores the unbounded Stage-1 → Stage-2 handoff payload. Only run
--- during a controlled rollback.
+-- WARNING (payload): this reverts the per-restaurant pre-cap — the ONLY change
+-- migration 175 ships. The iterative_scan GUCs were removed from 175 after operator
+-- latency validation rejected them, so there is nothing GUC-related to undo and NO
+-- catalog RESET to run. Restoring the verbatim 169 body below drops the pre-cap in
+-- one CREATE OR REPLACE, restoring the unbounded Stage-1 → Stage-2 handoff payload.
+-- Only run during a controlled rollback.
 --
 -- This restores the migration-169 `generate_candidates` body (current HEAD before
 -- 175, NOT the migration-167 form). The 13-arg signature and the 32-column return
 -- shape are unchanged across 169 → 175, so this is a plain CREATE OR REPLACE
--- (no DROP needed), mirroring 169_REVERSE_ONLY:10. The verbatim 169 body has no
--- set_config GUC calls, so the runtime iterative_scan GUCs vanish automatically.
+-- (no DROP needed), mirroring 169_REVERSE_ONLY:10.
 -- ══════════════════════════════════════════════════════════════════════════════
 
 BEGIN;

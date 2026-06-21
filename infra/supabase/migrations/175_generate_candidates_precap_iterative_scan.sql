@@ -1,30 +1,30 @@
 -- ══════════════════════════════════════════════════════════════════════════════
--- Migration 175: generate_candidates — coordinated D-11 change set
---   (a) hnsw.iterative_scan GUC (D-04/D-05, PERF-01 SC#2)
---   (b) per-restaurant ROW_NUMBER() pre-cap K=8 (D-06/D-07, PERF-02 SC#3)
+-- Migration 175: generate_candidates — per-restaurant pre-cap (was: coordinated
+-- D-11 change set with iterative_scan)
+--   (a) hnsw.iterative_scan GUC (D-04/D-05, PERF-01 SC#2) — REMOVED after operator
+--       latency validation rejected it at current corpus scale (see PART (a) below)
+--   (b) per-restaurant ROW_NUMBER() pre-cap K=8 (D-06/D-07, PERF-02 SC#3) — KEPT
 --
--- D-06 (pre-cap) and D-04 (iterative_scan) BOTH modify generate_candidates, so per
--- D-11 they land together as ONE coordinated change set with a single REVERSE pair.
+-- D-06 (pre-cap) and D-04 (iterative_scan) were authored together as ONE D-11 change
+-- set; the operator validation step rejected (a), so only (b) ships. REVERSE restores
+-- the verbatim migration-169 body.
 --
 -- The 13-arg signature AND the 32-column RETURNS TABLE shape are UNCHANGED from
 -- migration 169, so PART (b) is a CREATE OR REPLACE (no DROP) — backward/forward
 -- compatible with either feed build, no deploy-ordering constraint.
 --
--- ── PART (a): iterative_scan ───────────────────────────────────────────────────
--- pgvector applies hard filters AFTER the HNSW index scan, so a heavily-filtered
--- personalized request (radius + diet + exclude-families + time/day windows,
--- 169:153-299) applied after the `d.embedding <=> p_preference_vector` ANN ordering
--- can under-return badly with the default ef_search=40. `hnsw.iterative_scan =
--- relaxed_order` auto-expands the scan until the LIMIT is met (the durable half of
--- PERF-01; complementary to, not replaced by, the Plan-04 tiered-radius loop). The
--- GUC is scoped to ONLY this function call via SET LOCAL / set_config(..., true)
--- inside the body (PART (a) below), so it self-restores at function/transaction
--- exit and never leaks across pooled connections.
--- `relaxed_order` is safe here because BOTH the CTE inner ORDER BY and the outer
--- query re-impose the vector_distance sort, and the JS Stage-2 re-scores anyway —
--- so the only effect is WHICH candidate set survives (recall), not the order.
--- The GUC tunes the HNSW index scan on dishes.embedding (migration 136,
--- dishes_embedding_hnsw_idx) inside the materialized CTE.
+-- ── PART (a): iterative_scan — REMOVED after operator validation (D-04) ─────────
+-- Originally this scoped four hnsw.* GUCs (iterative_scan='relaxed_order',
+-- ef_search=400, max_scan_tuples=20000, scan_mem_multiplier=2) to generate_candidates
+-- to stop heavily-filtered personalized requests under-returning with the default
+-- ef_search=40. The operator measured it on the live ~15k-dish corpus (2026-06-21)
+-- and REJECTED it: the GUCs added ~4.4s to a personalized 10km query (266ms with no
+-- preference vector vs 4.7s with the GUCs) while delivering ZERO recall benefit —
+-- the request already caps at p_limit=200, i.e. it never under-returns at this scale.
+-- iterative_scan only earns its scan cost on a corpus large enough that ef_search=40
+-- under-returns under heavy filters; re-introduce a TUNED GUC then. Meanwhile recall
+-- durability comes from the tiered-radius loop (Plan 07-03, PERF-01 SC#1), and HNSW
+-- uses pgvector defaults. Only PART (b) below ships.
 --
 -- ── PART (b): per-restaurant pre-cap ───────────────────────────────────────────
 -- The candidates CTE is wrapped in a windowed `ranked` subquery that computes
@@ -43,30 +43,20 @@
 -- `#variable_conflict use_column` directive is KEPT — the new ROW_NUMBER ORDER BY
 -- relies on the OUTER bare column refs resolving to columns, not OUT params.
 --
--- The GUC values below are TUNABLE STARTING POINTS. Recall/latency of iterative_scan
--- is OPERATOR-GATED (D-04): this migration is authored + dry-run only — it is NOT
--- pushed/applied from here. The operator applies it to prod (Plan 05 handoff) and
--- validates recall + latency, then tunes ef_search / max_scan_tuples / scan_mem_multiplier.
+-- Recall/latency of iterative_scan was OPERATOR-GATED (D-04) and the operator
+-- rejected it at current scale (see PART (a) above) — no GUC is set here. This
+-- migration now only adds the per-restaurant pre-cap (PART (b)).
 -- ══════════════════════════════════════════════════════════════════════════════
 
 BEGIN;
 
--- ── PART (a): scope the iterative-scan GUCs to ONLY the feed RPC ────────────────
--- The four hnsw.* GUCs are applied at RUNTIME inside the function body via
--- PERFORM set_config(<name>, <value>, is_local => true) — see the BEGIN block of
--- PART (b) below.
---
--- Why not `ALTER FUNCTION ... SET`: that form persists the GUCs onto the function
--- in the catalog, which on managed Postgres (Supabase) requires superuser and
--- fails with `ERROR: 42501: permission denied to set parameter
--- "hnsw.iterative_scan"`. The set_config(..., true) form is the SET LOCAL
--- equivalent: function-scoped (auto-reverts at function/transaction exit, never
--- leaks across pooled connections — the SAME isolation guarantee ALTER FUNCTION
--- SET would give), but it uses the per-session USERSET privilege path that
--- non-superusers DO have (verified on prod: `SET hnsw.iterative_scan =
--- 'relaxed_order'` succeeds for the Supabase postgres role). Recall/latency of the
--- starting values is OPERATOR-GATED (D-04); tune ef_search / max_scan_tuples in the
--- set_config lines below and re-measure.
+-- ── PART (a): iterative-scan GUCs — NOT SET (removed after operator validation) ──
+-- Historical note: this block first used `ALTER FUNCTION ... SET hnsw.*` (blocked on
+-- Supabase with 42501 — non-superuser), then runtime `set_config(..., true)` inside
+-- the body. The operator's latency validation (D-04) then rejected the GUCs outright
+-- at current corpus scale (see the PART (a) header above), so nothing is set. If you
+-- re-introduce a tuned iterative_scan later, the runtime set_config(..., true) form
+-- is the one that works for the Supabase postgres role.
 
 -- ── PART (b): re-emit generate_candidates with the per-restaurant ROW_NUMBER pre-cap
 -- (CREATE OR REPLACE — 32-column shape unchanged, no DROP).
@@ -126,18 +116,9 @@ SET search_path = extensions, public
 AS $$
 #variable_conflict use_column
 BEGIN
-  -- PART (a): scope the HNSW iterative-scan GUCs to THIS function call only.
-  -- is_local => true === SET LOCAL: reverts at function/transaction exit, so the
-  -- GUCs never leak across pooled connections. Runtime form (not ALTER FUNCTION
-  -- ... SET) because the catalog-persisted form needs superuser on Supabase
-  -- (42501). relaxed_order is safe: the CTE inner + outer ORDER BY and the JS
-  -- Stage-2 re-score all re-impose the vector_distance sort, so the only effect is
-  -- WHICH candidates survive (recall), not their order.
-  PERFORM set_config('hnsw.iterative_scan',      'relaxed_order', true);  -- D-05
-  PERFORM set_config('hnsw.max_scan_tuples',     '20000',         true);  -- bounds worst-case scan cost (tunable)
-  PERFORM set_config('hnsw.scan_mem_multiplier', '2',             true);  -- work_mem headroom (tunable)
-  PERFORM set_config('hnsw.ef_search',           '400',           true);  -- >= 2x p_limit=200 (tunable)
-
+  -- PART (a) iterative_scan GUCs intentionally NOT set here — rejected by operator
+  -- latency validation at current corpus scale (D-04; see header). HNSW uses
+  -- pgvector defaults; recall durability is the tiered-radius loop (Plan 07-03).
   RETURN QUERY
   -- (1) Pick the top-N in-range dishes with NO modifier work. MATERIALIZED so the
   --     planner computes this set (filter → per-restaurant pre-cap → sort → LIMIT)

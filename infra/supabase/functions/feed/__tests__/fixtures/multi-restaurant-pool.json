@@ -1,0 +1,4568 @@
+[
+  {
+    "id": "dish-rest-1-01",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 1",
+    "description": "A representative dish 1 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 80,
+    "calories": 300,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "chicken",
+    "vector_distance": 0.05,
+    "distance_m": 100,
+    "popularity_score": 0.97,
+    "view_count": 0,
+    "protein_families": [
+      "poultry"
+    ],
+    "protein_canonical_names": [
+      "chicken"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12899999999999,
+        19.431
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "chicken"
+    ],
+    "reachable_protein_families": [
+      "poultry"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-3-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-3-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-3-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-3-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-3-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-3-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-3-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-3-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-3-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-3-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-3-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-3-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-3-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-3-2-3",
+            "name": "Option 4 for group 3",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-01",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 1",
+    "description": "A representative dish 1 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 85,
+    "calories": 325,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "shrimp",
+    "vector_distance": 0.085,
+    "distance_m": 137,
+    "popularity_score": 0.86,
+    "view_count": 13,
+    "protein_families": [
+      "shellfish"
+    ],
+    "protein_canonical_names": [
+      "shrimp"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.1,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12899999999999,
+        19.431
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "shrimp"
+    ],
+    "reachable_protein_families": [
+      "shellfish"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-10-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-10-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-10-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-10-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-10-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-10-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-10-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-10-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-10-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-1-02",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 2",
+    "description": "A representative dish 2 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 90,
+    "calories": 350,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "pork",
+    "vector_distance": 0.125,
+    "distance_m": 174,
+    "popularity_score": 0.75,
+    "view_count": 26,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "pork"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.2,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.128,
+        19.432
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "pork"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-17-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-17-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-17-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-17-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-17-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-17-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-17-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-17-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-17-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-17-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-17-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-17-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-17-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-17-2-3",
+            "name": "Option 4 for group 3",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-3-01",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 1",
+    "description": "A representative dish 1 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 95,
+    "calories": 375,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "cheese",
+    "vector_distance": 0.155,
+    "distance_m": 211,
+    "popularity_score": 0.64,
+    "view_count": 39,
+    "protein_families": [
+      "dairy"
+    ],
+    "protein_canonical_names": [
+      "cheese"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4.3,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12899999999999,
+        19.431
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "cheese"
+    ],
+    "reachable_protein_families": [
+      "dairy"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-24-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-24-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-24-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-24-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-24-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-24-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-24-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-24-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-24-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-03",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 3",
+    "description": "A representative dish 3 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 100,
+    "calories": 400,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "shrimp",
+    "vector_distance": 0.19,
+    "distance_m": 248,
+    "popularity_score": 0.53,
+    "view_count": 52,
+    "protein_families": [
+      "shellfish"
+    ],
+    "protein_canonical_names": [
+      "shrimp"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.4,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.127,
+        19.433
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "shrimp"
+    ],
+    "reachable_protein_families": [
+      "shellfish"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-31-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-31-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-31-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-31-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-31-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-31-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-31-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-31-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-31-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-31-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-31-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-31-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-31-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-31-2-3",
+            "name": "Option 4 for group 3",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-02",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 2",
+    "description": "A representative dish 2 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 105,
+    "calories": 425,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "lamb",
+    "vector_distance": 0.23,
+    "distance_m": 285,
+    "popularity_score": 0.42,
+    "view_count": 65,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "lamb"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.5,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.128,
+        19.432
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "lamb"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-38-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-38-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-38-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-38-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-38-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-38-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-38-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-38-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-38-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-3-02",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 2",
+    "description": "A representative dish 2 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 110,
+    "calories": 450,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "pork",
+    "vector_distance": 0.26,
+    "distance_m": 322,
+    "popularity_score": 0.31,
+    "view_count": 78,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "pork"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4.6,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.128,
+        19.432
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "pork"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-45-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-45-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "vegan",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-45-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-45-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "egg",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-45-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-45-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-45-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "vegan",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-45-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-45-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "egg",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-04",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 4",
+    "description": "A representative dish 4 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 115,
+    "calories": 475,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "egg",
+    "vector_distance": 0.295,
+    "distance_m": 359,
+    "popularity_score": 0.2,
+    "view_count": 91,
+    "protein_families": [
+      "egg"
+    ],
+    "protein_canonical_names": [
+      "egg"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.7,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12599999999999,
+        19.434
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "egg"
+    ],
+    "reachable_protein_families": [
+      "egg"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-52-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-52-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "pork",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-52-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-52-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "shrimp",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-52-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-52-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "pork",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-52-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-52-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "shrimp",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-52-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-52-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-52-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "pork",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-52-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-52-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "shrimp",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-03",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 3",
+    "description": "A representative dish 3 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 120,
+    "calories": 500,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "beef",
+    "vector_distance": 0.335,
+    "distance_m": 396,
+    "popularity_score": 0.09,
+    "view_count": 104,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "beef"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.8,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.127,
+        19.433
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "beef"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-59-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-59-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "cheese",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-59-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-59-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "beef",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-59-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-59-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-59-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "cheese",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-59-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-59-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "beef",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-1-05",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 5",
+    "description": "A representative dish 5 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 125,
+    "calories": 525,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "cheese",
+    "vector_distance": 0.365,
+    "distance_m": 433,
+    "popularity_score": 0.88,
+    "view_count": 117,
+    "protein_families": [
+      "dairy"
+    ],
+    "protein_canonical_names": [
+      "cheese"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.9,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.125,
+        19.435
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "cheese"
+    ],
+    "reachable_protein_families": [
+      "dairy"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-66-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-66-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "tofu",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-66-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-66-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "lamb",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-66-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-66-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "tofu",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-66-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-66-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "lamb",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-66-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-66-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-66-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "tofu",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-66-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-66-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "lamb",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-3-03",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 3",
+    "description": "A representative dish 3 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 130,
+    "calories": 550,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "tofu",
+    "vector_distance": 0.4,
+    "distance_m": 470,
+    "popularity_score": 0.77,
+    "view_count": 130,
+    "protein_families": [],
+    "protein_canonical_names": [
+      "tofu"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.127,
+        19.433
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "tofu"
+    ],
+    "reachable_protein_families": [],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-73-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-73-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-73-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-73-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-73-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-73-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-73-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-73-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-73-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-06",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 6",
+    "description": "A representative dish 6 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 135,
+    "calories": 575,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "beef",
+    "vector_distance": 0.44,
+    "distance_m": 507,
+    "popularity_score": 0.66,
+    "view_count": 143,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "beef"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.1,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.124,
+        19.436
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "beef"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-80-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-80-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-80-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-80-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-80-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-80-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-80-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-80-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-80-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-80-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-80-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-80-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-80-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-04",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 4",
+    "description": "A representative dish 4 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 140,
+    "calories": 600,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "vegan",
+    "vector_distance": 0.47,
+    "distance_m": 544,
+    "popularity_score": 0.55,
+    "view_count": 156,
+    "protein_families": [],
+    "protein_canonical_names": [
+      "vegan"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.2,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12599999999999,
+        19.434
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "vegan"
+    ],
+    "reachable_protein_families": [],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-87-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-87-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-87-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-87-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-87-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-87-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-87-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-87-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-87-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-3-04",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 4",
+    "description": "A representative dish 4 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 145,
+    "calories": 625,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "cheese",
+    "vector_distance": 0.505,
+    "distance_m": 581,
+    "popularity_score": 0.44,
+    "view_count": 169,
+    "protein_families": [
+      "dairy"
+    ],
+    "protein_canonical_names": [
+      "cheese"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4.3,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12599999999999,
+        19.434
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "cheese"
+    ],
+    "reachable_protein_families": [
+      "dairy"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-94-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-94-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-94-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-94-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-94-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-94-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-94-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-94-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-94-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-07",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 7",
+    "description": "A representative dish 7 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 150,
+    "calories": 650,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "shrimp",
+    "vector_distance": 0.545,
+    "distance_m": 618,
+    "popularity_score": 0.33,
+    "view_count": 182,
+    "protein_families": [
+      "shellfish"
+    ],
+    "protein_canonical_names": [
+      "shrimp"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.4,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12299999999999,
+        19.437
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "shrimp"
+    ],
+    "reachable_protein_families": [
+      "shellfish"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-4-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-4-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-4-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-4-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-4-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-4-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-4-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-4-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-4-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-4-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-4-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-4-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-4-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-05",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 5",
+    "description": "A representative dish 5 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 155,
+    "calories": 675,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "lamb",
+    "vector_distance": 0.575,
+    "distance_m": 655,
+    "popularity_score": 0.22,
+    "view_count": 195,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "lamb"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.5,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.125,
+        19.435
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "lamb"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-11-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-11-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-11-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-11-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-11-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-11-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-11-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-11-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-11-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-1-08",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 8",
+    "description": "A representative dish 8 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 160,
+    "calories": 700,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "tofu",
+    "vector_distance": 0.61,
+    "distance_m": 692,
+    "popularity_score": 0.11,
+    "view_count": 208,
+    "protein_families": [],
+    "protein_canonical_names": [
+      "tofu"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.6,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.122,
+        19.438
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "tofu"
+    ],
+    "reachable_protein_families": [],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-18-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-18-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-18-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-18-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-18-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-18-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-18-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-18-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-18-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-18-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-18-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-18-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-18-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-3-05",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 5",
+    "description": "A representative dish 5 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 165,
+    "calories": 725,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "fish",
+    "vector_distance": 0.65,
+    "distance_m": 729,
+    "popularity_score": 0.9,
+    "view_count": 221,
+    "protein_families": [
+      "fish"
+    ],
+    "protein_canonical_names": [
+      "fish"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4.7,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.125,
+        19.435
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "fish"
+    ],
+    "reachable_protein_families": [
+      "fish"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-25-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-25-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "vegan",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-25-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-25-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "egg",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-25-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-25-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-25-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "vegan",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-25-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-25-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "egg",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-09",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 9",
+    "description": "A representative dish 9 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 170,
+    "calories": 750,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "lamb",
+    "vector_distance": 0.68,
+    "distance_m": 766,
+    "popularity_score": 0.79,
+    "view_count": 234,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "lamb"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.8,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.121,
+        19.439
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "lamb"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-32-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-32-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "pork",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-32-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-32-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "shrimp",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-32-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-32-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "pork",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-32-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-32-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "shrimp",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-32-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-32-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-32-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "pork",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-32-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-32-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "shrimp",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-06",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 6",
+    "description": "A representative dish 6 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 175,
+    "calories": 775,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "pork",
+    "vector_distance": 0.715,
+    "distance_m": 803,
+    "popularity_score": 0.68,
+    "view_count": 247,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "pork"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.9,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.124,
+        19.436
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "pork"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-39-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-39-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "cheese",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-39-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-39-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "beef",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-39-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-39-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-39-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "cheese",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-39-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-39-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "beef",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-3-06",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 6",
+    "description": "A representative dish 6 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 180,
+    "calories": 300,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "tofu",
+    "vector_distance": 0.755,
+    "distance_m": 840,
+    "popularity_score": 0.57,
+    "view_count": 260,
+    "protein_families": [],
+    "protein_canonical_names": [
+      "tofu"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.124,
+        19.436
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "tofu"
+    ],
+    "reachable_protein_families": [],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-46-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-46-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "tofu",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-46-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-46-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "lamb",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-46-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-46-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "tofu",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-46-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-46-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "lamb",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-46-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-10",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 10",
+    "description": "A representative dish 10 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 185,
+    "calories": 325,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "beef",
+    "vector_distance": 0.785,
+    "distance_m": 877,
+    "popularity_score": 0.46,
+    "view_count": 273,
+    "protein_families": [
+      "meat"
+    ],
+    "protein_canonical_names": [
+      "beef"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.1,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.11999999999999,
+        19.44
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "beef"
+    ],
+    "reachable_protein_families": [
+      "meat"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-53-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-53-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-53-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-53-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-53-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-53-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-53-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-53-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-53-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-53-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-53-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "fish",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-53-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-53-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "vegan",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-53-2-3",
+            "name": "Option 4 for group 3",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-07",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 7",
+    "description": "A representative dish 7 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 190,
+    "calories": 350,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "vegan",
+    "vector_distance": 0.82,
+    "distance_m": 914,
+    "popularity_score": 0.35,
+    "view_count": 286,
+    "protein_families": [],
+    "protein_canonical_names": [
+      "vegan"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.2,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12299999999999,
+        19.437
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "vegan"
+    ],
+    "reachable_protein_families": [],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-60-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-60-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-60-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-60-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-60-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-60-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "chicken",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-60-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-60-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "pork",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-60-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-1-11",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 11",
+    "description": "A representative dish 11 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 195,
+    "calories": 375,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "fish",
+    "vector_distance": 0.86,
+    "distance_m": 951,
+    "popularity_score": 0.24,
+    "view_count": 299,
+    "protein_families": [
+      "fish"
+    ],
+    "protein_canonical_names": [
+      "fish"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.3,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.119,
+        19.441
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "fish"
+    ],
+    "reachable_protein_families": [
+      "fish"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-67-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-67-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-67-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-67-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-67-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-67-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-67-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-67-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-67-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-67-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-67-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "egg",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-67-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-67-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "cheese",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-67-2-3",
+            "name": "Option 4 for group 3",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-3-07",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 7",
+    "description": "A representative dish 7 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 200,
+    "calories": 400,
+    "spice_level": "none",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "chicken",
+    "vector_distance": 0.89,
+    "distance_m": 988,
+    "popularity_score": 0.13,
+    "view_count": 312,
+    "protein_families": [
+      "poultry"
+    ],
+    "protein_canonical_names": [
+      "chicken"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4.4,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.12299999999999,
+        19.437
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "chicken"
+    ],
+    "reachable_protein_families": [
+      "poultry"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-74-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-74-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-74-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-74-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-74-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-74-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "shrimp",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-74-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-74-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "tofu",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-74-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  },
+  {
+    "id": "dish-rest-1-12",
+    "restaurant_id": "rest-1",
+    "name": "Taqueria Dish 12",
+    "description": "A representative dish 12 from Taqueria El Sol used for fixture-based validation harnesses.",
+    "price": 205,
+    "calories": 425,
+    "spice_level": "mild",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "vegan",
+    "vector_distance": 0.925,
+    "distance_m": 1025,
+    "popularity_score": 0.92,
+    "view_count": 325,
+    "protein_families": [],
+    "protein_canonical_names": [
+      "vegan"
+    ],
+    "serves": 1,
+    "restaurant_name": "Taqueria El Sol",
+    "restaurant_cuisines": [
+      "mexican",
+      "tacos"
+    ],
+    "restaurant_rating": 4.5,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.118,
+        19.442
+      ]
+    },
+    "restaurant_currency_code": "MXN",
+    "reachable_proteins": [
+      "vegan"
+    ],
+    "reachable_protein_families": [],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-81-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-81-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-81-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-81-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-81-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-81-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-81-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-81-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-81-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-81-2",
+        "name": "Extras 3",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 2,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-81-2-0",
+            "name": "Option 1 for group 3",
+            "primary_protein": "beef",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-81-2-1",
+            "name": "Option 2 for group 3",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-81-2-2",
+            "name": "Option 3 for group 3",
+            "primary_protein": "fish",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-81-2-3",
+            "name": "Option 4 for group 3",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "America/Mexico_City",
+    "country_code": "MX"
+  },
+  {
+    "id": "dish-rest-2-08",
+    "restaurant_id": "rest-2",
+    "name": "Trattoria Dish 8",
+    "description": "A representative dish 8 from Trattoria Roma used for fixture-based validation harnesses.",
+    "price": 210,
+    "calories": 450,
+    "spice_level": "medium",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "cheese",
+    "vector_distance": 0.965,
+    "distance_m": 1062,
+    "popularity_score": 0.81,
+    "view_count": 338,
+    "protein_families": [
+      "dairy"
+    ],
+    "protein_canonical_names": [
+      "cheese"
+    ],
+    "serves": 1,
+    "restaurant_name": "Trattoria Roma",
+    "restaurant_cuisines": [
+      "italian"
+    ],
+    "restaurant_rating": 4.6,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.122,
+        19.438
+      ]
+    },
+    "restaurant_currency_code": "EUR",
+    "reachable_proteins": [
+      "cheese"
+    ],
+    "reachable_protein_families": [
+      "dairy"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-88-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-88-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-88-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-88-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-88-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-88-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "lamb",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-88-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-88-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "chicken",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-88-1-3",
+            "name": "Option 4 for group 2",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Europe/Rome",
+    "country_code": "IT"
+  },
+  {
+    "id": "dish-rest-3-08",
+    "restaurant_id": "rest-3",
+    "name": "Sushi Dish 8",
+    "description": "A representative dish 8 from Sushi Nami used for fixture-based validation harnesses.",
+    "price": 215,
+    "calories": 475,
+    "spice_level": "hot",
+    "image_url": null,
+    "is_available": true,
+    "display_price_prefix": "",
+    "enrichment_status": "complete",
+    "primary_protein": "fish",
+    "vector_distance": 0.995,
+    "distance_m": 1099,
+    "popularity_score": 0.7,
+    "view_count": 351,
+    "protein_families": [
+      "fish"
+    ],
+    "protein_canonical_names": [
+      "fish"
+    ],
+    "serves": 1,
+    "restaurant_name": "Sushi Nami",
+    "restaurant_cuisines": [
+      "japanese",
+      "sushi"
+    ],
+    "restaurant_rating": 4.7,
+    "restaurant_location": {
+      "type": "Point",
+      "coordinates": [
+        -99.122,
+        19.438
+      ]
+    },
+    "restaurant_currency_code": "JPY",
+    "reachable_proteins": [
+      "fish"
+    ],
+    "reachable_protein_families": [
+      "fish"
+    ],
+    "dining_format": null,
+    "bundled_items": null,
+    "modifier_groups": [
+      {
+        "id": "grp-95-0",
+        "name": "Tamaño",
+        "selection_type": "single",
+        "min_selections": 1,
+        "max_selections": 1,
+        "display_order": 0,
+        "display_in_card": true,
+        "options": [
+          {
+            "id": "opt-95-0-0",
+            "name": "Option 1 for group 1",
+            "primary_protein": "vegan",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-95-0-1",
+            "name": "Option 2 for group 1",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-95-0-2",
+            "name": "Option 3 for group 1",
+            "primary_protein": "egg",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-95-0-3",
+            "name": "Option 4 for group 1",
+            "primary_protein": null,
+            "price_delta": 4.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      },
+      {
+        "id": "grp-95-1",
+        "name": "Extras 2",
+        "selection_type": "multiple",
+        "min_selections": 0,
+        "max_selections": 3,
+        "display_order": 1,
+        "display_in_card": false,
+        "options": [
+          {
+            "id": "opt-95-1-0",
+            "name": "Option 1 for group 2",
+            "primary_protein": "vegan",
+            "price_delta": 0,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": true
+          },
+          {
+            "id": "opt-95-1-1",
+            "name": "Option 2 for group 2",
+            "primary_protein": null,
+            "price_delta": 1.5,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          },
+          {
+            "id": "opt-95-1-2",
+            "name": "Option 3 for group 2",
+            "primary_protein": "egg",
+            "price_delta": 3,
+            "price_override": null,
+            "serves_delta": 0,
+            "is_default": false
+          }
+        ]
+      }
+    ],
+    "open_hours": {
+      "mon": {
+        "open": "09:00",
+        "close": "22:00"
+      },
+      "tue": {
+        "open": "09:00",
+        "close": "22:00"
+      }
+    },
+    "timezone": "Asia/Tokyo",
+    "country_code": "JP"
+  }
+]

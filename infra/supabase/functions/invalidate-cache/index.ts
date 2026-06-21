@@ -1,15 +1,16 @@
 // invalidate-cache — Supabase DB webhook handler
 //
-// Invoked by Supabase webhooks on UPDATE events for restaurants, menus, and dishes.
+// Invoked by the tracked migration-176 trigger (and/or a dashboard webhook) on
+// INSERT, UPDATE, and DELETE events for restaurants, menus, and dishes.
 // Deletes relevant Redis cache keys to prevent stale feed responses.
 //
 // Webhook payload shape (Supabase DB webhook):
 // {
-//   type: 'UPDATE',
+//   type: 'INSERT' | 'UPDATE' | 'DELETE',
 //   table: 'restaurants' | 'menus' | 'dishes',
 //   schema: 'public',
-//   record: { id: string, restaurant_id?: string, ... },
-//   old_record: { ... }
+//   record: { id: string, restaurant_id?: string, ... } | null,   // null on DELETE
+//   old_record: { ... } | null                                     // null on INSERT
 // }
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -51,7 +52,9 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
 
     const table: string = body.table ?? '';
-    const record: Record<string, any> = body.record ?? {};
+    // DELETE webhooks carry the changed row in `old_record` (record is null), so
+    // fall back to old_record for the best-effort per-restaurant key resolution.
+    const record: Record<string, any> = body.record ?? body.old_record ?? {};
 
     const redis = getRedis();
     if (!redis) {
@@ -69,10 +72,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // The feed cache key is feed:v2:{user}:{geo}:{filters} — it carries no restaurant_id,
-    // so a single restaurant's edit can't be targeted. Writes here are rare (one operator
-    // editing menus), so clearing the whole feed namespace is the correct, simple choice;
-    // entries recompute lazily on the next feed request.
+    // Flush-all is a DELIBERATE choice (D-08), not the "never flush-all" SC#4 anti-pattern:
+    // the feed cache key is feed:v2:{user}:{geo}:{filters} — restaurant-agnostic (no
+    // restaurant_id to target), so a single restaurant's edit can't be scoped to specific
+    // keys. Writes here are operator-rare (one operator editing menus), the 5-min TTL bounds
+    // worst-case staleness, and entries recompute lazily on the next feed request. This
+    // flush runs unconditionally for every event type (INSERT/UPDATE/DELETE) — it is the
+    // correctness guarantee; the per-restaurant block below is purely best-effort.
     const feedKeysDeleted = await deleteByPattern(redis, 'feed:v2:*');
 
     // Best-effort: also clear any per-restaurant keys (legacy / other cache paths).

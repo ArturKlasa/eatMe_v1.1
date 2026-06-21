@@ -32,6 +32,9 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 - ✓ Map restaurant-view-mode dead code removed — `viewModeStore` / `ViewModeToggle` / `RestaurantMarkers` deleted, `BasicMapScreen` collapsed to the dish-only marker path, zero residue, mobile `tsc` green (on-device UI confirmation pending) — validated in Phase 5 (CLEAN-01)
 - ✓ Residual `apps/web-portal` references purged from agent-facing docs — 7 docs retargeted to current reality (`apps/admin` active, `apps/web-portal-v2` on ice); zero live imports; `web-portal-v2` + provenance refs preserved — validated in Phase 5 (CLEAN-02)
 - ✓ `enrich-dish` header comment corrected to match actual load logic (dish + option groups + restaurant cuisine), migration-151 trigger language preserved — validated in Phase 5 (CLEAN-03)
+- ✓ Ingredient-pipeline teardown authored as a strictly-ordered, irreversible-aware spine — Phase B trigger/function drop (migration 171, supersedes 151 per D-06) + Phase C `ingredient_archive` snapshot (172) → RESTRICT child→parent table drop with `options` FK-sever (173) → dead-column drop (174), each + REVERSE; zero CASCADE. Operator prod probe confirmed prod **already at the teardown end-state** (all GONE, dep-audit clean) — migrations are no-ops, intentionally not applied — validated in Phase 6 (DEBT-01/DEBT-02)
+- ✓ `DishKind` / `DISH_KIND_META` shims removed — `apps/web-portal-v2` severed first (`KindSelector.tsx` + `dish-kinds.test.ts` deleted, `DishForm`/`MenuManager` reconciled), then shims dropped from `@eatme/shared`; zero-importer grep clean, `turbo check-types` green — validated in Phase 6 (DEBT-03)
+- ✓ Generated `@eatme/database` types confirmed in sync with the slimmed schema — `types.ts` already regenerated post-teardown (zero ingredient/`*_override`/`dish_kind` residue); re-verified by grep + `turbo check-types` rather than re-regenerated to avoid drift — validated in Phase 6 (DEBT-04)
 
 ### Active
 
@@ -50,9 +53,9 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 
 **Debt & dependency cleanup**
 
-- [ ] Ingredient-pipeline teardown — Phase B (drop inert triggers), then Phase C (drop orphaned schema)
-- [ ] Surgical DishKind removal — drop `DishKind`/`DISH_KIND_META` usage from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then delete the shims + `dish-kinds.test.ts` from `@eatme/shared`
-- [ ] Regenerate `@eatme/database` types after recent migrations; commit the slimmed file
+- [x] Ingredient-pipeline teardown — Phase B (drop inert triggers), then Phase C (drop orphaned schema) — Phase 6 (DEBT-01/DEBT-02)
+- [x] Surgical DishKind removal — drop `DishKind`/`DISH_KIND_META` usage from `apps/web-portal-v2` (`DishForm.tsx`, `KindSelector.tsx`), then delete the shims + `dish-kinds.test.ts` from `@eatme/shared` — Phase 6 (DEBT-03)
+- [x] Regenerate `@eatme/database` types after recent migrations; commit the slimmed file — Phase 6 (DEBT-04, already-slimmed; verified residue-free)
 - [x] Fix stale `enrich-dish` header comments (no ingredient/parent-dish references) — Phase 5 (CLEAN-03)
 - [x] Pin edge-function deps — Deno std and `@supabase/supabase-js` to exact versions — Phase 4 (DEBT-05)
 
@@ -126,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-20 after Phase 5 (Dead Code & Doc Cleanup) completion — CLEAN-01/02/03 validated; one on-device UI check (CLEAN-01) pending in 05-HUMAN-UAT.md*
+*Last updated: 2026-06-21 after Phase 6 (Schema Teardown Spine) completion — DEBT-01/02/03/04 validated; operator prod probe confirmed teardown already live (migrations authored, not applied — no-ops). One on-device UI check (CLEAN-01) still pending in 05-HUMAN-UAT.md*

@@ -51,6 +51,10 @@ CREATE OR REPLACE FUNCTION public._trg_invalidate_feed_cache()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''   -- hardening: a SECURITY DEFINER fn must pin its search_path so it
+                       -- can't be hijacked via an attacker-controlled schema. Safe here:
+                       -- every reference below is schema-qualified (vault.*, net.*) or a
+                       -- pg_catalog builtin (implicitly resolved), so '' breaks nothing.
 AS $function$
 DECLARE
   v_url TEXT := 'https://tqroqqvxabolydyznewa.supabase.co/functions/v1/invalidate-cache';  -- same project ref as migration 132:43

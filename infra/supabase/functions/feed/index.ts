@@ -732,8 +732,14 @@ Deno.serve(async (req: Request) => {
     // still applies time filtering server-side via p_current_time, and the 300s TTL
     // bounds any open/closed drift to ≤5 min. currentDayOfWeek is kept — it changes
     // only daily and correctly separates each day's open-hours / daily menus.
+    // radius, mode, and limit are top-level request fields (not in `filters`), but each
+    // changes the response: radius drives the tiered-loop pool reach (a zoom-in vs
+    // zoom-out at the same rounded coords yields a different pool), mode selects
+    // dishes/restaurants/combined, and limit bounds the page size. They MUST be in the
+    // key or different-radius/mode/limit requests collide for the full TTL. The
+    // `feed:v2:` prefix is preserved so invalidate-cache's `feed:v2:*` flush still matches.
     const { currentTime: _ignoredInCacheKey, ...cacheFilters } = filters ?? {};
-    const cacheKey = `feed:v2:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:${JSON.stringify(cacheFilters)}`;
+    const cacheKey = `feed:v2:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:r${radius}:m${mode}:l${limit}:${JSON.stringify(cacheFilters)}`;
     const redis = getRedis();
     if (redis) {
       try {

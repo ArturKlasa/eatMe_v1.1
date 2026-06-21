@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 7 context gathered
-last_updated: "2026-06-21T15:51:41.319Z"
-last_activity: 2026-06-21 -- Phase 07 execution started
+status: planning
+stopped_at: Phase 8 context gathered
+last_updated: "2026-06-21T22:41:35.473Z"
+last_activity: 2026-06-21
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 24
-  completed_plans: 19
-  percent: 70
+  completed_plans: 24
+  percent: 100
 ---
 
 # Project State
@@ -120,7 +120,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 7 context gathered
+Stopped at: Phase 8 context gathered
 Resume file: --resume-file
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.

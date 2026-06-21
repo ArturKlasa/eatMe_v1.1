@@ -3,7 +3,7 @@ phase: 06-schema-teardown-spine
 plan: 06
 subsystem: database / operator-handoff
 tags: [teardown, runbook, operator-gate, stage-dont-apply, DEBT-01, DEBT-02]
-status: awaiting-operator
+status: complete
 requires:
   - "06-01: verify-phase6-teardown.ts (read-only post-apply probe)"
   - "06-02: migration 171 (reconciled Phase B trigger/function drop)"
@@ -26,10 +26,12 @@ key-files:
 decisions:
   - "Phase completion is gated on the operator's clean post-apply probe + verify-script paste-back, not on build/check-types (which pass without applying drops)."
   - "Agent applies nothing to prod — no Supabase CLI in env; operator is the sole apply path."
+  - "RESOLVED 2026-06-21: operator paste-back showed prod ALREADY at the post-teardown end-state (all probe arrays empty, dep-audit clean). Prod had drifted ahead of repo migration history (superseded 152/153/156 evidently applied earlier). Migrations 171-174 are guaranteed no-ops; operator chose NOT to apply them. The real-world gate (prod confirmed clean) is satisfied without applying."
+  - "Probe defect fixed (commit d7931dd): archive_row_counts referenced public.<table> directly, which fails at PARSE time for already-dropped tables (to_regclass guard runs too late). Rewrote to iterate existing tables via information_schema + query_to_xml."
 metrics:
   duration: ~3 min
-  completed: pending-operator
-status_note: "Task 1 complete + committed; Task 2 is a blocking-human checkpoint — phase NOT complete until operator paste-back."
+  completed: 2026-06-21
+status_note: "Task 1 (runbook) complete + committed. Task 2 checkpoint RESOLVED: operator probe confirmed prod already torn down (clean); no migrations applied (all no-ops). Phase real-world gate satisfied."
 ---
 
 # Phase 6 Plan 6: Operator Apply-and-Verify Handoff Summary
@@ -77,14 +79,40 @@ required sections; Task 2 surfaced as the blocking-human checkpoint per the plan
   `ingredient_archive` (172 landing check), superseded note, verify step, and the
   171 → 172 → 173 → 174 apply order in sequence.
 
-## Operator Gate (pending)
+## Operator Gate (RESOLVED 2026-06-21)
 
-The phase real-world gate is in place but NOT yet satisfied. The operator must:
-1. Run + paste back the PRE-FLIGHT probe + dep-audit (dep-audit arrays must be empty).
-2. Apply 171 → 172 (+landing check) → 173 → 174 (not 151/152/153).
-3. Run + paste back `verify-phase6-teardown.ts` (all `GONE ✓`) + re-run probe (all empty).
+The phase real-world gate is **satisfied**. The operator ran the PRE-FLIGHT in the
+Supabase dashboard SQL editor and pasted back:
 
-Until that clean paste-back arrives, this plan — and the phase — is `awaiting-operator`.
+- **LIVE-STATE PROBE** (`phase6_probe`):
+  ```json
+  {"archive_row_counts":{},"dead_columns_present":{},"ingredient_tables_present":[],
+   "ingredient_triggers_present":[],"ingredient_functions_present":[]}
+  ```
+  → every ingredient table, trigger, function, and the dead `*_override` /
+  `options.canonical_ingredient_id` columns are **already GONE** in prod.
+- **DEPENDENCY AUDIT** (`phase6_depaudit`):
+  ```json
+  {"dependent_objects":[],"external_fks_into_set":[]}
+  ```
+  → no external FK or view/function depends on the (already-absent) ingredient set.
+
+**Finding:** prod was already at the exact post-teardown end-state these migrations
+target — it had drifted ahead of the repo's migration history (the superseded
+CASCADE migrations 152/153 + column-drop 156 were evidently applied to prod at an
+earlier point; CLAUDE.md's "tables still exist" note was stale). This probe result
+matches the runbook section-4b success condition verbatim.
+
+**Decision (operator):** do NOT apply 171–174 — all four are guaranteed no-ops
+against this DB. They remain in the repo as the reconciled, reproducible teardown
+record. The real-world gate (prod confirmed clean) is satisfied without applying,
+so the phase is marked complete.
+
+> Probe defect found + fixed during this gate (commit d7931dd): the original
+> `archive_row_counts` block referenced `public.<table>` directly and failed at
+> PARSE time once a table was already dropped (the `to_regclass` CASE guard runs
+> too late). Rewritten to iterate only existing tables via `information_schema`
+> and count each through `query_to_xml`. The runbook is now safe to re-run.
 
 ## Self-Check: PASSED
 - FOUND: .planning/phases/06-schema-teardown-spine/06-OPERATOR-HANDOFF.md

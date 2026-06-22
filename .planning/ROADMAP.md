@@ -170,8 +170,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `pnpm check-types` passes, and the operator confirms on-device that an app opened with pre-existing saved filters retains them across a force-close/reopen (proves the persistence shape is intact)
   4. Any targeted test added is limited to de-risking the persistence-serialization seam (no broad coverage push)
 
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 2 plans
+
+- [ ] 08-01-PLAN.md — Split filterStore.ts into types/defaults/selectors/daily-actions/permanent-actions/db-sync/persistence slices composed in index.ts (verbatim move, all landmines preserved), delete old file, typecheck + 12-consumer grep [Wave 1]
+- [ ] 08-02-PLAN.md — Throwaway byte-for-byte serialization diff harness (D-04) + blocking operator on-device force-close/reopen check (SC#3) + delete harness before close [Wave 2]
 
 ### Phase 9: Mobile Map & Modal Refactor
 

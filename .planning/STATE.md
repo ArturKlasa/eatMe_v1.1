@@ -2,19 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08
-current_phase_name: Mobile Filter Store Refactor
-status: ready_to_plan
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-06-22T02:38:18.102Z"
+status: planning
+stopped_at: Completed 08-01-PLAN.md (filterStore split, tsc green)
+last_updated: "2026-06-22T21:32:58.758Z"
 last_activity: 2026-06-22
-last_activity_desc: Completed Phase 8 Plan 01 (filterStore verbatim split)
 progress:
   total_phases: 10
-  completed_phases: 9
+  completed_phases: 8
   total_plans: 26
   completed_plans: 26
-  percent: 90
+  percent: 100
 ---
 
 # Project State
@@ -127,9 +124,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-22T02:38:13.062Z
-Stopped at: Completed 08-01-PLAN.md (filterStore split, tsc green)
-Resume file: .planning/phases/08-mobile-filter-store-refactor/08-02-PLAN.md
+Last session: Phase 9 planned — 3 plans created (09-01 BasicMapScreen→hooks+RatingBanner RFCT-02; 09-02 DailyFilterModal→sections+sub-modals RFCT-03; 09-03 operator on-device smoke SC#4). Both refactors Wave 1 (no file overlap, parallel); on-device gate Wave 2. All 12 decisions D-01..D-12 cited; all 4 landmines preserved+guard-commented; dead Diet Type Tabs dropped (D-12). Ready for /gsd-execute-phase 9.
+Stopped at: Phase 9 planning complete
+Resume file: None
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.
 

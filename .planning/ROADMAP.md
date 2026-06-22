@@ -187,7 +187,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `pnpm check-types` passes and the changes are split one refactor per commit so any on-device regression bisects cleanly
   4. The operator's on-device smoke checklist passes (camera centers on location, dish markers render and tap-through, daily filters apply/reset, deep-link opens the correct dish)
 
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 09-01-PLAN.md — Decompose BasicMapScreen into useMapCamera/useDishFeed/useRatingFlow hooks + RatingBanner child; directory + barrel (RFCT-02)
+- [ ] 09-02-PLAN.md — Decompose DailyFilterModal into per-section presentational children + verbatim sub-modals/DualRangeSlider/helpers/constants; parent owns draft + reducers (RFCT-03)
+- [ ] 09-03-PLAN.md — Operator on-device smoke (SC#4) — authoritative regression gate for both refactors
 **UI hint**: yes
 
 ### Phase 10: Admin Editor Refactor

@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 08
-current_phase_name: 08
+current_phase_name: Mobile Filter Store Refactor
 status: executing
 stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-06-22T02:30:00.588Z"
+last_updated: "2026-06-22T02:38:18.102Z"
 last_activity: 2026-06-22
-last_activity_desc: Completed Phase 8 Plan 01 (filterStore split)
+last_activity_desc: Completed Phase 8 Plan 01 (filterStore verbatim split)
 progress:
   total_phases: 10
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 26
   completed_plans: 26
-  percent: 70
+  percent: 80
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 08 (Mobile Filter Store Refactor) — EXECUTING
-Plan: 1 of 2 complete (08-01 done; 08-02 pending)
+Plan: 2 of 2 complete (08-01 done; 08-02 pending)
 Status: 08-01 complete — filterStore split into directory; tsc green
 Last activity: 2026-06-22 -- Completed Phase 8 Plan 01 (filterStore verbatim split)
 
@@ -73,6 +73,7 @@ Progress (milestone): [██████░░░░] 60% (6/10 phases)
 | Phase 06 P03 | 8min | 2 tasks | 5 files |
 | Phase 06 P05 | 3min | 1 tasks | 0 files |
 | Phase 08 P01 | 4min | 3 tasks | 9 files |
+| Phase 08 P02 | 3min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Plan 06-06: operator apply-and-verify runbook (06-OPERATOR-HANDOFF.md) authored; phase completion GATED on operator clean post-apply paste-back (blocking-human); agent applied nothing (no CLI, stage-don't-apply).
 - [Phase 07]: Plan 07-05: operator applied migrations 175 + 176 DIRECT-TO-PROD (no branch — Supabase Pro/branching unavailable; zero real users + schema-only/transactional/reversible/fail-soft = agreed safe path). PERF-03 SC#4 CONFIRMED (9-row trigger catalog restaurants/menus/dishes × INSERT/UPDATE/DELETE all AFTER; smoke: dish UPDATE → invalidate-cache net._http_post 200; no old dashboard webhook existed → no double-flush). PERF-02 SC#3 CONFIRMED (per-restaurant pre-cap K=8 applied, Deno 3/3). Two in-flight 175 deviations: (A) ALTER FUNCTION SET hnsw.* → 42501 on non-superuser postgres role → moved to runtime `set_config('hnsw.*', ..., is_local=>true)` in the function body (36f51cf); (B) **iterative_scan GUC DROPPED → PERF-01 SC#2 DEFERRED** — operator latency validation rejected it at the production 2.5km first tier (caps 200 candidates ~1.4s warm WITHOUT the GUC; GUC's max_scan_tuples=20000 over-scans the small in-range set; only helped at 10km/200 which the tiered loop never reaches). Final 175 = pre-cap only, NO GUC (40aa09d). PERF-01 delivered via SC#1 tiered-radius loop (07-03). **iterative_scan did NOT ship**; revisit with a TUNED GUC (lower ef_search/max_scan_tuples) once the corpus grows sparse enough to under-return at 2.5km. Feed first-tier ~1.4s warm behind 5-min Redis cache — flagged as a revisit-with-real-traffic item.
 - [Phase 08]: Plan 08-01: filterStore.ts (927 lines) split into a `filterStore/` directory of 8 files (types/defaults/selectors/daily-actions/permanent-actions/db-sync/persistence/index) via a PURE VERBATIM MOVE (RFCT-01). Slice typing = plain factory functions `createXxxSlice=(set,get)=>({...})` with set/get typed via `StoreApi<FilterStore>['setState'/'getState']` — NO Zustand StateCreator generic (chain has zero middleware). index.ts is BOTH the single `create<FilterState & FilterActions>()` root AND the D-09 re-export barrel (hook + 3 values + 4 types). All landmines preserved + grep-verified: `_saveFiltersTimer` single module-scope binding in persistence.ts; lazy `require('../settingsStore')` ×3 + lazy `import('../authStore')` (paths bumped for dir depth, NOT converted to static imports); `delete parsedPermanent.ingredientsToAvoid` verbatim; D-07 inconsistency = exactly 4 savePermanentFilters + 4 saveFilters (toggleNotification LOCAL-only); `JSON.stringify(currentState.permanent)` + `{...defaultPermanentFilters,...parsedPermanent}` merge order kept. FilterActions exported (was non-exported) — only signature change, no consumer imports it. Old single file deleted; `cd apps/mobile && npx tsc --noEmit` green; all 13 consumers resolve unchanged. Byte-for-byte serialization equality to be PROVEN in 08-02 (throwaway harness) + operator on-device force-close/reopen (SC#3).
+- [Phase ?]: Plan 08-02: byte-for-byte serialization equality of the permanent-filter AsyncStorage payload PROVEN via throwaway inline-literal .mjs harness (option ii) → SERIALIZATION_BYTE_FOR_BYTE_OK (SC#2); operator on-device force-close/reopen confirmed saved permanent filters survived ('approved' — SC#3). Harness deleted in Task 3, no test runner in apps/mobile (D-04). RFCT-01 closed offline+live.
 
 ### Pending Todos
 
@@ -124,7 +126,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-22T02:28:45Z
+Last session: 2026-06-22T02:38:13.062Z
 Stopped at: Completed 08-01-PLAN.md (filterStore split, tsc green)
 Resume file: .planning/phases/08-mobile-filter-store-refactor/08-02-PLAN.md
 

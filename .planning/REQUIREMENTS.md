@@ -43,7 +43,7 @@ Each finding is assessed (validated against current code + live DB) before being
 
 ### Refactors (behavior-preserving)
 
-- [ ] **RFCT-01**: `filterStore.ts` is split into slice creators, preserving the public store API and the hand-rolled `saveFilters`/`loadFilters` AsyncStorage serialization shape byte-for-byte
+- [x] **RFCT-01**: `filterStore.ts` is split into slice creators, preserving the public store API and the hand-rolled `saveFilters`/`loadFilters` AsyncStorage serialization shape byte-for-byte
 - [ ] **RFCT-02**: `BasicMapScreen.tsx` is decomposed into smaller units (after CLEAN-01), behavior-preserving, verified on-device
 - [ ] **RFCT-03**: `DailyFilterModal.tsx` is decomposed into smaller units, behavior-preserving, verified on-device
 - [ ] **RFCT-04**: `ReviewDishEditor.tsx` (admin) is decomposed into smaller units, behavior-preserving
@@ -96,7 +96,7 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 | PERF-01 | Phase 7 | Pending |
 | PERF-02 | Phase 7 | Complete |
 | PERF-03 | Phase 7 | Complete |
-| RFCT-01 | Phase 8 | Pending |
+| RFCT-01 | Phase 8 | Complete |
 | RFCT-02 | Phase 9 | Pending |
 | RFCT-03 | Phase 9 | Pending |
 | RFCT-04 | Phase 10 | Pending |

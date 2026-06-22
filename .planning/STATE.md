@@ -2,16 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 8 context gathered
-last_updated: "2026-06-21T22:41:35.473Z"
-last_activity: 2026-06-21
+current_phase: 08
+current_phase_name: 08
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-06-22T02:30:00.588Z"
+last_activity: 2026-06-22
+last_activity_desc: Completed Phase 8 Plan 01 (filterStore split)
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 24
-  completed_plans: 24
-  percent: 100
+  total_plans: 26
+  completed_plans: 26
+  percent: 70
 ---
 
 # Project State
@@ -21,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 07 — performance-cache
+**Current focus:** Phase --phase — 08
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-21
+Phase: 08 (Mobile Filter Store Refactor) — EXECUTING
+Plan: 1 of 2 complete (08-01 done; 08-02 pending)
+Status: 08-01 complete — filterStore split into directory; tsc green
+Last activity: 2026-06-22 -- Completed Phase 8 Plan 01 (filterStore verbatim split)
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -69,6 +72,7 @@ Progress (milestone): [██████░░░░] 60% (6/10 phases)
 | Phase 06 P04 | 20min | 2 tasks | 7 files |
 | Phase 06 P03 | 8min | 2 tasks | 5 files |
 | Phase 06 P05 | 3min | 1 tasks | 0 files |
+| Phase 08 P01 | 4min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -94,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Plan 06-05: DEBT-04 satisfied by VERIFICATION not edit — types.ts already slimmed (zero dropped-object residue grep, overturns F-07/F-15); D-10 edge-fn inline-enum is a clean no-op (no ingredient enum copies); turbo check-types green across admin+web-portal-v2 (SC4).
 - [Phase ?]: Plan 06-06: operator apply-and-verify runbook (06-OPERATOR-HANDOFF.md) authored; phase completion GATED on operator clean post-apply paste-back (blocking-human); agent applied nothing (no CLI, stage-don't-apply).
 - [Phase 07]: Plan 07-05: operator applied migrations 175 + 176 DIRECT-TO-PROD (no branch — Supabase Pro/branching unavailable; zero real users + schema-only/transactional/reversible/fail-soft = agreed safe path). PERF-03 SC#4 CONFIRMED (9-row trigger catalog restaurants/menus/dishes × INSERT/UPDATE/DELETE all AFTER; smoke: dish UPDATE → invalidate-cache net._http_post 200; no old dashboard webhook existed → no double-flush). PERF-02 SC#3 CONFIRMED (per-restaurant pre-cap K=8 applied, Deno 3/3). Two in-flight 175 deviations: (A) ALTER FUNCTION SET hnsw.* → 42501 on non-superuser postgres role → moved to runtime `set_config('hnsw.*', ..., is_local=>true)` in the function body (36f51cf); (B) **iterative_scan GUC DROPPED → PERF-01 SC#2 DEFERRED** — operator latency validation rejected it at the production 2.5km first tier (caps 200 candidates ~1.4s warm WITHOUT the GUC; GUC's max_scan_tuples=20000 over-scans the small in-range set; only helped at 10km/200 which the tiered loop never reaches). Final 175 = pre-cap only, NO GUC (40aa09d). PERF-01 delivered via SC#1 tiered-radius loop (07-03). **iterative_scan did NOT ship**; revisit with a TUNED GUC (lower ef_search/max_scan_tuples) once the corpus grows sparse enough to under-return at 2.5km. Feed first-tier ~1.4s warm behind 5-min Redis cache — flagged as a revisit-with-real-traffic item.
+- [Phase 08]: Plan 08-01: filterStore.ts (927 lines) split into a `filterStore/` directory of 8 files (types/defaults/selectors/daily-actions/permanent-actions/db-sync/persistence/index) via a PURE VERBATIM MOVE (RFCT-01). Slice typing = plain factory functions `createXxxSlice=(set,get)=>({...})` with set/get typed via `StoreApi<FilterStore>['setState'/'getState']` — NO Zustand StateCreator generic (chain has zero middleware). index.ts is BOTH the single `create<FilterState & FilterActions>()` root AND the D-09 re-export barrel (hook + 3 values + 4 types). All landmines preserved + grep-verified: `_saveFiltersTimer` single module-scope binding in persistence.ts; lazy `require('../settingsStore')` ×3 + lazy `import('../authStore')` (paths bumped for dir depth, NOT converted to static imports); `delete parsedPermanent.ingredientsToAvoid` verbatim; D-07 inconsistency = exactly 4 savePermanentFilters + 4 saveFilters (toggleNotification LOCAL-only); `JSON.stringify(currentState.permanent)` + `{...defaultPermanentFilters,...parsedPermanent}` merge order kept. FilterActions exported (was non-exported) — only signature change, no consumer imports it. Old single file deleted; `cd apps/mobile && npx tsc --noEmit` green; all 13 consumers resolve unchanged. Byte-for-byte serialization equality to be PROVEN in 08-02 (throwaway harness) + operator on-device force-close/reopen (SC#3).
 
 ### Pending Todos
 
@@ -119,14 +124,14 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 8 context gathered
-Resume file: --resume-file
+Last session: 2026-06-22T02:28:45Z
+Stopped at: Completed 08-01-PLAN.md (filterStore split, tsc green)
+Resume file: .planning/phases/08-mobile-filter-store-refactor/08-02-PLAN.md
 
 **Phase 3 outcome:** migration 170 (`170_codify_behavioral_rls.sql` + REVERSE, commits 57c1761 → 06e7b0a → self-cleaning fix fcbf951) codifies prod's behavioral-table RLS via a name-agnostic policy sweep → 30 canonical InitPlan-form policies + 7 owner indexes on 11 tables, one BEGIN/COMMIT. Operator-validated on a prod-clone branch across 2 rounds (round-1 caught out-of-band policy duplication; round-2 clean: exact canonical counts, idempotent, anon-deny, own-only, reassignment-rejected, public-read intact). Authored + dry-run only — never applied to prod by the agent (D-13); applying it to prod to *reconcile* the out-of-band policies is an optional operator action.
 
 **Phase 3 deviation (for the record):** the plan's Task-1/Task-2 `<automated>` bare-`auth.uid()` gate regex `[^(]auth\.uid\(\)` is inverted — it matches the mandated InitPlan form `(select auth.uid())` and misses an actual bare `(auth.uid()` form. Verified the must_have truth with a corrected check (0 bare calls; 29/29 wrapped).
 
-**Planned Phase:** 07 (Performance & Cache) — 5 plans — 2026-06-21T14:47:12.502Z
+**Planned Phase:** 8 (Mobile Filter Store Refactor) — 2 plans — 2026-06-22T02:18:06.355Z
 
 **Phase 7 outcome (07-05):** operator applied migrations 175 + 176 direct-to-prod (no branch available; zero users + schema-only/transactional/reversible/fail-soft = safe). PERF-03 SC#4 CONFIRMED (9-row trigger catalog + smoke 200, no old webhook → no double-flush); PERF-02 SC#3 CONFIRMED (pre-cap K=8). **iterative_scan GUC DROPPED → PERF-01 SC#2 DEFERRED** (live latency validation rejected it at the 2.5km production tier; PERF-01 still delivered via SC#1 tiered-radius loop). Two in-flight 175 fixes: 42501→runtime `set_config` (36f51cf), drop GUC keep pre-cap (40aa09d). Runbook authored 46c7888/af8667c. Revisit iterative_scan + feed latency with real traffic. Summary: `.planning/phases/07-performance-cache/07-05-SUMMARY.md`.

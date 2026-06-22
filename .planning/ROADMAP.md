@@ -170,9 +170,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `pnpm check-types` passes, and the operator confirms on-device that an app opened with pre-existing saved filters retains them across a force-close/reopen (proves the persistence shape is intact)
   4. Any targeted test added is limited to de-risking the persistence-serialization seam (no broad coverage push)
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
-- [ ] 08-01-PLAN.md — Split filterStore.ts into types/defaults/selectors/daily-actions/permanent-actions/db-sync/persistence slices composed in index.ts (verbatim move, all landmines preserved), delete old file, typecheck + 12-consumer grep [Wave 1]
+- [x] 08-01-PLAN.md — Split filterStore.ts into types/defaults/selectors/daily-actions/permanent-actions/db-sync/persistence slices composed in index.ts (verbatim move, all landmines preserved), delete old file, typecheck + 12-consumer grep [Wave 1]
 - [ ] 08-02-PLAN.md — Throwaway byte-for-byte serialization diff harness (D-04) + blocking operator on-device force-close/reopen check (SC#3) + delete harness before close [Wave 2]
 
 ### Phase 9: Mobile Map & Modal Refactor
@@ -218,6 +218,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Dead Code & Doc Cleanup | 0/TBD | Not started | - |
 | 6. Schema Teardown Spine | 5/6 | In Progress|  |
 | 7. Performance & Cache | 5/5 | Complete   | 2026-06-21 |
-| 8. Mobile Filter Store Refactor | 0/TBD | Not started | - |
+| 8. Mobile Filter Store Refactor | 1/2 | In Progress|  |
 | 9. Mobile Map & Modal Refactor | 0/TBD | Not started | - |
 | 10. Admin Editor Refactor | 0/TBD | Not started | - |

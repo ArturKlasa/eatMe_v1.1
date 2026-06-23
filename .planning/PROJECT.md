@@ -36,6 +36,7 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 - ✓ `DishKind` / `DISH_KIND_META` shims removed — `apps/web-portal-v2` severed first (`KindSelector.tsx` + `dish-kinds.test.ts` deleted, `DishForm`/`MenuManager` reconciled), then shims dropped from `@eatme/shared`; zero-importer grep clean, `turbo check-types` green — validated in Phase 6 (DEBT-03)
 - ✓ Generated `@eatme/database` types confirmed in sync with the slimmed schema — `types.ts` already regenerated post-teardown (zero ingredient/`*_override`/`dish_kind` residue); re-verified by grep + `turbo check-types` rather than re-regenerated to avoid drift — validated in Phase 6 (DEBT-04)
 - ✓ `filterStore.ts` split into a `filterStore/` slice directory (types/defaults/selectors/daily-actions/permanent-actions/db-sync/persistence composed in `index.ts` as the single `create()` root + re-export barrel) — pure verbatim move, public store API + hand-rolled AsyncStorage serialization shape preserved byte-for-byte (all 13 consumers' imports unchanged, `tsc --noEmit` green, all landmines preserved); proven byte-for-byte by a throwaway diff harness (deleted before close) + operator on-device force-close/reopen confirmation — validated in Phase 8 (RFCT-01)
+- ✓ `BasicMapScreen.tsx` (581 lines) + `DailyFilterModal.tsx` (891 lines) decomposed into co-located directories — map screen → `useMapCamera`/`useDishFeed`/`useRatingFlow` hooks + `RatingBanner` child (reuses the shared `useUserLocation`); filter modal → parent draft+reducers `index.tsx` + 4 presentational value+onChange sections + 2 verbatim sub-modals + `DualRangeSlider`/`helpers`/`constants`, each with a composition-root `index.tsx` barrel. Pure behavior-preserving move: all 4 landmines preserved + guard-commented (feed-effect deps, `[visible]`-only seed effect, protein/meat special-casing, Android slider measure-poll), dead Diet Type Tabs block dropped (D-12), local-draft→Apply semantics intact. `apps/mobile tsc --noEmit` green, code review clean (0 critical), operator on-device SC#4 smoke approved — validated in Phase 9 (RFCT-02/RFCT-03)
 
 ### Active
 
@@ -68,7 +69,7 @@ After this cycle, the documented concerns in CONCERNS.md are either fixed or hav
 
 **Big-file refactors (behavior-preserving)**
 
-- [ ] Split `BasicMapScreen.tsx`, `DailyFilterModal.tsx` (mobile — on-device verification) — `filterStore.ts` ✓ done in Phase 8 (RFCT-01)
+- [x] Split `BasicMapScreen.tsx`, `DailyFilterModal.tsx` (mobile — on-device verified) — Phase 9 (RFCT-02/RFCT-03); `filterStore.ts` ✓ Phase 8 (RFCT-01)
 - [ ] Split `ReviewDishEditor.tsx` (admin)
 
 ### Out of Scope
@@ -130,4 +131,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-22 after Phase 8 (Mobile Filter Store Refactor) completion — RFCT-01 validated: `filterStore.ts` split into a slice directory with byte-for-byte serialization preservation (throwaway harness + operator on-device confirmation), code review clean, phase verification 4/4. One on-device UI check (CLEAN-01) still pending in 05-HUMAN-UAT.md.*
+*Last updated: 2026-06-23 after Phase 9 (Mobile Map & Modal Refactor) completion — RFCT-02 + RFCT-03 validated: `BasicMapScreen.tsx` and `DailyFilterModal.tsx` decomposed into co-located hook/section/sub-modal directories, behavior-preserving (4 landmines preserved + guard-commented, dead Diet Type Tabs block dropped), `apps/mobile tsc` green, code review clean (0 critical), phase verification 12/12, operator on-device SC#4 approved. One on-device UI check (CLEAN-01) still pending in 05-HUMAN-UAT.md.*

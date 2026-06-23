@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 6: Schema Teardown Spine** - Sequenced ingredient teardown (B triggers → C tables → C columns), DishKind shim removal, single type regen
 - [x] **Phase 7: Performance & Cache** - Tiered-radius candidate fix, Stage-2 payload reduction, and widened cache-invalidation event coverage (completed 2026-06-21)
 - [x] **Phase 8: Mobile Filter Store Refactor** - Split `filterStore.ts` into slices, preserving the public API and persistence shape byte-for-byte (completed 2026-06-22)
-- [ ] **Phase 9: Mobile Map & Modal Refactor** - Decompose `BasicMapScreen.tsx` and `DailyFilterModal.tsx`, behavior-preserving, verified on-device
+- [x] **Phase 9: Mobile Map & Modal Refactor** - Decompose `BasicMapScreen.tsx` and `DailyFilterModal.tsx`, behavior-preserving, verified on-device (completed 2026-06-23)
 - [ ] **Phase 10: Admin Editor Refactor** - Decompose `ReviewDishEditor.tsx`, preserving the `admin_confirm_menu_scan` payload contract
 
 ## Phase Details
@@ -187,11 +187,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `pnpm check-types` passes and the changes are split one refactor per commit so any on-device regression bisects cleanly
   4. The operator's on-device smoke checklist passes (camera centers on location, dish markers render and tap-through, daily filters apply/reset, deep-link opens the correct dish)
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 - [x] 09-01-PLAN.md — Decompose BasicMapScreen into useMapCamera/useDishFeed/useRatingFlow hooks + RatingBanner child; directory + barrel (RFCT-02)
 - [x] 09-02-PLAN.md — Decompose DailyFilterModal into per-section presentational children + verbatim sub-modals/DualRangeSlider/helpers/constants; parent owns draft + reducers (RFCT-03)
-- [ ] 09-03-PLAN.md — Operator on-device smoke (SC#4) — authoritative regression gate for both refactors
+- [x] 09-03-PLAN.md — Operator on-device smoke (SC#4) — authoritative regression gate for both refactors
 
 **UI hint**: yes
 
@@ -224,5 +224,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Schema Teardown Spine | 5/6 | In Progress|  |
 | 7. Performance & Cache | 5/5 | Complete   | 2026-06-21 |
 | 8. Mobile Filter Store Refactor | 2/2 | Complete   | 2026-06-22 |
-| 9. Mobile Map & Modal Refactor | 2/3 | In Progress|  |
+| 9. Mobile Map & Modal Refactor | 3/3 | Complete   | 2026-06-23 |
 | 10. Admin Editor Refactor | 0/TBD | Not started | - |

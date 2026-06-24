@@ -6,14 +6,14 @@ current_phase: 10
 current_phase_name: admin-editor-refactor
 status: executing
 stopped_at: Phase 10 context gathered
-last_updated: "2026-06-24T04:24:58.197Z"
+last_updated: "2026-06-24T11:18:32.618Z"
 last_activity: 2026-06-24
 last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 32
-  completed_plans: 30
+  completed_plans: 31
   percent: 90
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 ## Current Position
 
 Phase: 10 (admin-editor-refactor) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-24 -- Phase 10 execution started
 
@@ -80,6 +80,7 @@ Progress (milestone): [██████░░░░] 60% (6/10 phases)
 | Phase 09 P09-02 | 20min | 3 tasks | 10 files |
 | Phase 09 P09-03 | ~5min | 2 tasks | 0 files |
 | Phase 10 P10-01 | 6min | 3 tasks | 4 files |
+| Phase 10 P10-02 | ~25 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 09-02: DailyFilterModal decomposed into components/map/DailyFilterModal/ directory+barrel (index.tsx owns draft + ALL reducers; 4 pure presentational sections; 2 separate selection sub-modals per D-09; DualRangeSlider/helpers/constants). LANDMINES #2/#3/#4 verbatim+guard-commented; dead Diet Type Tabs dropped (D-12); Apply commits via replaceDailyFilters; mobile tsc green; monolith deleted; consumers unchanged. RFCT-03 NOT closed — 09-03 on-device smoke pending.
 - [Phase ?]: 09-03: SC#4 on-device smoke closed RFCT-02 + RFCT-03 behavior-preservation — operator confirmed on a physical device (2026-06-22) that the decomposed BasicMapScreen (RFCT-02) and DailyFilterModal (RFCT-03) behave exactly as before the refactor (no crash, no console errors, no visual/behavioral diff). On-device smoke is the authoritative regression gate (no emulator/UI tests for this surface). Phase 9 now 3/3 plans complete.
 - [Phase 10]: Plan 10-01: ReviewDishEditor.tsx (1258 lines) decomposed into a `ReviewDishEditor/` directory + `index.tsx` barrel + 2 pure modules (`reviewHelpers.ts` = 7 helpers pickName/deriveDiningFormat/asEditable/confidenceTone/getGroupKey/encode+decodeCategoryValue; `buildConfirmPayload.ts`) + D-10 inline-snapshot test. Behavior-preserving (RFCT-04). **Import-depth deviation (Rule 3):** the directory nests one level deeper than the old file, so the plan's "imports unchanged" claim was wrong — relative imports bumped `./useReviewState`→`../useReviewState`, `./ScanExtrasPanel`→`../ScanExtrasPanel`, `../actions/menuScan`→`../../actions/menuScan` (+ the barrel re-export); `@/`-aliased imports unchanged; AdminJobShell consumer import byte-for-byte unchanged. L-2 (price_override 0→null collapse) + L-3 (legacy dish_kind mapping) moved verbatim with `LANDMINE L-2/L-3` guard markers; L-1 useMemo empty-deps call site unchanged. handleSave = validate → buildConfirmPayload → single adminConfirmMenuScan submit (getGroupMeta passed in as a callback so the builder stays pure). `turbo check-types` green (admin + web-portal-v2); admin vitest 18 files/169 tests green (incl. new snapshot + focused asEditable L-2 case); zero-residue grep clean (only AdminJobShell.tsx:13). 3 atomic commits 0b887e6/ea2599e/f2a9bdd. Plan 02 (presentational children) + operator D-11 in-browser save still pending.
+- [Phase ?]: Phase 10 Plan 02: extracted BundledItemsBlock (verbatim), CategorySection (per-group header), DishCard (whole per-dish <li>) as presentational children; index.tsx stays the orchestration root (D-06) keeping getGroupMeta + L-1/L-4/L-5; onActiveImageIndexChange wiring + byte-identical admin_confirm_menu_scan payload preserved.
 
 ### Pending Todos
 
@@ -136,7 +138,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-24T04:24:26.625Z
+Last session: 2026-06-24T11:18:03.130Z
 Stopped at: Phase 10 context gathered
 Resume file: --resume-file
 

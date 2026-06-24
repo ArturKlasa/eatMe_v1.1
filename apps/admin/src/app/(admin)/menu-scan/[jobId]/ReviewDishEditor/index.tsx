@@ -20,7 +20,7 @@ import type {
   DishCategoryOption,
   DishCategoryMatch,
 } from '@/lib/auth/dal';
-import { adminConfirmMenuScan } from '../actions/menuScan';
+import { adminConfirmMenuScan } from '../../actions/menuScan';
 import { isSuspiciouslyHighPrice, priceWarnMessage } from '@/lib/priceWarnings';
 import { DishCategoryCombobox } from '@/components/DishCategoryCombobox';
 import { MenuCategoryCombobox, type MenuCategoryOption } from '@/components/MenuCategoryCombobox';
@@ -33,11 +33,11 @@ import {
   type ExtractedDish,
   type PricePrefix,
   type Protein,
-} from './useReviewState';
+} from '../useReviewState';
 import { ModifierGroupsEditor } from '@/components/modifiers/ModifierGroupsEditor';
-import { ScanExtrasPanel } from './ScanExtrasPanel';
+import { ScanExtrasPanel } from '../ScanExtrasPanel';
 
-export type { ExtractedDish } from './useReviewState';
+export type { ExtractedDish } from '../useReviewState';
 
 interface Props {
   jobId: string;

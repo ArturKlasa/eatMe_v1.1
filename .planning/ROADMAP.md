@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: RLS Hardening** - Enable RLS + atomic owner policies on all behavioral tables, InitPlan-safe and indexed (completed 2026-06-19)
 - [x] **Phase 4: Edge Dependency Pinning & Script Guard** - `Deno.serve` migration, exact dep pins across functions, and a prod-write guard on `infra/scripts` (completed 2026-06-20)
 - [x] **Phase 5: Dead Code & Doc Cleanup** - Remove the dead map view-mode branch, verify the web-portal deletion, and fix stale comments/docs (completed 2026-06-20 — CLEAN-01 on-device UI check pending)
-- [ ] **Phase 6: Schema Teardown Spine** - Sequenced ingredient teardown (B triggers → C tables → C columns), DishKind shim removal, single type regen
+- [x] **Phase 6: Schema Teardown Spine** - Sequenced ingredient teardown (B triggers → C tables → C columns), DishKind shim removal, single type regen (completed 2026-06-21)
 - [x] **Phase 7: Performance & Cache** - Tiered-radius candidate fix, Stage-2 payload reduction, and widened cache-invalidation event coverage (completed 2026-06-21)
 - [x] **Phase 8: Mobile Filter Store Refactor** - Split `filterStore.ts` into slices, preserving the public API and persistence shape byte-for-byte (completed 2026-06-22)
 - [x] **Phase 9: Mobile Map & Modal Refactor** - Decompose `BasicMapScreen.tsx` and `DailyFilterModal.tsx`, behavior-preserving, verified on-device (completed 2026-06-23)

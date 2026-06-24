@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Performance & Cache** - Tiered-radius candidate fix, Stage-2 payload reduction, and widened cache-invalidation event coverage (completed 2026-06-21)
 - [x] **Phase 8: Mobile Filter Store Refactor** - Split `filterStore.ts` into slices, preserving the public API and persistence shape byte-for-byte (completed 2026-06-22)
 - [x] **Phase 9: Mobile Map & Modal Refactor** - Decompose `BasicMapScreen.tsx` and `DailyFilterModal.tsx`, behavior-preserving, verified on-device (completed 2026-06-23)
-- [ ] **Phase 10: Admin Editor Refactor** - Decompose `ReviewDishEditor.tsx`, preserving the `admin_confirm_menu_scan` payload contract
+- [x] **Phase 10: Admin Editor Refactor** - Decompose `ReviewDishEditor.tsx`, preserving the `admin_confirm_menu_scan` payload contract (completed 2026-06-24)
 
 ## Phase Details
 
@@ -206,11 +206,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A single `buildConfirmPayload()` and a single submit call remain so the RPC contract stays in one place, and the payload shape is unchanged
   3. `turbo check-types` passes and the existing `admin-confirm-rpc.test.ts` integration test still passes as the regression gate
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 - [x] 10-01-PLAN.md — Directory + barrel (D-01); extract pure reviewHelpers.ts (D-05) + pure buildConfirmPayload.ts (D-07) + inline-snapshot test (D-10); L-2/L-3 preserved [Wave 1]
 - [x] 10-02-PLAN.md — Extract presentational children BundledItemsBlock/CategorySection/DishCard (D-03/D-04); onActiveImageIndexChange wiring + L-1/L-4/L-5 preserved; orchestration stays in index.tsx (D-06) [Wave 2]
-- [ ] 10-03-PLAN.md — Full automated gate re-run + operator in-browser Save (D-11, blocking-human) — authoritative regression gate; closes RFCT-04 [Wave 3]
+- [x] 10-03-PLAN.md — Full automated gate re-run + operator in-browser Save (D-11, blocking-human) — authoritative regression gate; closes RFCT-04 [Wave 3]
 
 **UI hint**: yes
 
@@ -230,4 +230,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Performance & Cache | 5/5 | Complete   | 2026-06-21 |
 | 8. Mobile Filter Store Refactor | 2/2 | Complete   | 2026-06-22 |
 | 9. Mobile Map & Modal Refactor | 3/3 | Complete   | 2026-06-23 |
-| 10. Admin Editor Refactor | 2/3 | In Progress|  |
+| 10. Admin Editor Refactor | 3/3 | Complete    | 2026-06-24 |

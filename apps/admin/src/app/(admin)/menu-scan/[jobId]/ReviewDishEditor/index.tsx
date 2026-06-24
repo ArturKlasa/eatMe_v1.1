@@ -44,6 +44,7 @@ import {
 } from './reviewHelpers';
 import { buildConfirmPayload } from './buildConfirmPayload';
 import { BundledItemsBlock } from './BundledItemsBlock';
+import { CategorySection } from './CategorySection';
 
 export type { ExtractedDish } from '../useReviewState';
 
@@ -280,6 +281,7 @@ export function ReviewDishEditor({
         order.push(key);
       }
     }
+    // LANDMINE L-5 — 'none' bucket pushed last; preserves render order; do NOT reorder; see 10-CONTEXT.md
     const noneIdx = order.indexOf('none');
     if (noneIdx !== -1) {
       order.splice(noneIdx, 1);
@@ -509,90 +511,37 @@ export function ReviewDishEditor({
       {groups.map(group => {
         const meta = getGroupMeta(group.key);
         const desc = categoryDescriptions.get(group.key) ?? '';
+        const activeInGroup = group.dishes.filter(d => !d._deleted);
+        const hasActiveDishes = activeInGroup.length > 0;
+        const allSelected = hasActiveDishes && activeInGroup.every(d => selectedIds.has(d._id));
         // Other real sections this one can be merged into (collapses an
         // over-split category). Excludes self and the uncategorized bucket.
-        const mergeTargets = groups.filter(
-          g => g.key !== group.key && g.key !== 'none' && g.dishes.some(d => !d._deleted)
-        );
-        const hasActiveDishes = group.dishes.some(d => !d._deleted);
+        // Append the source badge (Canonical/Existing/Custom) so two sections
+        // that share a display name (e.g. a canonical "Appetizers" and a custom
+        // "Appetizers") stay distinguishable. getGroupMeta is impure (closes
+        // over the lookup maps) so we resolve the labels here, not in the child.
+        const mergeTargets = groups
+          .filter(g => g.key !== group.key && g.key !== 'none' && g.dishes.some(d => !d._deleted))
+          .map(g => {
+            const m = getGroupMeta(g.key);
+            return { key: g.key, label: m.badge ? `${m.displayName} · ${m.badge}` : m.displayName };
+          });
         return (
-          <section key={group.key} className="rounded-lg border border-border bg-muted/10">
-            <header className="border-b border-border px-4 py-3 space-y-2">
-              <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold">{meta.displayName}</h3>
-                  {meta.badge && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">
-                      {meta.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {group.dishes.filter(d => !d._deleted).length} dish
-                    {group.dishes.filter(d => !d._deleted).length === 1 ? '' : 'es'}
-                  </span>
-                  {hasActiveDishes && mergeTargets.length > 0 && (
-                    <select
-                      aria-label={`Merge ${meta.displayName} into another section`}
-                      title="Move every dish in this section into another section"
-                      value=""
-                      onChange={e => handleMergeGroup(group.key, e.target.value)}
-                      disabled={saving}
-                      className="rounded border border-border bg-background px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
-                    >
-                      <option value="" disabled>
-                        Merge into…
-                      </option>
-                      {mergeTargets.map(g => {
-                        // Append the source badge (Canonical/Existing/Custom) so
-                        // two sections that share a display name (e.g. a canonical
-                        // "Appetizers" and a custom "Appetizers") stay distinguishable.
-                        const m = getGroupMeta(g.key);
-                        return (
-                          <option key={g.key} value={g.key}>
-                            {m.badge ? `${m.displayName} · ${m.badge}` : m.displayName}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => toggleGroupSelection(group.dishes)}
-                    disabled={saving || group.dishes.every(d => d._deleted)}
-                    className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
-                  >
-                    {group.dishes.filter(d => !d._deleted).every(d => selectedIds.has(d._id)) &&
-                    group.dishes.some(d => !d._deleted)
-                      ? 'Deselect all'
-                      : 'Select all'}
-                  </button>
-                </div>
-              </div>
-              {group.key !== 'none' &&
-                (meta.descriptionLocked ? (
-                  desc && (
-                    <p className="text-xs text-muted-foreground italic">
-                      {desc}{' '}
-                      <span className="not-italic text-[10px]">
-                        (existing description — edit on the restaurant page)
-                      </span>
-                    </p>
-                  )
-                ) : (
-                  <textarea
-                    aria-label={`${meta.displayName} description`}
-                    value={desc}
-                    onChange={e => updateGroupDescription(group.key, e.target.value)}
-                    disabled={saving}
-                    placeholder={`Section description (in ${sourceLanguage}, optional)`}
-                    rows={2}
-                    className="w-full rounded border border-border bg-background px-3 py-2 text-xs disabled:opacity-50 resize-y"
-                  />
-                ))}
-            </header>
-
+          <CategorySection
+            key={group.key}
+            meta={meta}
+            groupKey={group.key}
+            dishCount={activeInGroup.length}
+            mergeTargets={mergeTargets}
+            hasActiveDishes={hasActiveDishes}
+            allSelected={allSelected}
+            saving={saving}
+            sourceLanguage={sourceLanguage}
+            description={desc}
+            onMergeGroup={v => handleMergeGroup(group.key, v)}
+            onToggleGroupSelection={() => toggleGroupSelection(group.dishes)}
+            onUpdateGroupDescription={v => updateGroupDescription(group.key, v)}
+          >
             <ul className="space-y-3 p-3">
               {group.dishes.map(d => (
                 <li
@@ -961,7 +910,7 @@ export function ReviewDishEditor({
                 </li>
               ))}
             </ul>
-          </section>
+          </CategorySection>
         );
       })}
     </div>

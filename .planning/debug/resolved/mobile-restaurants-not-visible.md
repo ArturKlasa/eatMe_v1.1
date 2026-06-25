@@ -1,8 +1,8 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "In the mobile app I don't see restaurants even though they are near me, are open, and I don't have any filters on"
 created: 2026-05-21
-updated: 2026-05-21
+updated: 2026-06-24
 ---
 
 ## Current Focus
@@ -11,7 +11,7 @@ updated: 2026-05-21
 hypothesis: CONFIRMED (cycle 3). Restaurants added via the Admin menu-scan flow are saved with empty open_hours ({}). The `feed` Edge Function hard-filters the dish pool with isOpenNow() (feed/index.ts:877), and isOpenNow() returns false for null/empty open_hours. So every dish from a menu-scanned restaurant is excluded from the feed permanently — the feed returns dishes:0 for them. The mobile map's dish markers and recommended-dish footer are driven by feed dishes, so these restaurants never appear in dish-centric views.
 test: Queried the live remote DB + called the live generate_candidates RPC and the live feed Edge Function with the user's coordinates.
 expecting: DB healthy; generate_candidates returns the restaurant's dishes; feed returns the restaurant in `restaurants` but with dishes:0; the restaurant's open_hours is empty.
-next_action: Fixes applied + static-verified (see Resolution). Awaiting human verification: user must deploy the feed Edge Function, redeploy the admin app, add GOOGLE_PLACES_API_KEY to infra/scripts/.env and run the backfill, then confirm the recently-added restaurants appear on the mobile map.
+next_action: RESOLVED 2026-06-24. User deployed the feed Edge Function, redeployed the admin app, and ran the open-hours backfill, then confirmed on-device that recently-added restaurants now appear on the mobile map. No further action.
 
 ## Symptoms
 <!-- Written during gathering, then IMMUTABLE -->
@@ -68,7 +68,9 @@ fix: Applied the data-correctness fix set (user chose to capture real hours rath
   3. Crash guard — infra/supabase/functions/feed/index.ts:634 now defaults `filters` to `{}` so a request missing the filters field no longer throws "Cannot read properties of undefined (reading 'spiceTolerance')".
   NOT done by design: isOpenNow() semantics were left unchanged (user declined the "unknown hours = open" runtime fallback). Consequence: a restaurant Google has no hours for at all stays invisible until hours are entered manually; and a restaurant with real hours still won't surface its dishes while it is currently closed (intended behaviour).
 
-verification: Static checks done — admin `tsc --noEmit` passes, infra/scripts `tsc --noEmit` passes, eslint clean on changed admin files, mapGoogleOpeningHours unit-sanity-checked (normal, overnight, 24h, split-hours, empty). PENDING (requires user action — none can be done from here): (a) deploy the feed Edge Function (`supabase functions deploy feed`); (b) deploy/redeploy the admin app so future imports capture hours; (c) add GOOGLE_PLACES_API_KEY to infra/scripts/.env and run `pnpm backfill-open-hours` (try `--dry-run` first); (d) confirm in the mobile app that the recently-added restaurants now appear. Backfill was NOT run from the debug session (it calls a paid external API).
+verification: VERIFIED RESOLVED 2026-06-24. Static checks (done during the fix): admin `tsc --noEmit` passes, infra/scripts `tsc --noEmit` passes, eslint clean on changed admin files, mapGoogleOpeningHours unit-sanity-checked (normal, overnight, 24h, split-hours, empty). Human verification (2026-06-24): user (a) deployed the feed Edge Function and (b) redeployed the admin app, then confirmed on-device that the recently-added restaurants now appear on the mobile map. The reported symptom is resolved.
+
+BACKFILL COMPLETE — all three remediation steps are done. User ran `pnpm backfill-open-hours` (2026-06-24/25) to populate open_hours for the pre-existing restaurants that were imported with empty/NULL hours (~40 of 80 published at cycle-3 investigation time). Combined with the capture-on-import fix (covers restaurants imported after the admin redeploy) and the deployed feed function, the open_hours gap is closed for both old and new restaurants.
 files_changed:
   - infra/supabase/functions/feed/index.ts
   - apps/admin/src/app/(admin)/imports/actions/places.ts

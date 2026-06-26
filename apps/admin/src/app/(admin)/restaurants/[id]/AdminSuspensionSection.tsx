@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { formatAdminDateTime } from '@/lib/datetime';
 import { suspendRestaurant } from './actions/restaurant';
 
 interface Props {
@@ -72,10 +73,7 @@ export function AdminSuspensionSection({
         <div className="text-sm text-muted-foreground space-y-0.5">
           {suspendedAt && (
             <p>
-              Suspended:{' '}
-              <span className="text-foreground" suppressHydrationWarning>
-                {new Date(suspendedAt).toLocaleString()}
-              </span>
+              Suspended: <span className="text-foreground">{formatAdminDateTime(suspendedAt)}</span>
             </p>
           )}
           {suspendedBy && (

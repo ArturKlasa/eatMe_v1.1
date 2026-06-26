@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { verifyAdminSession } from '@/lib/auth/dal';
 import { getAdminMenuScanJobs, getAdminRestaurantOptions } from '@/lib/auth/dal';
+import { formatAdminDateTimeShort } from '@/lib/datetime';
 import { AdminBatchUploadForm } from './AdminBatchUploadForm';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,16 +21,6 @@ function StatusBadge({ status }: { status: string }) {
       {status}
     </span>
   );
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export default async function MenuScanPage({
@@ -122,7 +113,7 @@ export default async function MenuScanPage({
                 </td>
                 <td className="px-4 py-3 tabular-nums">{job.attempts}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {formatDate(job.created_at)}
+                  {formatAdminDateTimeShort(job.created_at)}
                 </td>
                 <td className="px-4 py-3">
                   <Link

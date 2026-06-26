@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AdminAuditLogRow } from '@/lib/auth/dal';
+import { formatAdminDateTime } from '@/lib/datetime';
 
 interface Filters {
   actor: string;
@@ -140,11 +141,8 @@ export function AuditLogTable({ rows, total, page, filters }: Props) {
           <tbody className="divide-y divide-border">
             {rows.map(row => (
               <tr key={row.id} className="hover:bg-muted/30">
-                <td
-                  className="px-4 py-2 text-muted-foreground text-xs whitespace-nowrap"
-                  suppressHydrationWarning
-                >
-                  {new Date(row.created_at).toLocaleString()}
+                <td className="px-4 py-2 text-muted-foreground text-xs whitespace-nowrap">
+                  {formatAdminDateTime(row.created_at)}
                 </td>
                 <td className="px-4 py-2 text-xs truncate max-w-48">{row.admin_email}</td>
                 <td className="px-4 py-2">

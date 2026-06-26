@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatAdminDateTime } from '@/lib/datetime';
 import { updateAdminRestaurantBasics } from './actions/restaurant';
 
 interface Props {
@@ -156,7 +157,7 @@ export function BasicInfoSection({
         <InfoRow label="Website" value={website} />
         <InfoRow label="Type" value={restaurantType} />
         <InfoRow label="Cuisines" value={cuisineTypes?.join(', ') ?? null} />
-        <InfoRow label="Created" value={createdAt ? new Date(createdAt).toLocaleString() : null} />
+        <InfoRow label="Created" value={formatAdminDateTime(createdAt)} />
       </section>
     );
   }

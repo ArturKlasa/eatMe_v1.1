@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SearchFilterBar } from '@eatme/ui';
 import type { AdminRestaurantRow } from '@/lib/auth/dal';
+import { formatAdminDate } from '@/lib/datetime';
 import { DeleteRestaurantButton } from './DeleteRestaurantButton';
 
 interface Filters {
@@ -157,8 +158,8 @@ export function RestaurantsTable({ rows, total, page, filters }: Props) {
                 <td className="px-4 py-2 text-muted-foreground text-xs truncate max-w-48">
                   {row.owner_email || row.owner_id || '—'}
                 </td>
-                <td className="px-4 py-2 text-muted-foreground text-xs" suppressHydrationWarning>
-                  {row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}
+                <td className="px-4 py-2 text-muted-foreground text-xs">
+                  {formatAdminDate(row.created_at)}
                 </td>
                 <td className="px-4 py-2">
                   <DeleteRestaurantButton restaurantId={row.id} restaurantName={row.name} />

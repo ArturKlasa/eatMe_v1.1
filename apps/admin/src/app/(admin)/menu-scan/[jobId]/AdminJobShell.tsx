@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useReducer, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/browser';
+import { formatAdminDateTime } from '@/lib/datetime';
 import { replayMenuScan, adminUpdateJobStatus } from '../actions/menuScan';
 import type {
   AdminMenuScanJobDetail,
@@ -349,12 +350,7 @@ export function AdminJobShell({
           {job.created_at && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Created</p>
-              {/* SSR uses system locale, client uses browser locale — same Date,
-                  different display. suppressHydrationWarning is the documented
-                  React fix for this. */}
-              <p className="text-xs" suppressHydrationWarning>
-                {new Date(job.created_at).toLocaleString()}
-              </p>
+              <p className="text-xs">{formatAdminDateTime(job.created_at)}</p>
             </div>
           )}
           {job.locked_until && (
@@ -486,7 +482,7 @@ export function AdminJobShell({
               ? `${savedDishIds.length} dish${savedDishIds.length === 1 ? '' : 'es'}`
               : 'Dishes'}{' '}
             saved as drafts
-            {job.saved_at && ` on ${new Date(job.saved_at).toLocaleString()}`}
+            {job.saved_at && ` on ${formatAdminDateTime(job.saved_at)}`}
             {job.restaurant_id && (
               <>
                 {' '}

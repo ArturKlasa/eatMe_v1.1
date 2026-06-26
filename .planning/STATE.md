@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 Phase: 10
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-06-24
+Last activity: 2026-06-26 - Completed quick task 260625-rzx: shared admin timestamp formatting helper
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -128,6 +128,12 @@ None yet.
 - ✓ RESOLVED (Phase 7) — F-21 closed: no `invalidate-cache` dashboard webhook existed in prod (pg_trigger showed only the 3 new `public._trg_invalidate_feed_cache` triggers; no `supabase_functions.http_request` trigger). Migration 176 now owns cache invalidation as tracked `public`-schema triggers on restaurants/menus/dishes for INSERT/UPDATE/DELETE (9-row catalog confirmed, smoke 200). No double-flush. (F-21)
 - ✓ DONE (Phase 3) — atomic RLS enable+policy / codify: migration 170 self-cleaning sweep → canonical set in one BEGIN/COMMIT, operator-validated (no duplication).
 - High-blast-radius guards still to enforce in later phases: `pg_depend` pre-flight + RESTRICT drops + snapshot (Phase 6); byte-identical filterStore serialization shape (Phase 8).
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260625-rzx | Shared admin timestamp formatting helper (Mexico City timezone) | 2026-06-26 | 427970b | [260625-rzx-create-a-shared-admin-timestamp-formatti](./quick/260625-rzx-create-a-shared-admin-timestamp-formatti/) |
 
 ## Deferred Items
 

@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 Phase: 10
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-06-26 - Completed quick task 260625-rzx: shared admin timestamp formatting helper
+Last activity: 2026-06-27 - Completed quick task 260627-cfb: removed invalidate-cache subsystem (feed cache now TTL-only)
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -134,6 +134,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260625-rzx | Shared admin timestamp formatting helper (Mexico City timezone) | 2026-06-26 | 427970b | [260625-rzx-create-a-shared-admin-timestamp-formatti](./quick/260625-rzx-create-a-shared-admin-timestamp-formatti/) |
+| 260627-cfb | Remove invalidate-cache subsystem; feed cache goes TTL-only | 2026-06-27 | 4e4a86f | [260627-cfb-remove-invalidate-cache-subsystem-feed-c](./quick/260627-cfb-remove-invalidate-cache-subsystem-feed-c/) |
 
 ## Deferred Items
 

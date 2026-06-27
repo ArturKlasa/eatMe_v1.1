@@ -74,14 +74,14 @@ The Edge Function uses these environment variables (auto-configured by Supabase)
 
 ## CORS Configuration
 
-CORS for `feed`, `enrich-dish`, and `invalidate-cache` is **allowlist-reflecting, not wildcard** (SEC-01). `Access-Control-Allow-Origin` is set **only** when the request `Origin` exactly matches an entry in the `ALLOWED_ORIGINS` env var; for any other (or absent) origin the header is omitted entirely — it never falls back to `*`.
+CORS for `feed` and `enrich-dish` is **allowlist-reflecting, not wildcard** (SEC-01). `Access-Control-Allow-Origin` is set **only** when the request `Origin` exactly matches an entry in the `ALLOWED_ORIGINS` env var; for any other (or absent) origin the header is omitted entirely — it never falls back to `*`.
 
 - **Allowlist (`ALLOWED_ORIGINS`)** — a comma-separated list configured as a Supabase **function secret** (operator-managed, no code edit). Initial value:
   `https://eat-me-v1-1-admin.vercel.app,http://localhost:3001`
   Set it via the Supabase Dashboard (Edge Functions → Secrets) or `supabase secrets set ALLOWED_ORIGINS="..."`.
 - **Fail-closed** — if `ALLOWED_ORIGINS` is unset, **no** browser origin receives `Access-Control-Allow-Origin` (it never falls back to `*`). Requests with **no** `Origin` header (native mobile / curl) still succeed normally — auth is enforced by JWT, not CORS.
 - **Always emitted** — `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`, `Access-Control-Allow-Methods`, and `Vary: Origin` are present on every response (preflight and main alike).
-- **Shared module** — the logic lives in `_shared/cors.ts` (`buildCorsHeaders(origin)`). **IMPORTANT:** Supabase bundles `_shared/` into each importing function at deploy time, so a change to `cors.ts` does **not** propagate to already-deployed functions. After editing `_shared/cors.ts` you must **redeploy ALL THREE importing functions** (`feed`, `enrich-dish`, `invalidate-cache`).
+- **Shared module** — the logic lives in `_shared/cors.ts` (`buildCorsHeaders(origin)`). **IMPORTANT:** Supabase bundles `_shared/` into each importing function at deploy time, so a change to `cors.ts` does **not** propagate to already-deployed functions. After editing `_shared/cors.ts` you must **redeploy BOTH importing functions** (`feed`, `enrich-dish`).
 
 ## Monitoring
 

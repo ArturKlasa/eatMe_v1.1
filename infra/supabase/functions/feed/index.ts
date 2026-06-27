@@ -737,7 +737,8 @@ Deno.serve(async (req: Request) => {
     // zoom-out at the same rounded coords yields a different pool), mode selects
     // dishes/restaurants/combined, and limit bounds the page size. They MUST be in the
     // key or different-radius/mode/limit requests collide for the full TTL. The
-    // `feed:v2:` prefix is preserved so invalidate-cache's `feed:v2:*` flush still matches.
+    // `feed:v2:` prefix namespaces these entries; they now expire purely by the
+    // 300s TTL — the invalidate-cache buster was removed (feed is a TTL-only cache).
     const { currentTime: _ignoredInCacheKey, ...cacheFilters } = filters ?? {};
     const cacheKey = `feed:v2:${userId ?? 'anon'}:${location.lat.toFixed(3)}:${location.lng.toFixed(3)}:r${radius}:m${mode}:l${limit}:${JSON.stringify(cacheFilters)}`;
     const redis = getRedis();

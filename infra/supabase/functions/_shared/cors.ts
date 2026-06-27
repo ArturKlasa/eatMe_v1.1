@@ -1,7 +1,7 @@
 // infra/supabase/functions/_shared/cors.ts
 //
 // The single DRY source of CORS headers for the SEC-01 edge functions
-// (feed, enrich-dish, invalidate-cache). buildCorsHeaders(origin) reads the
+// (feed, enrich-dish). buildCorsHeaders(origin) reads the
 // runtime ALLOWED_ORIGINS env var (D-01), reflects an EXACT-matched admin
 // origin into Access-Control-Allow-Origin (D-03/D-08), and omits ACAO entirely
 // for a no-Origin (D-09), disallowed (D-08), or unset-env (D-10 fail-closed)

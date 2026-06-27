@@ -605,12 +605,30 @@ async function extractOneImageWithFallback(
   }
 }
 
+// Whole-string "no value" placeholders the model sometimes emits as a literal
+// description (compacted form: lowercased, all non-alphanumerics removed). The
+// punctuation-only case ("." / ":" / "-- ::") is caught by the letter/digit
+// guard in normalizeText; these are the WORD forms ("null", "N/A", "none", …)
+// that slip past it because they contain letters. Matched against the WHOLE
+// compacted string, so a real word that merely contains one as a substring
+// ("naan", "nilgai") is never nulled.
+const PLACEHOLDER_TEXTS = new Set([
+  'null',
+  'na',
+  'none',
+  'undefined',
+  'nil',
+  'tbd',
+  'nodescription',
+  'sindescripcion',
+]);
+
 // Normalize an AI-emitted free-text field: trim, drop a leading stray
-// punctuation token, and collapse to null any string that contains no letter
-// or digit. The model keeps shifting its placeholder for "no value" (".",
-// then ":") as the prompt forbids each one, so the no-value check must be
-// generic — anything without real content is a placeholder — rather than a
-// list of known placeholder characters.
+// punctuation token, and collapse to null any string with no real content —
+// either no letter/digit at all (".", ":", "-- ::") or a whole-string
+// placeholder word (PLACEHOLDER_TEXTS). The model keeps shifting its "no value"
+// marker as the prompt forbids each one, so the check stays generic rather than
+// trusting prompt wording.
 function normalizeText(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   if (!/[\p{L}\p{N}]/u.test(raw)) return null;
@@ -618,7 +636,9 @@ function normalizeText(raw: string | null | undefined): string | null {
     .trim()
     .replace(/^[.,:;\-–—·•]+\s*/, '')
     .trim();
-  return s === '' ? null : s;
+  if (s === '') return null;
+  if (PLACEHOLDER_TEXTS.has(s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))) return null;
+  return s;
 }
 
 // Normalized key for comparing printed section headers: trim, lowercase, strip
@@ -716,13 +736,16 @@ function stripTrailingPortionToken(text: string, tok: string): string | null {
     .trim();
 }
 
-// Same trailing strip for the description. Unlike a name, a description may
-// legitimately become empty once the size is removed (the model copied "250g"
-// as the entire description) — that collapses to null. A size sitting
-// mid-sentence ("250g de arrachera con…") is NOT touched: removing it would
-// break the sentence. runExtraction instead drops the structured portion
-// fields whenever the size text stays visible, so the UI's portion chip can
-// never show a size the customer already reads in the text.
+// Global size strip for the description. Unlike a name — which is identity-
+// bearing, so its strip stays trailing-only — a description is free text we can
+// safely clean anywhere: remove EVERY occurrence of the verbatim
+// portion_source_text, INCLUDING mid-sentence, so the structured portion can be
+// KEPT and shown in the UI's portion box rather than abandoned in the text.
+// This reverses the 2026-06-09 "text wins, drop the box" tradeoff in favor of
+// "box wins"; the cost is an occasionally terse description ("250g de
+// arrachera" → "de arrachera"). A description that was ONLY the size collapses
+// to null. After this clean the token no longer appears in the description, so
+// portionStillVisible() in runExtraction effectively guards the NAME alone.
 function stripPortionFromDescription(
   description: string | null,
   sourceText: string | null | undefined
@@ -730,14 +753,25 @@ function stripPortionFromDescription(
   if (description == null) return null;
   const tok = sourceText?.trim();
   if (!tok) return description;
-  const stripped = stripTrailingPortionToken(description, tok);
-  if (stripped == null) return description;
-  return stripped.length > 0 ? stripped : null;
+  const core = escapeRegExp(tok).replace(/\s+/g, '\\s*');
+  // Every occurrence: optional leading separator + optional ()/[] wrap.
+  const re = new RegExp(`[\\s,;·•\\-–—]*[(\\[]?\\s*${core}\\s*[)\\]]?`, 'gi');
+  const cleaned = description
+    .replace(re, ' ')
+    .replace(/[(\[]\s*[)\]]/g, ' ') // tidy now-empty bracket pairs
+    .replace(/\s{2,}/g, ' ') // collapse doubled spaces
+    .replace(/\s+([.,;:])/g, '$1') // tidy space-before-punctuation
+    .replace(/^[\s,;:·•\-–—]+/, '') // strip leading separators/space
+    .replace(/[\s,;·•\-–—]+$/, '') // strip trailing separators/space
+    .trim();
+  return cleaned.length > 0 ? cleaned : null;
 }
 
 // True when the portion token still appears in the name or description after
-// the trailing strips — i.e. it sits mid-text where stripping would mangle the
-// sentence.
+// the strips. Since stripPortionFromDescription now removes the token globally,
+// in practice this only fires for a size stuck mid-NAME (the name strip is
+// trailing-only to protect identity names) — that's the one case where the
+// structured portion is dropped rather than shown in the box.
 function portionStillVisible(
   sourceText: string | null | undefined,
   name: string,
@@ -800,10 +834,13 @@ async function runExtraction(
           normalizeText(d.description),
           d.portion_source_text
         );
-        // The portion chip renders only when the size text was actually removed
-        // from view. If it survives mid-sentence after the trailing strips, drop
-        // the structured portion so the size never shows twice (operator-reported
-        // doubling, 2026-06-09).
+        // The description is now globally cleaned of the size (above), so the
+        // portion box is KEPT whenever the size only appeared in the description
+        // (operator issue #5 — grams belong in the box, not the text). The box
+        // is dropped only when the size is stuck mid-NAME, where the trailing-
+        // only name strip can't remove it without risking an identity name; in
+        // that case the size stays visible in the name and must not also show in
+        // the box (operator-reported doubling, 2026-06-09).
         const visible = portionStillVisible(d.portion_source_text, name, description);
         dishes.push({
           ...d,

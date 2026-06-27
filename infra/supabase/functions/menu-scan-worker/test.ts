@@ -963,6 +963,54 @@ Deno.test('normalize: leading stray punctuation is stripped from description', a
   assertEquals(captured.description, 'Creamy roasted tomato');
 });
 
+Deno.test('normalize: literal "null" word description collapses to null (#3)', async () => {
+  // The model sometimes emits a literal placeholder WORD ("null") rather than a
+  // punctuation mark — the letter/digit guard alone wouldn't catch it.
+  const dish = makeFixtureDish({
+    name: 'Margherita Pizza',
+    price: 13.0,
+    dish_kind: 'standard',
+    description: 'null',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, null);
+});
+
+Deno.test('normalize: "N/A" description collapses to null (#3)', async () => {
+  const dish = makeFixtureDish({
+    name: 'Garden Salad',
+    price: 9.0,
+    dish_kind: 'standard',
+    description: 'N/A',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, null);
+});
+
+Deno.test('normalize: "none" description collapses to null (#3)', async () => {
+  const dish = makeFixtureDish({
+    name: 'Sparkling Water',
+    price: 3.0,
+    dish_kind: 'standard',
+    description: 'none',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, null);
+});
+
+Deno.test('normalize: a real word containing a placeholder substring survives (#3)', async () => {
+  // "naan" contains "na" but is a real description — the placeholder check is
+  // whole-string only, so it must NOT be nulled.
+  const dish = makeFixtureDish({
+    name: 'Butter Chicken',
+    price: 16.0,
+    dish_kind: 'standard',
+    description: 'Served with naan',
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.description, 'Served with naan');
+});
+
 Deno.test('portion strip: trailing base-unit size removed via verbatim source text', async () => {
   const dish = makeFixtureDish({
     name: 'Ribeye Steak 250g',
@@ -1057,10 +1105,12 @@ Deno.test('portion strip: description that is only the size collapses to null', 
   assertEquals(captured.portion_amount, 1500);
 });
 
-Deno.test('portion strip: mid-sentence size keeps text, drops portion fields', async () => {
-  // "250g de arrachera con…" can't be stripped without mangling the sentence,
-  // so the text wins and the structured portion is dropped — the chip must
-  // never duplicate a size the customer already reads in the description.
+Deno.test('portion strip: mid-sentence size removed from description, box kept (#5)', async () => {
+  // Operator issue #5: a size sitting mid-description ("250g de arrachera con…")
+  // used to keep the text and DROP the box, leaving grams in the description.
+  // Now the size is stripped from the description globally and the structured
+  // portion is KEPT so it renders in the portion box. The terse leading "de…"
+  // is the accepted cost of "box wins" (reverses the 2026-06-09 tradeoff).
   const dish = makeFixtureDish({
     name: 'Tacos de Arrachera',
     price: 28.0,
@@ -1071,10 +1121,10 @@ Deno.test('portion strip: mid-sentence size keeps text, drops portion fields', a
     portion_source_text: '250g',
   });
   const captured = await runFixture(dish);
-  assertEquals(captured.description, '250g de arrachera con guarnición');
-  assertEquals(captured.portion_amount, null);
-  assertEquals(captured.portion_unit, null);
-  assertEquals(captured.portion_source_text, null);
+  assertEquals(captured.description, 'de arrachera con guarnición');
+  assertEquals(captured.portion_amount, 250);
+  assertEquals(captured.portion_unit, 'g');
+  assertEquals(captured.portion_source_text, '250g');
 });
 
 Deno.test('portion strip: mid-NAME size keeps text, drops portion fields', async () => {

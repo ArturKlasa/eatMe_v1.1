@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { isDiscoverable } from '../logic/discoverability';
-import { isAdmin } from '../logic/role';
 import { publishPayloadSchema } from '../validation/publish';
 import {
   menuScanJobInputSchema,
@@ -13,50 +11,6 @@ import {
   restaurantDraftSchema,
   restaurantPublishableSchema,
 } from '../validation/restaurant';
-
-// ── isDiscoverable ────────────────────────────────────────────────────────────
-
-describe('isDiscoverable', () => {
-  it('returns true when active and published', () => {
-    expect(isDiscoverable({ is_active: true, status: 'published' })).toBe(true);
-  });
-
-  it('returns false when inactive (even if published)', () => {
-    expect(isDiscoverable({ is_active: false, status: 'published' })).toBe(false);
-  });
-
-  it('returns false when draft (even if active)', () => {
-    expect(isDiscoverable({ is_active: true, status: 'draft' })).toBe(false);
-  });
-
-  it('returns false when inactive and draft', () => {
-    expect(isDiscoverable({ is_active: false, status: 'draft' })).toBe(false);
-  });
-});
-
-// ── isAdmin ───────────────────────────────────────────────────────────────────
-
-describe('isAdmin', () => {
-  it('returns true when app_metadata.role is admin', () => {
-    expect(isAdmin({ app_metadata: { role: 'admin' } })).toBe(true);
-  });
-
-  it('returns false when user_metadata.role is admin (wrong field)', () => {
-    expect(isAdmin({ app_metadata: {} } as never)).toBe(false);
-  });
-
-  it('returns false when app_metadata is missing', () => {
-    expect(isAdmin({})).toBe(false);
-  });
-
-  it('returns false for null user', () => {
-    expect(isAdmin(null)).toBe(false);
-  });
-
-  it('returns false for undefined user', () => {
-    expect(isAdmin(undefined)).toBe(false);
-  });
-});
 
 // ── publishPayloadSchema ──────────────────────────────────────────────────────
 

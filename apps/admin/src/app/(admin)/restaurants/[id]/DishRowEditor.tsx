@@ -6,6 +6,7 @@ import {
   PRIMARY_PROTEINS,
   DINING_FORMATS,
   DINING_FORMAT_META,
+  deriveSizeFromPrice,
   formatPrice,
   getCurrencyInfo,
   isSupportedCurrency,
@@ -131,6 +132,11 @@ export function DishRowEditor({
   const [draftGroups, setDraftGroups] = useState<EditableModifierGroup[]>(() =>
     toEditableGroups(dish.modifier_groups)
   );
+
+  // Existing size-priced dishes (operator issue #4) have no standalone price —
+  // the sizes carry it. Derive the cheapest as a "from" price so the row cell
+  // shows "from $X" instead of "—". null for normal dishes (keeps the cell).
+  const sizeFromPrice = deriveSizeFromPrice(dish.price, dish.modifier_groups);
 
   function handleDelete() {
     setServerError('');
@@ -262,7 +268,9 @@ export function DishRowEditor({
             }
           >
             {isSuspiciouslyHighPrice(dish.price, currencyCode) && '⚠ '}
-            {formatPriceCell(dish.price, currencyCode)}
+            {sizeFromPrice != null
+              ? `from ${formatPriceCell(sizeFromPrice, currencyCode)}`
+              : formatPriceCell(dish.price, currencyCode)}
           </span>
           <span
             className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${statusBadgeClass(dish.status)}`}

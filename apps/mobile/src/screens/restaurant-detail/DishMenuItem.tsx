@@ -10,7 +10,12 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { restaurantDetailStyles as styles } from '@/styles';
 import { useTranslation } from 'react-i18next';
-import { formatPrice, isSupportedCurrency, type SupportedCurrency } from '@eatme/shared';
+import {
+  deriveSizeFromPrice,
+  formatPrice,
+  isSupportedCurrency,
+  type SupportedCurrency,
+} from '@eatme/shared';
 import { DishRatingBadge } from '../../components/DishRatingBadge';
 import { type DishRating } from '../../services/dishRatingService';
 import { type DishOpinion } from '../../types/rating';
@@ -50,9 +55,15 @@ export const DishMenuItem = React.memo(function DishMenuItem({
   const currency: SupportedCurrency | undefined = isSupportedCurrency(currencyCode)
     ? currencyCode
     : undefined;
-  const formattedPrice = formatPrice(item.price, currency);
+  // Existing live dishes whose price lives entirely in a size group arrive with
+  // price=null + the sizes as a modifier group (operator issue #4). New scans
+  // are fixed at the data layer (price + display_price_prefix='from'); for older
+  // data we derive the cheapest size here so the card reads "from $X" instead of
+  // a bare "—"/"$0". Returns null for normal dishes, which keeps the usual path.
+  const sizeFromPrice = deriveSizeFromPrice(item.price, item.option_groups);
+  const formattedPrice = formatPrice(sizeFromPrice ?? item.price, currency);
 
-  const pricePrefix = item.display_price_prefix;
+  const pricePrefix = sizeFromPrice != null ? 'from' : item.display_price_prefix;
   let priceLabel: string;
   switch (pricePrefix) {
     case 'from':

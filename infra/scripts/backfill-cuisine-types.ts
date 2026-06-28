@@ -33,6 +33,7 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import { parseGuard, announceTarget } from './lib/prod-guard';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -153,10 +154,6 @@ interface RestaurantRow {
 
 function arraysEqual(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function main(): Promise<void> {

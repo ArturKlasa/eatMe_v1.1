@@ -38,6 +38,7 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import { parseGuard, announceTarget } from './lib/prod-guard';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -77,10 +78,6 @@ interface EnrichResult {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 interface EnrichApiResponse {
   dish_id?: string;

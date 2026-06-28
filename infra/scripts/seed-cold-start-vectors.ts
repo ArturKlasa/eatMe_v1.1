@@ -42,6 +42,7 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import { parseGuard, announceTarget } from './lib/prod-guard';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -63,8 +64,6 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ── Vector helpers (mirror of update-preference-vector) ─────────────────────────
 

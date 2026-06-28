@@ -18,21 +18,7 @@ import {
 import { useSettingsStore } from '../stores/settingsStore';
 import { getCurrencyInfo, formatPrice } from '../utils/currencyConfig';
 import { commonStyles, theme, filterComponentsStyles } from '@/styles';
-
-const toLocaleKey = (str: string): string => {
-  const normalized = str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/&/g, 'And');
-  const words = normalized.trim().split(/\s+/);
-  return (
-    words[0].toLowerCase() +
-    words
-      .slice(1)
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join('')
-  );
-};
+import { toLocaleKey } from '@/utils/localeKey';
 
 // Available cuisine types - synced with web portal
 const CUISINE_TYPES = [

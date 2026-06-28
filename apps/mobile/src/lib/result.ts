@@ -35,18 +35,3 @@ export function ok<T>(data: T): Ok<T> {
 export function err(error: string | Error): Err {
   return { ok: false, error: typeof error === 'string' ? error : error.message };
 }
-
-/**
- * Convert a legacy `{ data, error }` Supabase response shape to Result<T>.
- *
- * Useful as a migration helper when wrapping existing service calls.
- *
- * @example
- * const { data, error } = await supabase.from('...').select('*').single();
- * return fromSupabase(data, error);
- */
-export function fromSupabase<T>(data: T | null, error: { message: string } | null): Result<T> {
-  if (error) return err(error.message);
-  if (data === null) return err('No data returned');
-  return ok(data);
-}

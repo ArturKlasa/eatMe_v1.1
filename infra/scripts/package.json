@@ -13,6 +13,7 @@
     "diagnose-empty-cuisine": "ts-node diagnose-empty-cuisine.ts",
     "replay-ab": "ts-node replay-menu-scan-ab.ts",
     "diagnose-scan-trend": "ts-node diagnose-scan-quality-trend.ts",
+    "estimate-scan-hours": "ts-node estimate-scan-hours.ts",
     "test:guard": "node --test --require ts-node/register lib/prod-guard.test.ts"
   },
   "dependencies": {

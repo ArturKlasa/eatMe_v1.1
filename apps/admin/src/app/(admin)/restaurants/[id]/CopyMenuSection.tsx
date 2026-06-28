@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   adminCopyRestaurantMenu,
   searchCopySourceRestaurants,
+  suggestCopySourceRestaurants,
   type CopyMenuCounts,
   type CopySourceCandidate,
 } from './actions/copyMenu';
@@ -27,7 +28,22 @@ export function CopyMenuSection({ restaurantId, restaurantName }: Props) {
   const [copying, setCopying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CopyMenuCounts | null>(null);
+  const [suggestions, setSuggestions] = useState<CopySourceCandidate[]>([]);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const searchSeq = useRef(0);
+  const suggestFetched = useRef(false);
+
+  // Proactive branch suggestions (operator issue #1): on mount, rank likely
+  // sucursales by name similarity so the operator gets one-tap copy instead of
+  // a blind search. Ref guard survives React StrictMode's double-invoke.
+  // Suggestions are non-critical — on error we just render nothing.
+  useEffect(() => {
+    if (suggestFetched.current) return;
+    suggestFetched.current = true;
+    void suggestCopySourceRestaurants(restaurantId).then(res => {
+      setSuggestions(res.ok ? res.data : []);
+    });
+  }, [restaurantId]);
 
   // Debounced name search; sequence counter drops stale responses.
   useEffect(() => {
@@ -93,6 +109,42 @@ export function CopyMenuSection({ restaurantId, restaurantName }: Props) {
 
       {selected === null ? (
         <>
+          {suggestions.length > 0 && !suggestionsDismissed && (
+            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-medium text-foreground">
+                  Looks like a branch? Copy the menu from a similarly-named restaurant:
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSuggestionsDismissed(true)}
+                  className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                  aria-label="Dismiss branch suggestions"
+                >
+                  Dismiss
+                </button>
+              </div>
+              <ul className="divide-y divide-border rounded border border-border bg-background">
+                {suggestions.map(s => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(s)}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span>
+                        {s.name}
+                        {s.city ? <span className="text-muted-foreground"> · {s.city}</span> : null}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {s.dish_count} dish{s.dish_count === 1 ? '' : 'es'} · {s.status}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <input
             type="text"
             value={query}

@@ -139,6 +139,7 @@ None yet.
 | 260627-s5x | Sized-dish pricing (#4): scan backstop → final prices + 'from' base; mobile/admin display fallback for existing dishes | 2026-06-27 | cd9feee | [260627-s5x-fix-4-sized-dish-pricing-scan-backstop-r](./quick/260627-s5x-fix-4-sized-dish-pricing-scan-backstop-r/) |
 | 260627-ud6 | Proactive branch copy-menu suggestion (#1): trigram-ranked sucursales in the empty-menu section; one-tap copy, dismissible | 2026-06-27 | 9da6190 | [260627-ud6-branch-copy-menu-suggestion](./quick/260627-ud6-branch-copy-menu-suggestion/) |
 | 260628-dvt | Delete dead code (5 findings): token CSS generator, getWebClient, shared isAdmin + isDiscoverable, fromSupabase — all grep-verified dead, no behavior change | 2026-06-28 | 3d015d5 | [260628-dvt-delete-dead-code-token-css-generator-get](./quick/260628-dvt-delete-dead-code-token-css-generator-get/) |
+| fast | Working-tree housekeeping: commit estimate-scan-hours tool (A), remove completed phase6 migration scripts (B), gitignore supabase CLI .temp scratch (C) | 2026-06-28 | 8c97b2c | — (gsd-fast, 3 commits 2402b8c..8c97b2c) |
 
 ## Deferred Items
 

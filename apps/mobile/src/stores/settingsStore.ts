@@ -35,7 +35,6 @@ interface UserSettings {
   autoSaveFilters: boolean;
 
   // Privacy
-  analyticsEnabled: boolean;
   locationServices: boolean;
 }
 
@@ -58,9 +57,7 @@ interface SettingsStore extends UserSettings {
   updatePreferences: (
     settings: Partial<Pick<UserSettings, 'hapticFeedback' | 'autoSaveFilters'>>
   ) => void;
-  updatePrivacy: (
-    settings: Partial<Pick<UserSettings, 'analyticsEnabled' | 'locationServices'>>
-  ) => void;
+  updatePrivacy: (settings: Partial<Pick<UserSettings, 'locationServices'>>) => void;
   resetToDefaults: () => void;
   loadFromStorage: () => Promise<void>;
 }
@@ -82,7 +79,6 @@ const defaultSettings: UserSettings = {
   autoSaveFilters: true,
 
   // Privacy
-  analyticsEnabled: true,
   locationServices: true,
 };
 
@@ -148,7 +144,6 @@ export const useSettingsStore = create<SettingsStore>()(
         ratingReminders: state.ratingReminders,
         hapticFeedback: state.hapticFeedback,
         autoSaveFilters: state.autoSaveFilters,
-        analyticsEnabled: state.analyticsEnabled,
         locationServices: state.locationServices,
       }),
     }

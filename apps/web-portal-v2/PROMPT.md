@@ -3,9 +3,9 @@
 ## Goal
 
 Execute the 28-step implementation plan at
-`.agents/planning/2026-04-23-web-portal-v2/implementation/plan.md`
+`apps/web-portal-v2/planning/implementation/plan.md`
 to ship the v2 rebuild described in
-`.agents/planning/2026-04-23-web-portal-v2/design/detailed-design.md`.
+`apps/web-portal-v2/planning/design/detailed-design.md`.
 
 The build is two new Next.js 16 apps (owner at `apps/web-portal-v2/`, admin
 at `apps/admin/`) plus additive Supabase schema changes, Edge Function

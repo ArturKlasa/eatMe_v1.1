@@ -30,8 +30,19 @@ tsc gate needs `node_modules`, so no worktree per project convention).
 - `infra/scripts`: `npx tsc --noEmit` → clean (item 2).
 - Residual-reference greps after each deletion → clean.
 
-## Known leftovers (out of scope, not chased)
-- `docs/todos/swipe-feature-inventory.md` and `swipe-removal-plan.md` reference the now-deleted
-  `README_eatme.md`, `INTEGRATION_COMPLETE_SUMMARY.md`, and `.ppd-docs/*` as historical sources.
-  Prose pointers in a todo/inventory doc, not code links — left as-is.
-- `.gitignore` still has the `.ralph/` ignore entry (harmless; left as hygiene).
+## Follow-up cleanup (post-review, committed 0c009bb..75eece8)
+- **Swipe todo docs** (0c009bb): dropped the `README_eatme.md` / `INTEGRATION_COMPLETE_SUMMARY.md`
+  / `.ppd-docs/*` rows from `swipe-feature-inventory.md`; updated `swipe-removal-plan.md`.
+- **v2 revival kit restored** (ac8c274): item 7 had over-deleted `.agents/planning/
+  2026-04-23-web-portal-v2/` — the implementation plan + design + research that `PROMPT.md`
+  depends on (v2 is on ice, not abandoned). Recovered from git into `apps/web-portal-v2/planning/`,
+  repointed `PROMPT.md`/`summary.md`.
+- **Dead script deleted** (75eece8): `scripts/load-ingredient-seed.mjs` — retired pipeline,
+  deleted seed + deleted env file, no callers.
+
+## Known leftovers (deliberate, not chased)
+- `.gitignore` keeps its `.ralph/` ignore entry (harmless hygiene).
+- Restored v2 research docs cite other `.agents/planning/` cycles (2026-04-06..22) that stay
+  deleted — historical provenance; the consolidation doc preserves their findings.
+- Applied migrations 089/094 have comments citing deleted `.agents/research/` docs — immutable
+  applied migrations, left untouched.

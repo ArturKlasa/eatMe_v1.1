@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 Phase: 10
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-06-27 - Completed quick task 260627-s5x: sized-dish pricing #4 (scan backstop → final prices + 'from' base; mobile/admin display fallback)
+Last activity: 2026-06-27 - Completed quick task 260627-ud6: proactive branch copy-menu suggestion #1 (trigram-ranked sucursales in empty-menu section); closes all 5 original operator issues
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -137,6 +137,7 @@ None yet.
 | 260627-cfb | Remove invalidate-cache subsystem; feed cache goes TTL-only | 2026-06-27 | 4e4a86f | [260627-cfb-remove-invalidate-cache-subsystem-feed-c](./quick/260627-cfb-remove-invalidate-cache-subsystem-feed-c/) |
 | 260627-fpk | Menu-scan worker: drop placeholder-word descriptions (#3) + keep portion box when size is mid-description (#5) | 2026-06-27 | 0957a2a | [260627-fpk-fix-menu-scan-worker-text-cleanup-placeh](./quick/260627-fpk-fix-menu-scan-worker-text-cleanup-placeh/) |
 | 260627-s5x | Sized-dish pricing (#4): scan backstop → final prices + 'from' base; mobile/admin display fallback for existing dishes | 2026-06-27 | cd9feee | [260627-s5x-fix-4-sized-dish-pricing-scan-backstop-r](./quick/260627-s5x-fix-4-sized-dish-pricing-scan-backstop-r/) |
+| 260627-ud6 | Proactive branch copy-menu suggestion (#1): trigram-ranked sucursales in the empty-menu section; one-tap copy, dismissible | 2026-06-27 | 9da6190 | [260627-ud6-branch-copy-menu-suggestion](./quick/260627-ud6-branch-copy-menu-suggestion/) |
 
 ## Deferred Items
 

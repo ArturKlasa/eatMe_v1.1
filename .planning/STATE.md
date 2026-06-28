@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 Phase: 10
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-06-28 - Completed quick task 260628-dvt: deleted dead code (token CSS generator, getWebClient, shared isAdmin + isDiscoverable, fromSupabase)
+Last activity: 2026-06-28 - Completed quick task 260628-fsx: over-engineering cleanup (7 verified ponytail-audit items — orphan manifest, stdlib sleep, dead setting, shared util, dead barrels, stale docs, retired ralph scaffolding)
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -140,6 +140,7 @@ None yet.
 | 260627-ud6 | Proactive branch copy-menu suggestion (#1): trigram-ranked sucursales in the empty-menu section; one-tap copy, dismissible | 2026-06-27 | 9da6190 | [260627-ud6-branch-copy-menu-suggestion](./quick/260627-ud6-branch-copy-menu-suggestion/) |
 | 260628-dvt | Delete dead code (5 findings): token CSS generator, getWebClient, shared isAdmin + isDiscoverable, fromSupabase — all grep-verified dead, no behavior change | 2026-06-28 | 3d015d5 | [260628-dvt-delete-dead-code-token-css-generator-get](./quick/260628-dvt-delete-dead-code-token-css-generator-get/) |
 | fast | Working-tree housekeeping: commit estimate-scan-hours tool (A), remove completed phase6 migration scripts (B), gitignore supabase CLI .temp scratch (C) | 2026-06-28 | 8c97b2c | — (gsd-fast, 3 commits 2402b8c..8c97b2c) |
+| 260628-fsx | Over-engineering cleanup (verified ponytail-audit, 7 items): orphan docs/package.json, stdlib sleep ×6, dead analyticsEnabled, shared toLocaleKey util, 5 dead component barrels, stale root docs + v2 PROMPT relocate, retired ralph scaffolding | 2026-06-28 | 89d5620..e952e3c | [260628-fsx-over-engineering-cleanup](./quick/260628-fsx-over-engineering-cleanup/) |
 
 ## Deferred Items
 

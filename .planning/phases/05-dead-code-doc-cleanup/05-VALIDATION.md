@@ -39,11 +39,11 @@ created: 2026-06-20
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 05-01-* | 01 | 1 | CLEAN-01 | — | N/A (UI deletion) | static | `cd apps/mobile && pnpm check-types` | ✅ | ⬜ pending |
-| 05-01-* | 01 | 1 | CLEAN-01 | — | No residual symbols | grep | `grep -rn "viewModeStore\|ViewModeToggle\|RestaurantMarkers\|viewModeToggle" apps/mobile/src` → only REFACTORING_SUMMARY.md | ✅ | ⬜ pending |
-| 05-02-* | 02 | 1 | CLEAN-02 | — | N/A (doc text) | grep | `grep -rn "from ['\"].*apps/web-portal" apps packages infra \| grep -v web-portal-v2` → empty | ✅ | ⬜ pending |
-| 05-03-* | 03 | 1 | CLEAN-03 | — | N/A (comment-only) | static | `deno check infra/supabase/functions/enrich-dish/index.ts` | ✅ | ⬜ pending |
-| 05-03-* | 03 | 1 | CLEAN-03 | — | Header matches reality | grep | header lines 8–21 contain no `ingredient`/`parent`; retain `option_group` + `_trg_after_dish_embedded` | ✅ | ⬜ pending |
+| 05-01-* | 01 | 1 | CLEAN-01 | — | N/A (UI deletion) | static | `cd apps/mobile && pnpm check-types` | ✅ | ✅ |
+| 05-01-* | 01 | 1 | CLEAN-01 | — | No residual symbols | grep | `grep -rn "viewModeStore\|ViewModeToggle\|RestaurantMarkers\|viewModeToggle" apps/mobile/src` → only REFACTORING_SUMMARY.md | ✅ | ✅ |
+| 05-02-* | 02 | 1 | CLEAN-02 | — | N/A (doc text) | grep | `grep -rn "from ['\"].*apps/web-portal" apps packages infra \| grep -v web-portal-v2` → empty | ✅ | ✅ |
+| 05-03-* | 03 | 1 | CLEAN-03 | — | N/A (comment-only) | static | `deno check infra/supabase/functions/enrich-dish/index.ts` | ✅ | ✅ |
+| 05-03-* | 03 | 1 | CLEAN-03 | — | Header matches reality | grep | header lines 8–21 contain no `ingredient`/`parent`; retain `option_group` + `_trg_after_dish_embedded` | ✅ | ✅ |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

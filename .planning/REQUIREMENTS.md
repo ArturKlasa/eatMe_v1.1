@@ -21,7 +21,7 @@ Each finding is assessed (validated against current code + live DB) before being
 
 ### Cleanup & Dead Code
 
-- [x] **CLEAN-01**: Dead map restaurant-view-mode code is removed (`viewModeStore`, `ViewModeToggle`, the `BasicMapScreen` branch) — on-device UI confirmation pending (`05-HUMAN-UAT.md`)
+- [x] **CLEAN-01**: Dead map restaurant-view-mode code is removed (`viewModeStore`, `ViewModeToggle`, the `BasicMapScreen` branch) — on-device UI confirmed 2026-06-28 (`05-HUMAN-UAT.md`)
 - [x] **CLEAN-02**: The `apps/web-portal` deletion is verified clean (workspace/build) and residual doc references are removed (`CLAUDE.md`, `agent_docs/architecture.md`, `.github/copilot-instructions.md`, `INTEGRATION_COMPLETE_SUMMARY.md`)
 - [x] **CLEAN-03**: `enrich-dish` header comments are corrected to drop ingredient/parent-dish references
 
@@ -109,4 +109,4 @@ Each requirement maps to exactly one phase. See ROADMAP.md for phase details.
 
 ---
 *Requirements defined: 2026-06-18*
-*Last updated: 2026-06-20 — Phase 5 complete: CLEAN-01/02/03 Complete. CLEAN-01 removed the map restaurant-view-mode dead code (3 files deleted, 6 pruned; mobile tsc green, zero residue) — on-device UI confirmation pending (`05-HUMAN-UAT.md`). CLEAN-02 purged residual `apps/web-portal` refs from 7 agent docs (zero live imports; web-portal-v2 + provenance preserved; CLAUDE.md DishKind line deferred to Phase 6). CLEAN-03 corrected the `enrich-dish` header (deno check green). No renumber; 21 requirements / 10 phases intact.*
+*Last updated: 2026-06-20 — Phase 5 complete: CLEAN-01/02/03 Complete. CLEAN-01 removed the map restaurant-view-mode dead code (3 files deleted, 6 pruned; mobile tsc green, zero residue) — on-device UI confirmed 2026-06-28 (`05-HUMAN-UAT.md`). CLEAN-02 purged residual `apps/web-portal` refs from 7 agent docs (zero live imports; web-portal-v2 + provenance preserved; CLAUDE.md DishKind line deferred to Phase 6). CLEAN-03 corrected the `enrich-dish` header (deno check green). No renumber; 21 requirements / 10 phases intact.*

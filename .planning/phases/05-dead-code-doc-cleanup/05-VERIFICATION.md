@@ -1,21 +1,22 @@
 ---
 phase: 05-dead-code-doc-cleanup
 verified: 2026-06-20T00:00:00Z
-status: human_needed
+status: passed
 score: 3/3
-behavior_unverified: 1
+behavior_unverified: 0
 overrides_applied: 0
 human_verification:
   - test: "On a physical device, open the map, open the daily-filter modal, and confirm the `🏪 Places`/view-mode toggle is gone; then tap a dish marker (opens that dish's restaurant) and tap a footer dish card (opens the restaurant with the dish featured)."
     expected: "The daily-filter modal renders correctly with no Places/view-mode toggle and no layout gap; dish markers and dish-card navigation still work exactly as before."
     why_human: "CLEAN-01 is the only behavior change in the phase and is UI-visible. There is no emulator in the agent loop (operator builds apps/mobile on a physical phone — see project memory mobile_visual_testing_on_device). Build/type correctness IS verified (tsc green, zero residue); only the runtime UI behavior needs an operator eye."
+    result: "PASS — operator-confirmed on-device 2026-06-28"
 ---
 
 # Phase 5: Dead Code & Doc Cleanup — Verification Report
 
 **Phase Goal:** Reachable-only-programmatically dead code is removed and stale references to deleted/abandoned concepts no longer mislead readers or complicate the upcoming map refactor.
 **Verified:** 2026-06-20 (inline — gsd-verifier subagent unavailable due to an active session limit; orchestrator performed goal-backward verification directly)
-**Status:** human_needed (all automated checks PASS; 1 operator on-device behavioral check outstanding — consistent with the Phase 4 pattern)
+**Status:** PASSED (all automated checks PASS; the 1 operator on-device behavioral check was operator-confirmed on 2026-06-28)
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -28,13 +29,13 @@ human_verification:
 | 2 | SC#2 — `apps/web-portal` deletion verified clean vs workspace; residual doc refs removed from the named docs (+3 more, D-04) | VERIFIED | `grep -rn "from '...apps/web-portal" apps packages infra \| grep -v web-portal-v2` → ZERO live imports (build-clean evidence, D-10; deletion already committed `c1a7e3f`). All 7 target docs: `grep -c "apps/web-portal/"` → 0. CLAUDE.md residual = only the deferred DishKind-shim line (`DISH_KIND_META`, Phase 6 / D-07). web-portal-v2 preserved (PROMPT.md: 9 refs). D-05 provenance refs untouched. Commit `a5202a2`. |
 | 3 | SC#3 — `enrich-dish` header corrected (drop ingredient/parent-dish), preserving migration-151 trigger language | VERIFIED | Header lines 8–21: `ingredient\|parent\|variant` count = 0; `option_group` present (1); `_trg_after_dish_embedded` centroid line present (1); load line now `Load dish + option groups + restaurant cuisine` (matches actual logic, lines 135–164 / F-06). `~/.deno/bin/deno check` → EXIT 0. No runtime code changed. Commit `58493f0`. |
 
-**Score:** 3/3 success criteria fully verified by automated checks. 1 operator on-device behavioral confirmation outstanding (CLEAN-01 — see human_verification).
+**Score:** 3/3 success criteria fully verified by automated checks. The operator on-device behavioral confirmation (CLEAN-01) passed 2026-06-28 (see human_verification).
 
 ### Requirement Traceability
 
 | REQ-ID | Plan | Status | Evidence |
 |--------|------|--------|----------|
-| CLEAN-01 | 05-01 | DELIVERED (build/type-verified; on-device pending) | Truth #1 |
+| CLEAN-01 | 05-01 | VERIFIED (build/type-verified + on-device confirmed 2026-06-28) | Truth #1 |
 | CLEAN-02 | 05-02 | DELIVERED | Truth #2 |
 | CLEAN-03 | 05-03 | DELIVERED | Truth #3 |
 

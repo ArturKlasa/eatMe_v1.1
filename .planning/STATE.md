@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-18)
 Phase: 10
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-06-27 - Completed quick task 260627-ud6: proactive branch copy-menu suggestion #1 (trigram-ranked sucursales in empty-menu section); closes all 5 original operator issues
+Last activity: 2026-06-28 - Completed quick task 260628-dvt: deleted dead code (token CSS generator, getWebClient, shared isAdmin + isDiscoverable, fromSupabase)
 
 Progress (milestone): [██████░░░░] 60% (6/10 phases)
 
@@ -138,6 +138,7 @@ None yet.
 | 260627-fpk | Menu-scan worker: drop placeholder-word descriptions (#3) + keep portion box when size is mid-description (#5) | 2026-06-27 | 0957a2a | [260627-fpk-fix-menu-scan-worker-text-cleanup-placeh](./quick/260627-fpk-fix-menu-scan-worker-text-cleanup-placeh/) |
 | 260627-s5x | Sized-dish pricing (#4): scan backstop → final prices + 'from' base; mobile/admin display fallback for existing dishes | 2026-06-27 | cd9feee | [260627-s5x-fix-4-sized-dish-pricing-scan-backstop-r](./quick/260627-s5x-fix-4-sized-dish-pricing-scan-backstop-r/) |
 | 260627-ud6 | Proactive branch copy-menu suggestion (#1): trigram-ranked sucursales in the empty-menu section; one-tap copy, dismissible | 2026-06-27 | 9da6190 | [260627-ud6-branch-copy-menu-suggestion](./quick/260627-ud6-branch-copy-menu-suggestion/) |
+| 260628-dvt | Delete dead code (5 findings): token CSS generator, getWebClient, shared isAdmin + isDiscoverable, fromSupabase — all grep-verified dead, no behavior change | 2026-06-28 | 3d015d5 | [260628-dvt-delete-dead-code-token-css-generator-get](./quick/260628-dvt-delete-dead-code-token-css-generator-get/) |
 
 ## Deferred Items
 

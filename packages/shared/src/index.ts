@@ -6,3 +6,4 @@ export * from './logic/discoverability';
 export * from './logic/role';
 export * from './logic/locale';
 export * from './logic/currency';
+export * from './logic/pricing';

@@ -11,13 +11,6 @@
  * (e.g. process.env[`NEXT_PUBLIC_${key}`]) evaluates to undefined at runtime.
  * Each app must read its own env vars with literal keys and pass them in.
  *
- * Usage — web portal (Next.js):
- *   import { getWebClient } from '@eatme/database';
- *   export const supabase = getWebClient(
- *     process.env.NEXT_PUBLIC_SUPABASE_URL!,
- *     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
- *   );
- *
  * Usage — mobile (Expo / React Native):
  *   import { getMobileClient } from '@eatme/database';
  *   import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,37 +23,6 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
-
-/**
- * @deprecated The web portal has migrated to `createBrowserClient` from
- * `@supabase/ssr` (cookie-based PKCE session for SSR proxy compatibility).
- * This function is no longer used by any consumer in the monorepo.
- *
- * For web (Next.js):
- *   import { createBrowserClient } from '@supabase/ssr';
- *   export const supabase = createBrowserClient<Database>(url, anonKey);
- *
- * For mobile (Expo / React Native), use `getMobileClient` below instead.
- *
- * NOTE: The web portal no longer uses this — it uses createBrowserClient() from
- * @supabase/ssr directly so the session lives in cookies and the proxy can read it.
- * This function remains for mobile where cookie-based sessions aren't applicable.
- */
-export function getWebClient(url: string, anonKey: string): SupabaseClient<Database> {
-  if (!url || !anonKey) {
-    throw new Error(
-      '[eatme/database] getWebClient: url and anonKey are required. ' +
-        'Pass process.env.NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
-    );
-  }
-  return createClient<Database>(url, anonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
-}
 
 /**
  * Create a typed Supabase client configured for **React Native / Expo**.

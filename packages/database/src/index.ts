@@ -9,7 +9,7 @@
  */
 
 // Client factories
-export { getWebClient, getMobileClient } from './client';
+export { getMobileClient } from './client';
 
 // Generated database types (from: supabase gen types typescript --project-id <id>)
 export type { Database, Json } from './types';

@@ -18,7 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
-import { GoogleIcon, FacebookIcon } from '../../components/icons';
+import { GoogleIcon } from '../../components/icons/GoogleIcon';
+import { FacebookIcon } from '../../components/icons/FacebookIcon';
 import { AuthLanguageSelector } from '../../components/auth';
 
 type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;

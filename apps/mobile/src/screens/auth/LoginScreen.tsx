@@ -18,7 +18,8 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import type { AuthStackParamList } from '../../types/navigation';
-import { GoogleIcon, FacebookIcon } from '../../components/icons';
+import { GoogleIcon } from '../../components/icons/GoogleIcon';
+import { FacebookIcon } from '../../components/icons/FacebookIcon';
 import { AuthLanguageSelector } from '../../components/auth';
 import { getSupportedLanguages, changeLanguage } from '../../i18n';
 

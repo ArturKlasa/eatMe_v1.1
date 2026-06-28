@@ -17,7 +17,7 @@ import { DishMarkers } from '../../components/map/DishMarkers';
 import { MapControls } from '../../components/map/MapControls';
 import { MapFooter } from '../../components/map/MapFooter';
 import { FloatingMenu } from '../../components/FloatingMenu';
-import { RatingFlowModal } from '../../components/rating';
+import { RatingFlowModal } from '../../components/rating/RatingFlowModal';
 import { ProfileCompletionBanner } from '../../components/ProfileCompletionBanner';
 import { useAuthStore } from '../../stores/authStore';
 import { useOnboardingStore } from '../../stores/onboardingStore';

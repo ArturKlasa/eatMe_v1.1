@@ -1689,3 +1689,188 @@ Deno.test('cuisine self-heal: non-empty restaurant cuisine is never overwritten'
   assertEquals(result.processed, ['job-cuisine-skip']);
   assertEquals(updates.length, 0); // skipped — never overwrites
 });
+
+// ── Size-pricing backstop (operator issue #4) ────────────────────────────────
+
+Deno.test(
+  'size pricing (#4): base-less single-select delta group → overrides + "from" price',
+  async () => {
+    // "Pizza — Chica $90 / Mediana $120 / Grande $150", no standalone base. The
+    // model returns price=null with the sizes as +deltas; the backstop turns them
+    // into final prices and sets a "from" card price.
+    const dish = makeFixtureDish({
+      name: 'Pizza Margherita',
+      price: null,
+      dish_kind: 'standard',
+      modifier_groups: [
+        {
+          name: 'Tamaño',
+          selection_type: 'single',
+          min_selections: 1,
+          max_selections: 1,
+          display_in_card: false,
+          options: [
+            {
+              name: 'Chica',
+              price_delta: 90,
+              price_override: null,
+              primary_protein: null,
+              serves_delta: 0,
+              is_default: true,
+            },
+            {
+              name: 'Mediana',
+              price_delta: 120,
+              price_override: null,
+              primary_protein: null,
+              serves_delta: 0,
+              is_default: false,
+            },
+            {
+              name: 'Grande',
+              price_delta: 150,
+              price_override: null,
+              primary_protein: null,
+              serves_delta: 0,
+              is_default: false,
+            },
+          ],
+        },
+      ],
+    });
+    const captured = await runFixture(dish);
+    assertEquals(captured.price, 90); // cheapest size = "from" price
+    assertEquals(captured.display_price_prefix, 'from');
+    const opts = captured.modifier_groups[0].options as ModOption[];
+    assertEquals(
+      opts.map(o => o.price_override),
+      [90, 120, 150]
+    ); // now final prices
+    assertEquals(
+      opts.every(o => o.price_delta === 0),
+      true
+    );
+  }
+);
+
+Deno.test('size pricing (#4): based-price dish with a protein upgrade is untouched', async () => {
+  const dish = makeFixtureDish({
+    name: 'Pad Thai',
+    price: 14,
+    dish_kind: 'standard',
+    modifier_groups: [
+      {
+        name: 'Protein',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: true,
+        options: [
+          {
+            name: 'Chicken',
+            price_delta: 0,
+            price_override: null,
+            primary_protein: 'chicken',
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: 'Shrimp',
+            price_delta: 3,
+            price_override: null,
+            primary_protein: 'shellfish',
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.price, 14); // base price unchanged
+  assertEquals(captured.display_price_prefix, undefined); // backstop didn't fire
+  const opts = captured.modifier_groups[0].options as ModOption[];
+  assertEquals(opts[1].price_delta, 3); // still a surcharge, not converted
+  assertEquals(opts[1].price_override, null);
+});
+
+Deno.test('size pricing (#4): an existing override-quantity group is left untouched', async () => {
+  // "6 wings $25 / 12 wings $45" already arrives as price_override — the delta-
+  // only backstop must not touch it (display helper still shows "from $25").
+  const dish = makeFixtureDish({
+    name: 'Wings',
+    price: null,
+    dish_kind: 'standard',
+    modifier_groups: [
+      {
+        name: 'Quantity',
+        selection_type: 'single',
+        min_selections: 1,
+        max_selections: 1,
+        display_in_card: false,
+        options: [
+          {
+            name: '6 wings',
+            price_delta: 0,
+            price_override: 25,
+            primary_protein: null,
+            serves_delta: 0,
+            is_default: true,
+          },
+          {
+            name: '12 wings',
+            price_delta: 0,
+            price_override: 45,
+            primary_protein: null,
+            serves_delta: 0,
+            is_default: false,
+          },
+        ],
+      },
+    ],
+  });
+  const captured = await runFixture(dish);
+  assertEquals(captured.price, null); // not converted
+  assertEquals(captured.display_price_prefix, undefined);
+});
+
+Deno.test(
+  'size pricing (#4): a group with an included (0-delta) option is left untouched',
+  async () => {
+    const dish = makeFixtureDish({
+      name: 'Coffee',
+      price: null,
+      dish_kind: 'standard',
+      modifier_groups: [
+        {
+          name: 'Size',
+          selection_type: 'single',
+          min_selections: 1,
+          max_selections: 1,
+          display_in_card: false,
+          options: [
+            {
+              name: 'Regular',
+              price_delta: 0,
+              price_override: null,
+              primary_protein: null,
+              serves_delta: 0,
+              is_default: true,
+            },
+            {
+              name: 'Large',
+              price_delta: 15,
+              price_override: null,
+              primary_protein: null,
+              serves_delta: 0,
+              is_default: false,
+            },
+          ],
+        },
+      ],
+    });
+    const captured = await runFixture(dish);
+    assertEquals(captured.price, null); // ambiguous (0-delta base) → not converted
+    assertEquals(captured.display_price_prefix, undefined);
+  }
+);

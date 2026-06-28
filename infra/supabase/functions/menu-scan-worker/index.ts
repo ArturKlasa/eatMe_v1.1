@@ -701,6 +701,48 @@ function normalizeModifierPriceOverrides(dishes: MenuExtractionResult['dishes'])
   }
 }
 
+// A scanned dish plus the one field the size-pricing backstop sets but the model
+// never emits (it isn't in menuExtractionDishSchema). It rides along in
+// result_json and is read by the admin review (reviewHelpers: `d
+// .display_price_prefix ?? 'exact'`) → confirm → dishes.display_price_prefix.
+type ScannedDish = MenuExtractionResult['dishes'][number] & {
+  display_price_prefix?: 'from';
+};
+
+// Deterministic backstop for the size-priced-dish bug (operator issue #4): when a
+// menu prints only per-size prices ("Chica $90 / Mediana $120 / Grande $150")
+// with no standalone base, the dish comes back price=null with the sizes as
+// positive price_delta surcharges — so the card shows "—" and the sizes show as
+// "+$90" instead of final prices. When a dish has NO base price and EXACTLY ONE
+// required single-select group whose options are all positive deltas (no
+// override), treat those deltas as the sizes' absolute prices: convert
+// delta→price_override, set the dish price to the cheapest, and flag
+// display_price_prefix='from' so the card reads "from $90". Conservative — a
+// based-price dish, an optional group (min 0), an existing override-quantity
+// group ("12 wings $45"), or an ambiguous multi-qualifying-group dish is left
+// untouched for the operator to resolve in review.
+function deriveSizeGroupPricing(dishes: ScannedDish[]): void {
+  for (const d of dishes) {
+    if (d.price != null) continue;
+    const groups = d.modifier_groups ?? [];
+    const qualifying = groups.filter(
+      g =>
+        g.selection_type === 'single' &&
+        g.min_selections >= 1 &&
+        (g.options?.length ?? 0) >= 2 &&
+        (g.options ?? []).every(o => o.price_override == null && o.price_delta > 0)
+    );
+    if (qualifying.length !== 1) continue;
+    const group = qualifying[0];
+    for (const o of group.options) {
+      o.price_override = o.price_delta;
+      o.price_delta = 0;
+    }
+    d.price = Math.min(...group.options.map(o => o.price_override as number));
+    d.display_price_prefix = 'from';
+  }
+}
+
 // Escape a string for safe literal use inside a RegExp.
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -806,7 +848,7 @@ async function runExtraction(
     )
   );
 
-  const dishes: MenuExtractionResult['dishes'] = [];
+  const dishes: ScannedDish[] = [];
   let detectedLanguage: string | null = null;
   // Cuisine is a whole-restaurant property taken from page 1 only — the only
   // page given the cuisine-inference instruction (see buildExtractionPrompt's
@@ -883,6 +925,12 @@ async function runExtraction(
   // Zero-override backstop: the prompt says "null, NEVER 0" but the model
   // reliably fills 0 anyway — collapse it before the result is stored.
   normalizeModifierPriceOverrides(dishes);
+
+  // Size-pricing backstop (operator issue #4): turn a base-less per-size delta
+  // group into final prices + a "from" card price. Runs AFTER the zero-override
+  // collapse so a model-emitted 0 override doesn't block the all-positive-delta
+  // check.
+  deriveSizeGroupPricing(dishes);
 
   return {
     dishes,

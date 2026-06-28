@@ -200,7 +200,7 @@ Update or remove references in `docs/project/`:
 | `docs/project/01-project-overview.md`           | Remove "swipe" from the platform description; update preference vector description to say it is driven by explicit ratings/saves.                                                                           |
 | `.github/copilot-instructions.md`               | Update the platform description (line 5) to remove "swipe-based preference learning".                                                                                                                       |
 
-Planning docs (`.ppd-docs/`) can be left as historical reference or archived — they do not affect the running system.
+Planning docs (`.ppd-docs/`) were deleted in the 2026-06-28 over-engineering cleanup — nothing to update here.
 
 ---
 

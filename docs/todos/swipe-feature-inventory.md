@@ -261,11 +261,9 @@ These are planning/notes files. They do not affect the running system but may be
 
 | File                                            | Section                                                  |
 | ----------------------------------------------- | -------------------------------------------------------- |
-| `.ppd-docs/tasks-new/phase-1-detailed-tasks.md` | §1.6 "Swipe Recommendation Flow" — implementation tasks  |
-| `.ppd-docs/prompt-plan.md`                      | §1.6 "Swipe Recommendation Flow" — plan                  |
-| `.ppd-docs/architecture.md`                     | Line 85 — "Swipe Flow" in architecture description       |
-| `.ppd-docs/project.md`                          | Lines 99–102, 205, 207, 243 — swipe analysis and metrics |
-| `README_eatme.md`                               | Line 94 — "Swipe Interface" in feature list              |
 | `.github/copilot-instructions.md`               | Line 5, 314 — describes platform as "swipe-based"        |
-| `PROMPT.md`                                     | Line 11, 13 — project description                        |
-| `INTEGRATION_COMPLETE_SUMMARY.md`               | Various — historical integration notes                   |
+| `apps/web-portal-v2/PROMPT.md`                  | Line 11, 13 — project description                        |
+
+> Note: the `.ppd-docs/*`, `README_eatme.md`, and `INTEGRATION_COMPLETE_SUMMARY.md`
+> rows were dropped here when those files were deleted in the 2026-06-28
+> over-engineering cleanup; `PROMPT.md` moved to `apps/web-portal-v2/`.

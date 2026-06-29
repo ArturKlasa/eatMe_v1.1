@@ -2,14 +2,8 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const APPROVED_WRAPPERS = new Set([
-  'withAuth',
-  'withAdminAuth',
-  'withPublic',
-  'withAuthRoute',
-  'withAdminAuthRoute',
-  'withPublicRoute',
-]);
+// Admin is an admin-only surface: every action/route must be admin-gated.
+const APPROVED_WRAPPERS = new Set(['withAdminAuth', 'withAdminAuthRoute']);
 
 type Status = 'OK' | 'MISSING' | 'WRONG_TYPE';
 

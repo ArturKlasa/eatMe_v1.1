@@ -13,19 +13,6 @@ export type AuthCtx = {
   supabase: SupabaseClient;
 };
 
-export function withAuth<Args extends unknown[], R>(
-  handler: (ctx: AuthCtx, ...args: Args) => Promise<ActionResult<R>>
-): (...args: Args) => Promise<ActionResult<R>> {
-  return async (...args) => {
-    const supabase = await createServerActionClient();
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      return { ok: false, formError: 'UNAUTHENTICATED' };
-    }
-    return handler({ user: data.user, userId: data.user.id, supabase }, ...args);
-  };
-}
-
 export function withAdminAuth<Args extends unknown[], R>(
   handler: (ctx: AuthCtx, ...args: Args) => Promise<ActionResult<R>>
 ): (...args: Args) => Promise<ActionResult<R>> {
@@ -37,14 +24,5 @@ export function withAdminAuth<Args extends unknown[], R>(
       return { ok: false, formError: 'FORBIDDEN' };
     }
     return handler({ user: data.user, userId: data.user.id, supabase }, ...args);
-  };
-}
-
-export function withPublic<Args extends unknown[], R>(
-  handler: (ctx: { supabase: SupabaseClient }, ...args: Args) => Promise<ActionResult<R>>
-): (...args: Args) => Promise<ActionResult<R>> {
-  return async (...args) => {
-    const supabase = await createServerActionClient();
-    return handler({ supabase }, ...args);
   };
 }

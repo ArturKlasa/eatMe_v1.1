@@ -10,25 +10,6 @@ type RouteHandler<Params> = (
   routeParams: { params: Promise<Params> }
 ) => Promise<Response>;
 
-type PublicRouteHandler<Params> = (
-  ctx: { supabase: RouteHandlerClient },
-  req: NextRequest,
-  routeParams: { params: Promise<Params> }
-) => Promise<Response>;
-
-export function withAuthRoute<Params = Record<string, string>>(
-  handler: RouteHandler<Params>
-): (req: NextRequest, routeParams: { params: Promise<Params> }) => Promise<Response> {
-  return async (req, routeParams) => {
-    const supabase = await createRouteHandlerClient();
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      return NextResponse.json({ error: 'UNAUTHENTICATED' }, { status: 401 });
-    }
-    return handler({ user: data.user, userId: data.user.id, supabase }, req, routeParams);
-  };
-}
-
 export function withAdminAuthRoute<Params = Record<string, string>>(
   handler: RouteHandler<Params>
 ): (req: NextRequest, routeParams: { params: Promise<Params> }) => Promise<Response> {
@@ -42,14 +23,5 @@ export function withAdminAuthRoute<Params = Record<string, string>>(
       return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
     }
     return handler({ user: data.user, userId: data.user.id, supabase }, req, routeParams);
-  };
-}
-
-export function withPublicRoute<Params = Record<string, string>>(
-  handler: PublicRouteHandler<Params>
-): (req: NextRequest, routeParams: { params: Promise<Params> }) => Promise<Response> {
-  return async (req, routeParams) => {
-    const supabase = await createRouteHandlerClient();
-    return handler({ supabase }, req, routeParams);
   };
 }

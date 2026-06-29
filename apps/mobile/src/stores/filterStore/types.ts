@@ -90,23 +90,6 @@ export interface PermanentFilters {
     noEggs: boolean;
     noSpicy: boolean;
   };
-
-  defaultPriceRange: {
-    min: number;
-    max: number;
-  };
-  cuisinePreferences: string[];
-  defaultNutrition: {
-    maxCalories: number;
-    lowSodium: boolean;
-    highProtein: boolean;
-    enabled: boolean;
-  };
-  notifications: {
-    dailyMenuAlerts: boolean;
-    nearbyPromos: boolean;
-    newRestaurants: boolean;
-  };
 }
 
 // Combined filter state
@@ -139,10 +122,6 @@ export interface FilterActions {
   // Permanent filter actions
   setPermanentDietPreference: (preference: PermanentFilters['dietPreference']) => void;
   toggleExclude: (exclusion: keyof PermanentFilters['exclude']) => void;
-  setPermanentPriceRange: (min: number, max: number) => void;
-  setCuisinePreferences: (cuisines: string[]) => void;
-  setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => void;
-  toggleNotification: (notification: keyof PermanentFilters['notifications']) => void;
 
   // Preset actions
   applyPreset: (preset: string) => void;

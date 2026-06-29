@@ -105,11 +105,6 @@ export const createSelectorsSlice = (set: Set, get: Get) => ({
       count++;
     }
 
-    // Check default nutrition
-    if (state.permanent.defaultNutrition.enabled) {
-      count++;
-    }
-
     return count;
   },
 

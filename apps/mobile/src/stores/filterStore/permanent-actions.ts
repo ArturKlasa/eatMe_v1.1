@@ -31,52 +31,6 @@ export const createPermanentActionsSlice = (set: Set, get: Get) => ({
     get().savePermanentFilters();
   },
 
-  setPermanentPriceRange: (min: number, max: number) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        defaultPriceRange: { min, max },
-      },
-    }));
-    get().saveFilters();
-  },
-
-  setCuisinePreferences: (cuisines: string[]) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        cuisinePreferences: cuisines,
-      },
-    }));
-    get().saveFilters();
-  },
-
-  setDefaultNutrition: (nutrition: Partial<PermanentFilters['defaultNutrition']>) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        defaultNutrition: {
-          ...state.permanent.defaultNutrition,
-          ...nutrition,
-        },
-      },
-    }));
-    get().saveFilters();
-  },
-
-  toggleNotification: (notification: keyof PermanentFilters['notifications']) => {
-    set(state => ({
-      permanent: {
-        ...state.permanent,
-        notifications: {
-          ...state.permanent.notifications,
-          [notification]: !state.permanent.notifications[notification],
-        },
-      },
-    }));
-    get().saveFilters();
-  },
-
   resetPermanentFilters: () => {
     set(state => ({
       permanent: { ...defaultPermanentFilters },

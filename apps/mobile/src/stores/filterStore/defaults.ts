@@ -62,22 +62,6 @@ export const defaultPermanentFilters: PermanentFilters = {
     noEggs: false,
     noSpicy: false,
   },
-  defaultPriceRange: {
-    min: 10,
-    max: 50,
-  },
-  cuisinePreferences: [],
-  defaultNutrition: {
-    maxCalories: 2000,
-    lowSodium: false,
-    highProtein: false,
-    enabled: false,
-  },
-  notifications: {
-    dailyMenuAlerts: true,
-    nearbyPromos: true,
-    newRestaurants: false,
-  },
 };
 
 // Default filter state

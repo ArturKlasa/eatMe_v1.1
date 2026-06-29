@@ -1,8 +1,9 @@
 /**
- * Result<T> — canonical return type for service functions (A9)
+ * Result<T> — discriminated success/error return type for service functions.
  *
- * All new mobile service functions should return Result<T> so callers can
- * handle success/error in a uniform, type-safe way without catching exceptions.
+ * Used where a service returns Result<T> so callers handle success/error in a
+ * type-safe way without catching exceptions. Opt-in per service, not universal
+ * (currently userPreferencesService + favoritesService).
  *
  * Usage:
  *   async function getUser(id: string): Promise<Result<User>> {

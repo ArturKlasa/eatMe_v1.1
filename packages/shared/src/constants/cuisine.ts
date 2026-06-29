@@ -86,9 +86,6 @@ export const ALL_CUISINES = [
   'Other',
 ] as const;
 
-/** Backward-compatible alias — web-portal code imports CUISINES. */
-export const CUISINES = ALL_CUISINES;
-
 /**
  * Folds a cuisine string for accent/case-insensitive matching:
  * "CAFÉ" / "café " → "cafe".

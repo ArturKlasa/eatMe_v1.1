@@ -1,9 +1,6 @@
 export {
   basicInfoSchema,
   operationsSchema,
-  dishSchema,
-  menuSchema,
-  restaurantDataSchema,
   restaurantBasicsSchema,
   restaurantDraftSchema,
   restaurantPublishableSchema,
@@ -14,9 +11,6 @@ export {
 export type {
   BasicInfoFormData,
   OperationsFormData,
-  DishFormData,
-  MenuFormData,
-  RestaurantDataFormData,
   RestaurantBasicsInput,
   RestaurantDraftFormData,
   RestaurantPublishableFormData,

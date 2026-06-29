@@ -1,39 +1,37 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-current_phase: 10
-current_phase_name: admin-editor-refactor
-status: milestone_complete
+milestone_name: Hardening
+current_phase: 0
+status: Awaiting next milestone
 stopped_at: Phase 10 context gathered
-last_updated: "2026-06-24T11:18:32.618Z"
-last_activity: 2026-06-24
-last_activity_desc: Phase 10 execution started
+last_updated: "2026-06-29T00:06:05.307Z"
+last_activity: 2026-06-29
+last_activity_desc: Milestone v1.0 completed and archived
 progress:
   total_phases: 10
   completed_phases: 10
   total_plans: 32
-  completed_plans: 31
+  completed_plans: 32
   percent: 100
+current_phase_name: admin-editor-refactor
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-18)
+See: .planning/PROJECT.md (updated 2026-06-28 after v1.0 close)
 
 **Core value:** Documented CONCERNS.md concerns are fixed or have a verified, deliberate disposition — with zero regression to the live mobile discovery experience.
-**Current focus:** Phase 10 — admin-editor-refactor
+**Current focus:** Planning next milestone — run `/gsd-new-milestone` (carried-forward candidates: PERF-V2-01, PERF-V2-02, QUAL-V2-01, QUAL-V2-02)
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-28 - Completed quick task 260628-fsx: over-engineering cleanup (7 verified ponytail-audit items — orphan manifest, stdlib sleep, dead setting, shared util, dead barrels, stale docs, retired ralph scaffolding)
-
-Progress (milestone): [██████████] 100% (10/10 phases)
+Phase: Milestone v1.0 (Hardening) complete — archived to `milestones/v1.0-*`
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-28 — Milestone v1.0 completed and archived (override_closeout; 5 deferred items)
 
 ## Performance Metrics
 
@@ -144,11 +142,22 @@ None yet.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and deferred at v1.0 (Hardening) milestone close on 2026-06-28.
+All five are operator-confirmation artifacts, not functional gaps (see notes):
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| debug | publish-statement-timeout | fix-applied | 2026-06-28 |
+| uat | Phase 04 — 04-HUMAN-UAT.md (1 pending) | partial | 2026-06-28 |
+| uat | Phase 07 — 07-HUMAN-UAT.md (3 pending) | partial | 2026-06-28 |
+| verification | Phase 04 — 04-VERIFICATION.md | human_needed | 2026-06-28 |
+| verification | Phase 07 — 07-VERIFICATION.md | human_needed | 2026-06-28 |
+
+**Notes:**
+
+- `publish-statement-timeout`: root cause was the per-row `invalidate-cache` trigger (mig 176) fanning out vault-decrypt + `net.http_post`. Quick task 260627-cfb removed the invalidate-cache subsystem entirely (feed cache → TTL-only), deleting that trigger — almost certainly resolved; wants a large-publish re-test to formally close.
+- Phase 04 verification/UAT: SC#4 = operator smoke-test of edge functions on the live Deno Deploy runtime. Codebase half VERIFIED (deno check + tests pass); only the live-deploy confirmation is unpersisted (stage-don't-apply, operator-gated by design).
+- Phase 07 verification/UAT: operator applied migrations 175+176 to prod and confirmed the trigger catalog + smoke-200 + pre-cap (07-05 SUMMARY); VERIFICATION truths 1,2,3,5,6 all VERIFIED. `human_needed` only because the verbal prod-apply confirmation isn't persisted as a machine-readable artifact.
 
 ## Session Continuity
 
@@ -163,3 +172,7 @@ Resume file: --resume-file
 **Planned Phase:** 10 (admin-editor-refactor) — 3 plans — 2026-06-24T04:13:51.825Z
 
 **Phase 7 outcome (07-05):** operator applied migrations 175 + 176 direct-to-prod (no branch available; zero users + schema-only/transactional/reversible/fail-soft = safe). PERF-03 SC#4 CONFIRMED (9-row trigger catalog + smoke 200, no old webhook → no double-flush); PERF-02 SC#3 CONFIRMED (pre-cap K=8). **iterative_scan GUC DROPPED → PERF-01 SC#2 DEFERRED** (live latency validation rejected it at the 2.5km production tier; PERF-01 still delivered via SC#1 tiered-radius loop). Two in-flight 175 fixes: 42501→runtime `set_config` (36f51cf), drop GUC keep pre-cap (40aa09d). Runbook authored 46c7888/af8667c. Revisit iterative_scan + feed latency with real traffic. Summary: `.planning/phases/07-performance-cache/07-05-SUMMARY.md`.
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

@@ -140,6 +140,7 @@ None yet.
 | fast | Working-tree housekeeping: commit estimate-scan-hours tool (A), remove completed phase6 migration scripts (B), gitignore supabase CLI .temp scratch (C) | 2026-06-28 | 8c97b2c | — (gsd-fast, 3 commits 2402b8c..8c97b2c) |
 | 260628-fsx | Over-engineering cleanup (verified ponytail-audit, 7 items): orphan docs/package.json, stdlib sleep ×6, dead analyticsEnabled, shared toLocaleKey util, 5 dead component barrels, stale root docs + v2 PROMPT relocate, retired ralph scaffolding | 2026-06-28 | 89d5620..e952e3c | [260628-fsx-over-engineering-cleanup](./quick/260628-fsx-over-engineering-cleanup/) |
 | 260628-vcd | Delete dead/duplicate code (audit items 1,2,5): dead test-ingredient-resolver.mjs, 4 unused admin auth wrappers (withAuth/withPublic/withAuthRoute/withPublicRoute) + tests + allowlist, duplicate web-portal-v2 root proxy.ts | 2026-06-29 | c0d3fbc | [260628-vcd-items-1-2-5-delete-dead-and-duplicate-co](./quick/260628-vcd-items-1-2-5-delete-dead-and-duplicate-co/) |
+| 260628-vvi | Delete dead code (ponytail-audit findings 1,2,3,5): 4 unused mobile PermanentFilters fields + setters + dead count branch, orphan @eatme/shared constants calendar.ts (DAYS_OF_WEEK/DayKey) + wizard.ts (WIZARD_STEPS), empty scripts/ dir — 113 deletions, grep-verified, no behavior change | 2026-06-29 | 8bf0842 | [260628-vvi-delete-dead-code-from-ponytail-audit-dea](./quick/260628-vvi-delete-dead-code-from-ponytail-audit-dea/) |
 
 ## Deferred Items
 
